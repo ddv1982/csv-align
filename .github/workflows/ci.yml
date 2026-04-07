@@ -11,8 +11,32 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  changes:
+    name: Detect changed files
+    runs-on: ubuntu-22.04
+    outputs:
+      run_full_ci: ${{ steps.filter.outputs.run_full_ci }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect code changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            run_full_ci:
+              - '**'
+              - '!**/*.md'
+              - '!LICENSE'
+
   test:
     name: Test
+    needs: changes
+    if: needs.changes.outputs.run_full_ci == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -49,6 +73,8 @@ jobs:
 
   test-frontend:
     name: Test Frontend
+    needs: changes
+    if: needs.changes.outputs.run_full_ci == 'true'
     runs-on: ubuntu-22.04
     
     steps:
@@ -72,7 +98,8 @@ jobs:
 
   build-tauri:
     name: Build Tauri
-    needs: [test, test-frontend]
+    needs: [changes, test, test-frontend]
+    if: needs.changes.outputs.run_full_ci == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
