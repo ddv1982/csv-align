@@ -1,59 +1,96 @@
 # CSV Align - Compare CSV Files
 
-A simple Rust desktop app to compare two CSV files with visual difference highlighting, filtering, and export capabilities.
+A modern application to compare two CSV files with visual difference highlighting, filtering, and export capabilities. Available as both a **web application** and a **native desktop app**.
 
 ## Features
 
-- Load and parse two CSV files
-- Detect and display columns from both files
-- Select key columns for row matching
-- Select comparison columns
-- Auto-suggest column mappings based on name similarity
-- Manual column mapping support
-- Compare rows side by side
-- Show:
+- **Drag-and-drop file upload** with visual feedback
+- **Auto-detect columns** and data types
+- **Auto-suggest column mappings** based on name similarity
+- **Select key columns** for row matching
+- **Select comparison columns** to compare
+- **Compare rows side by side** with results showing:
   - Exact matches
   - Mismatched values (with highlighted differences)
   - Rows missing from left file
   - Rows missing from right file
   - Duplicate keys
-- Summary with counts
-- Filter by result type
-- Export results to CSV
+- **Summary statistics** with match rate progress bar
+- **Filter results** by type
+- **Export results** to CSV
+
+## Download
+
+### Desktop App (Recommended)
+
+Download the native desktop app for your platform:
+
+- **macOS (Apple Silicon)**: `csv-align-macos-arm64.dmg`
+- **macOS (Intel)**: `csv-align-macos-x86_64.dmg`
+- **Linux**: `csv-align-linux-x86_64.AppImage` or `.deb`
+
+Check the [Releases](https://github.com/YOUR_USERNAME/csv-align/releases) page for downloads.
+
+### Web Application
+
+Run the web server locally (see Development section below).
 
 ## Tech Stack
 
-- Rust
-- egui/eframe for UI
-- csv crate for parsing
-- serde for data structures
-- rfd for file dialogs
-- strsim for string similarity
+### Backend (Rust)
+- **Axum** - Modern async web framework
+- **Tokio** - Async runtime
+- **CSV crate** - CSV parsing
+- **Serde** - Data serialization
+- **strsim** - String similarity for column matching
+
+### Frontend (TypeScript)
+- **Vite** - Fast build tool
+- **React** - UI framework
+- **TypeScript** - Type safety
+- **Tailwind CSS** - Utility-first styling
+
+### Desktop App
+- **Tauri** - Lightweight native wrapper (uses system webview)
 
 ## Project Structure
 
 ```
 csv-align/
-├── Cargo.toml
+├── Cargo.toml              # Rust project config
 ├── src/
-│   ├── main.rs           # Application entry point
-│   ├── lib.rs            # Library root
-│   ├── comparison/       # Comparison engine
+│   ├── main.rs             # Web server entry point
+│   ├── lib.rs              # Library root
+│   ├── api/                # Web API handlers
 │   │   ├── mod.rs
-│   │   ├── engine.rs     # Core comparison logic
-│   │   └── mapping.rs    # Column mapping logic
-│   ├── data/             # Data structures and I/O
+│   │   ├── handlers.rs     # HTTP endpoints
+│   │   └── state.rs        # Session state
+│   ├── comparison/         # Comparison engine
 │   │   ├── mod.rs
-│   │   ├── types.rs      # Data types
-│   │   ├── csv_loader.rs # CSV loading
-│   │   └── export.rs     # CSV export
-│   └── ui/               # User interface
+│   │   ├── engine.rs       # Core comparison logic
+│   │   └── mapping.rs      # Column mapping logic
+│   └── data/               # Data structures and I/O
 │       ├── mod.rs
-│       ├── app.rs        # Main application
-│       ├── config_panel.rs
-│       ├── results_panel.rs
-│       └── export_dialog.rs
-└── samples/              # Sample CSV files
+│       ├── types.rs        # Data types
+│       ├── csv_loader.rs   # CSV loading
+│       └── export.rs       # CSV export
+├── src-tauri/              # Tauri desktop app wrapper
+│   ├── Cargo.toml
+│   ├── tauri.conf.json
+│   └── src/main.rs
+├── frontend/               # React frontend
+│   ├── package.json
+│   ├── vite.config.ts
+│   ├── src/
+│   │   ├── App.tsx         # Main app component
+│   │   ├── components/     # UI components
+│   │   ├── services/       # API service (web + Tauri)
+│   │   └── types/          # TypeScript types
+│   └── dist/               # Built frontend
+├── .github/workflows/      # CI/CD workflows
+│   ├── ci.yml              # Test & build
+│   └── release.yml         # Release packaging
+└── samples/                # Sample CSV files
     ├── file_a.csv
     └── file_b.csv
 ```
@@ -63,60 +100,130 @@ csv-align/
 ### Prerequisites
 
 - Rust (1.70 or later)
-- Cargo
+- Node.js (18 or later)
+- npm
 
-### Installation
+### Development - Web Application
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/YOUR_USERNAME/csv-align.git
    cd csv-align
    ```
 
-2. Build the project:
+2. Install frontend dependencies:
    ```bash
-   cargo build --release
+   cd frontend
+   npm install
+   cd ..
    ```
 
-3. Run the application:
+3. Run in development mode:
    ```bash
-   cargo run --release
+   # Terminal 1: Start the Rust backend
+   cargo run
+
+   # Terminal 2: Start the Vite dev server
+   cd frontend && npm run dev
    ```
 
-### Development
+4. Open http://localhost:5173 in your browser
 
-To run in development mode:
+### Development - Desktop App
+
+1. Follow steps 1-2 above
+
+2. Install Tauri CLI:
+   ```bash
+   cargo install tauri-cli --version "^2"
+   ```
+
+3. Run in development mode:
+   ```bash
+   cargo tauri dev
+   ```
+
+### Building for Production
+
+#### Web Application
 ```bash
-cargo run
+cd frontend && npm run build && cd ..
+cargo build --release
+./target/release/csv-align
 ```
 
-To run tests:
+#### Desktop App
 ```bash
-cargo test
+cd frontend && npm run build && cd ..
+cd src-tauri && cargo tauri build
 ```
 
-To check for linting issues:
+The packaged app will be in `src-tauri/target/release/bundle/`.
+
+## CI/CD
+
+This project uses GitHub Actions for continuous integration and delivery:
+
+### CI Workflow (`ci.yml`)
+- Runs on every push and PR to `main`
+- Tests Rust code on Ubuntu and macOS
+- Tests and builds the frontend
+- Builds Tauri apps for all platforms
+
+### Release Workflow (`release.yml`)
+- Triggered by version tags (e.g., `v0.2.0`)
+- Creates a GitHub Release
+- Builds and uploads:
+  - macOS DMG (ARM64 + Intel)
+  - Linux AppImage and .deb
+
+### Creating a Release
+
 ```bash
-cargo clippy
+# Update version in:
+# - Cargo.toml
+# - src-tauri/Cargo.toml  
+# - src-tauri/tauri.conf.json
+# - frontend/package.json
+
+# Commit and tag
+git add -A
+git commit -m "Release v0.2.0"
+git tag v0.2.0
+git push origin main --tags
 ```
+
+The GitHub Actions workflow will automatically build and publish the release.
+
+## API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/health` | GET | Health check |
+| `/api/sessions` | POST | Create a new session |
+| `/api/sessions/:id` | DELETE | Delete a session |
+| `/api/sessions/:id/upload/:letter` | POST | Upload CSV file (a or b) |
+| `/api/sessions/:id/mappings` | POST | Get column mappings |
+| `/api/sessions/:id/compare` | POST | Run comparison |
+| `/api/sessions/:id/export` | GET | Export results as CSV |
 
 ## Usage
 
-1. **Load Files**: Click "Load File A" and "Load File B" to select your CSV files.
+1. **Upload Files**: Drag and drop or click to upload two CSV files.
 
 2. **Configure Comparison**: 
    - Select key columns (used to match rows between files)
    - Select comparison columns (values to compare)
-   - Review and adjust column mappings
+   - Review auto-suggested column mappings
 
 3. **Run Comparison**: Click "Run Comparison" to compare the files.
 
 4. **View Results**:
-   - Results are displayed in a table with color coding
+   - Results are displayed in a color-coded table
    - Use filters to show specific result types
-   - View summary statistics
+   - View summary statistics with match rate
 
-5. **Export**: Click "Export Results" to save the comparison results to a CSV file.
+5. **Export**: Click "Export CSV" to download the comparison results.
 
 ## Sample CSV Files
 
@@ -125,54 +232,18 @@ The `samples/` directory contains example CSV files:
 - `file_a.csv`: Sample data with id, name, email, amount columns
 - `file_b.csv`: Sample data with id, full_name, email_address, value columns (with some differences)
 
-## Comparison Logic
+## Running Tests
 
-The comparison engine:
-1. Maps columns between files based on name similarity
-2. Selects rows by key columns
-3. Compares values in mapped columns
-4. Categorizes results as:
-   - **Match**: All values match
-   - **Mismatch**: Some values differ
-   - **Missing Left**: Row exists only in File B
-   - **Missing Right**: Row exists only in File A
-   - **Duplicate**: Multiple rows with the same key
-
-## Unit Tests
-
-The project includes comprehensive unit tests:
-- CSV loading and parsing
-- Column detection
-- Column mapping (exact and fuzzy matching)
-- Comparison logic (matches, mismatches, missing rows, duplicates)
-- Summary statistics generation
-- CSV export
-
-Run tests with:
 ```bash
+# Rust tests
 cargo test
+
+# Check formatting
+cargo fmt --check
+
+# Run linter
+cargo clippy
 ```
-
-## Architecture Decisions
-
-1. **egui/eframe**: Chosen for its simplicity, Rust-native approach, and cross-platform support.
-
-2. **Modular Structure**: Separated into core engine, data types, and UI for testability and maintainability.
-
-3. **Comparison Engine**: Designed as a library crate with no UI dependencies for easy testing.
-
-4. **String-based Comparison**: Uses string comparison for simplicity; could be enhanced with type-aware comparison.
-
-5. **Fuzzy Matching**: Uses Levenshtein distance for column name matching with a 70% similarity threshold.
-
-## Future Enhancements
-
-- Type-aware comparison (numeric, date, etc.)
-- Performance optimization for large files
-- Advanced filtering options
-- Custom comparison rules
-- Batch processing
-- Command-line interface
 
 ## License
 

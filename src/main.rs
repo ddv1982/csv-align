@@ -1,16 +1,88 @@
-use eframe::egui;
+use axum::{
+    routing::{delete, get, post},
+    Router,
+};
+use tower_http::services::ServeDir;
+use std::net::SocketAddr;
+use std::path::PathBuf;
 
-fn main() -> Result<(), eframe::Error> {
-    env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
+use csv_align::api::{handlers, state::AppState};
 
-    let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([1200.0, 800.0]),
-        ..Default::default()
-    };
+/// Get the path to the frontend dist directory
+fn frontend_dist_path() -> PathBuf {
+    // Look for frontend/dist relative to the executable or current directory
+    let exe_dir = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+        .unwrap_or_default();
+    
+    // Try relative to executable first (for installed apps)
+    let exe_relative = exe_dir.join("frontend").join("dist");
+    if exe_relative.exists() {
+        return exe_relative;
+    }
+    
+    // Try relative to current directory (for development)
+    let cwd_relative = std::env::current_dir()
+        .unwrap_or_default()
+        .join("frontend")
+        .join("dist");
+    if cwd_relative.exists() {
+        return cwd_relative;
+    }
+    
+    // Fallback - just use the relative path
+    PathBuf::from("frontend/dist")
+}
 
-    eframe::run_native(
-        "CSV Align - Compare CSV Files",
-        options,
-        Box::new(|_cc| Box::new(csv_align::ui::app::CsvAlignApp::default())),
-    )
+#[tokio::main]
+async fn main() {
+    // Initialize logging
+    env_logger::init();
+
+    // Create shared state
+    let state = AppState::new();
+
+    // Get frontend dist path
+    let frontend_path = frontend_dist_path();
+    
+    println!("Frontend path: {:?}", frontend_path);
+
+    // Build the API router
+    let api_routes = Router::new()
+        // Health check
+        .route("/api/health", get(handlers::health_check))
+        // Session management
+        .route("/api/sessions", post(handlers::create_session))
+        .route("/api/sessions/:session_id", delete(handlers::delete_session))
+        // CSV upload
+        .route(
+            "/api/sessions/:session_id/upload/:file_letter",
+            post(handlers::upload_csv),
+        )
+        // Column mappings
+        .route(
+            "/api/sessions/:session_id/mappings",
+            post(handlers::suggest_mappings),
+        )
+        // Comparison
+        .route("/api/sessions/:session_id/compare", post(handlers::compare))
+        // Export
+        .route("/api/sessions/:session_id/export", get(handlers::export_csv))
+        .with_state(state);
+
+    // Build the full app with static file serving
+    // API routes take priority, then fall back to static files
+    let app = Router::new()
+        .merge(api_routes)
+        // Serve static files from frontend/dist
+        .fallback_service(ServeDir::new(frontend_path).append_index_html_on_directories(true));
+
+    // Start the server
+    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    println!("CSV Align server listening on http://{}", addr);
+    println!("Open http://{} in your browser to use the app", addr);
+
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }

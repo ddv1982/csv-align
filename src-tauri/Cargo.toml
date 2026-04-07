@@ -1,0 +1,22 @@
+[package]
+name = "csv-align-app"
+version = "0.2.0"
+edition = "2021"
+description = "CSV file comparison desktop application"
+license = "MIT"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.0", features = ["v4"] }
+
+# Import our core library for comparison logic
+csv-align = { path = ".." }
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]

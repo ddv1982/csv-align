@@ -2,7 +2,7 @@ use super::types::{ColumnDataType, ColumnInfo, CsvData};
 use csv::ReaderBuilder;
 use std::error::Error;
 use std::fs::File;
-use std::io::BufReader;
+use std::io::{BufReader, Cursor};
 
 /// Load a CSV file and return structured data
 pub fn load_csv(file_path: &str) -> Result<CsvData, Box<dyn Error>> {
@@ -22,6 +22,27 @@ pub fn load_csv(file_path: &str) -> Result<CsvData, Box<dyn Error>> {
 
     Ok(CsvData {
         file_path: Some(file_path.to_string()),
+        headers,
+        rows,
+    })
+}
+
+/// Load CSV from bytes (for web uploads)
+pub fn load_csv_from_bytes(bytes: &[u8]) -> Result<CsvData, Box<dyn Error>> {
+    let cursor = Cursor::new(bytes);
+    let mut reader = ReaderBuilder::new().has_headers(true).from_reader(cursor);
+
+    let headers: Vec<String> = reader.headers()?.iter().map(|h| h.to_string()).collect();
+
+    let mut rows = Vec::new();
+    for result in reader.records() {
+        let record = result?;
+        let row: Vec<String> = record.iter().map(|field| field.to_string()).collect();
+        rows.push(row);
+    }
+
+    Ok(CsvData {
+        file_path: None,
         headers,
         rows,
     })

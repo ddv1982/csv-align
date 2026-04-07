@@ -1,31 +1,64 @@
-# Rust
+# ===== Rust =====
 /target/
 **/*.rs.bk
+*.pdb
 
-# IDE
+# ===== Tauri =====
+src-tauri/target/
+
+# ===== Node.js / Frontend =====
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# ===== IDE / Editor =====
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
+*.sublime-project
+*.sublime-workspace
 
-# OS
+# ===== OS Generated =====
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
 Thumbs.db
+ehthumbs.db
+Desktop.ini
 
-# Debug
+# ===== Debug / Profiling =====
 *.dSYM/
-
-# Build artifacts
-*.o
-*.so
-*.dylib
-*.dll
-*.exe
-
-# Profiling
 *.prof
 *.profdata
+*.gcda
+*.gcno
+lcov.info
 
-# Flow state
+# ===== Environment Files =====
+.env
+.env.local
+.env.*.local
+
+# ===== Logs =====
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ===== Misc =====
 .flow/
+*.swp
+*.bak
+*.tmp
+*~
+
+# ===== Keep These =====
+# Icons are needed for Tauri builds, so don't ignore:
+# src-tauri/icons/*.png
+# src-tauri/icons/*.icns
+# src-tauri/icons/*.ico
+# src-tauri/icons/*.svg

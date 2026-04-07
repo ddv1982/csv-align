@@ -1,0 +1,393 @@
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::Mutex;
+
+use csv_align::comparison::{engine, mapping};
+use csv_align::data::{csv_loader, types::*};
+
+/// Application state to hold session data
+struct AppState {
+    sessions: Mutex<HashMap<String, SessionData>>,
+}
+
+#[derive(Clone)]
+struct SessionData {
+    csv_a: Option<CsvData>,
+    csv_b: Option<CsvData>,
+    columns_a: Vec<ColumnInfo>,
+    columns_b: Vec<ColumnInfo>,
+    column_mappings: Vec<ColumnMapping>,
+}
+
+impl SessionData {
+    fn new() -> Self {
+        Self {
+            csv_a: None,
+            csv_b: None,
+            columns_a: Vec::new(),
+            columns_b: Vec::new(),
+            column_mappings: Vec::new(),
+        }
+    }
+}
+
+/// Column info for API response
+#[derive(Debug, Clone, Serialize)]
+struct ColumnResponse {
+    index: usize,
+    name: String,
+    data_type: String,
+}
+
+/// Response for CSV upload
+#[derive(Serialize)]
+struct UploadResponse {
+    success: bool,
+    file_letter: String,
+    headers: Vec<String>,
+    columns: Vec<ColumnResponse>,
+    row_count: usize,
+}
+
+/// Column mapping in request
+#[derive(Debug, Clone, Deserialize)]
+struct MappingRequest {
+    file_a_column: String,
+    file_b_column: String,
+    mapping_type: String,
+    similarity: Option<f64>,
+}
+
+/// Request body for comparison
+#[derive(Debug, Deserialize)]
+struct CompareRequest {
+    key_columns_a: Vec<String>,
+    key_columns_b: Vec<String>,
+    comparison_columns_a: Vec<String>,
+    comparison_columns_b: Vec<String>,
+    column_mappings: Vec<MappingRequest>,
+}
+
+/// Single comparison result
+#[derive(Debug, Clone, Serialize)]
+struct ResultResponse {
+    result_type: String,
+    key: Vec<String>,
+    values_a: Vec<String>,
+    values_b: Vec<String>,
+    differences: Vec<DifferenceResponse>,
+}
+
+/// Value difference
+#[derive(Debug, Clone, Serialize)]
+struct DifferenceResponse {
+    column_a: String,
+    column_b: String,
+    value_a: String,
+    value_b: String,
+}
+
+/// Summary statistics
+#[derive(Debug, Clone, Serialize)]
+struct SummaryResponse {
+    total_rows_a: usize,
+    total_rows_b: usize,
+    matches: usize,
+    mismatches: usize,
+    missing_left: usize,
+    missing_right: usize,
+    duplicates_a: usize,
+    duplicates_b: usize,
+}
+
+/// Response for comparison
+#[derive(Serialize)]
+struct CompareResponse {
+    success: bool,
+    results: Vec<ResultResponse>,
+    summary: SummaryResponse,
+}
+
+/// Mapping in response
+#[derive(Debug, Clone, Serialize)]
+struct MappingResponse {
+    file_a_column: String,
+    file_b_column: String,
+    mapping_type: String,
+    similarity: Option<f64>,
+}
+
+/// Response for suggested mappings
+#[derive(Serialize)]
+struct SuggestMappingsResponse {
+    mappings: Vec<MappingResponse>,
+}
+
+/// Request for suggested mappings
+#[derive(Debug, Deserialize)]
+struct SuggestMappingsRequest {
+    columns_a: Vec<String>,
+    columns_b: Vec<String>,
+}
+
+/// Response for session creation
+#[derive(Serialize)]
+struct SessionResponse {
+    session_id: String,
+}
+
+/// Create a new session
+#[tauri::command]
+fn create_session(state: tauri::State<AppState>) -> SessionResponse {
+    let session_id = uuid::Uuid::new_v4().to_string();
+    let mut sessions = state.sessions.lock().unwrap();
+    sessions.insert(session_id.clone(), SessionData::new());
+    SessionResponse { session_id }
+}
+
+/// Upload a CSV file
+#[tauri::command]
+fn upload_csv(
+    state: tauri::State<AppState>,
+    session_id: String,
+    file_letter: String,
+    file_path: String,
+) -> Result<UploadResponse, String> {
+    let mut sessions = state.sessions.lock().unwrap();
+
+    let session_data = sessions
+        .get_mut(&session_id)
+        .ok_or_else(|| "Session not found".to_string())?;
+
+    // Load CSV from file path
+    let csv_data =
+        csv_loader::load_csv(&file_path).map_err(|e| format!("Failed to load CSV: {}", e))?;
+
+    let headers = csv_data.headers.clone();
+    let columns = csv_loader::detect_columns(&csv_data);
+    let row_count = csv_data.rows.len();
+
+    let column_responses: Vec<ColumnResponse> = columns
+        .iter()
+        .map(|c| ColumnResponse {
+            index: c.index,
+            name: c.name.clone(),
+            data_type: format!("{:?}", c.data_type),
+        })
+        .collect();
+
+    if file_letter == "a" {
+        session_data.csv_a = Some(csv_data);
+        session_data.columns_a = columns;
+    } else {
+        session_data.csv_b = Some(csv_data);
+        session_data.columns_b = columns;
+    }
+
+    // Auto-suggest mappings if both files are loaded
+    if session_data.csv_a.is_some() && session_data.csv_b.is_some() {
+        let col_names_a: Vec<String> = session_data
+            .columns_a
+            .iter()
+            .map(|c| c.name.clone())
+            .collect();
+        let col_names_b: Vec<String> = session_data
+            .columns_b
+            .iter()
+            .map(|c| c.name.clone())
+            .collect();
+        session_data.column_mappings = mapping::suggest_mappings(&col_names_a, &col_names_b);
+    }
+
+    Ok(UploadResponse {
+        success: true,
+        file_letter,
+        headers,
+        columns: column_responses,
+        row_count,
+    })
+}
+
+/// Get suggested column mappings
+#[tauri::command]
+fn suggest_mappings(
+    state: tauri::State<AppState>,
+    session_id: String,
+    request: SuggestMappingsRequest,
+) -> Result<SuggestMappingsResponse, String> {
+    let mappings = mapping::suggest_mappings(&request.columns_a, &request.columns_b);
+
+    let mapping_responses: Vec<MappingResponse> = mappings
+        .iter()
+        .map(|m| {
+            let (mapping_type, similarity) = match &m.mapping_type {
+                MappingType::ExactMatch => ("exact".to_string(), None),
+                MappingType::ManualMatch => ("manual".to_string(), None),
+                MappingType::FuzzyMatch(score) => ("fuzzy".to_string(), Some(*score)),
+            };
+            MappingResponse {
+                file_a_column: m.file_a_column.clone(),
+                file_b_column: m.file_b_column.clone(),
+                mapping_type,
+                similarity,
+            }
+        })
+        .collect();
+
+    // Update session with mappings
+    let mut sessions = state.sessions.lock().unwrap();
+    if let Some(session_data) = sessions.get_mut(&session_id) {
+        session_data.column_mappings = mappings;
+    }
+
+    Ok(SuggestMappingsResponse {
+        mappings: mapping_responses,
+    })
+}
+
+/// Run comparison
+#[tauri::command]
+fn compare(
+    state: tauri::State<AppState>,
+    session_id: String,
+    request: CompareRequest,
+) -> Result<CompareResponse, String> {
+    let sessions = state.sessions.lock().unwrap();
+
+    let session_data = sessions
+        .get(&session_id)
+        .ok_or_else(|| "Session not found".to_string())?;
+
+    let csv_a = session_data
+        .csv_a
+        .as_ref()
+        .ok_or_else(|| "File A not uploaded".to_string())?;
+    let csv_b = session_data
+        .csv_b
+        .as_ref()
+        .ok_or_else(|| "File B not uploaded".to_string())?;
+
+    // Build comparison config
+    let column_mappings: Vec<ColumnMapping> = request
+        .column_mappings
+        .iter()
+        .map(|m| {
+            let mapping_type = match m.mapping_type.as_str() {
+                "exact" => MappingType::ExactMatch,
+                "manual" => MappingType::ManualMatch,
+                "fuzzy" => MappingType::FuzzyMatch(m.similarity.unwrap_or(0.0)),
+                _ => MappingType::ManualMatch,
+            };
+            ColumnMapping {
+                file_a_column: m.file_a_column.clone(),
+                file_b_column: m.file_b_column.clone(),
+                mapping_type,
+            }
+        })
+        .collect();
+
+    let config = ComparisonConfig {
+        key_columns_a: request.key_columns_a,
+        key_columns_b: request.key_columns_b,
+        comparison_columns_a: request.comparison_columns_a,
+        comparison_columns_b: request.comparison_columns_b,
+        column_mappings,
+    };
+
+    // Run comparison
+    let results = engine::compare_csv_data(csv_a, csv_b, &config);
+    let summary = engine::generate_summary(&results);
+
+    // Build response
+    let result_responses: Vec<ResultResponse> = results
+        .iter()
+        .map(|r| match r {
+            RowComparisonResult::Match {
+                key,
+                values_a,
+                values_b,
+            } => ResultResponse {
+                result_type: "match".to_string(),
+                key: key.clone(),
+                values_a: values_a.clone(),
+                values_b: values_b.clone(),
+                differences: Vec::new(),
+            },
+            RowComparisonResult::Mismatch {
+                key,
+                values_a,
+                values_b,
+                differences,
+            } => ResultResponse {
+                result_type: "mismatch".to_string(),
+                key: key.clone(),
+                values_a: values_a.clone(),
+                values_b: values_b.clone(),
+                differences: differences
+                    .iter()
+                    .map(|d| DifferenceResponse {
+                        column_a: d.column_a.clone(),
+                        column_b: d.column_b.clone(),
+                        value_a: d.value_a.clone(),
+                        value_b: d.value_b.clone(),
+                    })
+                    .collect(),
+            },
+            RowComparisonResult::MissingLeft { key, values_b } => ResultResponse {
+                result_type: "missing_left".to_string(),
+                key: key.clone(),
+                values_a: Vec::new(),
+                values_b: values_b.clone(),
+                differences: Vec::new(),
+            },
+            RowComparisonResult::MissingRight { key, values_a } => ResultResponse {
+                result_type: "missing_right".to_string(),
+                key: key.clone(),
+                values_a: values_a.clone(),
+                values_b: Vec::new(),
+                differences: Vec::new(),
+            },
+            RowComparisonResult::Duplicate {
+                key,
+                source,
+                values,
+            } => ResultResponse {
+                result_type: format!("duplicate_{:?}", source).to_lowercase(),
+                key: key.clone(),
+                values_a: values.first().cloned().unwrap_or_default(),
+                values_b: values.get(1).cloned().unwrap_or_default(),
+                differences: Vec::new(),
+            },
+        })
+        .collect();
+
+    Ok(CompareResponse {
+        success: true,
+        results: result_responses,
+        summary: SummaryResponse {
+            total_rows_a: summary.total_rows_a,
+            total_rows_b: summary.total_rows_b,
+            matches: summary.matches,
+            mismatches: summary.mismatches,
+            missing_left: summary.missing_left,
+            missing_right: summary.missing_right,
+            duplicates_a: summary.duplicates_a,
+            duplicates_b: summary.duplicates_b,
+        },
+    })
+}
+
+fn main() {
+    tauri::Builder::default()
+        .manage(AppState {
+            sessions: Mutex::new(HashMap::new()),
+        })
+        .invoke_handler(tauri::generate_handler![
+            create_session,
+            upload_csv,
+            suggest_mappings,
+            compare,
+        ])
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+}
