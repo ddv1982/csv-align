@@ -1,0 +1,5 @@
+id,full_name,email_address,value
+1,Alice,alice@example.com,100.50
+2,Robert,bob@example.com,200.00
+3,Charlie,charlie@example.com,350.75
+5,Eve,eve@example.com,500.00
