@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.2.6 - 2026-04-08
+
+- Added an explicit MIT license file for the repository with copyright attributed to Douwe de Vries.
+- Updated the README license section to link directly to the license text.
+
 ## v0.2.5 - 2026-04-07
 
 - Added a dark/light theme toggle in the app header with dark mode enabled by default.
