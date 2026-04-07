@@ -1,4 +1,6 @@
-use crate::data::types::{ColumnInfo, ColumnMapping, ComparisonConfig, CsvData, RowComparisonResult, ComparisonSummary};
+use crate::data::types::{
+    ColumnInfo, ColumnMapping, ComparisonConfig, ComparisonSummary, CsvData, RowComparisonResult,
+};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -34,6 +36,12 @@ impl SessionData {
             comparison_results: Vec::new(),
             comparison_summary: None,
         }
+    }
+}
+
+impl Default for SessionData {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -73,5 +81,11 @@ impl AppState {
     pub async fn delete_session(&self, session_id: &str) -> bool {
         let mut sessions = self.sessions.write().await;
         sessions.remove(session_id).is_some()
+    }
+}
+
+impl Default for AppState {
+    fn default() -> Self {
+        Self::new()
     }
 }

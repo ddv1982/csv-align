@@ -2,9 +2,9 @@ use axum::{
     routing::{delete, get, post},
     Router,
 };
-use tower_http::services::ServeDir;
 use std::net::SocketAddr;
 use std::path::PathBuf;
+use tower_http::services::ServeDir;
 
 use csv_align::api::{handlers, state::AppState};
 
@@ -15,13 +15,13 @@ fn frontend_dist_path() -> PathBuf {
         .ok()
         .and_then(|p| p.parent().map(|p| p.to_path_buf()))
         .unwrap_or_default();
-    
+
     // Try relative to executable first (for installed apps)
     let exe_relative = exe_dir.join("frontend").join("dist");
     if exe_relative.exists() {
         return exe_relative;
     }
-    
+
     // Try relative to current directory (for development)
     let cwd_relative = std::env::current_dir()
         .unwrap_or_default()
@@ -30,7 +30,7 @@ fn frontend_dist_path() -> PathBuf {
     if cwd_relative.exists() {
         return cwd_relative;
     }
-    
+
     // Fallback - just use the relative path
     PathBuf::from("frontend/dist")
 }
@@ -45,8 +45,8 @@ async fn main() {
 
     // Get frontend dist path
     let frontend_path = frontend_dist_path();
-    
-    println!("Frontend path: {:?}", frontend_path);
+
+    println!("Frontend path: {frontend_path:?}");
 
     // Build the API router
     let api_routes = Router::new()
@@ -54,7 +54,10 @@ async fn main() {
         .route("/api/health", get(handlers::health_check))
         // Session management
         .route("/api/sessions", post(handlers::create_session))
-        .route("/api/sessions/:session_id", delete(handlers::delete_session))
+        .route(
+            "/api/sessions/:session_id",
+            delete(handlers::delete_session),
+        )
         // CSV upload
         .route(
             "/api/sessions/:session_id/upload/:file_letter",
@@ -68,7 +71,10 @@ async fn main() {
         // Comparison
         .route("/api/sessions/:session_id/compare", post(handlers::compare))
         // Export
-        .route("/api/sessions/:session_id/export", get(handlers::export_csv))
+        .route(
+            "/api/sessions/:session_id/export",
+            get(handlers::export_csv),
+        )
         .with_state(state);
 
     // Build the full app with static file serving
@@ -80,8 +86,8 @@ async fn main() {
 
     // Start the server
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
-    println!("CSV Align server listening on http://{}", addr);
-    println!("Open http://{} in your browser to use the app", addr);
+    println!("CSV Align server listening on http://{addr}");
+    println!("Open http://{addr} in your browser to use the app");
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();

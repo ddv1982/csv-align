@@ -107,18 +107,13 @@ pub struct ComparisonSummary {
 }
 
 /// Filter options for displaying results
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub enum ResultFilter {
+    #[default]
     All,
     Matches,
     Mismatches,
     MissingLeft,
     MissingRight,
     Duplicates,
-}
-
-impl Default for ResultFilter {
-    fn default() -> Self {
-        ResultFilter::All
-    }
 }

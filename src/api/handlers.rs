@@ -2,7 +2,7 @@ use axum::{
     body::Body,
     extract::{Multipart, Path, State},
     http::StatusCode,
-    response::{IntoResponse, Response, Json},
+    response::{IntoResponse, Json, Response},
 };
 use serde::{Deserialize, Serialize};
 
@@ -207,7 +207,7 @@ pub async fn upload_csv(
             return (
                 StatusCode::BAD_REQUEST,
                 Json(ErrorResponse {
-                    error: format!("Failed to read multipart: {}", e),
+                    error: format!("Failed to read multipart: {e}"),
                 }),
             )
                 .into_response()
@@ -221,7 +221,7 @@ pub async fn upload_csv(
             return (
                 StatusCode::BAD_REQUEST,
                 Json(ErrorResponse {
-                    error: format!("Failed to read file: {}", e),
+                    error: format!("Failed to read file: {e}"),
                 }),
             )
                 .into_response()
@@ -235,7 +235,7 @@ pub async fn upload_csv(
             return (
                 StatusCode::BAD_REQUEST,
                 Json(ErrorResponse {
-                    error: format!("Failed to parse CSV: {}", e),
+                    error: format!("Failed to parse CSV: {e}"),
                 }),
             )
                 .into_response()
@@ -271,8 +271,16 @@ pub async fn upload_csv(
 
     // Auto-suggest mappings if both files are loaded
     if session_data.csv_a.is_some() && session_data.csv_b.is_some() {
-        let col_names_a: Vec<String> = session_data.columns_a.iter().map(|c| c.name.clone()).collect();
-        let col_names_b: Vec<String> = session_data.columns_b.iter().map(|c| c.name.clone()).collect();
+        let col_names_a: Vec<String> = session_data
+            .columns_a
+            .iter()
+            .map(|c| c.name.clone())
+            .collect();
+        let col_names_b: Vec<String> = session_data
+            .columns_b
+            .iter()
+            .map(|c| c.name.clone())
+            .collect();
         session_data.column_mappings = mapping::suggest_mappings(&col_names_a, &col_names_b);
     }
 
@@ -445,7 +453,7 @@ pub async fn compare(
                 source,
                 values,
             } => ResultResponse {
-                result_type: format!("duplicate_{:?}", source).to_lowercase(),
+                result_type: format!("duplicate_{source:?}").to_lowercase(),
                 key: key.clone(),
                 values_a: values.first().cloned().unwrap_or_default(),
                 values_b: values.get(1).cloned().unwrap_or_default(),
@@ -478,10 +486,7 @@ pub async fn compare(
 }
 
 /// Export comparison results as CSV
-pub async fn export_csv(
-    State(state): State<AppState>,
-    Path(session_id): Path<String>,
-) -> Response {
+pub async fn export_csv(State(state): State<AppState>, Path(session_id): Path<String>) -> Response {
     // Get session
     let session_data = match state.get_session(&session_id).await {
         Some(data) => data,
@@ -585,7 +590,10 @@ pub async fn export_csv(
     Response::builder()
         .status(StatusCode::OK)
         .header("Content-Type", "text/csv")
-        .header("Content-Disposition", "attachment; filename=\"comparison-results.csv\"")
+        .header(
+            "Content-Disposition",
+            "attachment; filename=\"comparison-results.csv\"",
+        )
         .body(Body::from(csv_content))
         .unwrap()
 }

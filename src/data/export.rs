@@ -84,7 +84,7 @@ pub fn export_results(
                 };
                 let values_str: Vec<String> = values.iter().map(|v| v.join(",")).collect();
                 writer.write_record([
-                    &format!("Duplicate ({})", source_str),
+                    &format!("Duplicate ({source_str})"),
                     &key.join(";"),
                     &values_str.join(" | "),
                     "",

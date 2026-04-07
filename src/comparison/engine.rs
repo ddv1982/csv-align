@@ -263,15 +263,13 @@ fn find_differences(
     for (i, col_a) in columns_a.iter().enumerate() {
         if let Some(&mapped_col_b) = column_map.get(col_a.as_str()) {
             if let Some(j) = columns_b.iter().position(|c| c == mapped_col_b) {
-                if i < values_a.len() && j < values_b.len() {
-                    if values_a[i] != values_b[j] {
-                        differences.push(ValueDifference {
-                            column_a: col_a.clone(),
-                            column_b: mapped_col_b.to_string(),
-                            value_a: values_a[i].clone(),
-                            value_b: values_b[j].clone(),
-                        });
-                    }
+                if i < values_a.len() && j < values_b.len() && values_a[i] != values_b[j] {
+                    differences.push(ValueDifference {
+                        column_a: col_a.clone(),
+                        column_b: mapped_col_b.to_string(),
+                        value_a: values_a[i].clone(),
+                        value_b: values_b[j].clone(),
+                    });
                 }
             }
         }

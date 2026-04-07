@@ -114,19 +114,17 @@ fn is_date_like(value: &str) -> bool {
     let value = value.trim();
 
     // Check for common date patterns
-    if value.len() >= 8 && value.len() <= 10 {
-        if value.contains('-') || value.contains('/') {
-            let parts: Vec<&str> = if value.contains('-') {
-                value.split('-').collect()
-            } else {
-                value.split('/').collect()
-            };
+    if value.len() >= 8 && value.len() <= 10 && (value.contains('-') || value.contains('/')) {
+        let parts: Vec<&str> = if value.contains('-') {
+            value.split('-').collect()
+        } else {
+            value.split('/').collect()
+        };
 
-            if parts.len() == 3 {
-                // Check if all parts are numeric
-                if parts.iter().all(|p| p.parse::<u32>().is_ok()) {
-                    return true;
-                }
+        if parts.len() == 3 {
+            // Check if all parts are numeric
+            if parts.iter().all(|p| p.parse::<u32>().is_ok()) {
+                return true;
             }
         }
     }
