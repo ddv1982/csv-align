@@ -130,20 +130,20 @@ export function FileUpload({ label, file, onUpload }: FileUploadProps) {
               </svg>
             </div>
             
-            <p className="text-lg font-medium text-gray-900 mb-1">
-              {isDragging ? 'Drop your file here' : 'Drag & drop your CSV file'}
-            </p>
+              <p className="text-lg font-medium text-gray-900 mb-1">
+                {isDragging ? 'Drop your file here' : 'Drag & drop your CSV file to select it'}
+              </p>
             <p className="text-sm text-gray-500 mb-4">or</p>
             
-            <label className="btn btn-primary cursor-pointer">
-              <input
-                type="file"
-                accept=".csv"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-              Browse Files
-            </label>
+              <label className="btn btn-primary cursor-pointer">
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                Select File
+              </label>
             
             <p className="mt-4 text-xs text-gray-400">Supports CSV files up to 50MB</p>
           </div>

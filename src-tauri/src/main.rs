@@ -136,33 +136,11 @@ struct SessionResponse {
     session_id: String,
 }
 
-/// Create a new session
-#[tauri::command]
-fn create_session(state: tauri::State<AppState>) -> SessionResponse {
-    let session_id = uuid::Uuid::new_v4().to_string();
-    let mut sessions = state.sessions.lock().unwrap();
-    sessions.insert(session_id.clone(), SessionData::new());
-    SessionResponse { session_id }
-}
-
-/// Upload a CSV file
-#[tauri::command]
-fn upload_csv(
-    state: tauri::State<AppState>,
-    session_id: String,
-    file_letter: String,
-    file_path: String,
-) -> Result<UploadResponse, String> {
-    let mut sessions = state.sessions.lock().unwrap();
-
-    let session_data = sessions
-        .get_mut(&session_id)
-        .ok_or_else(|| "Session not found".to_string())?;
-
-    // Load CSV from file path
-    let csv_data =
-        csv_loader::load_csv(&file_path).map_err(|e| format!("Failed to load CSV: {}", e))?;
-
+fn apply_csv_to_session(
+    session_data: &mut SessionData,
+    file_letter: &str,
+    csv_data: CsvData,
+) -> UploadResponse {
     let headers = csv_data.headers.clone();
     let columns = csv_loader::detect_columns(&csv_data);
     let row_count = csv_data.rows.len();
@@ -199,13 +177,65 @@ fn upload_csv(
         session_data.column_mappings = mapping::suggest_mappings(&col_names_a, &col_names_b);
     }
 
-    Ok(UploadResponse {
+    UploadResponse {
         success: true,
-        file_letter,
+        file_letter: file_letter.to_string(),
         headers,
         columns: column_responses,
         row_count,
-    })
+    }
+}
+
+/// Create a new session
+#[tauri::command]
+fn create_session(state: tauri::State<AppState>) -> SessionResponse {
+    let session_id = uuid::Uuid::new_v4().to_string();
+    let mut sessions = state.sessions.lock().unwrap();
+    sessions.insert(session_id.clone(), SessionData::new());
+    SessionResponse { session_id }
+}
+
+/// Upload a CSV file
+#[tauri::command]
+fn upload_csv(
+    state: tauri::State<AppState>,
+    session_id: String,
+    file_letter: String,
+    file_path: String,
+) -> Result<UploadResponse, String> {
+    let csv_data =
+        csv_loader::load_csv(&file_path).map_err(|e| format!("Failed to load CSV: {}", e))?;
+
+    let mut sessions = state.sessions.lock().unwrap();
+    let session_data = sessions
+        .get_mut(&session_id)
+        .ok_or_else(|| "Session not found".to_string())?;
+
+    Ok(apply_csv_to_session(session_data, &file_letter, csv_data))
+}
+
+/// Upload a CSV file from raw bytes (desktop/webview file selection)
+#[tauri::command]
+fn upload_csv_bytes(
+    state: tauri::State<AppState>,
+    session_id: String,
+    file_letter: String,
+    file_name: String,
+    file_bytes: Vec<u8>,
+) -> Result<UploadResponse, String> {
+    let mut csv_data = csv_loader::load_csv_from_bytes(&file_bytes)
+        .map_err(|e| format!("Failed to parse CSV bytes: {}", e))?;
+
+    if !file_name.trim().is_empty() {
+        csv_data.file_path = Some(file_name);
+    }
+
+    let mut sessions = state.sessions.lock().unwrap();
+    let session_data = sessions
+        .get_mut(&session_id)
+        .ok_or_else(|| "Session not found".to_string())?;
+
+    Ok(apply_csv_to_session(session_data, &file_letter, csv_data))
 }
 
 /// Get suggested column mappings
@@ -385,6 +415,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             create_session,
             upload_csv,
+            upload_csv_bytes,
             suggest_mappings,
             compare,
         ])

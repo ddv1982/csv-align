@@ -1,5 +1,4 @@
 import { invoke } from '@tauri-apps/api/core';
-import { open } from '@tauri-apps/plugin-dialog';
 import {
   UploadResponse,
   SuggestMappingsRequest,
@@ -27,16 +26,25 @@ export async function createSession(): Promise<SessionResponse> {
 
 export async function uploadFile(
   sessionId: string,
-  file: File | string,  // File in browser, path string in Tauri
+  file: File | string,  // File in browser, path string/bytes in Tauri
   fileLetter: 'a' | 'b'
 ): Promise<UploadResponse> {
   if (isTauri) {
-    // In Tauri, file is a path string
-    const filePath = typeof file === 'string' ? file : '';
-    return await invoke('upload_csv', {
+    // In Tauri, support both direct path uploads and File object uploads.
+    if (typeof file === 'string') {
+      return await invoke('upload_csv', {
+        sessionId,
+        fileLetter,
+        filePath: file,
+      });
+    }
+
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    return await invoke('upload_csv_bytes', {
       sessionId,
       fileLetter,
-      filePath,
+      fileName: file.name,
+      fileBytes: Array.from(bytes),
     });
   }
   
@@ -59,16 +67,8 @@ export async function uploadFile(
 }
 
 export async function pickFile(): Promise<string | null> {
-  if (isTauri) {
-    const selected = await open({
-      multiple: false,
-      filters: [{
-        name: 'CSV',
-        extensions: ['csv']
-      }]
-    });
-    return selected;
-  }
+  // Deprecated in current desktop flow: file selection is handled via
+  // the standard file input/drag-drop and sent as bytes to the backend.
   return null;
 }
 

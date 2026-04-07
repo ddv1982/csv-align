@@ -11,8 +11,6 @@ import {
   compareFiles,
   exportResults,
   downloadBlob,
-  pickFile,
-  isTauri,
 } from './services/tauri';
 import {
   AppState,
@@ -55,28 +53,10 @@ function App() {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
-      let filePath: string;
-      let fileName: string;
-
-      if (isTauri) {
-        // In Tauri mode, pick file using native dialog
-        const selected = await pickFile();
-        if (!selected) {
-          setState(prev => ({ ...prev, loading: false }));
-          return;
-        }
-        filePath = selected;
-        fileName = selected.split('/').pop() || 'unknown.csv';
-      } else {
-        // Browser mode
-        filePath = '';
-        fileName = file.name;
-      }
-
-      const response = await uploadFile(state.sessionId, isTauri ? filePath : file, fileLetter);
+      const response = await uploadFile(state.sessionId, file, fileLetter);
 
       const fileData = {
-        name: fileName,
+        name: file.name,
         headers: response.headers,
         columns: response.columns,
         rowCount: response.row_count,
@@ -236,7 +216,7 @@ function App() {
               <span className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${step === 'upload' ? 'border-primary-600 bg-primary-600 text-white' : 'border-gray-300 bg-white'}`}>
                 1
               </span>
-              <span className="ml-2 text-sm font-medium">Upload Files</span>
+              <span className="ml-2 text-sm font-medium">Select Files</span>
             </li>
             <svg className="w-12 h-5 mx-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
