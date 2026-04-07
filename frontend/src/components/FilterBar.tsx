@@ -35,14 +35,14 @@ export function FilterBar({ filter, results, onFilterChange, onExport }: FilterB
             <button
               key={f.value}
               onClick={() => onFilterChange(f.value)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                filter === f.value
-                  ? 'ring-2 ring-primary-500 ring-offset-2'
-                  : 'hover:ring-2 hover:ring-gray-300 hover:ring-offset-1'
-              } ${f.color}`}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                 filter === f.value
+                   ? 'ring-2 ring-primary-500 ring-offset-2 dark:ring-offset-gray-800'
+                   : 'hover:ring-2 hover:ring-gray-300 hover:ring-offset-1 dark:hover:ring-gray-600 dark:hover:ring-offset-gray-800'
+               } ${f.color}`}
             >
               {f.label}
-              <span className="px-2 py-0.5 bg-white/50 rounded-full text-xs">
+              <span className="rounded-full bg-white/50 px-2 py-0.5 text-xs dark:bg-gray-900/40">
                 {counts[f.value]}
               </span>
             </button>

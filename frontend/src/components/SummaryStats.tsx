@@ -62,18 +62,18 @@ export function SummaryStats({ summary }: SummaryStatsProps) {
   return (
     <div className="card p-6">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+        <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
           <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
           </svg>
           Comparison Summary
         </h3>
         <div className="flex items-center gap-4">
-          <div className="text-sm text-gray-500">
-            File A: <span className="font-semibold text-gray-900">{summary.total_rows_a}</span> rows
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            File A: <span className="font-semibold text-gray-900 dark:text-gray-100">{summary.total_rows_a}</span> rows
           </div>
-          <div className="text-sm text-gray-500">
-            File B: <span className="font-semibold text-gray-900">{summary.total_rows_b}</span> rows
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            File B: <span className="font-semibold text-gray-900 dark:text-gray-100">{summary.total_rows_b}</span> rows
           </div>
         </div>
       </div>
@@ -81,10 +81,10 @@ export function SummaryStats({ summary }: SummaryStatsProps) {
       {/* Match Rate Progress */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-700">Match Rate</span>
-          <span className="text-sm font-semibold text-gray-900">{matchPercent}%</span>
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Match Rate</span>
+          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{matchPercent}%</span>
         </div>
-        <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+        <div className="h-3 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
           <div
             className="h-full bg-gradient-to-r from-green-400 to-green-600 rounded-full transition-all duration-500"
             style={{ width: `${matchPercent}%` }}
@@ -105,19 +105,19 @@ export function SummaryStats({ summary }: SummaryStatsProps) {
               </div>
               <span className={`text-2xl font-bold ${stat.textColor}`}>{stat.value}</span>
             </div>
-            <p className="text-sm font-medium text-gray-700">{stat.label}</p>
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{stat.label}</p>
           </div>
         ))}
       </div>
 
       {/* Duplicates Info */}
       {(summary.duplicates_a > 0 || summary.duplicates_b > 0) && (
-        <div className="mt-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
+        <div className="mt-4 rounded-lg border border-orange-200 bg-orange-50 p-4 dark:border-orange-700/60 dark:bg-orange-950/40">
           <div className="flex items-center gap-2">
-            <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-5 w-5 text-orange-600 dark:text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
             </svg>
-            <span className="text-sm font-medium text-orange-800">
+            <span className="text-sm font-medium text-orange-800 dark:text-orange-200">
               Duplicates found: {summary.duplicates_a} in File A, {summary.duplicates_b} in File B
             </span>
           </div>

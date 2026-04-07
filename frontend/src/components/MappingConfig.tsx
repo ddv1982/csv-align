@@ -94,7 +94,7 @@ export function MappingConfig({
     <div className="space-y-6">
       {/* Column Mappings */}
       <div className="card p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
           <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
           </svg>
@@ -104,7 +104,7 @@ export function MappingConfig({
         <div className="grid md:grid-cols-2 gap-6">
           {/* Suggested Mappings */}
           <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-3">Suggested Mappings</h4>
+            <h4 className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">Suggested Mappings</h4>
             {mappings.length > 0 ? (
               <div className="space-y-2">
                 {mappings.map((mapping, idx) => {
@@ -112,14 +112,14 @@ export function MappingConfig({
                   return (
                     <div
                       key={idx}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                      className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-600 dark:bg-gray-700/40"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-900">{mapping.file_a_column}</span>
-                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <span className="font-medium text-gray-900 dark:text-gray-100">{mapping.file_a_column}</span>
+                        <svg className="h-4 w-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                         </svg>
-                        <span className="font-medium text-gray-900">{mapping.file_b_column}</span>
+                        <span className="font-medium text-gray-900 dark:text-gray-100">{mapping.file_b_column}</span>
                       </div>
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${badge.bg} ${badge.text}`}>
                         {badge.label}
@@ -130,14 +130,14 @@ export function MappingConfig({
                 })}
               </div>
             ) : (
-              <p className="text-gray-500 text-sm">No automatic mappings found. Create manual mappings below.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">No automatic mappings found. Create manual mappings below.</p>
             )}
           </div>
 
           {/* Unmapped Columns */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-3">Unmapped - File A</h4>
+              <h4 className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">Unmapped - File A</h4>
               <div className="space-y-1">
                 {unmappedA.map(col => (
                   <span key={col} className="block px-3 py-2 bg-blue-50 text-blue-700 text-sm rounded-lg">
@@ -145,12 +145,12 @@ export function MappingConfig({
                   </span>
                 ))}
                 {unmappedA.length === 0 && (
-                  <p className="text-gray-400 text-sm">All columns mapped</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500">All columns mapped</p>
                 )}
               </div>
             </div>
             <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-3">Unmapped - File B</h4>
+              <h4 className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">Unmapped - File B</h4>
               <div className="space-y-1">
                 {unmappedB.map(col => (
                   <span key={col} className="block px-3 py-2 bg-green-50 text-green-700 text-sm rounded-lg">
@@ -158,7 +158,7 @@ export function MappingConfig({
                   </span>
                 ))}
                 {unmappedB.length === 0 && (
-                  <p className="text-gray-400 text-sm">All columns mapped</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500">All columns mapped</p>
                 )}
               </div>
             </div>
@@ -168,7 +168,7 @@ export function MappingConfig({
 
       {/* Key Columns Selection */}
       <div className="card p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
           <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
           </svg>
@@ -177,7 +177,7 @@ export function MappingConfig({
 
         <div className="grid md:grid-cols-2 gap-6">
           <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-3">File A Key Columns</h4>
+            <h4 className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">File A Key Columns</h4>
             <div className="flex flex-wrap gap-2">
               {fileA.headers.map(col => (
                 <button
@@ -186,20 +186,20 @@ export function MappingConfig({
                   className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                     keyColumnsA.includes(col)
                       ? 'bg-primary-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
+                   }`}
                 >
                   {col}
                 </button>
               ))}
             </div>
             {keyColumnsA.length === 0 && (
-              <p className="mt-2 text-xs text-gray-500">Click to select key columns (default: first column)</p>
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Click to select key columns (default: first column)</p>
             )}
           </div>
 
           <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-3">File B Key Columns</h4>
+            <h4 className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">File B Key Columns</h4>
             <div className="flex flex-wrap gap-2">
               {fileB.headers.map(col => (
                 <button
@@ -208,15 +208,15 @@ export function MappingConfig({
                   className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                     keyColumnsB.includes(col)
                       ? 'bg-primary-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
+                   }`}
                 >
                   {col}
                 </button>
               ))}
             </div>
             {keyColumnsB.length === 0 && (
-              <p className="mt-2 text-xs text-gray-500">Click to select key columns (default: first column)</p>
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Click to select key columns (default: first column)</p>
             )}
           </div>
         </div>
@@ -224,7 +224,7 @@ export function MappingConfig({
 
       {/* Comparison Columns Selection */}
       <div className="card p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
           <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
           </svg>
@@ -233,7 +233,7 @@ export function MappingConfig({
 
         <div className="grid md:grid-cols-2 gap-6">
           <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-3">File A Columns</h4>
+            <h4 className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">File A Columns</h4>
             <div className="flex flex-wrap gap-2">
               {fileA.headers.map(col => (
                 <button
@@ -242,20 +242,20 @@ export function MappingConfig({
                   className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                     comparisonColumnsA.includes(col)
                       ? 'bg-primary-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
+                   }`}
                 >
                   {col}
                 </button>
               ))}
             </div>
             {comparisonColumnsA.length === 0 && (
-              <p className="mt-2 text-xs text-gray-500">Click to select (default: all mapped columns)</p>
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Click to select (default: all mapped columns)</p>
             )}
           </div>
 
           <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-3">File B Columns</h4>
+            <h4 className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">File B Columns</h4>
             <div className="flex flex-wrap gap-2">
               {fileB.headers.map(col => (
                 <button
@@ -264,15 +264,15 @@ export function MappingConfig({
                   className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                     comparisonColumnsB.includes(col)
                       ? 'bg-primary-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
+                   }`}
                 >
                   {col}
                 </button>
               ))}
             </div>
             {comparisonColumnsB.length === 0 && (
-              <p className="mt-2 text-xs text-gray-500">Click to select (default: all mapped columns)</p>
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Click to select (default: all mapped columns)</p>
             )}
           </div>
         </div>

@@ -47,7 +47,7 @@ export function FileUpload({ label, file, onUpload }: FileUploadProps) {
 
   return (
     <div className="card p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+      <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
         <span className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
           label === 'File A' ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600'
         }`}>
@@ -58,13 +58,13 @@ export function FileUpload({ label, file, onUpload }: FileUploadProps) {
 
       {file ? (
         <div className="animate-slide-up">
-          <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-700/50">
             <svg className="w-10 h-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-gray-900 truncate">{file.name}</p>
-              <p className="text-sm text-gray-500">
+              <p className="truncate font-medium text-gray-900 dark:text-gray-100">{file.name}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 {file.rowCount} rows • {file.headers.length} columns
               </p>
             </div>
@@ -76,15 +76,15 @@ export function FileUpload({ label, file, onUpload }: FileUploadProps) {
           </div>
 
           <div className="mt-4">
-            <p className="text-sm font-medium text-gray-700 mb-2">Columns:</p>
+            <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Columns:</p>
             <div className="flex flex-wrap gap-2">
               {file.columns.map((col) => (
                 <span
                   key={col.name}
-                  className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full"
+                  className="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700 dark:bg-gray-700 dark:text-gray-200"
                 >
                   {col.name}
-                  <span className="ml-1 text-gray-400 text-xs">({col.data_type})</span>
+                  <span className="ml-1 text-xs text-gray-400 dark:text-gray-500">({col.data_type})</span>
                 </span>
               ))}
             </div>
@@ -107,16 +107,16 @@ export function FileUpload({ label, file, onUpload }: FileUploadProps) {
           onDrop={handleDrop}
           className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 ${
             isDragging
-              ? 'border-primary-500 bg-primary-50'
-              : 'border-gray-300 hover:border-primary-400 hover:bg-gray-50'
-          }`}
+               ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+               : 'border-gray-300 hover:border-primary-400 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800/60'
+           }`}
         >
           <div className="flex flex-col items-center">
             <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
-              isDragging ? 'bg-primary-100' : 'bg-gray-100'
+              isDragging ? 'bg-primary-100 dark:bg-primary-900/40' : 'bg-gray-100 dark:bg-gray-700'
             }`}>
               <svg
-                className={`w-8 h-8 ${isDragging ? 'text-primary-600' : 'text-gray-400'}`}
+                className={`w-8 h-8 ${isDragging ? 'text-primary-600 dark:text-primary-300' : 'text-gray-400 dark:text-gray-500'}`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -130,10 +130,10 @@ export function FileUpload({ label, file, onUpload }: FileUploadProps) {
               </svg>
             </div>
             
-              <p className="text-lg font-medium text-gray-900 mb-1">
+              <p className="mb-1 text-lg font-medium text-gray-900 dark:text-gray-100">
                 {isDragging ? 'Drop your file here' : 'Drag & drop your CSV file to select it'}
               </p>
-            <p className="text-sm text-gray-500 mb-4">or</p>
+            <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">or</p>
             
               <label className="btn btn-primary cursor-pointer">
                 <input
@@ -145,7 +145,7 @@ export function FileUpload({ label, file, onUpload }: FileUploadProps) {
                 Select File
               </label>
             
-            <p className="mt-4 text-xs text-gray-400">Supports CSV files up to 50MB</p>
+            <p className="mt-4 text-xs text-gray-400 dark:text-gray-500">Supports CSV files up to 50MB</p>
           </div>
         </div>
       )}

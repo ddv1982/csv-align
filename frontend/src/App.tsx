@@ -30,9 +30,22 @@ const initialState: AppState = {
   loading: false,
 };
 
+const THEME_STORAGE_KEY = 'csv-align-theme';
+
 function App() {
   const [state, setState] = useState<AppState>(initialState);
   const [step, setStep] = useState<'upload' | 'configure' | 'results'>('upload');
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    if (typeof window === 'undefined') return 'dark';
+    const savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+    return savedTheme === 'light' ? 'light' : 'dark';
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+    document.documentElement.style.colorScheme = theme;
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+  }, [theme]);
 
   // Create session on mount
   useEffect(() => {
@@ -167,6 +180,10 @@ function App() {
     }
   }, []);
 
+  const handleThemeToggle = useCallback(() => {
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+  }, []);
+
   const filteredResults = state.filter === 'all'
     ? state.results
     : state.results.filter(r => {
@@ -179,9 +196,9 @@ function App() {
       });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 text-gray-900 transition-colors dark:from-gray-950 dark:to-gray-900 dark:text-gray-100">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="border-b border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -191,19 +208,43 @@ function App() {
                 </svg>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">CSV Align</h1>
-                <p className="text-sm text-gray-500">Compare CSV files with ease</p>
+                <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">CSV Align</h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Compare CSV files with ease</p>
               </div>
             </div>
-            <button
-              onClick={handleReset}
-              className="btn btn-secondary flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Reset
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleThemeToggle}
+                className="btn btn-secondary flex items-center gap-2"
+                aria-label="Toggle theme"
+              >
+                {theme === 'dark' ? (
+                  <>
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364 6.364l-1.414-1.414M7.05 7.05 5.636 5.636m12.728 0L16.95 7.05M7.05 16.95l-1.414 1.414M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    Light
+                  </>
+                ) : (
+                  <>
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    </svg>
+                    Dark
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={handleReset}
+                className="btn btn-secondary flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Reset
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -212,26 +253,26 @@ function App() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <nav className="flex items-center justify-center mb-8">
           <ol className="flex items-center">
-            <li className={`flex items-center ${step === 'upload' ? 'text-primary-600' : 'text-gray-500'}`}>
-              <span className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${step === 'upload' ? 'border-primary-600 bg-primary-600 text-white' : 'border-gray-300 bg-white'}`}>
+            <li className={`flex items-center ${step === 'upload' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-500 dark:text-gray-400'}`}>
+              <span className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${step === 'upload' ? 'border-primary-600 bg-primary-600 text-white' : 'border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800'}`}>
                 1
               </span>
               <span className="ml-2 text-sm font-medium">Select Files</span>
             </li>
-            <svg className="w-12 h-5 mx-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-12 h-5 mx-4 text-gray-300 dark:text-gray-600" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
             </svg>
-            <li className={`flex items-center ${step === 'configure' ? 'text-primary-600' : 'text-gray-500'}`}>
-              <span className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${step === 'configure' ? 'border-primary-600 bg-primary-600 text-white' : 'border-gray-300 bg-white'}`}>
+            <li className={`flex items-center ${step === 'configure' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-500 dark:text-gray-400'}`}>
+              <span className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${step === 'configure' ? 'border-primary-600 bg-primary-600 text-white' : 'border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800'}`}>
                 2
               </span>
               <span className="ml-2 text-sm font-medium">Configure</span>
             </li>
-            <svg className="w-12 h-5 mx-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-12 h-5 mx-4 text-gray-300 dark:text-gray-600" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
             </svg>
-            <li className={`flex items-center ${step === 'results' ? 'text-primary-600' : 'text-gray-500'}`}>
-              <span className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${step === 'results' ? 'border-primary-600 bg-primary-600 text-white' : 'border-gray-300 bg-white'}`}>
+            <li className={`flex items-center ${step === 'results' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-500 dark:text-gray-400'}`}>
+              <span className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${step === 'results' ? 'border-primary-600 bg-primary-600 text-white' : 'border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800'}`}>
                 3
               </span>
               <span className="ml-2 text-sm font-medium">Results</span>
@@ -241,12 +282,12 @@ function App() {
 
         {/* Error Display */}
         {state.error && (
-          <div className="mb-6 p-4 bg-danger-light border border-danger rounded-lg animate-fade-in">
+          <div className="mb-6 animate-fade-in rounded-lg border border-danger bg-danger-light p-4 dark:border-red-400/40 dark:bg-red-950/50">
             <div className="flex items-center">
               <svg className="w-5 h-5 text-danger mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span className="text-danger-dark">{state.error}</span>
+              <span className="text-danger-dark dark:text-red-200">{state.error}</span>
             </div>
           </div>
         )}
@@ -307,7 +348,7 @@ function App() {
       </div>
 
       {/* Footer */}
-      <footer className="mt-auto py-6 text-center text-sm text-gray-500">
+      <footer className="mt-auto py-6 text-center text-sm text-gray-500 dark:text-gray-400">
         <p>CSV Align - Compare CSV files with visual difference highlighting</p>
       </footer>
     </div>
