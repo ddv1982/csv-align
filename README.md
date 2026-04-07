@@ -171,7 +171,7 @@ This project uses GitHub Actions for continuous integration and delivery:
 - Builds Tauri apps for all platforms
 
 ### Release Workflow (`release.yml`)
-- Triggered by version tags (e.g., `v0.2.0`)
+- Triggered by version tags (e.g., `v0.2.1`)
 - Creates a GitHub Release
 - Builds and uploads:
   - macOS DMG (ARM64 + Intel)
@@ -188,8 +188,8 @@ This project uses GitHub Actions for continuous integration and delivery:
 
 # Commit and tag
 git add -A
-git commit -m "Release v0.2.0"
-git tag v0.2.0
+git commit -m "Release v0.2.1"
+git tag v0.2.1
 git push origin main --tags
 ```
 
