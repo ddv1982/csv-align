@@ -29,6 +29,8 @@ Download the native desktop app for your platform:
 - **macOS (Intel)**: `csv-align-macos-x86_64.dmg`
 - **Linux**: `csv-align-linux-x86_64.AppImage` or `.deb`
 
+Linux compatibility note: the desktop app is built on Ubuntu 22.04 and requires a distro with **WebKitGTK 4.1** (for example Ubuntu 22.04+/Zorin 17+). Older bases like Ubuntu 20.04/Zorin 16 are not supported by Tauri v2 Linux binaries.
+
 Check the [Releases](https://github.com/YOUR_USERNAME/csv-align/releases) page for downloads.
 
 ### Web Application

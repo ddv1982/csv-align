@@ -15,14 +15,14 @@ env:
 jobs:
   create-release:
     name: Create Release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
       
     steps:
       - name: Create GitHub Release
         id: create_release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           name: CSV Align ${{ github.ref_name }}
           draft: false
@@ -38,7 +38,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             artifact_name: csv-align-linux-x86_64
             asset_name: csv-align-linux-x86_64
@@ -61,15 +61,15 @@ jobs:
           targets: ${{ matrix.target }}
 
       - name: Install dependencies (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-22.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
@@ -99,11 +99,13 @@ jobs:
 
       - name: Build Tauri app
         working-directory: src-tauri
-        run: cargo tauri build --target ${{ matrix.target }}
+        run: |
+          rm -rf target/${{ matrix.target }}/release/bundle
+          cargo tauri build --target ${{ matrix.target }}
 
       - name: Upload Linux packages
-        if: matrix.os == 'ubuntu-latest'
-        uses: softprops/action-gh-release@v1
+        if: matrix.os == 'ubuntu-22.04'
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           files: |
@@ -114,7 +116,7 @@ jobs:
 
       - name: Upload macOS ARM package
         if: matrix.os == 'macos-latest' && matrix.target == 'aarch64-apple-darwin'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           files: src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
@@ -123,7 +125,7 @@ jobs:
 
       - name: Upload macOS Intel package
         if: matrix.os == 'macos-latest' && matrix.target == 'x86_64-apple-darwin'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           files: src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
