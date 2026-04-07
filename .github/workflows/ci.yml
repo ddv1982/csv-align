@@ -114,21 +114,16 @@ jobs:
         working-directory: frontend
         run: npm run build
 
-      - name: Install Tauri CLI
-        run: cargo install tauri-cli --version "^2"
-
-      - name: Cache cargo dependencies
-        uses: actions/cache@v4
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            src-tauri/target/
-          key: ${{ runner.os }}-tauri-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-tauri-${{ matrix.target }}-
+          workspaces: |
+            . -> target
+            src-tauri -> src-tauri/target
+          key: tauri-${{ matrix.os }}-${{ matrix.target }}
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --locked --version "^2" --force
 
       - name: Build Tauri app
         working-directory: src-tauri
