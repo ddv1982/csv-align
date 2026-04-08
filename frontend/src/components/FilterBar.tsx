@@ -17,42 +17,36 @@ export function FilterBar({ filter, results, onFilterChange, onExport }: FilterB
     duplicate: results.filter(r => r.result_type.startsWith('duplicate')).length,
   };
 
-  const filters: { value: ResultType; label: string; color: string; activeColor: string }[] = [
+  const filters: { value: ResultType; label: string; accent: string }[] = [
     {
       value: 'all',
       label: 'All',
-      color: 'border border-gray-200 bg-gray-100 text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200',
-      activeColor: 'bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white',
+      accent: 'bg-gray-400 dark:bg-gray-500',
     },
     {
       value: 'match',
       label: 'Matches',
-      color: 'border border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-800/70 dark:bg-emerald-950/45 dark:text-emerald-200',
-      activeColor: 'bg-emerald-200 text-emerald-900 dark:bg-emerald-900/70 dark:text-emerald-100',
+      accent: 'bg-emerald-500 dark:bg-emerald-400',
     },
     {
       value: 'mismatch',
       label: 'Mismatches',
-      color: 'border border-amber-200 bg-amber-100 text-amber-800 dark:border-amber-800/70 dark:bg-amber-950/45 dark:text-amber-200',
-      activeColor: 'bg-amber-200 text-amber-900 dark:bg-amber-900/70 dark:text-amber-100',
+      accent: 'bg-amber-500 dark:bg-amber-400',
     },
     {
       value: 'missing_left',
       label: 'Missing Left',
-      color: 'border border-blue-200 bg-blue-100 text-blue-800 dark:border-blue-800/70 dark:bg-blue-950/45 dark:text-blue-200',
-      activeColor: 'bg-blue-200 text-blue-900 dark:bg-blue-900/70 dark:text-blue-100',
+      accent: 'bg-sky-500 dark:bg-sky-400',
     },
     {
       value: 'missing_right',
       label: 'Missing Right',
-      color: 'border border-violet-200 bg-violet-100 text-violet-800 dark:border-violet-800/70 dark:bg-violet-950/45 dark:text-violet-200',
-      activeColor: 'bg-violet-200 text-violet-900 dark:bg-violet-900/70 dark:text-violet-100',
+      accent: 'bg-violet-500 dark:bg-violet-400',
     },
     {
       value: 'duplicate',
       label: 'Duplicates',
-      color: 'border border-orange-200 bg-orange-100 text-orange-800 dark:border-orange-800/70 dark:bg-orange-950/45 dark:text-orange-200',
-      activeColor: 'bg-orange-200 text-orange-900 dark:bg-orange-900/70 dark:text-orange-100',
+      accent: 'bg-orange-500 dark:bg-orange-400',
     },
   ];
 
@@ -65,14 +59,15 @@ export function FilterBar({ filter, results, onFilterChange, onExport }: FilterB
             <button
               key={f.value}
               onClick={() => onFilterChange(f.value)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                  filter === f.value
-                    ? 'ring-2 ring-primary-500 ring-offset-2 dark:ring-offset-gray-800'
-                    : 'hover:ring-2 hover:ring-gray-300 hover:ring-offset-1 dark:hover:ring-gray-600 dark:hover:ring-offset-gray-800'
-                } ${f.color} ${filter === f.value ? f.activeColor : ''}`}
+              className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all flex items-center gap-2 ${
+                filter === f.value
+                  ? 'border-gray-300 bg-gray-100 text-gray-900 ring-2 ring-primary-500/70 ring-offset-1 shadow-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:ring-primary-400/60 dark:ring-offset-gray-900'
+                  : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-gray-600 dark:hover:bg-gray-800'
+              }`}
             >
+              <span className={`h-2 w-2 rounded-full ${f.accent}`} aria-hidden="true" />
               {f.label}
-              <span className="rounded-full bg-white/70 px-2 py-0.5 text-xs dark:bg-black/25">
+              <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs text-gray-600 dark:border-gray-600 dark:bg-gray-700/70 dark:text-gray-200">
                 {counts[f.value]}
               </span>
             </button>

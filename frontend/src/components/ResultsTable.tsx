@@ -11,36 +11,48 @@ export function ResultsTable({ results }: ResultsTableProps) {
   const getResultBadge = (resultType: string) => {
     switch (resultType) {
       case 'match':
-        return { bg: 'bg-emerald-100 dark:bg-emerald-950/60', text: 'text-emerald-800 dark:text-emerald-200', label: 'Match' };
+        return {
+          bg: 'border border-emerald-200 bg-emerald-50/70 dark:border-emerald-900/70 dark:bg-emerald-950/25',
+          text: 'text-emerald-800 dark:text-emerald-200',
+          dot: 'bg-emerald-500 dark:bg-emerald-400',
+          label: 'Match',
+        };
       case 'mismatch':
-        return { bg: 'bg-amber-100 dark:bg-amber-950/60', text: 'text-amber-800 dark:text-amber-200', label: 'Mismatch' };
+        return {
+          bg: 'border border-amber-200 bg-amber-50/70 dark:border-amber-900/70 dark:bg-amber-950/25',
+          text: 'text-amber-800 dark:text-amber-200',
+          dot: 'bg-amber-500 dark:bg-amber-400',
+          label: 'Mismatch',
+        };
       case 'missing_left':
-        return { bg: 'bg-blue-100 dark:bg-blue-950/60', text: 'text-blue-800 dark:text-blue-200', label: 'Missing Left' };
+        return {
+          bg: 'border border-sky-200 bg-sky-50/70 dark:border-sky-900/70 dark:bg-sky-950/25',
+          text: 'text-sky-800 dark:text-sky-200',
+          dot: 'bg-sky-500 dark:bg-sky-400',
+          label: 'Missing Left',
+        };
       case 'missing_right':
-        return { bg: 'bg-violet-100 dark:bg-violet-950/60', text: 'text-violet-800 dark:text-violet-200', label: 'Missing Right' };
+        return {
+          bg: 'border border-violet-200 bg-violet-50/70 dark:border-violet-900/70 dark:bg-violet-950/25',
+          text: 'text-violet-800 dark:text-violet-200',
+          dot: 'bg-violet-500 dark:bg-violet-400',
+          label: 'Missing Right',
+        };
       default:
         if (resultType.startsWith('duplicate')) {
-          return { bg: 'bg-orange-100 dark:bg-orange-950/60', text: 'text-orange-800 dark:text-orange-200', label: 'Duplicate' };
+          return {
+            bg: 'border border-orange-200 bg-orange-50/70 dark:border-orange-900/70 dark:bg-orange-950/25',
+            text: 'text-orange-800 dark:text-orange-200',
+            dot: 'bg-orange-500 dark:bg-orange-400',
+            label: 'Duplicate',
+          };
         }
-        return { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-700 dark:text-gray-200', label: resultType };
-    }
-  };
-
-  const getRowClassName = (resultType: string) => {
-    switch (resultType) {
-      case 'match':
-        return 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/25 dark:hover:bg-emerald-900/35';
-      case 'mismatch':
-        return 'bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/25 dark:hover:bg-amber-900/35';
-      case 'missing_left':
-        return 'bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/25 dark:hover:bg-blue-900/35';
-      case 'missing_right':
-        return 'bg-violet-50 hover:bg-violet-100 dark:bg-violet-950/25 dark:hover:bg-violet-900/35';
-      default:
-        if (resultType.startsWith('duplicate')) {
-          return 'bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/25 dark:hover:bg-orange-900/35';
-        }
-        return 'bg-gray-50 hover:bg-gray-100 dark:bg-gray-800/60 dark:hover:bg-gray-700/70';
+        return {
+          bg: 'border border-gray-200 bg-gray-100/70 dark:border-gray-700 dark:bg-gray-800/70',
+          text: 'text-gray-700 dark:text-gray-200',
+          dot: 'bg-gray-500 dark:bg-gray-400',
+          label: resultType,
+        };
     }
   };
 
@@ -67,10 +79,10 @@ export function ResultsTable({ results }: ResultsTableProps) {
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
                 Key
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-300">
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
                 File A Values
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-green-600 dark:text-green-300">
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
                 File B Values
               </th>
               <th className="w-32 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
@@ -86,10 +98,11 @@ export function ResultsTable({ results }: ResultsTableProps) {
               return (
                 <Fragment key={idx}>
                   <tr
-                    className={`transition-colors ${getRowClassName(result.result_type)}`}
+                    className="bg-white transition-colors hover:bg-gray-50 dark:bg-gray-900/70 dark:hover:bg-gray-800/70"
                   >
                     <td className="px-4 py-3">
-                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${badge.bg} ${badge.text}`}>
+                      <span className={`inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded-full ${badge.bg} ${badge.text}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${badge.dot}`} aria-hidden="true" />
                         {badge.label}
                       </span>
                     </td>
@@ -128,11 +141,11 @@ export function ResultsTable({ results }: ResultsTableProps) {
                     </td>
                     <td className="px-4 py-3">
                       {result.differences.length > 0 ? (
-                        <button
-                          onClick={() => setExpandedRow(isExpanded ? null : idx)}
-                          className="flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-300 dark:hover:text-primary-200"
-                        >
-                          {result.differences.length} diff{result.differences.length > 1 ? 's' : ''}
+                          <button
+                            onClick={() => setExpandedRow(isExpanded ? null : idx)}
+                            className="flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100"
+                          >
+                            {result.differences.length} diff{result.differences.length > 1 ? 's' : ''}
                           <svg
                             className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                             fill="none"
@@ -150,27 +163,27 @@ export function ResultsTable({ results }: ResultsTableProps) {
                   
                   {/* Expanded Differences */}
                   {isExpanded && result.differences.length > 0 && (
-                    <tr className="bg-gray-50 dark:bg-gray-800/70">
+                    <tr className="bg-gray-50/70 dark:bg-gray-800/60">
                       <td colSpan={5} className="px-4 py-4">
                         <div className="space-y-2">
                           <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Value Differences:</p>
                           {result.differences.map((diff, diffIdx) => (
                             <div
                               key={diffIdx}
-                              className="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-700"
+                              className="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800/80"
                             >
                               <div className="flex-1">
                                 <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">
                                   {diff.column_a} → {diff.column_b}
                                 </p>
                                 <div className="flex items-center gap-2">
-                                  <span className="rounded bg-red-100 px-2 py-1 text-sm text-red-700 dark:bg-red-900/40 dark:text-red-200">
+                                  <span className="rounded border border-rose-200 bg-rose-50/80 px-2 py-1 text-sm text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/25 dark:text-rose-200">
                                     {diff.value_a}
                                   </span>
                                   <svg className="h-4 w-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                                   </svg>
-                                  <span className="rounded bg-green-100 px-2 py-1 text-sm text-green-700 dark:bg-green-900/40 dark:text-green-200">
+                                  <span className="rounded border border-emerald-200 bg-emerald-50/80 px-2 py-1 text-sm text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/25 dark:text-emerald-200">
                                     {diff.value_b}
                                   </span>
                                 </div>
