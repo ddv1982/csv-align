@@ -153,16 +153,26 @@ export function MappingConfig({
                   return (
                     <div
                       key={idx}
-                      className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-600 dark:bg-gray-700/40"
+                      className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-600 dark:bg-gray-700/40"
                     >
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-900 dark:text-gray-100">{mapping.file_a_column}</span>
-                        <svg className="h-4 w-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
+                        <span
+                          className="truncate font-medium text-gray-900 dark:text-gray-100"
+                          title={mapping.file_a_column}
+                        >
+                          {mapping.file_a_column}
+                        </span>
+                        <svg className="h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                         </svg>
-                        <span className="font-medium text-gray-900 dark:text-gray-100">{mapping.file_b_column}</span>
+                        <span
+                          className="truncate font-medium text-gray-900 dark:text-gray-100"
+                          title={mapping.file_b_column}
+                        >
+                          {mapping.file_b_column}
+                        </span>
                       </div>
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${badge.bg} ${badge.text}`}>
+                      <span className={`shrink-0 px-2 py-1 text-xs font-medium rounded-full ${badge.bg} ${badge.text}`}>
                         {badge.label}
                         {mapping.similarity && ` (${Math.round(mapping.similarity * 100)}%)`}
                       </span>
@@ -177,11 +187,15 @@ export function MappingConfig({
 
           {/* Unmapped Columns */}
           <div className="grid grid-cols-2 gap-4">
-            <div>
+            <div className="min-w-0">
               <h4 className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">Unmapped - File A</h4>
               <div className="space-y-1">
                 {unmappedA.map(col => (
-                  <span key={col} className="block rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700 dark:border-blue-800/60 dark:bg-blue-950/35 dark:text-blue-200">
+                  <span
+                    key={col}
+                    title={col}
+                    className="block w-full overflow-hidden text-ellipsis whitespace-nowrap rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700 dark:border-blue-800/60 dark:bg-blue-950/35 dark:text-blue-200"
+                  >
                     {col}
                   </span>
                 ))}
@@ -190,11 +204,15 @@ export function MappingConfig({
                 )}
               </div>
             </div>
-            <div>
+            <div className="min-w-0">
               <h4 className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">Unmapped - File B</h4>
               <div className="space-y-1">
                 {unmappedB.map(col => (
-                  <span key={col} className="block rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/35 dark:text-emerald-200">
+                  <span
+                    key={col}
+                    title={col}
+                    className="block w-full overflow-hidden text-ellipsis whitespace-nowrap rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/35 dark:text-emerald-200"
+                  >
                     {col}
                   </span>
                 ))}

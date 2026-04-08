@@ -68,7 +68,7 @@ fn score_mapping_candidate(col_a: &str, col_b: &str) -> Option<(f64, MappingType
     let jw = jaro_winkler(&normalized_a, &normalized_b);
     let token_overlap = token_jaccard(&tokens_a, &tokens_b);
 
-    // Acronym compatibility helps with cases like customer_id <-> cust_id.
+    // Acronym compatibility helps with abbreviated identifiers.
     let acronym_a = acronym(&tokens_a);
     let acronym_b = acronym(&tokens_b);
     let acronym_bonus = if (!acronym_a.is_empty() && acronym_a == compact_b)
@@ -185,8 +185,8 @@ mod tests {
 
     #[test]
     fn test_fuzzy_match() {
-        let columns_a = vec!["customer_id".to_string()];
-        let columns_b = vec!["cust_id".to_string()];
+        let columns_a = vec!["alpha_num_code".to_string()];
+        let columns_b = vec!["alpha_number_code".to_string()];
 
         let mappings = suggest_mappings(&columns_a, &columns_b);
 
@@ -209,8 +209,8 @@ mod tests {
 
     #[test]
     fn test_one_to_one_mapping() {
-        let columns_a = vec!["animal_id".to_string(), "entity_id".to_string()];
-        let columns_b = vec!["animal_entity_id".to_string()];
+        let columns_a = vec!["left_key".to_string(), "right_key".to_string()];
+        let columns_b = vec!["left_right_key".to_string()];
 
         let mappings = suggest_mappings(&columns_a, &columns_b);
 
