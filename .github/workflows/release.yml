@@ -20,8 +20,20 @@ jobs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
       
     steps:
+      - name: Check if release already exists
+        id: release_exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "${{ github.ref_name }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Create GitHub Release
         id: create_release
+        if: steps.release_exists.outputs.exists != 'true'
         uses: softprops/action-gh-release@v2
         with:
           name: CSV Align ${{ github.ref_name }}
