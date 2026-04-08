@@ -331,8 +331,12 @@ function App() {
         )}
 
         {!state.loading && step === 'results' && state.summary && (
-          <div className="animate-fade-in space-y-6">
-            <SummaryStats summary={state.summary} />
+            <div className="animate-fade-in space-y-6">
+            <SummaryStats
+              summary={state.summary}
+              fileAName={state.fileA?.name ?? 'File A'}
+              fileBName={state.fileB?.name ?? 'File B'}
+            />
             
             <FilterBar
               filter={state.filter}

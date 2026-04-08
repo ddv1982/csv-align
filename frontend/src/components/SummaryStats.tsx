@@ -2,9 +2,11 @@ import { SummaryResponse } from '../types/api';
 
 interface SummaryStatsProps {
   summary: SummaryResponse;
+  fileAName: string;
+  fileBName: string;
 }
 
-export function SummaryStats({ summary }: SummaryStatsProps) {
+export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProps) {
   const total = summary.matches + summary.mismatches + summary.missing_left + summary.missing_right;
   const matchPercent = total > 0 ? Math.round((summary.matches / total) * 100) : 0;
 
@@ -78,10 +80,20 @@ export function SummaryStats({ summary }: SummaryStatsProps) {
         </h3>
         <div className="flex items-center gap-4">
           <div className="text-sm text-gray-500 dark:text-gray-400">
-            File A: <span className="font-semibold text-gray-900 dark:text-gray-100">{summary.total_rows_a}</span> rows
+            <div>
+              File A: <span className="font-semibold text-gray-900 dark:text-gray-100">{summary.total_rows_a}</span> rows
+            </div>
+            <div className="mt-0.5 max-w-[280px] truncate text-xs text-gray-400 dark:text-gray-500" title={fileAName}>
+              {fileAName}
+            </div>
           </div>
           <div className="text-sm text-gray-500 dark:text-gray-400">
-            File B: <span className="font-semibold text-gray-900 dark:text-gray-100">{summary.total_rows_b}</span> rows
+            <div>
+              File B: <span className="font-semibold text-gray-900 dark:text-gray-100">{summary.total_rows_b}</span> rows
+            </div>
+            <div className="mt-0.5 max-w-[280px] truncate text-xs text-gray-400 dark:text-gray-500" title={fileBName}>
+              {fileBName}
+            </div>
           </div>
         </div>
       </div>
