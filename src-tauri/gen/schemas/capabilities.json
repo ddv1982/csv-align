@@ -1,1 +1,1 @@
-{}
+{"main-capability":{"identifier":"main-capability","description":"Default desktop capability for app commands and save dialog","local":true,"windows":["main"],"permissions":["core:default","dialog:allow-save"]}}

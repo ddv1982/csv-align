@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 
 use csv_align::comparison::{engine, mapping};
-use csv_align::data::{csv_loader, types::*};
+use csv_align::data::{csv_loader, export as csv_export, types::*};
 
 /// Application state to hold session data
 struct AppState {
@@ -17,6 +17,7 @@ struct SessionData {
     columns_a: Vec<ColumnInfo>,
     columns_b: Vec<ColumnInfo>,
     column_mappings: Vec<ColumnMapping>,
+    comparison_results: Vec<RowComparisonResult>,
 }
 
 impl SessionData {
@@ -27,6 +28,7 @@ impl SessionData {
             columns_a: Vec::new(),
             columns_b: Vec::new(),
             column_mappings: Vec::new(),
+            comparison_results: Vec::new(),
         }
     }
 }
@@ -282,10 +284,10 @@ fn compare(
     session_id: String,
     request: CompareRequest,
 ) -> Result<CompareResponse, String> {
-    let sessions = state.sessions.lock().unwrap();
+    let mut sessions = state.sessions.lock().unwrap();
 
     let session_data = sessions
-        .get(&session_id)
+        .get_mut(&session_id)
         .ok_or_else(|| "Session not found".to_string())?;
 
     let csv_a = session_data
@@ -327,6 +329,7 @@ fn compare(
     // Run comparison
     let results = engine::compare_csv_data(csv_a, csv_b, &config);
     let summary = engine::generate_summary(&results);
+    session_data.comparison_results = results.clone();
 
     // Build response
     let result_responses: Vec<ResultResponse> = results
@@ -407,8 +410,33 @@ fn compare(
     })
 }
 
+/// Export comparison results to a CSV file path
+#[tauri::command]
+fn export_results(
+    state: tauri::State<AppState>,
+    session_id: String,
+    output_path: String,
+) -> Result<(), String> {
+    let results = {
+        let sessions = state.sessions.lock().unwrap();
+        let session_data = sessions
+            .get(&session_id)
+            .ok_or_else(|| "Session not found".to_string())?;
+
+        if session_data.comparison_results.is_empty() {
+            return Err("No comparison results to export. Run a comparison first.".to_string());
+        }
+
+        session_data.comparison_results.clone()
+    };
+
+    csv_export::export_results(&results, &output_path)
+        .map_err(|e| format!("Failed to export results: {}", e))
+}
+
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .manage(AppState {
             sessions: Mutex::new(HashMap::new()),
         })
@@ -418,6 +446,7 @@ fn main() {
             upload_csv_bytes,
             suggest_mappings,
             compare,
+            export_results,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

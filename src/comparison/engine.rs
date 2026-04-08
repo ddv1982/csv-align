@@ -253,10 +253,10 @@ fn find_differences(
 ) -> Vec<ValueDifference> {
     let mut differences = Vec::new();
 
-    // Create a map from file B columns to file A columns
+    // Create a map from file A columns to file B columns
     let column_map: HashMap<&str, &str> = mappings
         .iter()
-        .map(|m| (m.file_b_column.as_str(), m.file_a_column.as_str()))
+        .map(|m| (m.file_a_column.as_str(), m.file_b_column.as_str()))
         .collect();
 
     // Compare each mapped column
@@ -431,5 +431,62 @@ mod tests {
         assert_eq!(summary.matches, 1);
         assert_eq!(summary.mismatches, 1);
         assert_eq!(summary.missing_left, 1);
+    }
+
+    #[test]
+    fn test_compare_csv_data_detects_mismatch_for_mapped_columns_with_different_names() {
+        let csv_a = CsvData {
+            file_path: Some("test_a.csv".to_string()),
+            headers: vec!["id".to_string(), "name".to_string(), "value".to_string()],
+            rows: vec![vec![
+                "1".to_string(),
+                "Alice".to_string(),
+                "100".to_string(),
+            ]],
+        };
+
+        let csv_b = CsvData {
+            file_path: Some("test_b.csv".to_string()),
+            headers: vec!["id".to_string(), "name".to_string(), "amount".to_string()],
+            rows: vec![vec![
+                "1".to_string(),
+                "Alice".to_string(),
+                "999".to_string(),
+            ]],
+        };
+
+        let config = ComparisonConfig {
+            key_columns_a: vec!["id".to_string()],
+            key_columns_b: vec!["id".to_string()],
+            comparison_columns_a: vec!["name".to_string(), "value".to_string()],
+            comparison_columns_b: vec!["name".to_string(), "amount".to_string()],
+            column_mappings: vec![
+                ColumnMapping {
+                    file_a_column: "name".to_string(),
+                    file_b_column: "name".to_string(),
+                    mapping_type: MappingType::ExactMatch,
+                },
+                ColumnMapping {
+                    file_a_column: "value".to_string(),
+                    file_b_column: "amount".to_string(),
+                    mapping_type: MappingType::ExactMatch,
+                },
+            ],
+        };
+
+        let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+        assert_eq!(results.len(), 1);
+
+        match &results[0] {
+            RowComparisonResult::Mismatch { differences, .. } => {
+                assert_eq!(differences.len(), 1);
+                assert_eq!(differences[0].column_a, "value");
+                assert_eq!(differences[0].column_b, "amount");
+                assert_eq!(differences[0].value_a, "100");
+                assert_eq!(differences[0].value_b, "999");
+            }
+            _ => panic!("Expected mismatch result for mapped column difference"),
+        }
     }
 }

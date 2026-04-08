@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.2.13 - 2026-04-08
+
+- Fixed mismatch classification so rows are marked as mismatches when mapped comparison column values differ, even when key columns match.
+- Restored desktop Export CSV behavior by opening a native save dialog and writing exported results to the selected file path.
+- Added regression coverage for mapped columns with different names and updated Tauri dialog permissions/wiring required for desktop export.
+
 ## v0.2.6 - 2026-04-08
 
 - Added an explicit MIT license file for the repository with copyright attributed to Douwe de Vries.

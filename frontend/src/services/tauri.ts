@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { save } from '@tauri-apps/plugin-dialog';
 import {
   UploadResponse,
   SuggestMappingsRequest,
@@ -122,8 +123,20 @@ export async function compareFiles(
 
 export async function exportResults(sessionId: string): Promise<Blob | void> {
   if (isTauri) {
-    // In Tauri, we'd need to implement export differently
-    // For now, just return - the UI can handle local file saving
+    const outputPath = await save({
+      defaultPath: 'comparison-results.csv',
+      filters: [{ name: 'CSV Files', extensions: ['csv'] }],
+    });
+
+    if (!outputPath) {
+      return;
+    }
+
+    await invoke('export_results', {
+      sessionId,
+      outputPath,
+    });
+
     return;
   }
   
