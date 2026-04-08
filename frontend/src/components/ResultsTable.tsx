@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { ResultResponse } from '../types/api';
 
 interface ResultsTableProps {
@@ -11,34 +11,34 @@ export function ResultsTable({ results }: ResultsTableProps) {
   const getResultBadge = (resultType: string) => {
     switch (resultType) {
       case 'match':
-        return { bg: 'bg-green-100', text: 'text-green-700', label: 'Match' };
+        return { bg: 'bg-emerald-100 dark:bg-emerald-950/60', text: 'text-emerald-800 dark:text-emerald-200', label: 'Match' };
       case 'mismatch':
-        return { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'Mismatch' };
+        return { bg: 'bg-amber-100 dark:bg-amber-950/60', text: 'text-amber-800 dark:text-amber-200', label: 'Mismatch' };
       case 'missing_left':
-        return { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Missing Left' };
+        return { bg: 'bg-blue-100 dark:bg-blue-950/60', text: 'text-blue-800 dark:text-blue-200', label: 'Missing Left' };
       case 'missing_right':
-        return { bg: 'bg-purple-100', text: 'text-purple-700', label: 'Missing Right' };
+        return { bg: 'bg-violet-100 dark:bg-violet-950/60', text: 'text-violet-800 dark:text-violet-200', label: 'Missing Right' };
       default:
         if (resultType.startsWith('duplicate')) {
-          return { bg: 'bg-orange-100', text: 'text-orange-700', label: 'Duplicate' };
+          return { bg: 'bg-orange-100 dark:bg-orange-950/60', text: 'text-orange-800 dark:text-orange-200', label: 'Duplicate' };
         }
-        return { bg: 'bg-gray-100', text: 'text-gray-700', label: resultType };
+        return { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-700 dark:text-gray-200', label: resultType };
     }
   };
 
   const getRowClassName = (resultType: string) => {
     switch (resultType) {
       case 'match':
-        return 'bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/35';
+        return 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/25 dark:hover:bg-emerald-900/35';
       case 'mismatch':
-        return 'bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:hover:bg-yellow-900/35';
+        return 'bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/25 dark:hover:bg-amber-900/35';
       case 'missing_left':
-        return 'bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/35';
+        return 'bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/25 dark:hover:bg-blue-900/35';
       case 'missing_right':
-        return 'bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:hover:bg-purple-900/35';
+        return 'bg-violet-50 hover:bg-violet-100 dark:bg-violet-950/25 dark:hover:bg-violet-900/35';
       default:
         if (resultType.startsWith('duplicate')) {
-          return 'bg-orange-50 hover:bg-orange-100 dark:bg-orange-900/20 dark:hover:bg-orange-900/35';
+          return 'bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/25 dark:hover:bg-orange-900/35';
         }
         return 'bg-gray-50 hover:bg-gray-100 dark:bg-gray-800/60 dark:hover:bg-gray-700/70';
     }
@@ -84,9 +84,8 @@ export function ResultsTable({ results }: ResultsTableProps) {
               const isExpanded = expandedRow === idx;
               
               return (
-                <>
+                <Fragment key={idx}>
                   <tr
-                    key={idx}
                     className={`transition-colors ${getRowClassName(result.result_type)}`}
                   >
                     <td className="px-4 py-3">
@@ -182,7 +181,7 @@ export function ResultsTable({ results }: ResultsTableProps) {
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               );
             })}
           </tbody>

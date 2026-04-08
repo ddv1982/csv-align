@@ -49,7 +49,9 @@ export function FileUpload({ label, file, onUpload }: FileUploadProps) {
     <div className="card p-6">
       <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
         <span className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
-          label === 'File A' ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600'
+          label === 'File A'
+            ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-200'
+            : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-200'
         }`}>
           {label === 'File A' ? 'A' : 'B'}
         </span>
@@ -81,7 +83,7 @@ export function FileUpload({ label, file, onUpload }: FileUploadProps) {
               {file.columns.map((col) => (
                 <span
                   key={col.name}
-                  className="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700 dark:bg-gray-700 dark:text-gray-200"
+                  className="rounded-full border border-gray-200 bg-gray-100 px-3 py-1 text-sm text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
                 >
                   {col.name}
                   <span className="ml-1 text-xs text-gray-400 dark:text-gray-500">({col.data_type})</span>

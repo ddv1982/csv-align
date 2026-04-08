@@ -82,11 +82,23 @@ export function MappingConfig({
   const getMappingBadge = (type: string) => {
     switch (type) {
       case 'exact':
-        return { bg: 'bg-green-100', text: 'text-green-700', label: 'Exact' };
+        return {
+          bg: 'bg-emerald-100 dark:bg-emerald-950/50',
+          text: 'text-emerald-800 dark:text-emerald-200',
+          label: 'Exact',
+        };
       case 'fuzzy':
-        return { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'Fuzzy' };
+        return {
+          bg: 'bg-amber-100 dark:bg-amber-950/50',
+          text: 'text-amber-800 dark:text-amber-200',
+          label: 'Fuzzy',
+        };
       default:
-        return { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Manual' };
+        return {
+          bg: 'bg-blue-100 dark:bg-blue-950/50',
+          text: 'text-blue-800 dark:text-blue-200',
+          label: 'Manual',
+        };
     }
   };
 
@@ -140,7 +152,7 @@ export function MappingConfig({
               <h4 className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">Unmapped - File A</h4>
               <div className="space-y-1">
                 {unmappedA.map(col => (
-                  <span key={col} className="block px-3 py-2 bg-blue-50 text-blue-700 text-sm rounded-lg">
+                  <span key={col} className="block rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700 dark:border-blue-800/60 dark:bg-blue-950/35 dark:text-blue-200">
                     {col}
                   </span>
                 ))}
@@ -153,7 +165,7 @@ export function MappingConfig({
               <h4 className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">Unmapped - File B</h4>
               <div className="space-y-1">
                 {unmappedB.map(col => (
-                  <span key={col} className="block px-3 py-2 bg-green-50 text-green-700 text-sm rounded-lg">
+                  <span key={col} className="block rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/35 dark:text-emerald-200">
                     {col}
                   </span>
                 ))}

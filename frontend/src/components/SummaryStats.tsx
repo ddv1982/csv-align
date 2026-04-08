@@ -12,9 +12,11 @@ export function SummaryStats({ summary }: SummaryStatsProps) {
     {
       label: 'Matches',
       value: summary.matches,
-      color: 'bg-green-500',
-      lightColor: 'bg-green-100',
-      textColor: 'text-green-700',
+      surface: 'border border-emerald-200 bg-emerald-100/90 dark:border-emerald-800/70 dark:bg-emerald-950/40',
+      iconBg: 'bg-emerald-500/20 dark:bg-emerald-500/25',
+      iconText: 'text-emerald-700 dark:text-emerald-300',
+      valueText: 'text-emerald-700 dark:text-emerald-200',
+      labelText: 'text-emerald-800 dark:text-emerald-200',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -24,9 +26,11 @@ export function SummaryStats({ summary }: SummaryStatsProps) {
     {
       label: 'Mismatches',
       value: summary.mismatches,
-      color: 'bg-yellow-500',
-      lightColor: 'bg-yellow-100',
-      textColor: 'text-yellow-700',
+      surface: 'border border-amber-200 bg-amber-100/90 dark:border-amber-800/70 dark:bg-amber-950/40',
+      iconBg: 'bg-amber-500/20 dark:bg-amber-500/25',
+      iconText: 'text-amber-700 dark:text-amber-300',
+      valueText: 'text-amber-700 dark:text-amber-200',
+      labelText: 'text-amber-800 dark:text-amber-200',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -36,9 +40,11 @@ export function SummaryStats({ summary }: SummaryStatsProps) {
     {
       label: 'Missing Left',
       value: summary.missing_left,
-      color: 'bg-blue-500',
-      lightColor: 'bg-blue-100',
-      textColor: 'text-blue-700',
+      surface: 'border border-blue-200 bg-blue-100/90 dark:border-blue-800/70 dark:bg-blue-950/40',
+      iconBg: 'bg-blue-500/20 dark:bg-blue-500/25',
+      iconText: 'text-blue-700 dark:text-blue-300',
+      valueText: 'text-blue-700 dark:text-blue-200',
+      labelText: 'text-blue-800 dark:text-blue-200',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
@@ -48,9 +54,11 @@ export function SummaryStats({ summary }: SummaryStatsProps) {
     {
       label: 'Missing Right',
       value: summary.missing_right,
-      color: 'bg-purple-500',
-      lightColor: 'bg-purple-100',
-      textColor: 'text-purple-700',
+      surface: 'border border-violet-200 bg-violet-100/90 dark:border-violet-800/70 dark:bg-violet-950/40',
+      iconBg: 'bg-violet-500/20 dark:bg-violet-500/25',
+      iconText: 'text-violet-700 dark:text-violet-300',
+      valueText: 'text-violet-700 dark:text-violet-200',
+      labelText: 'text-violet-800 dark:text-violet-200',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
@@ -97,15 +105,15 @@ export function SummaryStats({ summary }: SummaryStatsProps) {
         {stats.map((stat) => (
           <div
             key={stat.label}
-            className={`${stat.lightColor} rounded-xl p-4 transition-transform hover:scale-105`}
+            className={`${stat.surface} rounded-xl p-4 transition-transform hover:scale-[1.02]`}
           >
             <div className="flex items-center justify-between mb-2">
-              <div className={`${stat.color} ${stat.textColor} w-8 h-8 rounded-lg flex items-center justify-center`}>
+              <div className={`${stat.iconBg} ${stat.iconText} w-8 h-8 rounded-lg flex items-center justify-center`}>
                 {stat.icon}
               </div>
-              <span className={`text-2xl font-bold ${stat.textColor}`}>{stat.value}</span>
+              <span className={`text-2xl font-bold ${stat.valueText}`}>{stat.value}</span>
             </div>
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{stat.label}</p>
+            <p className={`text-sm font-medium ${stat.labelText}`}>{stat.label}</p>
           </div>
         ))}
       </div>
