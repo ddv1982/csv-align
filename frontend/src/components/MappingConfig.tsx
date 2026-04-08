@@ -16,7 +16,8 @@ interface MappingConfigProps {
     keyColumnsA: string[],
     keyColumnsB: string[],
     comparisonColumnsA: string[],
-    comparisonColumnsB: string[]
+    comparisonColumnsB: string[],
+    columnMappings: MappingResponse[]
   ) => void;
 }
 
@@ -63,21 +64,49 @@ export function MappingConfig({
   };
 
   const handleCompare = () => {
-    // Use mapped columns for comparison if not manually selected
-    const finalComparisonA = comparisonColumnsA.length > 0 
-      ? comparisonColumnsA 
+    const hasManualSelectionA = comparisonColumnsA.length > 0;
+    const hasManualSelectionB = comparisonColumnsB.length > 0;
+    const hasManualPairSelection =
+      hasManualSelectionA &&
+      hasManualSelectionB &&
+      comparisonColumnsA.length === comparisonColumnsB.length;
+
+    // Manual selections take priority when both sides are explicitly selected in matched counts.
+    const finalComparisonA = hasManualPairSelection
+      ? comparisonColumnsA
       : mappings.map(m => m.file_a_column);
-    const finalComparisonB = comparisonColumnsB.length > 0 
-      ? comparisonColumnsB 
+    const finalComparisonB = hasManualPairSelection
+      ? comparisonColumnsB
       : mappings.map(m => m.file_b_column);
+
+    const finalMappings: MappingResponse[] = hasManualPairSelection
+      ? comparisonColumnsA.map((fileAColumn, idx) => ({
+          file_a_column: fileAColumn,
+          file_b_column: comparisonColumnsB[idx],
+          mapping_type: 'manual',
+        }))
+      : mappings;
+
+    if (finalComparisonA.length === 0 || finalComparisonB.length === 0) {
+      return;
+    }
 
     onCompare(
       keyColumnsA.length > 0 ? keyColumnsA : [fileA.headers[0]],
       keyColumnsB.length > 0 ? keyColumnsB : [fileB.headers[0]],
       finalComparisonA,
-      finalComparisonB
+      finalComparisonB,
+      finalMappings
     );
   };
+
+  const hasAutoMappings = mappings.length > 0;
+  const hasManualSelections = comparisonColumnsA.length > 0 || comparisonColumnsB.length > 0;
+  const hasManualPairSelection =
+    comparisonColumnsA.length > 0 &&
+    comparisonColumnsB.length > 0 &&
+    comparisonColumnsA.length === comparisonColumnsB.length;
+  const canRunComparison = hasAutoMappings || hasManualPairSelection;
 
   const getMappingBadge = (type: string) => {
     switch (type) {
@@ -294,9 +323,9 @@ export function MappingConfig({
       <div className="flex justify-center">
         <button
           onClick={handleCompare}
-          disabled={mappings.length === 0}
+          disabled={!canRunComparison}
           className={`btn btn-success flex items-center gap-2 px-8 py-3 text-lg ${
-            mappings.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
+            !canRunComparison ? 'cursor-not-allowed opacity-50' : ''
           }`}
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -305,6 +334,14 @@ export function MappingConfig({
           Run Comparison
         </button>
       </div>
+
+      {!canRunComparison && (
+        <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+          {hasManualSelections
+            ? 'Select the same number of comparison columns in File A and File B to run a manual comparison.'
+            : 'No automatic mappings found. Select matching comparison columns in both files to run manually.'}
+        </p>
+      )}
     </div>
   );
 }

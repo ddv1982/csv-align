@@ -115,7 +115,8 @@ function App() {
     keyColumnsA: string[],
     keyColumnsB: string[],
     comparisonColumnsA: string[],
-    comparisonColumnsB: string[]
+    comparisonColumnsB: string[],
+    columnMappings: MappingResponse[]
   ) => {
     if (!state.sessionId) return;
 
@@ -127,7 +128,7 @@ function App() {
         key_columns_b: keyColumnsB,
         comparison_columns_a: comparisonColumnsA,
         comparison_columns_b: comparisonColumnsB,
-        column_mappings: state.mappings.map(m => ({
+        column_mappings: columnMappings.map(m => ({
           file_a_column: m.file_a_column,
           file_b_column: m.file_b_column,
           mapping_type: m.mapping_type,
@@ -145,7 +146,7 @@ function App() {
     } catch (err) {
       setState(prev => ({ ...prev, error: (err as Error).message, loading: false }));
     }
-  }, [state.sessionId, state.mappings]);
+  }, [state.sessionId]);
 
   const handleExport = useCallback(async () => {
     if (!state.sessionId) return;
