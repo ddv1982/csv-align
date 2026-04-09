@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use super::state::AppState;
 use crate::comparison::{engine, mapping};
-use crate::data::{csv_loader, types::*};
+use crate::data::{csv_loader, export as csv_export, types::*};
 
 /// Response for health check
 #[derive(Serialize)]
@@ -512,79 +512,18 @@ pub async fn export_csv(State(state): State<AppState>, Path(session_id): Path<St
             .into_response();
     }
 
-    // Generate CSV
-    let mut csv_content = String::new();
-    csv_content.push_str("Result Type,Key,File A Values,File B Values,Differences\n");
-
-    for result in &session_data.comparison_results {
-        match result {
-            RowComparisonResult::Match {
-                key,
-                values_a,
-                values_b,
-            } => {
-                csv_content.push_str(&format!(
-                    "Match,{},{},{},\n",
-                    escape_csv(&key.join(";")),
-                    escape_csv(&values_a.join(";")),
-                    escape_csv(&values_b.join(";"))
-                ));
-            }
-            RowComparisonResult::Mismatch {
-                key,
-                values_a,
-                values_b,
-                differences,
-            } => {
-                let diff_str: Vec<String> = differences
-                    .iter()
-                    .map(|d| format!("{}: {} vs {}", d.column_a, d.value_a, d.value_b))
-                    .collect();
-                csv_content.push_str(&format!(
-                    "Mismatch,{},{},{},{}\n",
-                    escape_csv(&key.join(";")),
-                    escape_csv(&values_a.join(";")),
-                    escape_csv(&values_b.join(";")),
-                    escape_csv(&diff_str.join("; "))
-                ));
-            }
-            RowComparisonResult::MissingLeft { key, values_b } => {
-                csv_content.push_str(&format!(
-                    "Missing Left,{},{},{},\n",
-                    escape_csv(&key.join(";")),
-                    "",
-                    escape_csv(&values_b.join(";"))
-                ));
-            }
-            RowComparisonResult::MissingRight { key, values_a } => {
-                csv_content.push_str(&format!(
-                    "Missing Right,{},{},{},\n",
-                    escape_csv(&key.join(";")),
-                    escape_csv(&values_a.join(";")),
-                    ""
-                ));
-            }
-            RowComparisonResult::Duplicate {
-                key,
-                source,
-                values,
-            } => {
-                let source_str = match source {
-                    DuplicateSource::FileA => "File A",
-                    DuplicateSource::FileB => "File B",
-                    DuplicateSource::Both => "Both Files",
-                };
-                let values_str: Vec<String> = values.iter().map(|v| v.join(",")).collect();
-                csv_content.push_str(&format!(
-                    "Duplicate ({}),{},{},{},\n",
-                    source_str,
-                    escape_csv(&key.join(";")),
-                    escape_csv(&values_str.join(" | ")),
-                    ""
-                ));
-            }
+    let csv_content = match csv_export::export_results_to_bytes(&session_data.comparison_results) {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("Failed to build CSV export: {e}"),
+                }),
+            )
+                .into_response()
         }
-    }
+    };
 
     // Return CSV as download
     Response::builder()
@@ -596,13 +535,4 @@ pub async fn export_csv(State(state): State<AppState>, Path(session_id): Path<St
         )
         .body(Body::from(csv_content))
         .unwrap()
-}
-
-/// Escape a string for CSV
-fn escape_csv(s: &str) -> String {
-    if s.contains(',') || s.contains('"') || s.contains('\n') {
-        format!("\"{}\"", s.replace('"', "\"\""))
-    } else {
-        s.to_string()
-    }
 }

@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.2.16 - 2026-04-09
+
+- Improved CSV export quality by writing comparison outputs with dedicated columns for keys, File A values, File B values, and mismatch details instead of packing values into semicolon-delimited cells.
+- Unified export formatting across the API and desktop app by reusing the shared Rust export writer, ensuring consistent and correctly escaped CSV output.
+- Added regression tests for the export formatter to guarantee rectangular, column-split CSV records across result types.
+
 ## v0.2.15 - 2026-04-09
 
 - Removed automatic suggested mappings from the frontend configure flow so column pairing is fully user-driven.
