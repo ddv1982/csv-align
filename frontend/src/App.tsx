@@ -7,7 +7,6 @@ import { FilterBar } from './components/FilterBar';
 import {
   createSession,
   uploadFile,
-  suggestMappings,
   compareFiles,
   exportResults,
   downloadBlob,
@@ -32,9 +31,24 @@ const initialState: AppState = {
 
 const THEME_STORAGE_KEY = 'csv-align-theme';
 
+type MappingSelectionState = {
+  keyColumnsA: string[];
+  keyColumnsB: string[];
+  comparisonColumnsA: string[];
+  comparisonColumnsB: string[];
+};
+
+const initialMappingSelection: MappingSelectionState = {
+  keyColumnsA: [],
+  keyColumnsB: [],
+  comparisonColumnsA: [],
+  comparisonColumnsB: [],
+};
+
 function App() {
   const [state, setState] = useState<AppState>(initialState);
   const [step, setStep] = useState<'upload' | 'configure' | 'results'>('upload');
+  const [mappingSelection, setMappingSelection] = useState<MappingSelectionState>(initialMappingSelection);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     if (typeof window === 'undefined') return 'dark';
     const savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
@@ -85,30 +99,18 @@ function App() {
     }
   }, [state.sessionId]);
 
-  // Auto-suggest mappings when both files are loaded
+  // Move to configuration when both files are loaded.
+  // Mapping choices are manual and user-driven.
   useEffect(() => {
-    async function getMappings() {
-      if (!state.sessionId || !state.fileA || !state.fileB) return;
-
-      try {
-        const response = await suggestMappings(state.sessionId, {
-          columns_a: state.fileA.headers,
-          columns_b: state.fileB.headers,
-        });
-        setState(prev => ({ ...prev, mappings: response.mappings }));
-      } catch (err) {
-        console.error('Failed to get mappings:', err);
-      }
-    }
-
     if (state.fileA && state.fileB) {
-      getMappings();
+      setState(prev => ({ ...prev, mappings: [] }));
+      setMappingSelection(initialMappingSelection);
       setStep('configure');
     }
-  }, [state.fileA, state.fileB, state.sessionId]);
+  }, [state.fileA, state.fileB]);
 
-  const handleMappingChange = useCallback((mappings: MappingResponse[]) => {
-    setState(prev => ({ ...prev, mappings }));
+  const handleSelectionChange = useCallback((selection: MappingSelectionState) => {
+    setMappingSelection(selection);
   }, []);
 
   const handleCompare = useCallback(async (
@@ -138,6 +140,7 @@ function App() {
 
       setState(prev => ({
         ...prev,
+        mappings: columnMappings,
         results: response.results,
         summary: response.summary,
         loading: false,
@@ -170,6 +173,7 @@ function App() {
 
   const handleReset = useCallback(async () => {
     setState(initialState);
+    setMappingSelection(initialMappingSelection);
     setStep('upload');
     
     // Create new session
@@ -183,6 +187,10 @@ function App() {
 
   const handleThemeToggle = useCallback(() => {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+  }, []);
+
+  const handleBackToConfigure = useCallback(() => {
+    setStep('configure');
   }, []);
 
   const filteredResults = state.filter === 'all'
@@ -323,8 +331,8 @@ function App() {
             <MappingConfig
               fileA={state.fileA}
               fileB={state.fileB}
-              mappings={state.mappings}
-              onMappingChange={handleMappingChange}
+              selection={mappingSelection}
+              onSelectionChange={handleSelectionChange}
               onCompare={handleCompare}
             />
           </div>
@@ -337,6 +345,18 @@ function App() {
               fileAName={state.fileA?.name ?? 'File A'}
               fileBName={state.fileB?.name ?? 'File B'}
             />
+
+            <div className="flex justify-end">
+              <button
+                onClick={handleBackToConfigure}
+                className="btn btn-secondary flex items-center gap-2"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Back to configuration
+              </button>
+            </div>
             
             <FilterBar
               filter={state.filter}

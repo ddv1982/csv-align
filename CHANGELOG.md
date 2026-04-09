@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.2.15 - 2026-04-09
+
+- Removed automatic suggested mappings from the frontend configure flow so column pairing is fully user-driven.
+- Added persistent back-navigation from Results to Configure, keeping key and comparison selections intact for quick adjustments and re-runs.
+
 ## v0.2.14 - 2026-04-09
 
 - Fixed remaining false-match scenarios by improving comparison difference detection to prefer explicit mappings and fall back to selected column position pairing when mapping metadata is missing.
