@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.2.14 - 2026-04-09
+
+- Fixed remaining false-match scenarios by improving comparison difference detection to prefer explicit mappings and fall back to selected column position pairing when mapping metadata is missing.
+- Fixed summary totals so File A and File B row counts now display the real source CSV row counts instead of 0 in results.
+
 ## v0.2.13 - 2026-04-08
 
 - Fixed mismatch classification so rows are marked as mismatches when mapped comparison column values differ, even when key columns match.

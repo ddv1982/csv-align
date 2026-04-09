@@ -259,19 +259,29 @@ fn find_differences(
         .map(|m| (m.file_a_column.as_str(), m.file_b_column.as_str()))
         .collect();
 
-    // Compare each mapped column
+    // Compare each selected comparison column.
+    // Prefer explicit mapping, then fall back to positional pairing.
     for (i, col_a) in columns_a.iter().enumerate() {
-        if let Some(&mapped_col_b) = column_map.get(col_a.as_str()) {
-            if let Some(j) = columns_b.iter().position(|c| c == mapped_col_b) {
-                if i < values_a.len() && j < values_b.len() && values_a[i] != values_b[j] {
-                    differences.push(ValueDifference {
-                        column_a: col_a.clone(),
-                        column_b: mapped_col_b.to_string(),
-                        value_a: values_a[i].clone(),
-                        value_b: values_b[j].clone(),
-                    });
-                }
-            }
+        let mapped_or_positional_col_b = column_map
+            .get(col_a.as_str())
+            .copied()
+            .or_else(|| columns_b.get(i).map(|c| c.as_str()));
+
+        let Some(col_b_name) = mapped_or_positional_col_b else {
+            continue;
+        };
+
+        let Some(j) = columns_b.iter().position(|c| c == col_b_name) else {
+            continue;
+        };
+
+        if i < values_a.len() && j < values_b.len() && values_a[i] != values_b[j] {
+            differences.push(ValueDifference {
+                column_a: col_a.clone(),
+                column_b: col_b_name.to_string(),
+                value_a: values_a[i].clone(),
+                value_b: values_b[j].clone(),
+            });
         }
     }
 
@@ -279,10 +289,14 @@ fn find_differences(
 }
 
 /// Generate summary statistics from comparison results
-pub fn generate_summary(results: &[RowComparisonResult]) -> ComparisonSummary {
+pub fn generate_summary(
+    results: &[RowComparisonResult],
+    total_rows_a: usize,
+    total_rows_b: usize,
+) -> ComparisonSummary {
     let mut summary = ComparisonSummary {
-        total_rows_a: 0,
-        total_rows_b: 0,
+        total_rows_a,
+        total_rows_b,
         matches: 0,
         mismatches: 0,
         missing_left: 0,
@@ -426,8 +440,10 @@ mod tests {
             },
         ];
 
-        let summary = generate_summary(&results);
+        let summary = generate_summary(&results, 2, 3);
 
+        assert_eq!(summary.total_rows_a, 2);
+        assert_eq!(summary.total_rows_b, 3);
         assert_eq!(summary.matches, 1);
         assert_eq!(summary.mismatches, 1);
         assert_eq!(summary.missing_left, 1);
@@ -487,6 +503,43 @@ mod tests {
                 assert_eq!(differences[0].value_b, "999");
             }
             _ => panic!("Expected mismatch result for mapped column difference"),
+        }
+    }
+
+    #[test]
+    fn test_compare_csv_data_detects_mismatch_without_explicit_mapping_by_position() {
+        let csv_a = CsvData {
+            file_path: Some("left.csv".to_string()),
+            headers: vec!["id".to_string(), "city".to_string()],
+            rows: vec![vec!["1".to_string(), "Berlin".to_string()]],
+        };
+
+        let csv_b = CsvData {
+            file_path: Some("right.csv".to_string()),
+            headers: vec!["id".to_string(), "location".to_string()],
+            rows: vec![vec!["1".to_string(), "Paris".to_string()]],
+        };
+
+        let config = ComparisonConfig {
+            key_columns_a: vec!["id".to_string()],
+            key_columns_b: vec!["id".to_string()],
+            comparison_columns_a: vec!["city".to_string()],
+            comparison_columns_b: vec!["location".to_string()],
+            column_mappings: vec![],
+        };
+
+        let results = compare_csv_data(&csv_a, &csv_b, &config);
+        assert_eq!(results.len(), 1);
+
+        match &results[0] {
+            RowComparisonResult::Mismatch { differences, .. } => {
+                assert_eq!(differences.len(), 1);
+                assert_eq!(differences[0].column_a, "city");
+                assert_eq!(differences[0].column_b, "location");
+                assert_eq!(differences[0].value_a, "Berlin");
+                assert_eq!(differences[0].value_b, "Paris");
+            }
+            _ => panic!("Expected mismatch result when positional comparison values differ"),
         }
     }
 }

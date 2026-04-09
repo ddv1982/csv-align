@@ -328,7 +328,7 @@ fn compare(
 
     // Run comparison
     let results = engine::compare_csv_data(csv_a, csv_b, &config);
-    let summary = engine::generate_summary(&results);
+    let summary = engine::generate_summary(&results, csv_a.rows.len(), csv_b.rows.len());
     session_data.comparison_results = results.clone();
 
     // Build response
