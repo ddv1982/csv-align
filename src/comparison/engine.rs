@@ -1,4 +1,5 @@
 use super::super::data::types::*;
+use serde_json::Value;
 use std::collections::HashMap;
 
 /// Compare two CSV datasets based on configuration
@@ -243,6 +244,16 @@ fn extract_columns(row: &[String], indices: &[usize]) -> Vec<String> {
         .collect()
 }
 
+fn values_match(value_a: &str, value_b: &str) -> bool {
+    match (
+        serde_json::from_str::<Value>(value_a),
+        serde_json::from_str::<Value>(value_b),
+    ) {
+        (Ok(json_a), Ok(json_b)) => json_a == json_b,
+        _ => value_a == value_b,
+    }
+}
+
 /// Find differences between two sets of values
 fn find_differences(
     columns_a: &[String],
@@ -275,7 +286,7 @@ fn find_differences(
             continue;
         };
 
-        if i < values_a.len() && j < values_b.len() && values_a[i] != values_b[j] {
+        if i < values_a.len() && j < values_b.len() && !values_match(&values_a[i], &values_b[j]) {
             differences.push(ValueDifference {
                 column_a: col_a.clone(),
                 column_b: col_b_name.to_string(),
@@ -540,6 +551,98 @@ mod tests {
                 assert_eq!(differences[0].value_b, "Paris");
             }
             _ => panic!("Expected mismatch result when positional comparison values differ"),
+        }
+    }
+
+    fn create_json_compare_config() -> ComparisonConfig {
+        ComparisonConfig {
+            key_columns_a: vec!["id".to_string()],
+            key_columns_b: vec!["id".to_string()],
+            comparison_columns_a: vec!["payload".to_string()],
+            comparison_columns_b: vec!["payload".to_string()],
+            column_mappings: vec![ColumnMapping {
+                file_a_column: "payload".to_string(),
+                file_b_column: "payload".to_string(),
+                mapping_type: MappingType::ExactMatch,
+            }],
+        }
+    }
+
+    #[test]
+    fn test_compare_csv_data_matches_semantically_equivalent_json_values() {
+        let csv_a = CsvData {
+            file_path: Some("left.csv".to_string()),
+            headers: vec!["id".to_string(), "payload".to_string()],
+            rows: vec![vec!["1".to_string(), "{\"a\":1,\"b\":[2,3]}".to_string()]],
+        };
+
+        let csv_b = CsvData {
+            file_path: Some("right.csv".to_string()),
+            headers: vec!["id".to_string(), "payload".to_string()],
+            rows: vec![vec![
+                "1".to_string(),
+                "{\n  \"b\": [2, 3], \"a\": 1\n}".to_string(),
+            ]],
+        };
+
+        let results = compare_csv_data(&csv_a, &csv_b, &create_json_compare_config());
+        assert_eq!(results.len(), 1);
+        assert!(matches!(results[0], RowComparisonResult::Match { .. }));
+    }
+
+    #[test]
+    fn test_compare_csv_data_detects_non_equivalent_json_values() {
+        let csv_a = CsvData {
+            file_path: Some("left.csv".to_string()),
+            headers: vec!["id".to_string(), "payload".to_string()],
+            rows: vec![vec!["1".to_string(), "{\"a\":1,\"b\":[2,3]}".to_string()]],
+        };
+
+        let csv_b = CsvData {
+            file_path: Some("right.csv".to_string()),
+            headers: vec!["id".to_string(), "payload".to_string()],
+            rows: vec![vec!["1".to_string(), "{\"a\":1,\"b\":[2,4]}".to_string()]],
+        };
+
+        let results = compare_csv_data(&csv_a, &csv_b, &create_json_compare_config());
+        assert_eq!(results.len(), 1);
+
+        match &results[0] {
+            RowComparisonResult::Mismatch { differences, .. } => {
+                assert_eq!(differences.len(), 1);
+                assert_eq!(differences[0].column_a, "payload");
+                assert_eq!(differences[0].column_b, "payload");
+            }
+            _ => panic!("Expected mismatch result for non-equivalent JSON values"),
+        }
+    }
+
+    #[test]
+    fn test_compare_csv_data_uses_raw_string_comparison_for_malformed_json() {
+        let csv_a = CsvData {
+            file_path: Some("left.csv".to_string()),
+            headers: vec!["id".to_string(), "payload".to_string()],
+            rows: vec![vec!["1".to_string(), "{\"a\":1".to_string()]],
+        };
+
+        let csv_b = CsvData {
+            file_path: Some("right.csv".to_string()),
+            headers: vec!["id".to_string(), "payload".to_string()],
+            rows: vec![vec!["1".to_string(), "{\"a\": 1".to_string()]],
+        };
+
+        let results = compare_csv_data(&csv_a, &csv_b, &create_json_compare_config());
+        assert_eq!(results.len(), 1);
+
+        match &results[0] {
+            RowComparisonResult::Mismatch { differences, .. } => {
+                assert_eq!(differences.len(), 1);
+                assert_eq!(differences[0].value_a, "{\"a\":1");
+                assert_eq!(differences[0].value_b, "{\"a\": 1");
+            }
+            _ => panic!(
+                "Expected mismatch result when malformed JSON falls back to raw string comparison"
+            ),
         }
     }
 }

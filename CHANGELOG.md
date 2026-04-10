@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.2.17 - 2026-04-10
+
+- Added JSON-aware comparison for CSV field values so semantically equivalent JSON payloads (for example different whitespace or object key order) are treated as matches.
+- Preserved strict raw-string fallback for non-JSON or malformed JSON field values to avoid unintended normalization.
+- Added regression tests covering equivalent JSON matches, semantic JSON mismatches, and malformed JSON fallback behavior.
+
 ## v0.2.16 - 2026-04-09
 
 - Improved CSV export quality by writing comparison outputs with dedicated columns for keys, File A values, File B values, and mismatch details instead of packing values into semicolon-delimited cells.
