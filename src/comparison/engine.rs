@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 const DEFAULT_DATE_FORMATS: &[&str] = &[
     "%Y-%m-%d", "%d-%m-%Y", "%m-%d-%Y", "%Y/%m/%d", "%d/%m/%Y", "%m/%d/%Y", "%Y.%m.%d", "%d.%m.%Y",
-    "%m.%d.%Y", "%Y%m%d", "%d %b %Y", "%d %B %Y",
+    "%m.%d.%Y", "%Y%m%d", "%d %b %Y", "%d %B %Y", "%d-%b-%y",
 ];
 
 /// Compare two CSV datasets based on configuration
@@ -426,4 +426,34 @@ pub fn generate_summary(
     }
 
     summary
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_date_normalization_matches_hyphenated_abbreviated_two_digit_year() {
+        let mut normalization = ComparisonNormalizationConfig::default();
+        normalization.date_normalization.enabled = true;
+
+        assert!(values_match_with_config(
+            "18-FEB-19",
+            "2019-02-18",
+            &normalization,
+        ));
+    }
+
+    #[test]
+    fn default_date_normalization_preserves_iso_output_for_new_format() {
+        let config = DateNormalizationConfig {
+            enabled: true,
+            formats: Vec::new(),
+        };
+
+        assert_eq!(
+            normalize_date_value("18-FEB-19", &config),
+            Some("2019-02-18".to_string())
+        );
+    }
 }

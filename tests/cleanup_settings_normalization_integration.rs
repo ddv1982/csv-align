@@ -72,3 +72,20 @@ fn cleanup_settings_matches_different_date_formats_when_enabled() {
     assert_eq!(results.len(), 1);
     assert!(matches!(results[0], RowComparisonResult::Match { .. }));
 }
+
+#[test]
+fn cleanup_settings_matches_default_month_name_date_format_without_custom_formats() {
+    let (csv_a, csv_b) = create_csv_pair("18-FEB-19", "2019-02-18");
+    let config = create_config(ComparisonNormalizationConfig {
+        date_normalization: DateNormalizationConfig {
+            enabled: true,
+            formats: vec![],
+        },
+        ..ComparisonNormalizationConfig::default()
+    });
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    assert!(matches!(results[0], RowComparisonResult::Match { .. }));
+}

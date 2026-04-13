@@ -397,3 +397,30 @@ fn test_compare_csv_data_matches_date_formats_when_enabled() {
     assert_eq!(results.len(), 1);
     assert!(matches!(results[0], RowComparisonResult::Match { .. }));
 }
+
+#[test]
+fn test_compare_csv_data_matches_default_normalized_month_name_dates_without_custom_formats() {
+    let csv_a = CsvData {
+        file_path: Some("left.csv".to_string()),
+        headers: vec!["id".to_string(), "value".to_string()],
+        rows: vec![vec!["1".to_string(), "18-FEB-19".to_string()]],
+    };
+
+    let csv_b = CsvData {
+        file_path: Some("right.csv".to_string()),
+        headers: vec!["id".to_string(), "value".to_string()],
+        rows: vec![vec!["1".to_string(), "2019-02-18".to_string()]],
+    };
+
+    let config = create_normalization_test_config(ComparisonNormalizationConfig {
+        date_normalization: DateNormalizationConfig {
+            enabled: true,
+            formats: vec![],
+        },
+        ..ComparisonNormalizationConfig::default()
+    });
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+    assert_eq!(results.len(), 1);
+    assert!(matches!(results[0], RowComparisonResult::Match { .. }));
+}

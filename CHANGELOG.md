@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.2 - 2026-04-13
+
+- Expanded default date normalization so abbreviated month-name values like `18-FEB-19` match equivalent ISO dates without requiring custom patterns.
+- Added regression coverage for the default abbreviated-month normalization path in both the comparison engine and cleanup-settings integration suites.
+
 ## v1.0.1 - 2026-04-13
 
 - Clarified local file-selection wording and renamed the local file-loading contract surfaces to keep the desktop and web flows aligned.
