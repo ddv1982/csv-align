@@ -4,13 +4,13 @@ import type { ComparisonNormalizationConfig } from './types/api';
 
 const {
   createSessionMock,
-  uploadFileMock,
+  loadFileMock,
   compareFilesMock,
   exportResultsMock,
   downloadBlobMock,
 } = vi.hoisted(() => ({
   createSessionMock: vi.fn(),
-  uploadFileMock: vi.fn(),
+  loadFileMock: vi.fn(),
   compareFilesMock: vi.fn(),
   exportResultsMock: vi.fn(),
   downloadBlobMock: vi.fn(),
@@ -18,27 +18,27 @@ const {
 
 vi.mock('./services/tauri', () => ({
   createSession: createSessionMock,
-  uploadFile: uploadFileMock,
+  loadFile: loadFileMock,
   compareFiles: compareFilesMock,
   exportResults: exportResultsMock,
   downloadBlob: downloadBlobMock,
 }));
 
-vi.mock('./components/FileUpload', () => ({
-  FileUpload: ({
+vi.mock('./components/FileSelector', () => ({
+  FileSelector: ({
     label,
     file,
-    onUpload,
+    onSelect,
   }: {
     label: string;
     file: { name: string } | null;
-    onUpload: (file: File) => void;
+    onSelect: (file: File) => void;
   }) => (
     <section>
       <h2>{label}</h2>
-      <div>{file ? `Loaded ${file.name}` : `No file for ${label}`}</div>
-      <button onClick={() => onUpload(new File(['id,name'], `${label}.csv`, { type: 'text/csv' }))}>
-        Upload {label}
+      <div>{file ? `Selected ${file.name}` : `No file selected for ${label}`}</div>
+      <button onClick={() => onSelect(new File(['id,name'], `${label}.csv`, { type: 'text/csv' }))}>
+        Select {label}
       </button>
     </section>
   ),
@@ -116,13 +116,13 @@ import App from './App';
 
 beforeEach(() => {
   createSessionMock.mockReset();
-  uploadFileMock.mockReset();
+  loadFileMock.mockReset();
   compareFilesMock.mockReset();
   exportResultsMock.mockReset();
   downloadBlobMock.mockReset();
 
   createSessionMock.mockResolvedValue({ session_id: 'session-123' });
-  uploadFileMock.mockImplementation(async (_sessionId: string, file: File) => ({
+  loadFileMock.mockImplementation(async (_sessionId: string, file: File) => ({
     success: true,
     file_letter: 'a',
     headers: ['id', 'name'],
@@ -134,16 +134,19 @@ beforeEach(() => {
   }));
 });
 
-test('returns to upload with files intact and resumes configure without losing state', async () => {
+test('returns to file selection with files intact and resumes configure without losing state', async () => {
   render(<App />);
 
   await waitFor(() => {
     expect(createSessionMock).toHaveBeenCalledTimes(1);
   });
 
-  fireEvent.click(screen.getByRole('button', { name: 'Upload File A' }));
-  await screen.findByRole('button', { name: 'Upload File B' });
-  fireEvent.click(screen.getByRole('button', { name: 'Upload File B' }));
+  expect(screen.getByRole('heading', { name: 'Select two local CSV files' })).toBeInTheDocument();
+  expect(screen.getByText('Choose the files you want to compare. You can reselect either file before running the comparison.')).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Select File A' }));
+  await screen.findByRole('button', { name: 'Select File B' });
+  fireEvent.click(screen.getByRole('button', { name: 'Select File B' }));
 
   await screen.findByRole('heading', { name: 'Mock Configure' });
 
@@ -155,8 +158,8 @@ test('returns to upload with files intact and resumes configure without losing s
 
   fireEvent.click(screen.getByRole('button', { name: 'Back to file selection' }));
 
-  expect(screen.getByText('Loaded File A.csv')).toBeInTheDocument();
-  expect(screen.getByText('Loaded File B.csv')).toBeInTheDocument();
+  expect(screen.getByText('Selected File A.csv')).toBeInTheDocument();
+  expect(screen.getByText('Selected File B.csv')).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Continue to configuration' })).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole('button', { name: 'Continue to configuration' }));
@@ -166,16 +169,16 @@ test('returns to upload with files intact and resumes configure without losing s
   expect(screen.getByTestId('normalization-state')).toHaveTextContent('case-insensitive-on');
 });
 
-test('replacing one file after returning to upload resets configure state to defaults', async () => {
+test('reselecting one file after returning to file selection resets configure state to defaults', async () => {
   render(<App />);
 
   await waitFor(() => {
     expect(createSessionMock).toHaveBeenCalledTimes(1);
   });
 
-  fireEvent.click(screen.getByRole('button', { name: 'Upload File A' }));
-  await screen.findByRole('button', { name: 'Upload File B' });
-  fireEvent.click(screen.getByRole('button', { name: 'Upload File B' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Select File A' }));
+  await screen.findByRole('button', { name: 'Select File B' });
+  fireEvent.click(screen.getByRole('button', { name: 'Select File B' }));
 
   await screen.findByRole('heading', { name: 'Mock Configure' });
 
@@ -187,13 +190,13 @@ test('replacing one file after returning to upload resets configure state to def
 
   fireEvent.click(screen.getByRole('button', { name: 'Back to file selection' }));
 
-  expect(screen.getByText('Loaded File A.csv')).toBeInTheDocument();
-  expect(screen.getByText('Loaded File B.csv')).toBeInTheDocument();
+  expect(screen.getByText('Selected File A.csv')).toBeInTheDocument();
+  expect(screen.getByText('Selected File B.csv')).toBeInTheDocument();
 
-  fireEvent.click(screen.getByRole('button', { name: 'Upload File A' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Select File A' }));
 
   await waitFor(() => {
-    expect(uploadFileMock).toHaveBeenCalledTimes(3);
+    expect(loadFileMock).toHaveBeenCalledTimes(3);
   });
   await screen.findByRole('heading', { name: 'Mock Configure' });
 

@@ -4,9 +4,9 @@ A modern application to compare two CSV files with visual difference highlightin
 
 ## Features
 
-- **Drag-and-drop file upload** with visual feedback
+- **Drag-and-drop local file selection** with visual feedback
 - **Auto-detect columns** and data types
-- **Auto-suggest column mappings** based on name similarity
+- **Manual column pairing** for precise comparisons
 - **Select key columns** for row matching
 - **Select comparison columns** to compare
 - **Compare rows side by side** with results showing:
@@ -188,7 +188,7 @@ This project uses GitHub Actions for continuous integration and delivery:
 - Builds and uploads:
   - macOS DMG (ARM64 + Intel)
   - Linux AppImage and .deb
-- Fails if the pushed tag does not have a matching non-empty changelog section headed `## v1.0.0 - YYYY-MM-DD`
+- Fails if the pushed tag does not have a matching non-empty changelog section headed `## vX.Y.Z - YYYY-MM-DD`
 
 ### Creating a Release
 
@@ -220,19 +220,19 @@ Pushing the `v*` tag triggers the release workflow. If `CHANGELOG.md` is missing
 | `/api/health` | GET | Health check |
 | `/api/sessions` | POST | Create a new session |
 | `/api/sessions/:id` | DELETE | Delete a session |
-| `/api/sessions/:id/upload/:letter` | POST | Upload CSV file (a or b) |
+| `/api/sessions/:id/files/:letter` | POST | Load CSV file (a or b) into the session |
 | `/api/sessions/:id/mappings` | POST | Get column mappings |
 | `/api/sessions/:id/compare` | POST | Run comparison |
 | `/api/sessions/:id/export` | GET | Export results as CSV |
 
 ## Usage
 
-1. **Upload Files**: Drag and drop or click to upload two CSV files.
+1. **Select Files**: Drag and drop or click to choose two local CSV files.
 
 2. **Configure Comparison**: 
    - Select key columns (used to match rows between files)
    - Select comparison columns (values to compare)
-   - Review auto-suggested column mappings
+   - Pair columns manually in the order you want to compare them
 
 3. **Run Comparison**: Click "Run Comparison" to compare the files.
 

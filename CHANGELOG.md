@@ -1,9 +1,14 @@
 # Changelog
 
+## v1.0.1 - 2026-04-13
+
+- Clarified local file-selection wording and renamed the local file-loading contract surfaces to keep the desktop and web flows aligned.
+- Cleaned up release and contributor docs, and validated CI-aligned release checks including changelog extraction for the tagged release flow.
+
 ## v1.0.0 - 2026-04-13
 
 - Simplified the configure experience with clearer cleanup wording, better missing-value defaults, and advanced date patterns moved out of the main path.
-- Smoothed the step flow by adding back navigation from Configure to file selection plus a quick return path to Configure without re-uploading both files.
+- Smoothed the step flow by adding back navigation from Configure to file selection plus a quick return path to Configure without reselecting both files.
 - Strengthened comparison reliability with new frontend and Rust regression coverage for cleanup settings, normalization behavior, and step navigation.
 
 ## v0.2.21 - 2026-04-13

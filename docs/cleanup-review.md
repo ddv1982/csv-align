@@ -14,7 +14,7 @@ The HTTP API and Tauri entrypoint currently duplicate transport DTOs and respons
 Duplicated response families include:
 
 - `ColumnResponse`
-- `UploadResponse`
+- `FileLoadResponse`
 - `ResultResponse`
 - `DifferenceResponse`
 - `SummaryResponse`
@@ -27,16 +27,17 @@ Because those shapes define user-visible response contracts, cleanup should add 
 
 ### Frontend structural cleanup is gated
 
-The frontend currently exposes only these npm scripts:
+The frontend currently exposes these npm scripts:
 
 - `dev`
+- `test`
 - `build`
 - `preview`
 - `tauri`
 
-There is no existing frontend test script or test tooling in `frontend/package.json`. That means build verification (`cd frontend && npm run build`) is the only approved no-new-dependency frontend safety net right now.
+The frontend now has a test script and repo-approved test tooling in `frontend/package.json`, so cleanup can use both `cd frontend && npm test` and `cd frontend && npm run build` as safety rails.
 
-Until a safe existing test path is found or additional tooling is explicitly approved, structural cleanup of large frontend files such as `frontend/src/App.tsx` and `frontend/src/components/MappingConfig.tsx` should be deferred. Only dead-code removal or trivial local simplifications validated by the production build are in scope.
+Structural cleanup should still stay scoped and reviewable, but it is no longer limited to production-build-only verification. Larger frontend cleanup now needs both the frontend test suite and the production build to stay green.
 
 ### Dead-code candidates still need execution-lane proof
 

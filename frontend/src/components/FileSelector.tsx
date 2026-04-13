@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { ColumnInfo } from '../types/api';
 
-interface FileUploadProps {
+interface FileSelectorProps {
   label: string;
   file: {
     name: string;
@@ -9,10 +9,10 @@ interface FileUploadProps {
     columns: ColumnInfo[];
     rowCount: number;
   } | null;
-  onUpload: (file: File) => void;
+  onSelect: (file: File) => void;
 }
 
-export function FileUpload({ label, file, onUpload }: FileUploadProps) {
+export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
   const [isDragging, setIsDragging] = useState(false);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -33,17 +33,17 @@ export function FileUpload({ label, file, onUpload }: FileUploadProps) {
     if (files.length > 0) {
       const droppedFile = files[0];
       if (droppedFile.name.endsWith('.csv')) {
-        onUpload(droppedFile);
+        onSelect(droppedFile);
       }
     }
-  }, [onUpload]);
+  }, [onSelect]);
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      onUpload(files[0]);
+      onSelect(files[0]);
     }
-  }, [onUpload]);
+  }, [onSelect]);
 
   return (
     <div className="card p-6">
@@ -99,7 +99,7 @@ export function FileUpload({ label, file, onUpload }: FileUploadProps) {
               onChange={handleFileChange}
               className="hidden"
             />
-            Replace File
+            Select Another File
           </label>
         </div>
       ) : (
@@ -109,9 +109,9 @@ export function FileUpload({ label, file, onUpload }: FileUploadProps) {
           onDrop={handleDrop}
           className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 ${
             isDragging
-               ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-               : 'border-gray-300 hover:border-primary-400 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800/60'
-           }`}
+              ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+              : 'border-gray-300 hover:border-primary-400 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800/60'
+          }`}
         >
           <div className="flex flex-col items-center">
             <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
@@ -131,23 +131,23 @@ export function FileUpload({ label, file, onUpload }: FileUploadProps) {
                 />
               </svg>
             </div>
-            
-              <p className="mb-1 text-lg font-medium text-gray-900 dark:text-gray-100">
-                {isDragging ? 'Drop your file here' : 'Drag & drop your CSV file to select it'}
-              </p>
+
+            <p className="mb-1 text-lg font-medium text-gray-900 dark:text-gray-100">
+              {isDragging ? 'Drop the local CSV file here' : 'Drag & drop a local CSV file to choose it'}
+            </p>
             <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">or</p>
-            
-              <label className="btn btn-primary cursor-pointer">
-                <input
-                  type="file"
-                  accept=".csv"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-                Select File
-              </label>
-            
-            <p className="mt-4 text-xs text-gray-400 dark:text-gray-500">Supports CSV files up to 50MB</p>
+
+            <label className="btn btn-primary cursor-pointer">
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              Choose Local CSV
+            </label>
+
+            <p className="mt-4 text-xs text-gray-400 dark:text-gray-500">Select a local CSV file up to 50MB</p>
           </div>
         </div>
       )}

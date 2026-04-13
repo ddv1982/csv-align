@@ -4,7 +4,7 @@ export interface ColumnInfo {
   data_type: string;
 }
 
-export interface UploadResponse {
+export interface FileLoadResponse {
   success: boolean;
   file_letter: string;
   headers: string[];

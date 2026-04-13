@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use super::state::AppState;
 use crate::comparison::{engine, mapping};
 use crate::data::{csv_loader, export as csv_export, types::*};
-use crate::presentation::{compare_response, suggest_mappings_response, upload_response};
+use crate::presentation::{compare_response, file_load_response, suggest_mappings_response};
 
 /// Response for health check
 #[derive(Serialize)]
@@ -90,8 +90,8 @@ pub async fn delete_session(
     }
 }
 
-/// Upload a CSV file (file_a or file_b)
-pub async fn upload_csv(
+/// Load a CSV file (file_a or file_b)
+pub async fn load_csv_file(
     State(state): State<AppState>,
     Path((session_id, file_letter)): Path<(String, String)>,
     mut multipart: Multipart,
@@ -179,7 +179,7 @@ pub async fn upload_csv(
     let columns = csv_loader::detect_columns(&csv_data);
 
     let row_count = csv_data.rows.len();
-    let response = upload_response(file_letter.clone(), headers, &columns, row_count);
+    let response = file_load_response(file_letter.clone(), headers, &columns, row_count);
 
     // Update session
     if file_letter == "a" {
@@ -256,7 +256,7 @@ pub async fn compare(
             return (
                 StatusCode::BAD_REQUEST,
                 Json(ErrorResponse {
-                    error: "Both CSV files must be uploaded before comparing".to_string(),
+                    error: "Both CSV files must be loaded before comparing".to_string(),
                 }),
             )
                 .into_response()

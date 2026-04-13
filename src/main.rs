@@ -58,10 +58,10 @@ async fn main() {
             "/api/sessions/:session_id",
             delete(handlers::delete_session),
         )
-        // CSV upload
+        // CSV file loading
         .route(
-            "/api/sessions/:session_id/upload/:file_letter",
-            post(handlers::upload_csv),
+            "/api/sessions/:session_id/files/:file_letter",
+            post(handlers::load_csv_file),
         )
         // Column mappings
         .route(

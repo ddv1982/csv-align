@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FileUpload } from './components/FileUpload';
+import { FileSelector } from './components/FileSelector';
 import { MappingConfig } from './components/MappingConfig';
 import { ResultsTable } from './components/ResultsTable';
 import { SummaryStats } from './components/SummaryStats';
 import { FilterBar } from './components/FilterBar';
 import {
   createSession,
-  uploadFile,
+  loadFile,
   compareFiles,
   exportResults,
   downloadBlob,
@@ -51,7 +51,7 @@ const initialNormalizationConfig: ComparisonNormalizationConfig = INITIAL_NORMAL
 
 function App() {
   const [state, setState] = useState<AppState>(initialState);
-  const [step, setStep] = useState<'upload' | 'configure' | 'results'>('upload');
+  const [step, setStep] = useState<'select' | 'configure' | 'results'>('select');
   const [mappingSelection, setMappingSelection] = useState<MappingSelectionState>(initialMappingSelection);
   const [normalizationConfig, setNormalizationConfig] = useState<ComparisonNormalizationConfig>(initialNormalizationConfig);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -79,13 +79,13 @@ function App() {
     initSession();
   }, []);
 
-  const handleFileUpload = useCallback(async (file: File, fileLetter: 'a' | 'b') => {
+  const handleFileSelection = useCallback(async (file: File, fileLetter: 'a' | 'b') => {
     if (!state.sessionId) return;
 
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
-      const response = await uploadFile(state.sessionId, file, fileLetter);
+      const response = await loadFile(state.sessionId, file, fileLetter);
 
       const fileData = {
         name: file.name,
@@ -183,7 +183,7 @@ function App() {
     setState(initialState);
     setMappingSelection(initialMappingSelection);
     setNormalizationConfig(initialNormalizationConfig);
-    setStep('upload');
+    setStep('select');
     
     // Create new session
     try {
@@ -202,8 +202,8 @@ function App() {
     setStep('configure');
   }, []);
 
-  const handleBackToUpload = useCallback(() => {
-    setStep('upload');
+  const handleBackToSelection = useCallback(() => {
+    setStep('select');
   }, []);
 
   const handleContinueToConfigure = useCallback(() => {
@@ -279,11 +279,11 @@ function App() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <nav className="flex items-center justify-center mb-8">
           <ol className="flex items-center">
-            <li className={`flex items-center ${step === 'upload' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-500 dark:text-gray-400'}`}>
-              <span className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${step === 'upload' ? 'border-primary-600 bg-primary-600 text-white' : 'border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800'}`}>
+            <li className={`flex items-center ${step === 'select' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-500 dark:text-gray-400'}`}>
+              <span className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${step === 'select' ? 'border-primary-600 bg-primary-600 text-white' : 'border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800'}`}>
                 1
               </span>
-              <span className="ml-2 text-sm font-medium">Select Files</span>
+              <span className="ml-2 text-sm font-medium">Choose Local Files</span>
             </li>
             <svg className="w-12 h-5 mx-4 text-gray-300 dark:text-gray-600" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
@@ -326,18 +326,22 @@ function App() {
         )}
 
         {/* Step Content */}
-        {!state.loading && step === 'upload' && (
+        {!state.loading && step === 'select' && (
           <div className="animate-fade-in">
+            <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Select two local CSV files</h2>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Choose the files you want to compare. You can reselect either file before running the comparison.</p>
+            </div>
             <div className="grid md:grid-cols-2 gap-6">
-              <FileUpload
+              <FileSelector
                 label="File A"
                 file={state.fileA}
-                onUpload={(file) => handleFileUpload(file, 'a')}
+                onSelect={(file) => handleFileSelection(file, 'a')}
               />
-              <FileUpload
+              <FileSelector
                 label="File B"
                 file={state.fileB}
-                onUpload={(file) => handleFileUpload(file, 'b')}
+                onSelect={(file) => handleFileSelection(file, 'b')}
               />
             </div>
 
@@ -361,7 +365,7 @@ function App() {
           <div className="animate-fade-in">
             <div className="mb-6 flex justify-end">
               <button
-                onClick={handleBackToUpload}
+                onClick={handleBackToSelection}
                 className="btn btn-secondary flex items-center gap-2"
               >
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

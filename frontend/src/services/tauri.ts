@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { save } from '@tauri-apps/plugin-dialog';
 import {
-  UploadResponse,
+  FileLoadResponse,
   SuggestMappingsRequest,
   SuggestMappingsResponse,
   CompareRequest,
@@ -25,15 +25,15 @@ export async function createSession(): Promise<SessionResponse> {
   return response.json();
 }
 
-export async function uploadFile(
+export async function loadFile(
   sessionId: string,
   file: File | string,  // File in browser, path string/bytes in Tauri
   fileLetter: 'a' | 'b'
-): Promise<UploadResponse> {
+): Promise<FileLoadResponse> {
   if (isTauri) {
-    // In Tauri, support both direct path uploads and File object uploads.
+    // In Tauri, support both direct path loading and File object loading.
     if (typeof file === 'string') {
-      return await invoke('upload_csv', {
+      return await invoke('load_csv', {
         sessionId,
         fileLetter,
         filePath: file,
@@ -41,7 +41,7 @@ export async function uploadFile(
     }
 
     const bytes = new Uint8Array(await file.arrayBuffer());
-    return await invoke('upload_csv_bytes', {
+    return await invoke('load_csv_bytes', {
       sessionId,
       fileLetter,
       fileName: file.name,
@@ -55,14 +55,14 @@ export async function uploadFile(
     formData.append('file', file);
   }
   
-  const response = await fetch(`/api/sessions/${sessionId}/upload/${fileLetter}`, {
+  const response = await fetch(`/api/sessions/${sessionId}/files/${fileLetter}`, {
     method: 'POST',
     body: formData,
   });
   
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || 'Failed to upload file');
+    throw new Error(error.error || 'Failed to load file');
   }
   return response.json();
 }

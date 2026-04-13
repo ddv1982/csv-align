@@ -4,13 +4,13 @@ import type { ComparisonNormalizationConfig, MappingResponse } from './types/api
 
 const {
   createSessionMock,
-  uploadFileMock,
+  loadFileMock,
   compareFilesMock,
   exportResultsMock,
   downloadBlobMock,
 } = vi.hoisted(() => ({
   createSessionMock: vi.fn(),
-  uploadFileMock: vi.fn(),
+  loadFileMock: vi.fn(),
   compareFilesMock: vi.fn(),
   exportResultsMock: vi.fn(),
   downloadBlobMock: vi.fn(),
@@ -18,24 +18,24 @@ const {
 
 vi.mock('./services/tauri', () => ({
   createSession: createSessionMock,
-  uploadFile: uploadFileMock,
+  loadFile: loadFileMock,
   compareFiles: compareFilesMock,
   exportResults: exportResultsMock,
   downloadBlob: downloadBlobMock,
 }));
 
-vi.mock('./components/FileUpload', () => ({
-  FileUpload: ({
+vi.mock('./components/FileSelector', () => ({
+  FileSelector: ({
     label,
-    onUpload,
+    onSelect,
   }: {
     label: string;
-    onUpload: (file: File) => void;
+    onSelect: (file: File) => void;
   }) => (
     <section>
       <h2>{label}</h2>
-      <button onClick={() => onUpload(new File(['id,name'], `${label}.csv`, { type: 'text/csv' }))}>
-        Upload {label}
+      <button onClick={() => onSelect(new File(['id,name'], `${label}.csv`, { type: 'text/csv' }))}>
+        Select {label}
       </button>
     </section>
   ),
@@ -98,13 +98,13 @@ import App from './App';
 
 beforeEach(() => {
   createSessionMock.mockReset();
-  uploadFileMock.mockReset();
+  loadFileMock.mockReset();
   compareFilesMock.mockReset();
   exportResultsMock.mockReset();
   downloadBlobMock.mockReset();
 
   createSessionMock.mockResolvedValue({ session_id: 'session-456' });
-  uploadFileMock.mockResolvedValue({
+  loadFileMock.mockResolvedValue({
     success: true,
     file_letter: 'a',
     headers: ['id', 'name'],
@@ -145,9 +145,11 @@ test('returns from results to configuration', async () => {
     expect(createSessionMock).toHaveBeenCalledTimes(1);
   });
 
-  fireEvent.click(screen.getByRole('button', { name: 'Upload File A' }));
-  await screen.findByRole('button', { name: 'Upload File B' });
-  fireEvent.click(screen.getByRole('button', { name: 'Upload File B' }));
+  expect(screen.getByRole('heading', { name: 'Select two local CSV files' })).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Select File A' }));
+  await screen.findByRole('button', { name: 'Select File B' });
+  fireEvent.click(screen.getByRole('button', { name: 'Select File B' }));
 
   await screen.findByRole('heading', { name: 'Mock Configure' });
 

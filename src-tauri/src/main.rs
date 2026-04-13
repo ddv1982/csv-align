@@ -5,8 +5,8 @@ use std::sync::Mutex;
 use csv_align::comparison::{engine, mapping};
 use csv_align::data::{csv_loader, export as csv_export, types::*};
 use csv_align::presentation::{
-    compare_response, suggest_mappings_response, upload_response, CompareResponse,
-    SuggestMappingsResponse, UploadResponse,
+    compare_response, file_load_response, suggest_mappings_response, CompareResponse,
+    FileLoadResponse, SuggestMappingsResponse,
 };
 
 /// Application state to hold session data
@@ -75,11 +75,11 @@ fn apply_csv_to_session(
     session_data: &mut SessionData,
     file_letter: &str,
     csv_data: CsvData,
-) -> UploadResponse {
+) -> FileLoadResponse {
     let headers = csv_data.headers.clone();
     let columns = csv_loader::detect_columns(&csv_data);
     let row_count = csv_data.rows.len();
-    let response = upload_response(file_letter, headers, &columns, row_count);
+    let response = file_load_response(file_letter, headers, &columns, row_count);
 
     if file_letter == "a" {
         session_data.csv_a = Some(csv_data);
@@ -107,6 +107,14 @@ fn apply_csv_to_session(
     response
 }
 
+fn validate_file_letter(file_letter: &str) -> Result<(), String> {
+    if file_letter == "a" || file_letter == "b" {
+        Ok(())
+    } else {
+        Err("File letter must be 'a' or 'b'".to_string())
+    }
+}
+
 /// Create a new session
 #[tauri::command]
 fn create_session(state: tauri::State<AppState>) -> SessionResponse {
@@ -116,14 +124,16 @@ fn create_session(state: tauri::State<AppState>) -> SessionResponse {
     SessionResponse { session_id }
 }
 
-/// Upload a CSV file
+/// Load a CSV file from a local path
 #[tauri::command]
-fn upload_csv(
+fn load_csv(
     state: tauri::State<AppState>,
     session_id: String,
     file_letter: String,
     file_path: String,
-) -> Result<UploadResponse, String> {
+) -> Result<FileLoadResponse, String> {
+    validate_file_letter(&file_letter)?;
+
     let csv_data =
         csv_loader::load_csv(&file_path).map_err(|e| format!("Failed to load CSV: {}", e))?;
 
@@ -135,15 +145,17 @@ fn upload_csv(
     Ok(apply_csv_to_session(session_data, &file_letter, csv_data))
 }
 
-/// Upload a CSV file from raw bytes (desktop/webview file selection)
+/// Load a CSV file from raw bytes (desktop/webview file selection)
 #[tauri::command]
-fn upload_csv_bytes(
+fn load_csv_bytes(
     state: tauri::State<AppState>,
     session_id: String,
     file_letter: String,
     file_name: String,
     file_bytes: Vec<u8>,
-) -> Result<UploadResponse, String> {
+) -> Result<FileLoadResponse, String> {
+    validate_file_letter(&file_letter)?;
+
     let mut csv_data = csv_loader::load_csv_from_bytes(&file_bytes)
         .map_err(|e| format!("Failed to parse CSV bytes: {}", e))?;
 
@@ -194,11 +206,11 @@ fn compare(
     let csv_a = session_data
         .csv_a
         .as_ref()
-        .ok_or_else(|| "File A not uploaded".to_string())?;
+        .ok_or_else(|| "File A not selected or loaded".to_string())?;
     let csv_b = session_data
         .csv_b
         .as_ref()
-        .ok_or_else(|| "File B not uploaded".to_string())?;
+        .ok_or_else(|| "File B not selected or loaded".to_string())?;
 
     // Build comparison config
     let column_mappings: Vec<ColumnMapping> = request
@@ -268,8 +280,8 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             create_session,
-            upload_csv,
-            upload_csv_bytes,
+            load_csv,
+            load_csv_bytes,
             suggest_mappings,
             compare,
             export_results,

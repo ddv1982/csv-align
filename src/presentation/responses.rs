@@ -12,7 +12,7 @@ pub struct ColumnResponse {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct UploadResponse {
+pub struct FileLoadResponse {
     pub success: bool,
     pub file_letter: String,
     pub headers: Vec<String>,
@@ -69,13 +69,13 @@ pub struct MappingResponse {
     pub similarity: Option<f64>,
 }
 
-pub fn upload_response(
+pub fn file_load_response(
     file_letter: impl Into<String>,
     headers: Vec<String>,
     columns: &[ColumnInfo],
     row_count: usize,
-) -> UploadResponse {
-    UploadResponse {
+) -> FileLoadResponse {
+    FileLoadResponse {
         success: true,
         file_letter: file_letter.into(),
         headers,
