@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.2.19 - 2026-04-13
+
+- Fixed CSV loading for XML-converted exports that include BOM-prefixed headers and occasional short rows by normalizing leading UTF-8 BOM markers and enabling flexible record-width parsing.
+- Added integration regression tests for BOM handling, semicolon/comma delimiters, uneven rows, and type inference while moving loader tests out of `src/data/csv_loader.rs` into `tests/csv_loader_integration.rs`.
+- Bumped version metadata across core crate, Tauri app, frontend package, lockfiles, and desktop config for a consistent release.
+
 ## v0.2.18 - 2026-04-13
 
 - Fixed CSV import for XML-converted exports by decoding BOM-marked UTF-8/UTF-16 inputs before parsing and auto-detecting semicolon-delimited files.
