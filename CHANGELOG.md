@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.2.21 - 2026-04-13
+
+- Fixed the Tauri suggest-mappings command by building its response before moving the generated mappings into session state, resolving the ownership error that broke CI and release builds.
+- Bumped release metadata across the core crate, Tauri app, frontend package, lockfiles, and desktop config for a consistent v0.2.21 cut.
+
 ## v0.2.20 - 2026-04-13
 
 - Reduced duplicate response shaping between the HTTP and Tauri layers by introducing shared presentation response models while preserving API contract behavior.
