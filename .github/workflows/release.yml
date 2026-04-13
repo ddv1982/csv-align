@@ -20,6 +20,63 @@ jobs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
       
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract changelog notes
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python3 <<'PY'
+          import os
+          import pathlib
+          import re
+          import sys
+
+          tag = os.environ["RELEASE_TAG"]
+          changelog_path = pathlib.Path("CHANGELOG.md")
+          release_notes_path = pathlib.Path("release-notes.md")
+          heading_pattern = re.compile(r"^## (?P<tag>v[^\s]+) - \d{4}-\d{2}-\d{2}$")
+
+          if not changelog_path.exists():
+              print(
+                  "::error title=Missing changelog::CHANGELOG.md was not found in the repository checkout.",
+                  file=sys.stderr,
+              )
+              sys.exit(1)
+
+          section_lines = []
+          in_target_section = False
+
+          for raw_line in changelog_path.read_text(encoding="utf-8").splitlines():
+              heading_match = heading_pattern.match(raw_line)
+              if heading_match:
+                  if in_target_section:
+                      break
+                  in_target_section = heading_match.group("tag") == tag
+                  continue
+
+              if in_target_section:
+                  section_lines.append(raw_line)
+
+          if not in_target_section:
+              print(
+                  f"::error title=Missing changelog entry::No CHANGELOG.md section found for tag {tag}. Expected a heading like `## {tag} - YYYY-MM-DD`.",
+                  file=sys.stderr,
+              )
+              sys.exit(1)
+
+          notes = "\n".join(section_lines).strip()
+          if not notes:
+              print(
+                  f"::error title=Empty changelog entry::CHANGELOG.md section for tag {tag} is empty. Add at least one release note bullet under the heading.",
+                  file=sys.stderr,
+              )
+              sys.exit(1)
+
+          release_notes_path.write_text(f"{notes}\n", encoding="utf-8")
+          PY
+
       - name: Check if release already exists
         id: release_exists
         env:
@@ -39,7 +96,7 @@ jobs:
           name: CSV Align ${{ github.ref_name }}
           draft: false
           prerelease: false
-          generate_release_notes: true
+          body_path: release-notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

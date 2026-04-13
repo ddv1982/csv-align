@@ -183,11 +183,12 @@ This project uses GitHub Actions for continuous integration and delivery:
 - Builds Tauri apps for all platforms
 
 ### Release Workflow (`release.yml`)
-- Triggered by version tags (e.g., `v0.2.3`)
-- Creates a GitHub Release
+- Triggered by pushing a version tag matching `v*` (for example `v0.2.3`)
+- Creates a GitHub Release using the matching `CHANGELOG.md` section as the release notes instead of auto-generated notes
 - Builds and uploads:
   - macOS DMG (ARM64 + Intel)
   - Linux AppImage and .deb
+- Fails if the pushed tag does not have a matching non-empty changelog section headed `## v1.0.0 - YYYY-MM-DD`
 
 ### Creating a Release
 
@@ -198,14 +199,19 @@ This project uses GitHub Actions for continuous integration and delivery:
 # - src-tauri/tauri.conf.json
 # - frontend/package.json
 
+# Add release notes in CHANGELOG.md using this exact heading format:
+# ## v0.2.3 - YYYY-MM-DD
+# - First release note bullet
+
 # Commit and tag
 git add -A
 git commit -m "Release v0.2.3"
 git tag v0.2.3
-git push origin main --tags
+git push origin main
+git push origin v0.2.3
 ```
 
-The GitHub Actions workflow will automatically build and publish the release.
+Pushing the `v*` tag triggers the release workflow. If `CHANGELOG.md` is missing, the tag heading does not exactly match, or the section has no release-note content, the workflow fails before creating the GitHub Release.
 
 ## API Endpoints
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.0 - 2026-04-13
+
+- Simplified the configure experience with clearer cleanup wording, better missing-value defaults, and advanced date patterns moved out of the main path.
+- Smoothed the step flow by adding back navigation from Configure to file selection plus a quick return path to Configure without re-uploading both files.
+- Strengthened comparison reliability with new frontend and Rust regression coverage for cleanup settings, normalization behavior, and step navigation.
+
 ## v0.2.21 - 2026-04-13
 
 - Fixed the Tauri suggest-mappings command by building its response before moving the generated mappings into session state, resolving the ownership error that broke CI and release builds.

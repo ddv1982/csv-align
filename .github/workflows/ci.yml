@@ -154,12 +154,7 @@ jobs:
 
       - name: Build Tauri app
         working-directory: src-tauri
-        run: |
-          if [ "${{ matrix.os }}" = "macos-latest" ]; then
-            cargo tauri build --target ${{ matrix.target }} --bundles app
-          else
-            cargo tauri build --target ${{ matrix.target }}
-          fi
+        run: cargo tauri build --target ${{ matrix.target }}
 
       - name: Upload artifacts (Linux)
         if: matrix.os == 'ubuntu-22.04'
@@ -176,7 +171,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: csv-align-macos-arm64
-          path: src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app
+          path: src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
           retention-days: 7
 
       - name: Upload artifacts (macOS Intel)
@@ -184,5 +179,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: csv-align-macos-x86_64
-          path: src-tauri/target/x86_64-apple-darwin/release/bundle/macos/*.app
+          path: src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
           retention-days: 7

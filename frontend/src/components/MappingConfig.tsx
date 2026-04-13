@@ -132,9 +132,9 @@ export function MappingConfig({
       </div>
 
       <div className="card p-6 space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Value normalization</h3>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Cleanup before compare</h3>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Configure how values are normalized before comparison to reduce false mismatches.
+          Choose a few optional cleanup rules to avoid false mismatches.
         </p>
 
         <label className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
@@ -144,13 +144,16 @@ export function MappingConfig({
             onChange={(e) => updateNormalization({ treat_empty_as_null: e.target.checked })}
             className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
           />
-          Treat empty / missing fields as null
+          Treat blank cells as missing
         </label>
 
         <div className="space-y-2">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Null tokens (comma-separated)
+            Also treat these exact values as missing
           </label>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Enter literal values like `null`, `n/a`, or `unknown`, separated by commas.
+          </p>
           <input
             type="text"
             value={normalization.null_tokens.join(', ')}
@@ -171,7 +174,7 @@ export function MappingConfig({
               onChange={(e) => updateNormalization({ null_token_case_insensitive: e.target.checked })}
               className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
             />
-            Match null tokens case-insensitively
+            Ignore uppercase/lowercase for those values
           </label>
         </div>
 
@@ -183,7 +186,7 @@ export function MappingConfig({
               onChange={(e) => updateNormalization({ case_insensitive: e.target.checked })}
               className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
             />
-            Case-insensitive text matching
+            Ignore uppercase/lowercase
           </label>
 
           <label className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
@@ -193,7 +196,7 @@ export function MappingConfig({
               onChange={(e) => updateNormalization({ trim_whitespace: e.target.checked })}
               className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
             />
-            Trim surrounding whitespace
+            Ignore extra spaces at the start or end
           </label>
         </div>
 
@@ -205,13 +208,23 @@ export function MappingConfig({
               onChange={(e) => updateDateNormalization({ enabled: e.target.checked })}
               className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
             />
-            Normalize date formats before compare
+            Match dates across different formats
           </label>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Off by default. Turn this on only if your files store the same dates in different formats.
+          </p>
 
-          {normalization.date_normalization.enabled && (
-            <>
+          <details className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-800/60">
+            <summary className="cursor-pointer text-sm font-medium text-gray-700 marker:hidden dark:text-gray-300">
+              <span aria-hidden="true" className="mr-2 text-gray-400 dark:text-gray-500">▸</span>
+              Advanced date patterns
+            </summary>
+            <div className="mt-3 space-y-2">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Only change these if the default patterns miss dates in your files. Enter one format per line.
+              </p>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Date formats (one per line, checked in order)
+                Date formats to try
               </label>
               <textarea
                 rows={5}
@@ -225,8 +238,8 @@ export function MappingConfig({
                 }}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
               />
-            </>
-          )}
+            </div>
+          </details>
         </div>
       </div>
 

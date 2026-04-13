@@ -17,6 +17,7 @@ import {
   MappingResponse,
   ResultType,
 } from './types/api';
+import { INITIAL_NORMALIZATION_CONFIG } from './config/normalization';
 
 const initialState: AppState = {
   sessionId: null,
@@ -46,17 +47,7 @@ const initialMappingSelection: MappingSelectionState = {
   comparisonColumnsB: [],
 };
 
-const initialNormalizationConfig: ComparisonNormalizationConfig = {
-  treat_empty_as_null: true,
-  null_tokens: ['null'],
-  null_token_case_insensitive: true,
-  case_insensitive: false,
-  trim_whitespace: false,
-  date_normalization: {
-    enabled: false,
-    formats: ['%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%d-%m-%Y', '%m-%d-%Y'],
-  },
-};
+const initialNormalizationConfig: ComparisonNormalizationConfig = INITIAL_NORMALIZATION_CONFIG;
 
 function App() {
   const [state, setState] = useState<AppState>(initialState);
@@ -211,6 +202,14 @@ function App() {
     setStep('configure');
   }, []);
 
+  const handleBackToUpload = useCallback(() => {
+    setStep('upload');
+  }, []);
+
+  const handleContinueToConfigure = useCallback(() => {
+    setStep('configure');
+  }, []);
+
   const filteredResults = state.filter === 'all'
     ? state.results
     : state.results.filter(r => {
@@ -341,11 +340,36 @@ function App() {
                 onUpload={(file) => handleFileUpload(file, 'b')}
               />
             </div>
+
+            {state.fileA && state.fileB && (
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={handleContinueToConfigure}
+                  className="btn btn-secondary flex items-center gap-2"
+                >
+                  Continue to configuration
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            )}
           </div>
         )}
 
         {!state.loading && step === 'configure' && state.fileA && state.fileB && (
           <div className="animate-fade-in">
+            <div className="mb-6 flex justify-end">
+              <button
+                onClick={handleBackToUpload}
+                className="btn btn-secondary flex items-center gap-2"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Back to file selection
+              </button>
+            </div>
             <MappingConfig
               fileA={state.fileA}
               fileB={state.fileB}
