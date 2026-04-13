@@ -167,6 +167,7 @@ fn suggest_mappings(
     request: SuggestMappingsRequest,
 ) -> Result<SuggestMappingsResponse, String> {
     let mappings = mapping::suggest_mappings(&request.columns_a, &request.columns_b);
+    let response = suggest_mappings_response(&mappings);
 
     // Update session with mappings
     let mut sessions = state.sessions.lock().unwrap();
@@ -174,7 +175,7 @@ fn suggest_mappings(
         session_data.column_mappings = mappings;
     }
 
-    Ok(suggest_mappings_response(&mappings))
+    Ok(response)
 }
 
 /// Run comparison
