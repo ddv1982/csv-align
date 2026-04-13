@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.3 - 2026-04-13
+
+- Kept abbreviated date normalization support for values like `18-FEB-19` while moving its coverage fully into separate integration tests.
+- Removed the temporary in-file engine tests so normalization behavior is verified only through the external regression suites.
+
 ## v1.0.2 - 2026-04-13
 
 - Expanded default date normalization so abbreviated month-name values like `18-FEB-19` match equivalent ISO dates without requiring custom patterns.
