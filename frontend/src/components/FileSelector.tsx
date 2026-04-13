@@ -147,7 +147,6 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
               Choose Local CSV
             </label>
 
-            <p className="mt-4 text-xs text-gray-400 dark:text-gray-500">Select a local CSV file up to 50MB</p>
           </div>
         </div>
       )}

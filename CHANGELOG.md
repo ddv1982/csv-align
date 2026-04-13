@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.4 - 2026-04-14
+
+- Removed the misleading file-selection helper text that claimed a 50MB limit even though no such size cap is enforced.
+
 ## v1.0.3 - 2026-04-13
 
 - Kept abbreviated date normalization support for values like `18-FEB-19` while moving its coverage fully into separate integration tests.
