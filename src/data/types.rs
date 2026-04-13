@@ -47,6 +47,36 @@ pub struct ComparisonConfig {
     pub comparison_columns_a: Vec<String>,
     pub comparison_columns_b: Vec<String>,
     pub column_mappings: Vec<ColumnMapping>,
+    pub normalization: ComparisonNormalizationConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct DateNormalizationConfig {
+    pub enabled: bool,
+    pub formats: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ComparisonNormalizationConfig {
+    pub treat_empty_as_null: bool,
+    pub null_tokens: Vec<String>,
+    pub null_token_case_insensitive: bool,
+    pub case_insensitive: bool,
+    pub trim_whitespace: bool,
+    pub date_normalization: DateNormalizationConfig,
+}
+
+impl Default for ComparisonNormalizationConfig {
+    fn default() -> Self {
+        Self {
+            treat_empty_as_null: false,
+            null_tokens: Vec::new(),
+            null_token_case_insensitive: true,
+            case_insensitive: false,
+            trim_whitespace: false,
+            date_normalization: DateNormalizationConfig::default(),
+        }
+    }
 }
 
 /// Result of comparing two rows
@@ -104,16 +134,4 @@ pub struct ComparisonSummary {
     pub missing_right: usize,
     pub duplicates_a: usize,
     pub duplicates_b: usize,
-}
-
-/// Filter options for displaying results
-#[derive(Debug, Clone, PartialEq, Default)]
-pub enum ResultFilter {
-    #[default]
-    All,
-    Matches,
-    Mismatches,
-    MissingLeft,
-    MissingRight,
-    Duplicates,
 }

@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use super::state::AppState;
 use crate::comparison::{engine, mapping};
 use crate::data::{csv_loader, export as csv_export, types::*};
+use crate::presentation::{compare_response, suggest_mappings_response, upload_response};
 
 /// Response for health check
 #[derive(Serialize)]
@@ -23,24 +24,6 @@ pub struct SessionResponse {
     pub session_id: String,
 }
 
-/// Response for CSV upload
-#[derive(Serialize)]
-pub struct UploadResponse {
-    pub success: bool,
-    pub file_letter: String,
-    pub headers: Vec<String>,
-    pub columns: Vec<ColumnResponse>,
-    pub row_count: usize,
-}
-
-/// Column info for API response
-#[derive(Debug, Clone, Serialize)]
-pub struct ColumnResponse {
-    pub index: usize,
-    pub name: String,
-    pub data_type: String,
-}
-
 /// Request body for comparison
 #[derive(Debug, Deserialize)]
 pub struct CompareRequest {
@@ -49,6 +32,8 @@ pub struct CompareRequest {
     pub comparison_columns_a: Vec<String>,
     pub comparison_columns_b: Vec<String>,
     pub column_mappings: Vec<MappingRequest>,
+    #[serde(default)]
+    pub normalization: ComparisonNormalizationConfig,
 }
 
 /// Column mapping in request
@@ -60,66 +45,11 @@ pub struct MappingRequest {
     pub similarity: Option<f64>,
 }
 
-/// Response for comparison
-#[derive(Serialize)]
-pub struct CompareResponse {
-    pub success: bool,
-    pub results: Vec<ResultResponse>,
-    pub summary: SummaryResponse,
-}
-
-/// Single comparison result
-#[derive(Debug, Clone, Serialize)]
-pub struct ResultResponse {
-    pub result_type: String,
-    pub key: Vec<String>,
-    pub values_a: Vec<String>,
-    pub values_b: Vec<String>,
-    pub differences: Vec<DifferenceResponse>,
-}
-
-/// Value difference
-#[derive(Debug, Clone, Serialize)]
-pub struct DifferenceResponse {
-    pub column_a: String,
-    pub column_b: String,
-    pub value_a: String,
-    pub value_b: String,
-}
-
-/// Summary statistics
-#[derive(Debug, Clone, Serialize)]
-pub struct SummaryResponse {
-    pub total_rows_a: usize,
-    pub total_rows_b: usize,
-    pub matches: usize,
-    pub mismatches: usize,
-    pub missing_left: usize,
-    pub missing_right: usize,
-    pub duplicates_a: usize,
-    pub duplicates_b: usize,
-}
-
 /// Request body for suggested mappings
 #[derive(Debug, Deserialize)]
 pub struct SuggestMappingsRequest {
     pub columns_a: Vec<String>,
     pub columns_b: Vec<String>,
-}
-
-/// Response for suggested mappings
-#[derive(Serialize)]
-pub struct SuggestMappingsResponse {
-    pub mappings: Vec<MappingResponse>,
-}
-
-/// Mapping in response
-#[derive(Debug, Clone, Serialize)]
-pub struct MappingResponse {
-    pub file_a_column: String,
-    pub file_b_column: String,
-    pub mapping_type: String,
-    pub similarity: Option<f64>,
 }
 
 /// Error response
@@ -248,17 +178,8 @@ pub async fn upload_csv(
     // Detect columns
     let columns = csv_loader::detect_columns(&csv_data);
 
-    // Create response
-    let column_responses: Vec<ColumnResponse> = columns
-        .iter()
-        .map(|c| ColumnResponse {
-            index: c.index,
-            name: c.name.clone(),
-            data_type: format!("{:?}", c.data_type),
-        })
-        .collect();
-
     let row_count = csv_data.rows.len();
+    let response = upload_response(file_letter.clone(), headers, &columns, row_count);
 
     // Update session
     if file_letter == "a" {
@@ -287,14 +208,7 @@ pub async fn upload_csv(
     // Save session
     let _ = state.update_session(&session_id, session_data).await;
 
-    Json(UploadResponse {
-        success: true,
-        file_letter,
-        headers,
-        columns: column_responses,
-        row_count,
-    })
-    .into_response()
+    Json(response).into_response()
 }
 
 /// Get suggested column mappings
@@ -304,23 +218,7 @@ pub async fn suggest_mappings(
     Json(request): Json<SuggestMappingsRequest>,
 ) -> Response {
     let mappings = mapping::suggest_mappings(&request.columns_a, &request.columns_b);
-
-    let mapping_responses: Vec<MappingResponse> = mappings
-        .iter()
-        .map(|m| {
-            let (mapping_type, similarity) = match &m.mapping_type {
-                MappingType::ExactMatch => ("exact".to_string(), None),
-                MappingType::ManualMatch => ("manual".to_string(), None),
-                MappingType::FuzzyMatch(score) => ("fuzzy".to_string(), Some(*score)),
-            };
-            MappingResponse {
-                file_a_column: m.file_a_column.clone(),
-                file_b_column: m.file_b_column.clone(),
-                mapping_type,
-                similarity,
-            }
-        })
-        .collect();
+    let response = suggest_mappings_response(&mappings);
 
     // Update session with mappings
     if let Some(mut session_data) = state.get_session(&session_id).await {
@@ -328,10 +226,7 @@ pub async fn suggest_mappings(
         let _ = state.update_session(&session_id, session_data).await;
     }
 
-    Json(SuggestMappingsResponse {
-        mappings: mapping_responses,
-    })
-    .into_response()
+    Json(response).into_response()
 }
 
 /// Run comparison
@@ -393,96 +288,19 @@ pub async fn compare(
         comparison_columns_a: request.comparison_columns_a,
         comparison_columns_b: request.comparison_columns_b,
         column_mappings,
+        normalization: request.normalization,
     };
 
     // Run comparison
     let results = engine::compare_csv_data(&csv_a, &csv_b, &config);
     let summary = engine::generate_summary(&results, csv_a.rows.len(), csv_b.rows.len());
-
-    // Build response
-    let result_responses: Vec<ResultResponse> = results
-        .iter()
-        .map(|r| match r {
-            RowComparisonResult::Match {
-                key,
-                values_a,
-                values_b,
-            } => ResultResponse {
-                result_type: "match".to_string(),
-                key: key.clone(),
-                values_a: values_a.clone(),
-                values_b: values_b.clone(),
-                differences: Vec::new(),
-            },
-            RowComparisonResult::Mismatch {
-                key,
-                values_a,
-                values_b,
-                differences,
-            } => ResultResponse {
-                result_type: "mismatch".to_string(),
-                key: key.clone(),
-                values_a: values_a.clone(),
-                values_b: values_b.clone(),
-                differences: differences
-                    .iter()
-                    .map(|d| DifferenceResponse {
-                        column_a: d.column_a.clone(),
-                        column_b: d.column_b.clone(),
-                        value_a: d.value_a.clone(),
-                        value_b: d.value_b.clone(),
-                    })
-                    .collect(),
-            },
-            RowComparisonResult::MissingLeft { key, values_b } => ResultResponse {
-                result_type: "missing_left".to_string(),
-                key: key.clone(),
-                values_a: Vec::new(),
-                values_b: values_b.clone(),
-                differences: Vec::new(),
-            },
-            RowComparisonResult::MissingRight { key, values_a } => ResultResponse {
-                result_type: "missing_right".to_string(),
-                key: key.clone(),
-                values_a: values_a.clone(),
-                values_b: Vec::new(),
-                differences: Vec::new(),
-            },
-            RowComparisonResult::Duplicate {
-                key,
-                source,
-                values,
-            } => ResultResponse {
-                result_type: format!("duplicate_{source:?}").to_lowercase(),
-                key: key.clone(),
-                values_a: values.first().cloned().unwrap_or_default(),
-                values_b: values.get(1).cloned().unwrap_or_default(),
-                differences: Vec::new(),
-            },
-        })
-        .collect();
+    let response = compare_response(&results, &summary);
 
     // Update session
-    session_data.comparison_config = Some(config);
     session_data.comparison_results = results;
-    session_data.comparison_summary = Some(summary.clone());
     let _ = state.update_session(&session_id, session_data).await;
 
-    Json(CompareResponse {
-        success: true,
-        results: result_responses,
-        summary: SummaryResponse {
-            total_rows_a: summary.total_rows_a,
-            total_rows_b: summary.total_rows_b,
-            matches: summary.matches,
-            mismatches: summary.mismatches,
-            missing_left: summary.missing_left,
-            missing_right: summary.missing_right,
-            duplicates_a: summary.duplicates_a,
-            duplicates_b: summary.duplicates_b,
-        },
-    })
-    .into_response()
+    Json(response).into_response()
 }
 
 /// Export comparison results as CSV

@@ -41,6 +41,21 @@ export interface CompareRequest {
   comparison_columns_a: string[];
   comparison_columns_b: string[];
   column_mappings: MappingRequest[];
+  normalization?: ComparisonNormalizationConfig;
+}
+
+export interface DateNormalizationConfig {
+  enabled: boolean;
+  formats: string[];
+}
+
+export interface ComparisonNormalizationConfig {
+  treat_empty_as_null: boolean;
+  null_tokens: string[];
+  null_token_case_insensitive: boolean;
+  case_insensitive: boolean;
+  trim_whitespace: boolean;
+  date_normalization: DateNormalizationConfig;
 }
 
 export interface DifferenceResponse {

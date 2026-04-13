@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.2.20 - 2026-04-13
+
+- Reduced duplicate response shaping between the HTTP and Tauri layers by introducing shared presentation response models while preserving API contract behavior.
+- Removed validated dead code and stale generated schema artifacts, including the unused frontend API service path, and documented cleanup guardrails for future passes.
+- Added new regression coverage for comparison-engine behavior and serialized response contracts, and bumped release metadata across app surfaces for a consistent cut.
+
 ## v0.2.19 - 2026-04-13
 
 - Fixed CSV loading for XML-converted exports that include BOM-prefixed headers and occasional short rows by normalizing leading UTF-8 BOM markers and enabling flexible record-width parsing.

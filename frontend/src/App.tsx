@@ -13,6 +13,7 @@ import {
 } from './services/tauri';
 import {
   AppState,
+  ComparisonNormalizationConfig,
   MappingResponse,
   ResultType,
 } from './types/api';
@@ -45,10 +46,23 @@ const initialMappingSelection: MappingSelectionState = {
   comparisonColumnsB: [],
 };
 
+const initialNormalizationConfig: ComparisonNormalizationConfig = {
+  treat_empty_as_null: true,
+  null_tokens: ['null'],
+  null_token_case_insensitive: true,
+  case_insensitive: false,
+  trim_whitespace: false,
+  date_normalization: {
+    enabled: false,
+    formats: ['%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%d-%m-%Y', '%m-%d-%Y'],
+  },
+};
+
 function App() {
   const [state, setState] = useState<AppState>(initialState);
   const [step, setStep] = useState<'upload' | 'configure' | 'results'>('upload');
   const [mappingSelection, setMappingSelection] = useState<MappingSelectionState>(initialMappingSelection);
+  const [normalizationConfig, setNormalizationConfig] = useState<ComparisonNormalizationConfig>(initialNormalizationConfig);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     if (typeof window === 'undefined') return 'dark';
     const savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
@@ -105,6 +119,7 @@ function App() {
     if (state.fileA && state.fileB) {
       setState(prev => ({ ...prev, mappings: [] }));
       setMappingSelection(initialMappingSelection);
+      setNormalizationConfig(initialNormalizationConfig);
       setStep('configure');
     }
   }, [state.fileA, state.fileB]);
@@ -118,7 +133,8 @@ function App() {
     keyColumnsB: string[],
     comparisonColumnsA: string[],
     comparisonColumnsB: string[],
-    columnMappings: MappingResponse[]
+    columnMappings: MappingResponse[],
+    normalization: ComparisonNormalizationConfig
   ) => {
     if (!state.sessionId) return;
 
@@ -136,6 +152,7 @@ function App() {
           mapping_type: m.mapping_type,
           similarity: m.similarity,
         })),
+        normalization,
       });
 
       setState(prev => ({
@@ -174,6 +191,7 @@ function App() {
   const handleReset = useCallback(async () => {
     setState(initialState);
     setMappingSelection(initialMappingSelection);
+    setNormalizationConfig(initialNormalizationConfig);
     setStep('upload');
     
     // Create new session
@@ -332,7 +350,9 @@ function App() {
               fileA={state.fileA}
               fileB={state.fileB}
               selection={mappingSelection}
+              normalization={normalizationConfig}
               onSelectionChange={handleSelectionChange}
+              onNormalizationChange={setNormalizationConfig}
               onCompare={handleCompare}
             />
           </div>

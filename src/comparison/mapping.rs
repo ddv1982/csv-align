@@ -143,25 +143,6 @@ fn acronym(tokens: &[String]) -> String {
     tokens.iter().filter_map(|t| t.chars().next()).collect()
 }
 
-/// Get columns that couldn't be mapped
-pub fn get_unmapped_columns(
-    columns: &[String],
-    mappings: &[ColumnMapping],
-    is_file_a: bool,
-) -> Vec<String> {
-    let mapped_columns: Vec<&String> = if is_file_a {
-        mappings.iter().map(|m| &m.file_a_column).collect()
-    } else {
-        mappings.iter().map(|m| &m.file_b_column).collect()
-    };
-
-    columns
-        .iter()
-        .filter(|col| !mapped_columns.contains(col))
-        .cloned()
-        .collect()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

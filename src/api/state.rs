@@ -1,6 +1,4 @@
-use crate::data::types::{
-    ColumnInfo, ColumnMapping, ComparisonConfig, ComparisonSummary, CsvData, RowComparisonResult,
-};
+use crate::data::types::{ColumnInfo, ColumnMapping, CsvData, RowComparisonResult};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -19,9 +17,7 @@ pub struct SessionData {
     pub columns_a: Vec<ColumnInfo>,
     pub columns_b: Vec<ColumnInfo>,
     pub column_mappings: Vec<ColumnMapping>,
-    pub comparison_config: Option<ComparisonConfig>,
     pub comparison_results: Vec<RowComparisonResult>,
-    pub comparison_summary: Option<ComparisonSummary>,
 }
 
 impl SessionData {
@@ -32,9 +28,7 @@ impl SessionData {
             columns_a: Vec::new(),
             columns_b: Vec::new(),
             column_mappings: Vec::new(),
-            comparison_config: None,
             comparison_results: Vec::new(),
-            comparison_summary: None,
         }
     }
 }

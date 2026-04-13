@@ -67,12 +67,6 @@ export async function uploadFile(
   return response.json();
 }
 
-export async function pickFile(): Promise<string | null> {
-  // Deprecated in current desktop flow: file selection is handled via
-  // the standard file input/drag-drop and sent as bytes to the backend.
-  return null;
-}
-
 export async function suggestMappings(
   sessionId: string,
   request: SuggestMappingsRequest

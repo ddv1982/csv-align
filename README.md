@@ -162,6 +162,16 @@ cd src-tauri && cargo tauri build
 
 The packaged app will be in `src-tauri/target/release/bundle/`.
 
+## Maintenance / cleanup guidance
+
+The approved cleanup pass is intentionally conservative:
+
+- backend response-contract changes must be protected by characterization tests before DTO/mapping dedupe
+- frontend structural cleanup is gated because `frontend/package.json` currently has no test script/tooling
+- dead-code removal must be re-verified with search evidence plus passing `cargo check`, `cargo test`, and `cd frontend && npm run build`
+
+See [`docs/cleanup-review.md`](docs/cleanup-review.md) for the current review findings and execution guardrails.
+
 ## CI/CD
 
 This project uses GitHub Actions for continuous integration and delivery:

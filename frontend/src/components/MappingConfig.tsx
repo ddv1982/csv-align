@@ -1,4 +1,4 @@
-import { ColumnInfo, MappingResponse } from '../types/api';
+import { ColumnInfo, ComparisonNormalizationConfig, MappingResponse } from '../types/api';
 
 type MappingSelectionState = {
   keyColumnsA: string[];
@@ -17,13 +17,16 @@ interface MappingConfigProps {
     columns: ColumnInfo[];
   };
   selection: MappingSelectionState;
+  normalization: ComparisonNormalizationConfig;
   onSelectionChange: (selection: MappingSelectionState) => void;
+  onNormalizationChange: (normalization: ComparisonNormalizationConfig) => void;
   onCompare: (
     keyColumnsA: string[],
     keyColumnsB: string[],
     comparisonColumnsA: string[],
     comparisonColumnsB: string[],
-    columnMappings: MappingResponse[]
+    columnMappings: MappingResponse[],
+    normalization: ComparisonNormalizationConfig
   ) => void;
 }
 
@@ -31,7 +34,9 @@ export function MappingConfig({
   fileA,
   fileB,
   selection,
+  normalization,
   onSelectionChange,
+  onNormalizationChange,
   onCompare,
 }: MappingConfigProps) {
   const {
@@ -43,6 +48,20 @@ export function MappingConfig({
 
   const updateSelection = (updates: Partial<MappingSelectionState>) => {
     onSelectionChange({ ...selection, ...updates });
+  };
+
+  const updateNormalization = (updates: Partial<ComparisonNormalizationConfig>) => {
+    onNormalizationChange({ ...normalization, ...updates });
+  };
+
+  const updateDateNormalization = (updates: Partial<ComparisonNormalizationConfig['date_normalization']>) => {
+    onNormalizationChange({
+      ...normalization,
+      date_normalization: {
+        ...normalization.date_normalization,
+        ...updates,
+      },
+    });
   };
 
   const handleKeyColumnToggle = (column: string, isFileA: boolean) => {
@@ -94,7 +113,8 @@ export function MappingConfig({
       keyColumnsB.length > 0 ? keyColumnsB : [fileB.headers[0]],
       comparisonColumnsA,
       comparisonColumnsB,
-      manualMappings
+      manualMappings,
+      normalization
     );
   };
 
@@ -109,6 +129,105 @@ export function MappingConfig({
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Select comparison columns in File A and File B in the order you want to pair them. No automatic suggestions are applied.
         </p>
+      </div>
+
+      <div className="card p-6 space-y-4">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Value normalization</h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Configure how values are normalized before comparison to reduce false mismatches.
+        </p>
+
+        <label className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+          <input
+            type="checkbox"
+            checked={normalization.treat_empty_as_null}
+            onChange={(e) => updateNormalization({ treat_empty_as_null: e.target.checked })}
+            className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+          />
+          Treat empty / missing fields as null
+        </label>
+
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Null tokens (comma-separated)
+          </label>
+          <input
+            type="text"
+            value={normalization.null_tokens.join(', ')}
+            onChange={(e) => {
+              const tokens = e.target.value
+                .split(',')
+                .map((token) => token.trim())
+                .filter((token) => token.length > 0);
+              updateNormalization({ null_tokens: tokens });
+            }}
+            placeholder="null"
+            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+          />
+          <label className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+            <input
+              type="checkbox"
+              checked={normalization.null_token_case_insensitive}
+              onChange={(e) => updateNormalization({ null_token_case_insensitive: e.target.checked })}
+              className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            />
+            Match null tokens case-insensitively
+          </label>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <label className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+            <input
+              type="checkbox"
+              checked={normalization.case_insensitive}
+              onChange={(e) => updateNormalization({ case_insensitive: e.target.checked })}
+              className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            />
+            Case-insensitive text matching
+          </label>
+
+          <label className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+            <input
+              type="checkbox"
+              checked={normalization.trim_whitespace}
+              onChange={(e) => updateNormalization({ trim_whitespace: e.target.checked })}
+              className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            />
+            Trim surrounding whitespace
+          </label>
+        </div>
+
+        <div className="space-y-2">
+          <label className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+            <input
+              type="checkbox"
+              checked={normalization.date_normalization.enabled}
+              onChange={(e) => updateDateNormalization({ enabled: e.target.checked })}
+              className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            />
+            Normalize date formats before compare
+          </label>
+
+          {normalization.date_normalization.enabled && (
+            <>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Date formats (one per line, checked in order)
+              </label>
+              <textarea
+                rows={5}
+                value={normalization.date_normalization.formats.join('\n')}
+                onChange={(e) => {
+                  const formats = e.target.value
+                    .split('\n')
+                    .map((format) => format.trim())
+                    .filter((format) => format.length > 0);
+                  updateDateNormalization({ formats });
+                }}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+              />
+            </>
+          )}
+        </div>
       </div>
 
       {/* Key Columns Selection */}
