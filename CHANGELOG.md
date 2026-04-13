@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.2.18 - 2026-04-13
+
+- Fixed CSV import for XML-converted exports by decoding BOM-marked UTF-8/UTF-16 inputs before parsing and auto-detecting semicolon-delimited files.
+- Added regression coverage for standard comma CSVs plus semicolon-delimited and UTF-16 BOM upload variants.
+- Bumped the release version across the Rust crate, Tauri app, frontend package metadata, and desktop config to keep distribution surfaces in sync.
+
 ## v0.2.17 - 2026-04-10
 
 - Added JSON-aware comparison for CSV field values so semantically equivalent JSON payloads (for example different whitespace or object key order) are treated as matches.

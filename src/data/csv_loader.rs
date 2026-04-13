@@ -1,36 +1,39 @@
 use super::types::{ColumnDataType, ColumnInfo, CsvData};
 use csv::ReaderBuilder;
+use encoding_rs_io::DecodeReaderBytesBuilder;
 use std::error::Error;
 use std::fs::File;
-use std::io::{BufReader, Cursor};
+use std::io::{Cursor, Read};
 
 /// Load a CSV file and return structured data
 pub fn load_csv(file_path: &str) -> Result<CsvData, Box<dyn Error>> {
     let file = File::open(file_path)?;
-    let mut reader = ReaderBuilder::new()
-        .has_headers(true)
-        .from_reader(BufReader::new(file));
+    let csv_data = decode_csv_text(file)?;
+    let mut csv_data = parse_csv_text(&csv_data)?;
+    csv_data.file_path = Some(file_path.to_string());
 
-    let headers: Vec<String> = reader.headers()?.iter().map(|h| h.to_string()).collect();
-
-    let mut rows = Vec::new();
-    for result in reader.records() {
-        let record = result?;
-        let row: Vec<String> = record.iter().map(|field| field.to_string()).collect();
-        rows.push(row);
-    }
-
-    Ok(CsvData {
-        file_path: Some(file_path.to_string()),
-        headers,
-        rows,
-    })
+    Ok(csv_data)
 }
 
 /// Load CSV from bytes (for web uploads)
 pub fn load_csv_from_bytes(bytes: &[u8]) -> Result<CsvData, Box<dyn Error>> {
-    let cursor = Cursor::new(bytes);
-    let mut reader = ReaderBuilder::new().has_headers(true).from_reader(cursor);
+    let csv_data = decode_csv_text(Cursor::new(bytes))?;
+    parse_csv_text(&csv_data)
+}
+
+fn decode_csv_text<R: Read>(reader: R) -> Result<String, Box<dyn Error>> {
+    let mut decoder = DecodeReaderBytesBuilder::new().encoding(None).build(reader);
+    let mut csv_data = String::new();
+    decoder.read_to_string(&mut csv_data)?;
+    Ok(csv_data)
+}
+
+fn parse_csv_text(csv_data: &str) -> Result<CsvData, Box<dyn Error>> {
+    let delimiter = detect_delimiter(csv_data);
+    let mut reader = ReaderBuilder::new()
+        .delimiter(delimiter)
+        .has_headers(true)
+        .from_reader(Cursor::new(csv_data.as_bytes()));
 
     let headers: Vec<String> = reader.headers()?.iter().map(|h| h.to_string()).collect();
 
@@ -46,6 +49,23 @@ pub fn load_csv_from_bytes(bytes: &[u8]) -> Result<CsvData, Box<dyn Error>> {
         headers,
         rows,
     })
+}
+
+fn detect_delimiter(csv_data: &str) -> u8 {
+    let first_row = csv_data
+        .lines()
+        .map(str::trim)
+        .find(|line| !line.is_empty())
+        .unwrap_or("");
+
+    let comma_count = first_row.matches(',').count();
+    let semicolon_count = first_row.matches(';').count();
+
+    if semicolon_count > comma_count {
+        b';'
+    } else {
+        b','
+    }
 }
 
 /// Detect column information from CSV data
@@ -150,6 +170,33 @@ mod tests {
         assert_eq!(csv_data.headers, vec!["name", "age", "city"]);
         assert_eq!(csv_data.rows.len(), 2);
         assert_eq!(csv_data.rows[0], vec!["Alice", "30", "New York"]);
+    }
+
+    #[test]
+    fn test_load_csv_from_bytes_semicolon_delimited() {
+        let csv_data =
+            load_csv_from_bytes(b"name;age;city\nAlice;30;New York\nBob;25;Paris\n").unwrap();
+
+        assert_eq!(csv_data.headers, vec!["name", "age", "city"]);
+        assert_eq!(csv_data.rows.len(), 2);
+        assert_eq!(csv_data.rows[1], vec!["Bob", "25", "Paris"]);
+    }
+
+    #[test]
+    fn test_load_csv_from_bytes_utf16_bom() {
+        let utf16_bytes = vec![
+            0xFF, 0xFE, 0x6E, 0x00, 0x61, 0x00, 0x6D, 0x00, 0x65, 0x00, 0x3B, 0x00, 0x61, 0x00,
+            0x67, 0x00, 0x65, 0x00, 0x0A, 0x00, 0x41, 0x00, 0x6C, 0x00, 0x69, 0x00, 0x63, 0x00,
+            0x65, 0x00, 0x3B, 0x00, 0x33, 0x00, 0x30, 0x00, 0x0A, 0x00,
+        ];
+
+        let csv_data = load_csv_from_bytes(&utf16_bytes).unwrap();
+
+        assert_eq!(csv_data.headers, vec!["name", "age"]);
+        assert_eq!(
+            csv_data.rows,
+            vec![vec!["Alice".to_string(), "30".to_string()]]
+        );
     }
 
     #[test]
