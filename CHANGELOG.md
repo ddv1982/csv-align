@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.7 - 2026-04-14
+
+- Fixed the macOS release workflow so empty Apple signing variables are no longer exposed to Tauri, allowing unsigned builds to fall back cleanly to ad-hoc signing.
+- Kept optional Apple certificate import and notarization support available only when the required secrets are configured.
+
 ## v1.0.6 - 2026-04-14
 
 - Fixed macOS release packaging so both Apple Silicon and Intel DMGs are rebuilt with explicit signing instead of shipping damaged or unsigned app bundles.
