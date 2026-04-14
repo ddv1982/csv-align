@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.6 - 2026-04-14
+
+- Fixed macOS release packaging so both Apple Silicon and Intel DMGs are rebuilt with explicit signing instead of shipping damaged or unsigned app bundles.
+- Added optional Apple certificate import in the release workflow so CI can produce properly signed macOS artifacts when signing secrets are configured.
+
 ## v1.0.5 - 2026-04-14
 
 - Improved export readability to better match the UI with clearer labels, summary fields, and side-specific duplicate details.
