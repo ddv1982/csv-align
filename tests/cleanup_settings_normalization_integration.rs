@@ -1,38 +1,36 @@
+mod common;
+
 use csv_align::comparison::engine::compare_csv_data;
 use csv_align::data::types::{
-    ColumnMapping, ComparisonConfig, ComparisonNormalizationConfig, CsvData,
-    DateNormalizationConfig, MappingType, RowComparisonResult,
+    ComparisonNormalizationConfig, DateNormalizationConfig, RowComparisonResult,
 };
 
-fn create_config(normalization: ComparisonNormalizationConfig) -> ComparisonConfig {
-    ComparisonConfig {
-        key_columns_a: vec!["id".to_string()],
-        key_columns_b: vec!["id".to_string()],
-        comparison_columns_a: vec!["value".to_string()],
-        comparison_columns_b: vec!["value".to_string()],
-        column_mappings: vec![ColumnMapping {
-            file_a_column: "value".to_string(),
-            file_b_column: "value".to_string(),
-            mapping_type: MappingType::ExactMatch,
-        }],
+use common::{comparison_config, csv_data};
+
+fn create_config(
+    normalization: ComparisonNormalizationConfig,
+) -> csv_align::data::types::ComparisonConfig {
+    comparison_config(
+        &["id"],
+        &["id"],
+        &["value"],
+        &["value"],
+        &[("value", "value")],
         normalization,
-    }
+    )
 }
 
-fn create_csv_pair(left_value: &str, right_value: &str) -> (CsvData, CsvData) {
-    let csv_a = CsvData {
-        file_path: Some("left.csv".to_string()),
-        headers: vec!["id".to_string(), "value".to_string()],
-        rows: vec![vec!["1".to_string(), left_value.to_string()]],
-    };
-
-    let csv_b = CsvData {
-        file_path: Some("right.csv".to_string()),
-        headers: vec!["id".to_string(), "value".to_string()],
-        rows: vec![vec!["1".to_string(), right_value.to_string()]],
-    };
-
-    (csv_a, csv_b)
+fn create_csv_pair(
+    left_value: &str,
+    right_value: &str,
+) -> (
+    csv_align::data::types::CsvData,
+    csv_align::data::types::CsvData,
+) {
+    (
+        csv_data("left.csv", &["id", "value"], &[&["1", left_value]]),
+        csv_data("right.csv", &["id", "value"], &[&["1", right_value]]),
+    )
 }
 
 #[test]

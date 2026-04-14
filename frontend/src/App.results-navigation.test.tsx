@@ -122,6 +122,8 @@ beforeEach(() => {
         key: ['1'],
         values_a: ['Alice'],
         values_b: ['Alice'],
+        duplicate_values_a: [],
+        duplicate_values_b: [],
         differences: [],
       },
     ],

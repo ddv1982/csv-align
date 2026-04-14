@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.5 - 2026-04-14
+
+- Improved export readability to better match the UI with clearer labels, summary fields, and side-specific duplicate details.
+- Refactored shared backend and frontend workflows for stronger typed contracts, explicit validation, cleaner module boundaries, and smaller components/helpers.
+- Moved the remaining inline Rust and Tauri tests into dedicated test files and expanded direct frontend hook coverage, including key error paths.
+
 ## v1.0.4 - 2026-04-14
 
 - Removed the misleading file-selection helper text that claimed a 50MB limit even though no such size cap is enforced.

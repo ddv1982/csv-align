@@ -1,4 +1,4 @@
-use crate::data::types::{ColumnInfo, ColumnMapping, CsvData, RowComparisonResult};
+pub use crate::backend::SessionData;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -7,36 +7,6 @@ use tokio::sync::RwLock;
 #[derive(Clone)]
 pub struct AppState {
     pub sessions: Arc<RwLock<HashMap<String, SessionData>>>,
-}
-
-/// Data for a single comparison session
-#[derive(Debug, Clone)]
-pub struct SessionData {
-    pub csv_a: Option<CsvData>,
-    pub csv_b: Option<CsvData>,
-    pub columns_a: Vec<ColumnInfo>,
-    pub columns_b: Vec<ColumnInfo>,
-    pub column_mappings: Vec<ColumnMapping>,
-    pub comparison_results: Vec<RowComparisonResult>,
-}
-
-impl SessionData {
-    pub fn new() -> Self {
-        Self {
-            csv_a: None,
-            csv_b: None,
-            columns_a: Vec::new(),
-            columns_b: Vec::new(),
-            column_mappings: Vec::new(),
-            comparison_results: Vec::new(),
-        }
-    }
-}
-
-impl Default for SessionData {
-    fn default() -> Self {
-        Self::new()
-    }
 }
 
 impl AppState {
@@ -54,13 +24,32 @@ impl AppState {
         session_id
     }
 
-    /// Get session data
-    pub async fn get_session(&self, session_id: &str) -> Option<SessionData> {
+    /// Read a session snapshot while holding the read lock briefly.
+    pub async fn with_session<R>(
+        &self,
+        session_id: &str,
+        f: impl FnOnce(&SessionData) -> R,
+    ) -> Option<R> {
         let sessions = self.sessions.read().await;
-        sessions.get(session_id).cloned()
+        sessions.get(session_id).map(f)
     }
 
-    /// Update session data
+    /// Get session data.
+    pub async fn get_session(&self, session_id: &str) -> Option<SessionData> {
+        self.with_session(session_id, Clone::clone).await
+    }
+
+    /// Mutate a session in place while holding the write lock briefly.
+    pub async fn with_session_mut<R>(
+        &self,
+        session_id: &str,
+        f: impl FnOnce(&mut SessionData) -> R,
+    ) -> Option<R> {
+        let mut sessions = self.sessions.write().await;
+        sessions.get_mut(session_id).map(f)
+    }
+
+    /// Update session data.
     pub async fn update_session(&self, session_id: &str, data: SessionData) -> bool {
         let mut sessions = self.sessions.write().await;
         if sessions.contains_key(session_id) {

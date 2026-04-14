@@ -5,8 +5,10 @@ import { INITIAL_NORMALIZATION_CONFIG } from '../config/normalization';
 import { ComparisonNormalizationConfig } from '../types/api';
 
 const file = {
+  name: 'sample.csv',
   headers: ['id', 'name', 'value'],
   columns: [],
+  rowCount: 3,
 };
 
 const selection = {

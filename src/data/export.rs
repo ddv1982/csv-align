@@ -1,20 +1,22 @@
-use super::types::{DuplicateSource, RowComparisonResult};
+use super::types::{ComparisonConfig, DuplicateSource, RowComparisonResult};
 use csv::Writer;
+use serde_json::to_string;
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufWriter, Write};
+use std::path::Path;
 
 #[derive(Debug, Default)]
 struct ExportLayout {
     max_key_columns: usize,
     max_file_a_value_columns: usize,
     max_file_b_value_columns: usize,
-    max_difference_groups: usize,
-    max_duplicate_entries: usize,
-    max_duplicate_entry_values: usize,
 }
 
-fn compute_layout(results: &[RowComparisonResult]) -> ExportLayout {
+fn compute_layout(
+    results: &[RowComparisonResult],
+    config: Option<&ComparisonConfig>,
+) -> ExportLayout {
     let mut layout = ExportLayout::default();
 
     for result in results {
@@ -46,18 +48,22 @@ fn compute_layout(results: &[RowComparisonResult]) -> ExportLayout {
                 layout.max_file_a_value_columns =
                     layout.max_file_a_value_columns.max(values_a.len());
             }
-            RowComparisonResult::Duplicate { key, values, .. } => {
+            RowComparisonResult::Duplicate { key, .. } => {
                 layout.max_key_columns = layout.max_key_columns.max(key.len());
-                layout.max_duplicate_entries = layout.max_duplicate_entries.max(values.len());
-                let max_entry_values = values.iter().map(Vec::len).max().unwrap_or(0);
-                layout.max_duplicate_entry_values =
-                    layout.max_duplicate_entry_values.max(max_entry_values);
             }
         }
+    }
 
-        if let RowComparisonResult::Mismatch { differences, .. } = result {
-            layout.max_difference_groups = layout.max_difference_groups.max(differences.len());
-        }
+    if let Some(config) = config {
+        layout.max_key_columns = layout
+            .max_key_columns
+            .max(config.key_columns_a.len().max(config.key_columns_b.len()));
+        layout.max_file_a_value_columns = layout
+            .max_file_a_value_columns
+            .max(config.comparison_columns_a.len());
+        layout.max_file_b_value_columns = layout
+            .max_file_b_value_columns
+            .max(config.comparison_columns_b.len());
     }
 
     // Always produce at least one key/value slot so even tiny exports remain clear.
@@ -68,33 +74,62 @@ fn compute_layout(results: &[RowComparisonResult]) -> ExportLayout {
     layout
 }
 
-fn build_header(layout: &ExportLayout) -> Vec<String> {
-    let mut header = vec!["Result Type".to_string()];
+fn paired_label(
+    prefix: &str,
+    label_a: Option<&str>,
+    label_b: Option<&str>,
+    position: usize,
+) -> String {
+    match (label_a, label_b) {
+        (Some(a), Some(b)) if a == b => format!("{prefix}: {a}"),
+        (Some(a), Some(b)) => format!("{prefix}: {a} / {b}"),
+        (Some(a), None) => format!("{prefix}: {a}"),
+        (None, Some(b)) => format!("{prefix}: {b}"),
+        (None, None) => format!("{prefix} {position}"),
+    }
+}
+
+fn build_header(layout: &ExportLayout, config: Option<&ComparisonConfig>) -> Vec<String> {
+    let mut header = vec!["Result".to_string()];
 
     for i in 1..=layout.max_key_columns {
-        header.push(format!("Key {i}"));
+        header.push(match config {
+            Some(config) => paired_label(
+                "Key",
+                config.key_columns_a.get(i - 1).map(String::as_str),
+                config.key_columns_b.get(i - 1).map(String::as_str),
+                i,
+            ),
+            None => format!("Key {i}"),
+        });
     }
 
     for i in 1..=layout.max_file_a_value_columns {
-        header.push(format!("File A Value {i}"));
+        header.push(match config {
+            Some(config) => config
+                .comparison_columns_a
+                .get(i - 1)
+                .map(|column| format!("File A: {column}"))
+                .unwrap_or_else(|| format!("File A Value {i}")),
+            None => format!("File A Value {i}"),
+        });
     }
 
     for i in 1..=layout.max_file_b_value_columns {
-        header.push(format!("File B Value {i}"));
+        header.push(match config {
+            Some(config) => config
+                .comparison_columns_b
+                .get(i - 1)
+                .map(|column| format!("File B: {column}"))
+                .unwrap_or_else(|| format!("File B Value {i}")),
+            None => format!("File B Value {i}"),
+        });
     }
 
-    for i in 1..=layout.max_difference_groups {
-        header.push(format!("Difference {i} File A Column"));
-        header.push(format!("Difference {i} File B Column"));
-        header.push(format!("Difference {i} File A Value"));
-        header.push(format!("Difference {i} File B Value"));
-    }
-
-    for entry_idx in 1..=layout.max_duplicate_entries {
-        for value_idx in 1..=layout.max_duplicate_entry_values {
-            header.push(format!("Duplicate {entry_idx} Value {value_idx}"));
-        }
-    }
+    header.push("Difference Summary".to_string());
+    header.push("Duplicate Rows File A".to_string());
+    header.push("Duplicate Rows File B".to_string());
+    header.push("Duplicate Summary".to_string());
 
     header
 }
@@ -105,50 +140,64 @@ fn append_padded_columns(record: &mut Vec<String>, values: &[String], target_len
     }
 }
 
-fn append_difference_columns(
-    record: &mut Vec<String>,
-    result: &RowComparisonResult,
-    max_difference_groups: usize,
-) {
-    let differences = match result {
-        RowComparisonResult::Mismatch { differences, .. } => differences.as_slice(),
-        _ => &[],
-    };
-
-    for i in 0..max_difference_groups {
-        if let Some(diff) = differences.get(i) {
-            record.push(diff.column_a.clone());
-            record.push(diff.column_b.clone());
-            record.push(diff.value_a.clone());
-            record.push(diff.value_b.clone());
-        } else {
-            record.push(String::new());
-            record.push(String::new());
-            record.push(String::new());
-            record.push(String::new());
-        }
+fn format_difference_summary(result: &RowComparisonResult) -> String {
+    match result {
+        RowComparisonResult::Mismatch { differences, .. } => differences
+            .iter()
+            .map(|diff| {
+                let columns = if diff.column_a == diff.column_b {
+                    diff.column_a.clone()
+                } else {
+                    format!("{} -> {}", diff.column_a, diff.column_b)
+                };
+                format!("{columns}: {} -> {}", diff.value_a, diff.value_b)
+            })
+            .collect::<Vec<_>>()
+            .join("; "),
+        _ => String::new(),
     }
 }
 
-fn append_duplicate_columns(
-    record: &mut Vec<String>,
-    result: &RowComparisonResult,
-    layout: &ExportLayout,
-) {
-    let values: &[Vec<String>] = match result {
-        RowComparisonResult::Duplicate { values, .. } => values.as_slice(),
-        _ => &[],
-    };
+fn format_duplicate_summary(result: &RowComparisonResult) -> String {
+    match result {
+        RowComparisonResult::Duplicate {
+            values_a, values_b, ..
+        } => {
+            let mut segments = Vec::new();
 
-    for entry_idx in 0..layout.max_duplicate_entries {
-        for value_idx in 0..layout.max_duplicate_entry_values {
-            let cell = values
-                .get(entry_idx)
-                .and_then(|entry| entry.get(value_idx))
-                .cloned()
-                .unwrap_or_default();
-            record.push(cell);
+            if !values_a.is_empty() {
+                segments.push(format!(
+                    "File A: {}",
+                    values_a
+                        .iter()
+                        .map(|entry| format!("[{}]", entry.join(", ")))
+                        .collect::<Vec<_>>()
+                        .join(" | ")
+                ));
+            }
+
+            if !values_b.is_empty() {
+                segments.push(format!(
+                    "File B: {}",
+                    values_b
+                        .iter()
+                        .map(|entry| format!("[{}]", entry.join(", ")))
+                        .collect::<Vec<_>>()
+                        .join(" | ")
+                ));
+            }
+
+            segments.join(" ; ")
         }
+        _ => String::new(),
+    }
+}
+
+fn format_duplicate_side_rows(values: &[Vec<String>]) -> String {
+    if values.is_empty() {
+        String::new()
+    } else {
+        to_string(values).unwrap_or_default()
     }
 }
 
@@ -189,11 +238,15 @@ fn build_record(result: &RowComparisonResult, layout: &ExportLayout) -> Vec<Stri
             append_padded_columns(&mut record, values_a, layout.max_file_a_value_columns);
             append_padded_columns(&mut record, &[], layout.max_file_b_value_columns);
         }
-        RowComparisonResult::Duplicate { key, source, .. } => {
-            let source_str = match source {
-                DuplicateSource::FileA => "File A",
-                DuplicateSource::FileB => "File B",
-                DuplicateSource::Both => "Both Files",
+        RowComparisonResult::Duplicate {
+            key,
+            values_a,
+            values_b,
+        } => {
+            let source_str = match DuplicateSource::from_duplicate_rows(values_a, values_b) {
+                Some(DuplicateSource::FileA) => "File A",
+                Some(DuplicateSource::FileB) => "File B",
+                Some(DuplicateSource::Both) | None => "Both Files",
             };
 
             record.push(format!("Duplicate ({source_str})"));
@@ -203,19 +256,32 @@ fn build_record(result: &RowComparisonResult, layout: &ExportLayout) -> Vec<Stri
         }
     }
 
-    append_difference_columns(&mut record, result, layout.max_difference_groups);
-    append_duplicate_columns(&mut record, result, layout);
+    record.push(format_difference_summary(result));
+    match result {
+        RowComparisonResult::Duplicate {
+            values_a, values_b, ..
+        } => {
+            record.push(format_duplicate_side_rows(values_a));
+            record.push(format_duplicate_side_rows(values_b));
+        }
+        _ => {
+            record.push(String::new());
+            record.push(String::new());
+        }
+    }
+    record.push(format_duplicate_summary(result));
     record
 }
 
 fn write_results_to_writer<W: Write>(
     results: &[RowComparisonResult],
+    config: Option<&ComparisonConfig>,
     writer: W,
 ) -> Result<(), Box<dyn Error>> {
-    let layout = compute_layout(results);
+    let layout = compute_layout(results, config);
     let mut csv_writer = Writer::from_writer(writer);
 
-    csv_writer.write_record(build_header(&layout))?;
+    csv_writer.write_record(build_header(&layout, config))?;
 
     for result in results {
         csv_writer.write_record(build_record(result, &layout))?;
@@ -225,121 +291,35 @@ fn write_results_to_writer<W: Write>(
     Ok(())
 }
 
-/// Export comparison results to in-memory CSV bytes
+/// Export comparison results to in-memory CSV bytes using default labels.
 pub fn export_results_to_bytes(results: &[RowComparisonResult]) -> Result<Vec<u8>, Box<dyn Error>> {
+    export_results_to_bytes_with_config(results, None)
+}
+
+/// Export comparison results to in-memory CSV bytes with optional config-aware labels.
+pub fn export_results_to_bytes_with_config(
+    results: &[RowComparisonResult],
+    config: Option<&ComparisonConfig>,
+) -> Result<Vec<u8>, Box<dyn Error>> {
     let mut buffer = Vec::new();
-    write_results_to_writer(results, &mut buffer)?;
+    write_results_to_writer(results, config, &mut buffer)?;
     Ok(buffer)
 }
 
-/// Export comparison results to a CSV file
+/// Export comparison results to a CSV file using default labels.
 pub fn export_results(
     results: &[RowComparisonResult],
-    file_path: &str,
+    file_path: impl AsRef<Path>,
 ) -> Result<(), Box<dyn Error>> {
-    let file = File::create(file_path)?;
-    write_results_to_writer(results, BufWriter::new(file))
+    export_results_with_config(results, None, file_path)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::data::types::ValueDifference;
-    use csv::Reader;
-    use tempfile::NamedTempFile;
-
-    #[test]
-    fn test_export_results() {
-        let results = vec![
-            RowComparisonResult::Match {
-                key: vec!["1".to_string()],
-                values_a: vec!["Alice".to_string()],
-                values_b: vec!["Alice".to_string()],
-            },
-            RowComparisonResult::Mismatch {
-                key: vec!["2".to_string()],
-                values_a: vec!["Bob".to_string()],
-                values_b: vec!["Robert".to_string()],
-                differences: vec![],
-            },
-        ];
-
-        let temp_file = NamedTempFile::new().unwrap();
-        let path = temp_file.path().to_str().unwrap();
-
-        export_results(&results, path).unwrap();
-
-        // Verify file was created and has content
-        let content = std::fs::read_to_string(path).unwrap();
-        assert!(content.contains("Match"));
-        assert!(content.contains("Mismatch"));
-        assert!(content.contains("Key 1"));
-        assert!(content.contains("File A Value 1"));
-    }
-
-    #[test]
-    fn test_export_results_to_bytes_splits_columns_and_keeps_rectangular_rows() {
-        let results = vec![
-            RowComparisonResult::Match {
-                key: vec!["1".to_string(), "A".to_string()],
-                values_a: vec!["Alice".to_string(), "100".to_string()],
-                values_b: vec!["Alice".to_string(), "100".to_string()],
-            },
-            RowComparisonResult::Mismatch {
-                key: vec!["2".to_string()],
-                values_a: vec!["Bob".to_string(), "200".to_string()],
-                values_b: vec!["Robert".to_string(), "999".to_string()],
-                differences: vec![
-                    ValueDifference {
-                        column_a: "name".to_string(),
-                        column_b: "name".to_string(),
-                        value_a: "Bob".to_string(),
-                        value_b: "Robert".to_string(),
-                    },
-                    ValueDifference {
-                        column_a: "amount".to_string(),
-                        column_b: "amount".to_string(),
-                        value_a: "200".to_string(),
-                        value_b: "999".to_string(),
-                    },
-                ],
-            },
-            RowComparisonResult::Duplicate {
-                key: vec!["3".to_string()],
-                source: DuplicateSource::FileA,
-                values: vec![
-                    vec!["Carol".to_string(), "300".to_string()],
-                    vec!["Carol".to_string(), "301".to_string()],
-                ],
-            },
-        ];
-
-        let bytes = export_results_to_bytes(&results).unwrap();
-        let mut reader = Reader::from_reader(bytes.as_slice());
-
-        let headers = reader.headers().unwrap().clone();
-        let key_2_idx = headers.iter().position(|h| h == "Key 2").unwrap();
-        let file_a_2_idx = headers.iter().position(|h| h == "File A Value 2").unwrap();
-        let diff_2_value_b_idx = headers
-            .iter()
-            .position(|h| h == "Difference 2 File B Value")
-            .unwrap();
-        let duplicate_2_value_2_idx = headers
-            .iter()
-            .position(|h| h == "Duplicate 2 Value 2")
-            .unwrap();
-
-        let records: Vec<csv::StringRecord> = reader.records().map(Result::unwrap).collect();
-        assert_eq!(records.len(), 3);
-        for record in &records {
-            assert_eq!(record.len(), headers.len());
-        }
-
-        assert_eq!(records[0].get(key_2_idx), Some("A"));
-        assert_eq!(records[0].get(file_a_2_idx), Some("100"));
-
-        assert_eq!(records[1].get(diff_2_value_b_idx), Some("999"));
-
-        assert_eq!(records[2].get(duplicate_2_value_2_idx), Some("301"));
-    }
+/// Export comparison results to a CSV file with optional config-aware labels.
+pub fn export_results_with_config(
+    results: &[RowComparisonResult],
+    config: Option<&ComparisonConfig>,
+    file_path: impl AsRef<Path>,
+) -> Result<(), Box<dyn Error>> {
+    let file = File::create(file_path.as_ref())?;
+    write_results_to_writer(results, config, BufWriter::new(file))
 }

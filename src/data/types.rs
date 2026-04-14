@@ -16,12 +16,29 @@ pub struct ColumnInfo {
     pub data_type: ColumnDataType,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ColumnDataType {
     String,
     Integer,
     Float,
     Date,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum FileSide {
+    A,
+    B,
+}
+
+impl FileSide {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::A => "a",
+            Self::B => "b",
+        }
+    }
 }
 
 /// Mapping between columns in file A and file B
@@ -32,11 +49,29 @@ pub struct ColumnMapping {
     pub mapping_type: MappingType,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MappingKind {
+    Exact,
+    Manual,
+    Fuzzy,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum MappingType {
     ExactMatch,
     ManualMatch,
     FuzzyMatch(f64), // similarity score
+}
+
+impl MappingType {
+    pub fn kind(&self) -> MappingKind {
+        match self {
+            Self::ExactMatch => MappingKind::Exact,
+            Self::ManualMatch => MappingKind::Manual,
+            Self::FuzzyMatch(_) => MappingKind::Fuzzy,
+        }
+    }
 }
 
 /// Configuration for comparison
@@ -103,9 +138,27 @@ pub enum RowComparisonResult {
     },
     Duplicate {
         key: Vec<String>,
-        source: DuplicateSource,
-        values: Vec<Vec<String>>,
+        values_a: Vec<Vec<String>>,
+        values_b: Vec<Vec<String>>,
     },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub enum ResultType {
+    #[serde(rename = "match")]
+    Match,
+    #[serde(rename = "mismatch")]
+    Mismatch,
+    #[serde(rename = "missing_left")]
+    MissingLeft,
+    #[serde(rename = "missing_right")]
+    MissingRight,
+    #[serde(rename = "duplicate_filea")]
+    DuplicateFileA,
+    #[serde(rename = "duplicate_fileb")]
+    DuplicateFileB,
+    #[serde(rename = "duplicate_both")]
+    DuplicateBoth,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -121,6 +174,17 @@ pub enum DuplicateSource {
     FileA,
     FileB,
     Both,
+}
+
+impl DuplicateSource {
+    pub fn from_duplicate_rows(values_a: &[Vec<String>], values_b: &[Vec<String>]) -> Option<Self> {
+        match (values_a.is_empty(), values_b.is_empty()) {
+            (false, true) => Some(Self::FileA),
+            (true, false) => Some(Self::FileB),
+            (false, false) => Some(Self::Both),
+            (true, true) => None,
+        }
+    }
 }
 
 /// Summary statistics of comparison results

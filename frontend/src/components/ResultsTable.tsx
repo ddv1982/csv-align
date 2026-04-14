@@ -1,5 +1,6 @@
 import { Fragment, useState } from 'react';
 import { ResultResponse } from '../types/api';
+import { getResultBadge } from '../features/results/presentation';
 
 interface ResultsTableProps {
   results: ResultResponse[];
@@ -8,52 +9,22 @@ interface ResultsTableProps {
 export function ResultsTable({ results }: ResultsTableProps) {
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
 
-  const getResultBadge = (resultType: string) => {
-    switch (resultType) {
-      case 'match':
-        return {
-          bg: 'border border-emerald-200 bg-emerald-50/70 dark:border-emerald-900/70 dark:bg-emerald-950/25',
-          text: 'text-emerald-800 dark:text-emerald-200',
-          dot: 'bg-emerald-500 dark:bg-emerald-400',
-          label: 'Match',
-        };
-      case 'mismatch':
-        return {
-          bg: 'border border-amber-200 bg-amber-50/70 dark:border-amber-900/70 dark:bg-amber-950/25',
-          text: 'text-amber-800 dark:text-amber-200',
-          dot: 'bg-amber-500 dark:bg-amber-400',
-          label: 'Mismatch',
-        };
-      case 'missing_left':
-        return {
-          bg: 'border border-sky-200 bg-sky-50/70 dark:border-sky-900/70 dark:bg-sky-950/25',
-          text: 'text-sky-800 dark:text-sky-200',
-          dot: 'bg-sky-500 dark:bg-sky-400',
-          label: 'Missing Left',
-        };
-      case 'missing_right':
-        return {
-          bg: 'border border-violet-200 bg-violet-50/70 dark:border-violet-900/70 dark:bg-violet-950/25',
-          text: 'text-violet-800 dark:text-violet-200',
-          dot: 'bg-violet-500 dark:bg-violet-400',
-          label: 'Missing Right',
-        };
-      default:
-        if (resultType.startsWith('duplicate')) {
-          return {
-            bg: 'border border-orange-200 bg-orange-50/70 dark:border-orange-900/70 dark:bg-orange-950/25',
-            text: 'text-orange-800 dark:text-orange-200',
-            dot: 'bg-orange-500 dark:bg-orange-400',
-            label: 'Duplicate',
-          };
-        }
-        return {
-          bg: 'border border-gray-200 bg-gray-100/70 dark:border-gray-700 dark:bg-gray-800/70',
-          text: 'text-gray-700 dark:text-gray-200',
-          dot: 'bg-gray-500 dark:bg-gray-400',
-          label: resultType,
-        };
+  const renderValueRows = (rows: string[][], fallback: string[]) => {
+    const displayRows = rows.length > 0 ? rows : fallback.length > 0 ? [fallback] : [];
+
+    if (displayRows.length === 0) {
+      return <span className="italic text-gray-400 dark:text-gray-500">—</span>;
     }
+
+    return (
+      <div className="space-y-1 text-sm text-gray-700 dark:text-gray-200">
+        {displayRows.map((row, rowIndex) => (
+          <div key={rowIndex} className="rounded bg-gray-50 px-2 py-1 dark:bg-gray-800/80">
+            {row.length > 0 ? row.join(', ') : '—'}
+          </div>
+        ))}
+      </div>
+    );
   };
 
   if (results.length === 0) {
@@ -112,32 +83,10 @@ export function ResultsTable({ results }: ResultsTableProps) {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      {result.values_a.length > 0 ? (
-                        <div className="text-sm text-gray-700 dark:text-gray-200">
-                          {result.values_a.map((v, i) => (
-                            <span key={i} className="inline-block mr-2">
-                              {v}
-                              {i < result.values_a.length - 1 && ','}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="italic text-gray-400 dark:text-gray-500">—</span>
-                      )}
+                      {renderValueRows(result.duplicate_values_a, result.values_a)}
                     </td>
                     <td className="px-4 py-3">
-                      {result.values_b.length > 0 ? (
-                        <div className="text-sm text-gray-700 dark:text-gray-200">
-                          {result.values_b.map((v, i) => (
-                            <span key={i} className="inline-block mr-2">
-                              {v}
-                              {i < result.values_b.length - 1 && ','}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="italic text-gray-400 dark:text-gray-500">—</span>
-                      )}
+                      {renderValueRows(result.duplicate_values_b, result.values_b)}
                     </td>
                     <td className="px-4 py-3">
                       {result.differences.length > 0 ? (

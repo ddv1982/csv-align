@@ -1,61 +1,22 @@
-import { ResultResponse, ResultType } from '../types/api';
+import { ResultFilter, ResultResponse } from '../types/api';
+import { getResultFilterCounts, RESULT_FILTER_OPTIONS } from '../features/results/presentation';
 
 interface FilterBarProps {
-  filter: ResultType;
+  filter: ResultFilter;
   results: ResultResponse[];
-  onFilterChange: (filter: ResultType) => void;
+  onFilterChange: (filter: ResultFilter) => void;
   onExport: () => void;
 }
 
 export function FilterBar({ filter, results, onFilterChange, onExport }: FilterBarProps) {
-  const counts = {
-    all: results.length,
-    match: results.filter(r => r.result_type === 'match').length,
-    mismatch: results.filter(r => r.result_type === 'mismatch').length,
-    missing_left: results.filter(r => r.result_type === 'missing_left').length,
-    missing_right: results.filter(r => r.result_type === 'missing_right').length,
-    duplicate: results.filter(r => r.result_type.startsWith('duplicate')).length,
-  };
-
-  const filters: { value: ResultType; label: string; accent: string }[] = [
-    {
-      value: 'all',
-      label: 'All',
-      accent: 'bg-gray-400 dark:bg-gray-500',
-    },
-    {
-      value: 'match',
-      label: 'Matches',
-      accent: 'bg-emerald-500 dark:bg-emerald-400',
-    },
-    {
-      value: 'mismatch',
-      label: 'Mismatches',
-      accent: 'bg-amber-500 dark:bg-amber-400',
-    },
-    {
-      value: 'missing_left',
-      label: 'Missing Left',
-      accent: 'bg-sky-500 dark:bg-sky-400',
-    },
-    {
-      value: 'missing_right',
-      label: 'Missing Right',
-      accent: 'bg-violet-500 dark:bg-violet-400',
-    },
-    {
-      value: 'duplicate',
-      label: 'Duplicates',
-      accent: 'bg-orange-500 dark:bg-orange-400',
-    },
-  ];
+  const counts = getResultFilterCounts(results);
 
   return (
     <div className="card p-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
         {/* Filters */}
         <div className="flex flex-wrap gap-2">
-          {filters.map((f) => (
+          {RESULT_FILTER_OPTIONS.map((f) => (
             <button
               key={f.value}
               onClick={() => onFilterChange(f.value)}

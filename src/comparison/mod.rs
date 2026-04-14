@@ -1,5 +1,8 @@
+mod rows;
+mod value_compare;
+
 pub mod engine;
 pub mod mapping;
 
-pub use engine::*;
-pub use mapping::*;
+pub use engine::{compare_csv_data, generate_summary};
+pub use mapping::suggest_mappings;

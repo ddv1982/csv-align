@@ -4,52 +4,22 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Json, Response},
 };
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use super::state::AppState;
-use crate::comparison::{engine, mapping};
-use crate::data::{csv_loader, export as csv_export, types::*};
-use crate::presentation::{compare_response, file_load_response, suggest_mappings_response};
+use crate::backend::{
+    apply_csv_to_session, comparison_inputs, export_results_to_bytes,
+    export_session_results_snapshot, parse_file_side, run_comparison, suggest_mappings_workflow,
+    validate_file_letter,
+};
+pub use crate::backend::{CompareRequest, MappingRequest, SessionResponse, SuggestMappingsRequest};
+use crate::data::csv_loader;
 
 /// Response for health check
 #[derive(Serialize)]
 pub struct HealthResponse {
     pub status: String,
     pub version: String,
-}
-
-/// Response for session creation
-#[derive(Serialize)]
-pub struct SessionResponse {
-    pub session_id: String,
-}
-
-/// Request body for comparison
-#[derive(Debug, Deserialize)]
-pub struct CompareRequest {
-    pub key_columns_a: Vec<String>,
-    pub key_columns_b: Vec<String>,
-    pub comparison_columns_a: Vec<String>,
-    pub comparison_columns_b: Vec<String>,
-    pub column_mappings: Vec<MappingRequest>,
-    #[serde(default)]
-    pub normalization: ComparisonNormalizationConfig,
-}
-
-/// Column mapping in request
-#[derive(Debug, Clone, Deserialize)]
-pub struct MappingRequest {
-    pub file_a_column: String,
-    pub file_b_column: String,
-    pub mapping_type: String,
-    pub similarity: Option<f64>,
-}
-
-/// Request body for suggested mappings
-#[derive(Debug, Deserialize)]
-pub struct SuggestMappingsRequest {
-    pub columns_a: Vec<String>,
-    pub columns_b: Vec<String>,
 }
 
 /// Error response
@@ -96,32 +66,20 @@ pub async fn load_csv_file(
     Path((session_id, file_letter)): Path<(String, String)>,
     mut multipart: Multipart,
 ) -> Response {
-    // Validate file letter
-    if file_letter != "a" && file_letter != "b" {
+    if let Err(error) = validate_file_letter(&file_letter) {
+        return (StatusCode::BAD_REQUEST, Json(ErrorResponse { error })).into_response();
+    }
+
+    if state.with_session(&session_id, |_| ()).await.is_none() {
         return (
-            StatusCode::BAD_REQUEST,
+            StatusCode::NOT_FOUND,
             Json(ErrorResponse {
-                error: "File letter must be 'a' or 'b'".to_string(),
+                error: "Session not found".to_string(),
             }),
         )
             .into_response();
     }
 
-    // Get session
-    let mut session_data = match state.get_session(&session_id).await {
-        Some(data) => data,
-        None => {
-            return (
-                StatusCode::NOT_FOUND,
-                Json(ErrorResponse {
-                    error: "Session not found".to_string(),
-                }),
-            )
-                .into_response()
-        }
-    };
-
-    // Get the file from multipart
     let field = match multipart.next_field().await {
         Ok(Some(field)) => field,
         Ok(None) => {
@@ -144,7 +102,6 @@ pub async fn load_csv_file(
         }
     };
 
-    // Read file bytes
     let bytes = match field.bytes().await {
         Ok(bytes) => bytes,
         Err(e) => {
@@ -158,7 +115,6 @@ pub async fn load_csv_file(
         }
     };
 
-    // Parse CSV from bytes
     let csv_data = match csv_loader::load_csv_from_bytes(&bytes) {
         Ok(data) => data,
         Err(e) => {
@@ -172,41 +128,25 @@ pub async fn load_csv_file(
         }
     };
 
-    // Get headers before we move csv_data
-    let headers = csv_data.headers.clone();
-
-    // Detect columns
-    let columns = csv_loader::detect_columns(&csv_data);
-
-    let row_count = csv_data.rows.len();
-    let response = file_load_response(file_letter.clone(), headers, &columns, row_count);
-
-    // Update session
-    if file_letter == "a" {
-        session_data.csv_a = Some(csv_data);
-        session_data.columns_a = columns;
-    } else {
-        session_data.csv_b = Some(csv_data);
-        session_data.columns_b = columns;
-    }
-
-    // Auto-suggest mappings if both files are loaded
-    if session_data.csv_a.is_some() && session_data.csv_b.is_some() {
-        let col_names_a: Vec<String> = session_data
-            .columns_a
-            .iter()
-            .map(|c| c.name.clone())
-            .collect();
-        let col_names_b: Vec<String> = session_data
-            .columns_b
-            .iter()
-            .map(|c| c.name.clone())
-            .collect();
-        session_data.column_mappings = mapping::suggest_mappings(&col_names_a, &col_names_b);
-    }
-
-    // Save session
-    let _ = state.update_session(&session_id, session_data).await;
+    let response = match state
+        .with_session_mut(&session_id, |session_data| {
+            let file_side = parse_file_side(&file_letter)
+                .expect("validated file letter should parse into a file side");
+            apply_csv_to_session(session_data, file_side, csv_data)
+        })
+        .await
+    {
+        Some(response) => response,
+        None => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(ErrorResponse {
+                    error: "Session not found".to_string(),
+                }),
+            )
+                .into_response()
+        }
+    };
 
     Json(response).into_response()
 }
@@ -217,14 +157,12 @@ pub async fn suggest_mappings(
     Path(session_id): Path<String>,
     Json(request): Json<SuggestMappingsRequest>,
 ) -> Response {
-    let mappings = mapping::suggest_mappings(&request.columns_a, &request.columns_b);
-    let response = suggest_mappings_response(&mappings);
-
-    // Update session with mappings
-    if let Some(mut session_data) = state.get_session(&session_id).await {
-        session_data.column_mappings = mappings;
-        let _ = state.update_session(&session_id, session_data).await;
-    }
+    let response = state
+        .with_session_mut(&session_id, |session_data| {
+            suggest_mappings_workflow(Some(session_data), &request)
+        })
+        .await
+        .unwrap_or_else(|| suggest_mappings_workflow(None, &request));
 
     Json(response).into_response()
 }
@@ -235,9 +173,11 @@ pub async fn compare(
     Path(session_id): Path<String>,
     Json(request): Json<CompareRequest>,
 ) -> Response {
-    // Get session
-    let mut session_data = match state.get_session(&session_id).await {
-        Some(data) => data,
+    let comparison_input = match state.with_session(&session_id, comparison_inputs).await {
+        Some(Ok(input)) => input,
+        Some(Err(error)) => {
+            return (StatusCode::BAD_REQUEST, Json(ErrorResponse { error })).into_response()
+        }
         None => {
             return (
                 StatusCode::NOT_FOUND,
@@ -249,65 +189,34 @@ pub async fn compare(
         }
     };
 
-    // Check if both files are loaded
-    let (csv_a, csv_b) = match (&session_data.csv_a, &session_data.csv_b) {
-        (Some(a), Some(b)) => (a.clone(), b.clone()),
-        _ => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(ErrorResponse {
-                    error: "Both CSV files must be loaded before comparing".to_string(),
-                }),
-            )
-                .into_response()
+    let (csv_a, csv_b) = comparison_input;
+    let execution = match run_comparison(&csv_a, &csv_b, request) {
+        Ok(execution) => execution,
+        Err(error) => {
+            return (StatusCode::BAD_REQUEST, Json(ErrorResponse { error })).into_response()
         }
     };
 
-    // Build comparison config
-    let column_mappings: Vec<ColumnMapping> = request
-        .column_mappings
-        .iter()
-        .map(|m| {
-            let mapping_type = match m.mapping_type.as_str() {
-                "exact" => MappingType::ExactMatch,
-                "manual" => MappingType::ManualMatch,
-                "fuzzy" => MappingType::FuzzyMatch(m.similarity.unwrap_or(0.0)),
-                _ => MappingType::ManualMatch,
-            };
-            ColumnMapping {
-                file_a_column: m.file_a_column.clone(),
-                file_b_column: m.file_b_column.clone(),
-                mapping_type,
-            }
+    let _ = state
+        .with_session_mut(&session_id, |session_data| {
+            session_data.comparison_results = execution.results.clone();
+            session_data.comparison_config = Some(execution.config.clone());
         })
-        .collect();
+        .await;
 
-    let config = ComparisonConfig {
-        key_columns_a: request.key_columns_a,
-        key_columns_b: request.key_columns_b,
-        comparison_columns_a: request.comparison_columns_a,
-        comparison_columns_b: request.comparison_columns_b,
-        column_mappings,
-        normalization: request.normalization,
-    };
-
-    // Run comparison
-    let results = engine::compare_csv_data(&csv_a, &csv_b, &config);
-    let summary = engine::generate_summary(&results, csv_a.rows.len(), csv_b.rows.len());
-    let response = compare_response(&results, &summary);
-
-    // Update session
-    session_data.comparison_results = results;
-    let _ = state.update_session(&session_id, session_data).await;
-
-    Json(response).into_response()
+    Json(execution.response).into_response()
 }
 
 /// Export comparison results as CSV
 pub async fn export_csv(State(state): State<AppState>, Path(session_id): Path<String>) -> Response {
-    // Get session
-    let session_data = match state.get_session(&session_id).await {
-        Some(data) => data,
+    let snapshot = match state
+        .with_session(&session_id, export_session_results_snapshot)
+        .await
+    {
+        Some(Ok(snapshot)) => snapshot,
+        Some(Err(error)) => {
+            return (StatusCode::BAD_REQUEST, Json(ErrorResponse { error })).into_response()
+        }
         None => {
             return (
                 StatusCode::NOT_FOUND,
@@ -319,18 +228,8 @@ pub async fn export_csv(State(state): State<AppState>, Path(session_id): Path<St
         }
     };
 
-    // Check if comparison has been run
-    if session_data.comparison_results.is_empty() {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse {
-                error: "No comparison results to export. Run a comparison first.".to_string(),
-            }),
-        )
-            .into_response();
-    }
-
-    let csv_content = match csv_export::export_results_to_bytes(&session_data.comparison_results) {
+    let (results, comparison_config) = snapshot;
+    let csv_content = match export_results_to_bytes(&results, comparison_config.as_ref()) {
         Ok(bytes) => bytes,
         Err(e) => {
             return (

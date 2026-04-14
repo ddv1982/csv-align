@@ -1,12 +1,26 @@
+import type { AppFile } from './ui';
+
+export type ColumnDataType = 'string' | 'integer' | 'float' | 'date';
+export type FileLetter = 'a' | 'b';
+export type MappingType = 'exact' | 'manual' | 'fuzzy';
+export type CompareResultType =
+  | 'match'
+  | 'mismatch'
+  | 'missing_left'
+  | 'missing_right'
+  | 'duplicate_filea'
+  | 'duplicate_fileb'
+  | 'duplicate_both';
+
 export interface ColumnInfo {
   index: number;
   name: string;
-  data_type: string;
+  data_type: ColumnDataType;
 }
 
 export interface FileLoadResponse {
   success: boolean;
-  file_letter: string;
+  file_letter: FileLetter;
   headers: string[];
   columns: ColumnInfo[];
   row_count: number;
@@ -15,14 +29,14 @@ export interface FileLoadResponse {
 export interface MappingRequest {
   file_a_column: string;
   file_b_column: string;
-  mapping_type: string;
+  mapping_type: MappingType;
   similarity?: number;
 }
 
 export interface MappingResponse {
   file_a_column: string;
   file_b_column: string;
-  mapping_type: string;
+  mapping_type: MappingType;
   similarity?: number;
 }
 
@@ -66,10 +80,12 @@ export interface DifferenceResponse {
 }
 
 export interface ResultResponse {
-  result_type: string;
+  result_type: CompareResultType;
   key: string[];
   values_a: string[];
   values_b: string[];
+  duplicate_values_a: string[][];
+  duplicate_values_b: string[][];
   differences: DifferenceResponse[];
 }
 
@@ -98,26 +114,16 @@ export interface ErrorResponse {
   error: string;
 }
 
-export type ResultType = 'all' | 'match' | 'mismatch' | 'missing_left' | 'missing_right' | 'duplicate';
+export type ResultFilter = 'all' | 'match' | 'mismatch' | 'missing_left' | 'missing_right' | 'duplicate';
 
 export interface AppState {
   sessionId: string | null;
-  fileA: {
-    name: string;
-    headers: string[];
-    columns: ColumnInfo[];
-    rowCount: number;
-  } | null;
-  fileB: {
-    name: string;
-    headers: string[];
-    columns: ColumnInfo[];
-    rowCount: number;
-  } | null;
+  fileA: AppFile | null;
+  fileB: AppFile | null;
   mappings: MappingResponse[];
   results: ResultResponse[];
   summary: SummaryResponse | null;
-  filter: ResultType;
+  filter: ResultFilter;
   error: string | null;
   loading: boolean;
 }

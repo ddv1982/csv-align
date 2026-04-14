@@ -1,51 +1,47 @@
+mod common;
+
 use csv_align::comparison::engine::{compare_csv_data, generate_summary};
-use csv_align::data::types::*;
+use csv_align::data::types::{
+    ColumnMapping, ComparisonConfig, ComparisonNormalizationConfig, CsvData,
+    DateNormalizationConfig, MappingType, RowComparisonResult,
+};
+
+use common::{comparison_config, csv_data};
 
 fn create_test_csv_a() -> CsvData {
-    CsvData {
-        file_path: Some("test_a.csv".to_string()),
-        headers: vec!["id".to_string(), "name".to_string(), "value".to_string()],
-        rows: vec![
-            vec!["1".to_string(), "Alice".to_string(), "100".to_string()],
-            vec!["2".to_string(), "Bob".to_string(), "200".to_string()],
-            vec!["3".to_string(), "Charlie".to_string(), "300".to_string()],
-            vec!["2".to_string(), "Bob".to_string(), "200".to_string()], // duplicate
+    csv_data(
+        "test_a.csv",
+        &["id", "name", "value"],
+        &[
+            &["1", "Alice", "100"],
+            &["2", "Bob", "200"],
+            &["3", "Charlie", "300"],
+            &["2", "Bob", "200"],
         ],
-    }
+    )
 }
 
 fn create_test_csv_b() -> CsvData {
-    CsvData {
-        file_path: Some("test_b.csv".to_string()),
-        headers: vec!["id".to_string(), "name".to_string(), "amount".to_string()],
-        rows: vec![
-            vec!["1".to_string(), "Alice".to_string(), "100".to_string()],
-            vec!["2".to_string(), "Robert".to_string(), "200".to_string()], // mismatch
-            vec!["4".to_string(), "David".to_string(), "400".to_string()],  // missing left
+    csv_data(
+        "test_b.csv",
+        &["id", "name", "amount"],
+        &[
+            &["1", "Alice", "100"],
+            &["2", "Robert", "200"],
+            &["4", "David", "400"],
         ],
-    }
+    )
 }
 
 fn create_test_config() -> ComparisonConfig {
-    ComparisonConfig {
-        key_columns_a: vec!["id".to_string()],
-        key_columns_b: vec!["id".to_string()],
-        comparison_columns_a: vec!["name".to_string(), "value".to_string()],
-        comparison_columns_b: vec!["name".to_string(), "amount".to_string()],
-        column_mappings: vec![
-            ColumnMapping {
-                file_a_column: "name".to_string(),
-                file_b_column: "name".to_string(),
-                mapping_type: MappingType::ExactMatch,
-            },
-            ColumnMapping {
-                file_a_column: "value".to_string(),
-                file_b_column: "amount".to_string(),
-                mapping_type: MappingType::ExactMatch,
-            },
-        ],
-        normalization: ComparisonNormalizationConfig::default(),
-    }
+    comparison_config(
+        &["id"],
+        &["id"],
+        &["name", "value"],
+        &["name", "amount"],
+        &[("name", "name"), ("value", "amount")],
+        ComparisonNormalizationConfig::default(),
+    )
 }
 
 #[test]
@@ -84,6 +80,76 @@ fn test_compare_csv_data() {
     assert_eq!(missing_left, 1);
     assert_eq!(missing_right, 1);
     assert_eq!(duplicates, 1);
+
+    let duplicate = results
+        .iter()
+        .find(|result| matches!(result, RowComparisonResult::Duplicate { .. }))
+        .expect("expected duplicate result");
+
+    match duplicate {
+        RowComparisonResult::Duplicate {
+            key,
+            values_a,
+            values_b,
+        } => {
+            assert_eq!(key, &vec!["2".to_string()]);
+            assert_eq!(values_a.len(), 2);
+            assert!(values_b.is_empty());
+            assert_eq!(values_a[0], vec!["Bob".to_string(), "200".to_string()]);
+            assert_eq!(values_a[1], vec!["Bob".to_string(), "200".to_string()]);
+        }
+        _ => unreachable!(),
+    }
+}
+
+#[test]
+fn test_compare_csv_data_keeps_duplicate_rows_grouped_by_side() {
+    let csv_a = CsvData {
+        file_path: Some("left.csv".to_string()),
+        headers: vec!["id".to_string(), "name".to_string()],
+        rows: vec![
+            vec!["9".to_string(), "Alpha".to_string()],
+            vec!["9".to_string(), "Beta".to_string()],
+        ],
+    };
+    let csv_b = CsvData {
+        file_path: Some("right.csv".to_string()),
+        headers: vec!["id".to_string(), "label".to_string()],
+        rows: vec![
+            vec!["9".to_string(), "Gamma".to_string()],
+            vec!["9".to_string(), "Delta".to_string()],
+        ],
+    };
+    let config = ComparisonConfig {
+        key_columns_a: vec!["id".to_string()],
+        key_columns_b: vec!["id".to_string()],
+        comparison_columns_a: vec!["name".to_string()],
+        comparison_columns_b: vec!["label".to_string()],
+        column_mappings: vec![],
+        normalization: ComparisonNormalizationConfig::default(),
+    };
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+    assert_eq!(results.len(), 1);
+
+    match &results[0] {
+        RowComparisonResult::Duplicate {
+            key,
+            values_a,
+            values_b,
+        } => {
+            assert_eq!(key, &vec!["9".to_string()]);
+            assert_eq!(
+                values_a,
+                &vec![vec!["Alpha".to_string()], vec!["Beta".to_string()]]
+            );
+            assert_eq!(
+                values_b,
+                &vec![vec!["Gamma".to_string()], vec!["Delta".to_string()]]
+            );
+        }
+        _ => panic!("expected duplicate result when both files contain duplicates"),
+    }
 }
 
 #[test]
@@ -212,18 +278,14 @@ fn test_compare_csv_data_detects_mismatch_without_explicit_mapping_by_position()
 }
 
 fn create_json_compare_config() -> ComparisonConfig {
-    ComparisonConfig {
-        key_columns_a: vec!["id".to_string()],
-        key_columns_b: vec!["id".to_string()],
-        comparison_columns_a: vec!["payload".to_string()],
-        comparison_columns_b: vec!["payload".to_string()],
-        column_mappings: vec![ColumnMapping {
-            file_a_column: "payload".to_string(),
-            file_b_column: "payload".to_string(),
-            mapping_type: MappingType::ExactMatch,
-        }],
-        normalization: ComparisonNormalizationConfig::default(),
-    }
+    comparison_config(
+        &["id"],
+        &["id"],
+        &["payload"],
+        &["payload"],
+        &[("payload", "payload")],
+        ComparisonNormalizationConfig::default(),
+    )
 }
 
 #[test]
@@ -307,18 +369,14 @@ fn test_compare_csv_data_uses_raw_string_comparison_for_malformed_json() {
 fn create_normalization_test_config(
     normalization: ComparisonNormalizationConfig,
 ) -> ComparisonConfig {
-    ComparisonConfig {
-        key_columns_a: vec!["id".to_string()],
-        key_columns_b: vec!["id".to_string()],
-        comparison_columns_a: vec!["value".to_string()],
-        comparison_columns_b: vec!["value".to_string()],
-        column_mappings: vec![ColumnMapping {
-            file_a_column: "value".to_string(),
-            file_b_column: "value".to_string(),
-            mapping_type: MappingType::ExactMatch,
-        }],
+    comparison_config(
+        &["id"],
+        &["id"],
+        &["value"],
+        &["value"],
+        &[("value", "value")],
         normalization,
-    }
+    )
 }
 
 #[test]

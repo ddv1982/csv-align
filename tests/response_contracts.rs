@@ -1,3 +1,5 @@
+mod common;
+
 use axum::{
     body::to_bytes,
     extract::{Path, State},
@@ -11,6 +13,8 @@ use csv_align::api::{
 };
 use csv_align::data::types::{ComparisonNormalizationConfig, CsvData};
 use serde_json::Value;
+
+use common::csv_data;
 
 fn build_compare_request() -> CompareRequest {
     CompareRequest {
@@ -37,29 +41,29 @@ fn build_compare_request() -> CompareRequest {
 }
 
 fn build_csv_a() -> CsvData {
-    CsvData {
-        file_path: Some("left.csv".to_string()),
-        headers: vec!["id".to_string(), "name".to_string(), "value".to_string()],
-        rows: vec![
-            vec!["1".to_string(), "Alice".to_string(), "100".to_string()],
-            vec!["2".to_string(), "Bob".to_string(), "200".to_string()],
-            vec!["3".to_string(), "Charlie".to_string(), "300".to_string()],
-            vec!["5".to_string(), "Dupe One".to_string(), "500".to_string()],
-            vec!["5".to_string(), "Dupe Two".to_string(), "501".to_string()],
+    csv_data(
+        "left.csv",
+        &["id", "name", "value"],
+        &[
+            &["1", "Alice", "100"],
+            &["2", "Bob", "200"],
+            &["3", "Charlie", "300"],
+            &["5", "Dupe One", "500"],
+            &["5", "Dupe Two", "501"],
         ],
-    }
+    )
 }
 
 fn build_csv_b() -> CsvData {
-    CsvData {
-        file_path: Some("right.csv".to_string()),
-        headers: vec!["id".to_string(), "name".to_string(), "amount".to_string()],
-        rows: vec![
-            vec!["1".to_string(), "Alice".to_string(), "100".to_string()],
-            vec!["2".to_string(), "Robert".to_string(), "200".to_string()],
-            vec!["4".to_string(), "Dana".to_string(), "400".to_string()],
+    csv_data(
+        "right.csv",
+        &["id", "name", "amount"],
+        &[
+            &["1", "Alice", "100"],
+            &["2", "Robert", "200"],
+            &["4", "Dana", "400"],
         ],
-    }
+    )
 }
 
 async fn response_json(response: Response) -> Value {
@@ -67,6 +71,13 @@ async fn response_json(response: Response) -> Value {
         .await
         .expect("response body should be readable");
     serde_json::from_slice(&body).expect("response body should be valid JSON")
+}
+
+async fn response_text(response: Response) -> String {
+    let body = to_bytes(response.into_body(), usize::MAX)
+        .await
+        .expect("response body should be readable");
+    String::from_utf8(body.to_vec()).expect("response body should be valid utf-8")
 }
 
 fn result_by_type<'a>(results: &'a [Value], result_type: &str) -> &'a Value {
@@ -157,6 +168,8 @@ async fn response_contracts_compare_serializes_each_result_variant_and_summary_s
     assert_eq!(matched["key"], serde_json::json!(["1"]));
     assert_eq!(matched["values_a"], serde_json::json!(["Alice", "100"]));
     assert_eq!(matched["values_b"], serde_json::json!(["Alice", "100"]));
+    assert_eq!(matched["duplicate_values_a"], serde_json::json!([]));
+    assert_eq!(matched["duplicate_values_b"], serde_json::json!([]));
     assert_eq!(matched["differences"], serde_json::json!([]));
 
     let mismatch = result_by_type(results, "mismatch");
@@ -177,6 +190,8 @@ async fn response_contracts_compare_serializes_each_result_variant_and_summary_s
     assert_eq!(missing_left["key"], serde_json::json!(["4"]));
     assert_eq!(missing_left["values_a"], serde_json::json!([]));
     assert_eq!(missing_left["values_b"], serde_json::json!(["Dana", "400"]));
+    assert_eq!(missing_left["duplicate_values_a"], serde_json::json!([]));
+    assert_eq!(missing_left["duplicate_values_b"], serde_json::json!([]));
     assert_eq!(missing_left["differences"], serde_json::json!([]));
 
     let missing_right = result_by_type(results, "missing_right");
@@ -194,10 +209,12 @@ async fn response_contracts_compare_serializes_each_result_variant_and_summary_s
         duplicate["values_a"],
         serde_json::json!(["Dupe One", "500"])
     );
+    assert_eq!(duplicate["values_b"], serde_json::json!([]));
     assert_eq!(
-        duplicate["values_b"],
-        serde_json::json!(["Dupe Two", "501"])
+        duplicate["duplicate_values_a"],
+        serde_json::json!([["Dupe One", "500"], ["Dupe Two", "501"]])
     );
+    assert_eq!(duplicate["duplicate_values_b"], serde_json::json!([]));
     assert_eq!(duplicate["differences"], serde_json::json!([]));
 
     assert_eq!(
@@ -213,4 +230,76 @@ async fn response_contracts_compare_serializes_each_result_variant_and_summary_s
             "duplicates_b": 0
         })
     );
+}
+
+#[tokio::test]
+async fn response_contracts_export_uses_stored_comparison_labels_for_csv_headers() {
+    let state = AppState::new();
+    let session_id = state.create_session().await;
+
+    let mut session = SessionData::new();
+    session.csv_a = Some(build_csv_a());
+    session.csv_b = Some(build_csv_b());
+    assert!(state.update_session(&session_id, session).await);
+
+    let compare_response = handlers::compare(
+        State(state.clone()),
+        Path(session_id.clone()),
+        Json(build_compare_request()),
+    )
+    .await;
+    assert_eq!(compare_response.status(), StatusCode::OK);
+
+    let export_response = handlers::export_csv(State(state), Path(session_id)).await;
+    assert_eq!(export_response.status(), StatusCode::OK);
+
+    let body = response_text(export_response).await;
+    assert!(body.contains("Key: id"));
+    assert!(body.contains("File A: name"));
+    assert!(body.contains("File B: amount"));
+    assert!(body.contains("Difference Summary"));
+    assert!(body.contains("name: Bob -> Robert"));
+}
+
+#[tokio::test]
+async fn response_contracts_compare_rejects_unknown_mapping_types() {
+    let state = AppState::new();
+    let session_id = state.create_session().await;
+
+    let mut session = SessionData::new();
+    session.csv_a = Some(build_csv_a());
+    session.csv_b = Some(build_csv_b());
+    assert!(state.update_session(&session_id, session).await);
+
+    let mut request = build_compare_request();
+    request.column_mappings[0].mapping_type = "mystery".to_string();
+
+    let response = handlers::compare(State(state), Path(session_id), Json(request)).await;
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let json = response_json(response).await;
+    assert_eq!(
+        json["error"],
+        "Unknown mapping type 'mystery'. Expected one of: exact, manual, fuzzy"
+    );
+}
+
+#[tokio::test]
+async fn response_contracts_compare_rejects_missing_selected_columns() {
+    let state = AppState::new();
+    let session_id = state.create_session().await;
+
+    let mut session = SessionData::new();
+    session.csv_a = Some(build_csv_a());
+    session.csv_b = Some(build_csv_b());
+    assert!(state.update_session(&session_id, session).await);
+
+    let mut request = build_compare_request();
+    request.comparison_columns_b = vec!["name".to_string()];
+
+    let response = handlers::compare(State(state), Path(session_id), Json(request)).await;
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let json = response_json(response).await;
+    assert_eq!(json["error"], "Comparison columns for File A and Comparison columns for File B must contain the same number of columns (got 2 and 1)");
 }
