@@ -104,13 +104,6 @@ jobs:
     name: Build Release
     needs: create-release
     runs-on: ${{ matrix.os }}
-    env:
-      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-      APPLE_ID: ${{ secrets.APPLE_ID }}
-      APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
     strategy:
       matrix:
         include:
@@ -142,8 +135,43 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
 
+      - name: Prepare Apple signing environment
+        id: apple_env
+        if: matrix.os == 'macos-latest'
+        env:
+          APPLE_CERTIFICATE_SECRET: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD_SECRET: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_ID_SECRET: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD_SECRET: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID_SECRET: ${{ secrets.APPLE_TEAM_ID }}
+          KEYCHAIN_PASSWORD_SECRET: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          HAS_CERT=false
+          HAS_NOTARIZATION=false
+
+          if [ -n "$APPLE_CERTIFICATE_SECRET" ] && [ -n "$APPLE_CERTIFICATE_PASSWORD_SECRET" ] && [ -n "$KEYCHAIN_PASSWORD_SECRET" ]; then
+            {
+              echo "APPLE_CERTIFICATE=$APPLE_CERTIFICATE_SECRET"
+              echo "APPLE_CERTIFICATE_PASSWORD=$APPLE_CERTIFICATE_PASSWORD_SECRET"
+              echo "KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD_SECRET"
+            } >> "$GITHUB_ENV"
+            HAS_CERT=true
+          fi
+
+          if [ "$HAS_CERT" = true ] && [ -n "$APPLE_ID_SECRET" ] && [ -n "$APPLE_PASSWORD_SECRET" ] && [ -n "$APPLE_TEAM_ID_SECRET" ]; then
+            {
+              echo "APPLE_ID=$APPLE_ID_SECRET"
+              echo "APPLE_PASSWORD=$APPLE_PASSWORD_SECRET"
+              echo "APPLE_TEAM_ID=$APPLE_TEAM_ID_SECRET"
+            } >> "$GITHUB_ENV"
+            HAS_NOTARIZATION=true
+          fi
+
+          echo "has_cert=$HAS_CERT" >> "$GITHUB_OUTPUT"
+          echo "has_notarization=$HAS_NOTARIZATION" >> "$GITHUB_OUTPUT"
+
       - name: Import Apple signing certificate
-        if: matrix.os == 'macos-latest' && env.APPLE_CERTIFICATE != '' && env.APPLE_CERTIFICATE_PASSWORD != '' && env.KEYCHAIN_PASSWORD != ''
+        if: matrix.os == 'macos-latest' && steps.apple_env.outputs.has_cert == 'true'
         run: |
           python3 <<'PY'
           import base64
