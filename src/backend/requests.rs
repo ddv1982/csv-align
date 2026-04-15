@@ -83,10 +83,6 @@ pub enum CompareValidationError {
         selection: &'static str,
         columns: Vec<String>,
     },
-    NullishKeyValues {
-        selection: &'static str,
-        columns: Vec<String>,
-    },
     InvalidMappings(String),
     InvalidSimilarity(String),
 }
@@ -117,13 +113,6 @@ impl fmt::Display for CompareValidationError {
             ),
             Self::DuplicateColumns { selection, columns } => {
                 write!(f, "{selection} contain duplicate columns: {}", columns.join(", "))
-            }
-            Self::NullishKeyValues { selection, columns } => {
-                write!(
-                    f,
-                    "{selection} contain nullish or empty values under the active normalization rules: {}",
-                    columns.join(", ")
-                )
             }
             Self::InvalidMappings(message) | Self::InvalidSimilarity(message) => {
                 f.write_str(message)

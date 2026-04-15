@@ -1,5 +1,5 @@
 use super::super::data::types::*;
-use super::rows::{create_key_map, extract_columns, get_column_indices};
+use super::rows::{extract_columns, get_column_indices, split_rows_by_key_usable};
 use super::value_compare::find_differences;
 
 /// Compare two CSV datasets based on configuration
@@ -19,8 +19,24 @@ pub fn compare_csv_data(
     let comp_indices_b = get_column_indices(&csv_b.headers, &config.comparison_columns_b);
 
     // Create maps for quick lookup
-    let map_a = create_key_map(csv_a, &key_indices_a);
-    let map_b = create_key_map(csv_b, &key_indices_b);
+    let (map_a, nullish_rows_a) =
+        split_rows_by_key_usable(csv_a, &key_indices_a, &config.normalization);
+    let (map_b, nullish_rows_b) =
+        split_rows_by_key_usable(csv_b, &key_indices_b, &config.normalization);
+
+    for row_index in nullish_rows_a {
+        results.push(RowComparisonResult::MissingRight {
+            key: extract_columns(&csv_a.rows[row_index], &key_indices_a),
+            values_a: extract_columns(&csv_a.rows[row_index], &comp_indices_a),
+        });
+    }
+
+    for row_index in nullish_rows_b {
+        results.push(RowComparisonResult::MissingLeft {
+            key: extract_columns(&csv_b.rows[row_index], &key_indices_b),
+            values_b: extract_columns(&csv_b.rows[row_index], &comp_indices_b),
+        });
+    }
 
     // Track which keys we've processed
     let mut processed_keys = std::collections::HashSet::new();

@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.11 - 2026-04-15
+
+- Restored comparison execution when some selected key values are nullish by treating those rows as one-sided missing results instead of rejecting the whole comparison.
+- Prevented nullish selected keys from being grouped into duplicate buckets, added separate regression coverage, and bumped release metadata for the patch release.
+
 ## v1.0.10 - 2026-04-15
 
 - Prevented misleading duplicate-key results by rejecting comparisons when the selected key columns contain nullish or empty values under the active normalization rules.
