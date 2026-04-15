@@ -13,6 +13,50 @@ type ResultBadge = {
   dot: string;
 };
 
+type ResultStaticCopy = {
+  label: string;
+  description: string | null;
+};
+
+const RESULT_COPY: Record<CompareResultType, ResultStaticCopy> = {
+  match: {
+    label: 'Match',
+    description: null,
+  },
+  mismatch: {
+    label: 'Mismatch',
+    description: null,
+  },
+  missing_left: {
+    label: 'Only in File B',
+    description: 'Present only in File B for the selected key.',
+  },
+  missing_right: {
+    label: 'Only in File A',
+    description: 'Present only in File A for the selected key.',
+  },
+  unkeyed_left: {
+    label: 'Ignored in File B',
+    description: 'Skipped because File B has an unusable selected key for this row.',
+  },
+  unkeyed_right: {
+    label: 'Ignored in File A',
+    description: 'Skipped because File A has an unusable selected key for this row.',
+  },
+  duplicate_filea: {
+    label: 'Duplicate',
+    description: 'Multiple File A rows share this selected key.',
+  },
+  duplicate_fileb: {
+    label: 'Duplicate',
+    description: 'Multiple File B rows share this selected key.',
+  },
+  duplicate_both: {
+    label: 'Duplicate',
+    description: 'Multiple rows on both sides share this selected key.',
+  },
+};
+
 const DUPLICATE_BADGE: ResultBadge = {
   bg: 'border border-orange-200 bg-orange-50/70 dark:border-orange-900/70 dark:bg-orange-950/25',
   text: 'text-orange-800 dark:text-orange-200',
@@ -24,12 +68,20 @@ export const RESULT_FILTER_OPTIONS: ResultFilterOption[] = [
   { value: 'all', label: 'All', accent: 'bg-gray-400 dark:bg-gray-500' },
   { value: 'match', label: 'Matches', accent: 'bg-emerald-500 dark:bg-emerald-400' },
   { value: 'mismatch', label: 'Mismatches', accent: 'bg-amber-500 dark:bg-amber-400' },
-  { value: 'missing_left', label: 'Missing Left', accent: 'bg-sky-500 dark:bg-sky-400' },
-  { value: 'missing_right', label: 'Missing Right', accent: 'bg-violet-500 dark:bg-violet-400' },
-  { value: 'unkeyed_left', label: 'Unkeyed Left', accent: 'bg-rose-500 dark:bg-rose-400' },
-  { value: 'unkeyed_right', label: 'Unkeyed Right', accent: 'bg-fuchsia-500 dark:bg-fuchsia-400' },
+  { value: 'missing_left', label: RESULT_COPY.missing_left.label, accent: 'bg-sky-500 dark:bg-sky-400' },
+  { value: 'missing_right', label: RESULT_COPY.missing_right.label, accent: 'bg-violet-500 dark:bg-violet-400' },
+  { value: 'unkeyed_left', label: RESULT_COPY.unkeyed_left.label, accent: 'bg-rose-500 dark:bg-rose-400' },
+  { value: 'unkeyed_right', label: RESULT_COPY.unkeyed_right.label, accent: 'bg-fuchsia-500 dark:bg-fuchsia-400' },
   { value: 'duplicate', label: 'Duplicates', accent: DUPLICATE_BADGE.dot },
 ];
+
+export function getResultLabel(resultType: CompareResultType): string {
+  return RESULT_COPY[resultType].label;
+}
+
+export function getResultDescription(resultType: CompareResultType): string | null {
+  return RESULT_COPY[resultType].description;
+}
 
 export function matchesResultFilter(result: ResultResponse, filter: ResultFilter): boolean {
   if (filter === 'all') {
@@ -67,42 +119,42 @@ export function getResultBadge(resultType: CompareResultType): ResultBadge {
         bg: 'border border-emerald-200 bg-emerald-50/70 dark:border-emerald-900/70 dark:bg-emerald-950/25',
         text: 'text-emerald-800 dark:text-emerald-200',
         dot: 'bg-emerald-500 dark:bg-emerald-400',
-        label: 'Match',
+        label: RESULT_COPY.match.label,
       };
     case 'mismatch':
       return {
         bg: 'border border-amber-200 bg-amber-50/70 dark:border-amber-900/70 dark:bg-amber-950/25',
         text: 'text-amber-800 dark:text-amber-200',
         dot: 'bg-amber-500 dark:bg-amber-400',
-        label: 'Mismatch',
+        label: RESULT_COPY.mismatch.label,
       };
     case 'missing_left':
       return {
         bg: 'border border-sky-200 bg-sky-50/70 dark:border-sky-900/70 dark:bg-sky-950/25',
         text: 'text-sky-800 dark:text-sky-200',
         dot: 'bg-sky-500 dark:bg-sky-400',
-        label: 'Missing Left',
+        label: RESULT_COPY.missing_left.label,
       };
     case 'missing_right':
       return {
         bg: 'border border-violet-200 bg-violet-50/70 dark:border-violet-900/70 dark:bg-violet-950/25',
         text: 'text-violet-800 dark:text-violet-200',
         dot: 'bg-violet-500 dark:bg-violet-400',
-        label: 'Missing Right',
+        label: RESULT_COPY.missing_right.label,
       };
     case 'unkeyed_left':
       return {
         bg: 'border border-rose-200 bg-rose-50/70 dark:border-rose-900/70 dark:bg-rose-950/25',
         text: 'text-rose-800 dark:text-rose-200',
         dot: 'bg-rose-500 dark:bg-rose-400',
-        label: 'Unkeyed Left',
+        label: RESULT_COPY.unkeyed_left.label,
       };
     case 'unkeyed_right':
       return {
         bg: 'border border-fuchsia-200 bg-fuchsia-50/70 dark:border-fuchsia-900/70 dark:bg-fuchsia-950/25',
         text: 'text-fuchsia-800 dark:text-fuchsia-200',
         dot: 'bg-fuchsia-500 dark:bg-fuchsia-400',
-        label: 'Unkeyed Right',
+        label: RESULT_COPY.unkeyed_right.label,
       };
     default:
       if (resultType.startsWith('duplicate')) {

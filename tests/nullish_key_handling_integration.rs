@@ -169,3 +169,64 @@ fn engine_does_not_group_multiple_nullish_keys_into_duplicate_buckets() {
         "valid keyed rows should still compare normally"
     );
 }
+
+#[test]
+fn comparison_keeps_one_sided_results_separate_from_nullish_rows_on_the_other_side() {
+    let csv_a = csv_data(
+        "left.csv",
+        &["id", "value"],
+        &[&["608", "left 608"], &["610", "left 610"]],
+    );
+    let csv_b = csv_data(
+        "right.csv",
+        &["id", "value"],
+        &[&["NULL", "right 608"], &["NULL", "right 610"]],
+    );
+
+    let execution = run_comparison(
+        &csv_a,
+        &csv_b,
+        CompareRequest {
+            key_columns_a: vec!["id".to_string()],
+            key_columns_b: vec!["id".to_string()],
+            comparison_columns_a: vec!["value".to_string()],
+            comparison_columns_b: vec!["value".to_string()],
+            column_mappings: vec![],
+            normalization: ComparisonNormalizationConfig {
+                treat_empty_as_null: true,
+                null_tokens: vec!["null".to_string()],
+                ..ComparisonNormalizationConfig::default()
+            },
+        },
+    )
+    .expect("comparison should continue when literal null keys appear on one side");
+
+    assert_eq!(
+        execution
+            .results
+            .iter()
+            .filter(|result| matches!(result, RowComparisonResult::MissingRight { .. }))
+            .count(),
+        2,
+        "usable left-side keys should remain one-sided results"
+    );
+    assert_eq!(
+        execution
+            .results
+            .iter()
+            .filter(|result| matches!(result, RowComparisonResult::UnkeyedLeft { .. }))
+            .count(),
+        2,
+        "right-side literal null keys should be ignored rather than matched or deduplicated"
+    );
+    assert!(
+        execution
+            .results
+            .iter()
+            .all(|result| !matches!(result, RowComparisonResult::Duplicate { .. })),
+        "literal null keys should not collapse into a duplicate bucket"
+    );
+    assert_eq!(execution.response.summary.missing_right, 2);
+    assert_eq!(execution.response.summary.unkeyed_left, 2);
+    assert_eq!(execution.response.summary.duplicates_b, 0);
+}

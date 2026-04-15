@@ -271,3 +271,34 @@ fn test_export_results_to_bytes_duplicate_rows_include_stable_side_specific_colu
         Some("File A: [Carol] | [Caroline] ; File B: [Caro] | [Carrie]")
     );
 }
+
+#[test]
+fn test_export_results_uses_clearer_labels_for_one_sided_and_ignored_rows() {
+    let results = vec![
+        RowComparisonResult::MissingLeft {
+            key: vec!["2".to_string()],
+            values_b: vec!["only in b".to_string()],
+        },
+        RowComparisonResult::MissingRight {
+            key: vec!["3".to_string()],
+            values_a: vec!["only in a".to_string()],
+        },
+        RowComparisonResult::UnkeyedLeft {
+            key: vec!["NULL".to_string()],
+            values_b: vec!["ignored b".to_string()],
+        },
+        RowComparisonResult::UnkeyedRight {
+            key: vec!["".to_string()],
+            values_a: vec!["ignored a".to_string()],
+        },
+    ];
+
+    let bytes = export_results_to_bytes(&results).unwrap();
+    let mut reader = Reader::from_reader(bytes.as_slice());
+    let records: Vec<csv::StringRecord> = reader.records().map(Result::unwrap).collect();
+
+    assert_eq!(records[0].get(0), Some("Only in File B"));
+    assert_eq!(records[1].get(0), Some("Only in File A"));
+    assert_eq!(records[2].get(0), Some("Ignored in File B"));
+    assert_eq!(records[3].get(0), Some("Ignored in File A"));
+}

@@ -1,3 +1,4 @@
+import { getResultLabel } from '../features/results/presentation';
 import { SummaryResponse } from '../types/api';
 
 interface SummaryStatsProps {
@@ -7,10 +8,11 @@ interface SummaryStatsProps {
 }
 
 export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProps) {
-  const total = summary.matches + summary.mismatches + summary.missing_left + summary.missing_right;
-  const matchPercent = total > 0 ? Math.round((summary.matches / total) * 100) : 0;
+  const comparableTotal = summary.matches + summary.mismatches + summary.missing_left + summary.missing_right;
+  const ignoredTotal = summary.unkeyed_left + summary.unkeyed_right;
+  const matchPercent = comparableTotal > 0 ? Math.round((summary.matches / comparableTotal) * 100) : 0;
 
-  const stats = [
+  const comparableStats = [
     {
       label: 'Matches',
       value: summary.matches,
@@ -40,7 +42,7 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
       ),
     },
     {
-      label: 'Missing Left',
+      label: getResultLabel('missing_left'),
       value: summary.missing_left,
       surface: 'border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900/70',
       iconBg: 'bg-sky-500/12 dark:bg-sky-400/20',
@@ -54,7 +56,7 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
       ),
     },
     {
-      label: 'Missing Right',
+      label: getResultLabel('missing_right'),
       value: summary.missing_right,
       surface: 'border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900/70',
       iconBg: 'bg-violet-500/12 dark:bg-violet-400/20',
@@ -66,34 +68,6 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
         </svg>
         ),
-    },
-    {
-      label: 'Unkeyed Left',
-      value: summary.unkeyed_left,
-      surface: 'border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900/70',
-      iconBg: 'bg-rose-500/12 dark:bg-rose-400/20',
-      iconText: 'text-rose-700 dark:text-rose-300',
-      valueText: 'text-gray-900 dark:text-gray-100',
-      labelText: 'text-gray-600 dark:text-gray-300',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h8m-8 5h8m-8 5h5M6 3h12a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2z" />
-        </svg>
-      ),
-    },
-    {
-      label: 'Unkeyed Right',
-      value: summary.unkeyed_right,
-      surface: 'border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900/70',
-      iconBg: 'bg-fuchsia-500/12 dark:bg-fuchsia-400/20',
-      iconText: 'text-fuchsia-700 dark:text-fuchsia-300',
-      valueText: 'text-gray-900 dark:text-gray-100',
-      labelText: 'text-gray-600 dark:text-gray-300',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h8m-8 5h8m-8 5h5M6 3h12a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2z" />
-        </svg>
-      ),
     },
   ];
 
@@ -129,7 +103,7 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
       {/* Match Rate Progress */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Match Rate</span>
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Match rate of comparable rows</span>
           <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{matchPercent}%</span>
         </div>
         <div className="h-3 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
@@ -141,8 +115,8 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-        {stats.map((stat) => (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {comparableStats.map((stat) => (
           <div
             key={stat.label}
             className={`${stat.surface} rounded-xl p-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/80`}
@@ -158,6 +132,28 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
         ))}
       </div>
 
+      {ignoredTotal > 0 && (
+        <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50/70 p-4 dark:border-rose-900/60 dark:bg-rose-950/25">
+          <div className="flex items-start gap-3">
+            <svg className="mt-0.5 h-5 w-5 text-rose-600 dark:text-rose-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6M7 4h10a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z" />
+            </svg>
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-rose-900 dark:text-rose-100">Ignored rows</p>
+              <p className="text-sm font-medium text-rose-800 dark:text-rose-200">
+                {summary.unkeyed_right} in File A, {summary.unkeyed_left} in File B
+              </p>
+              <p className="text-sm text-rose-700 dark:text-rose-300">
+                Ignored rows were not compared because the selected key was empty or matched a missing-value token after cleanup settings.
+              </p>
+              <p className="text-sm text-rose-700 dark:text-rose-300">
+                Ignored rows may correspond to one-sided results on the other file, but they could not be matched confidently by key.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Duplicates Info */}
       {(summary.duplicates_a > 0 || summary.duplicates_b > 0) && (
         <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50/70 p-4 dark:border-amber-900/60 dark:bg-amber-950/25">
@@ -167,19 +163,6 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
             </svg>
             <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
               Duplicates found: {summary.duplicates_a} in File A, {summary.duplicates_b} in File B
-            </span>
-          </div>
-        </div>
-      )}
-
-      {(summary.unkeyed_left > 0 || summary.unkeyed_right > 0) && (
-        <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50/70 p-4 dark:border-rose-900/60 dark:bg-rose-950/25">
-          <div className="flex items-center gap-2">
-            <svg className="h-5 w-5 text-rose-600 dark:text-rose-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6M7 4h10a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z" />
-            </svg>
-            <span className="text-sm font-medium text-rose-800 dark:text-rose-200">
-              Unusable selected keys: {summary.unkeyed_left} in File B, {summary.unkeyed_right} in File A
             </span>
           </div>
         </div>

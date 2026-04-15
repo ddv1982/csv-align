@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.13 - 2026-04-15
+
+- Clarified result UX by relabeling one-sided rows as file-oriented outcomes, moving unusable-key rows into an explicit ignored-rows explanation, and aligning export wording with the new presentation.
+- Added dedicated frontend and Rust regression coverage for ignored-row copy, export labels, and nullish-key scenarios that must stay separate from duplicate and one-sided result buckets.
+
 ## v1.0.12 - 2026-04-15
 
 - Restored the pre-v1.0.10 missing-left/right behavior for valid keys by separating rows with unusable selected keys into explicit unkeyed result buckets.

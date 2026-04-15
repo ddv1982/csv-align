@@ -237,25 +237,25 @@ fn build_record(result: &RowComparisonResult, layout: &ExportLayout) -> Vec<Stri
             append_padded_columns(&mut record, values_b, layout.max_file_b_value_columns);
         }
         RowComparisonResult::MissingLeft { key, values_b } => {
-            record.push("Missing Left".to_string());
+            record.push("Only in File B".to_string());
             append_padded_columns(&mut record, key, layout.max_key_columns);
             append_padded_columns(&mut record, &[], layout.max_file_a_value_columns);
             append_padded_columns(&mut record, values_b, layout.max_file_b_value_columns);
         }
         RowComparisonResult::MissingRight { key, values_a } => {
-            record.push("Missing Right".to_string());
+            record.push("Only in File A".to_string());
             append_padded_columns(&mut record, key, layout.max_key_columns);
             append_padded_columns(&mut record, values_a, layout.max_file_a_value_columns);
             append_padded_columns(&mut record, &[], layout.max_file_b_value_columns);
         }
         RowComparisonResult::UnkeyedLeft { key, values_b } => {
-            record.push("Unkeyed Left".to_string());
+            record.push("Ignored in File B".to_string());
             append_padded_columns(&mut record, key, layout.max_key_columns);
             append_padded_columns(&mut record, &[], layout.max_file_a_value_columns);
             append_padded_columns(&mut record, values_b, layout.max_file_b_value_columns);
         }
         RowComparisonResult::UnkeyedRight { key, values_a } => {
-            record.push("Unkeyed Right".to_string());
+            record.push("Ignored in File A".to_string());
             append_padded_columns(&mut record, key, layout.max_key_columns);
             append_padded_columns(&mut record, values_a, layout.max_file_a_value_columns);
             append_padded_columns(&mut record, &[], layout.max_file_b_value_columns);

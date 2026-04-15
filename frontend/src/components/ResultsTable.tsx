@@ -1,6 +1,6 @@
 import { Fragment, useState } from 'react';
 import { ResultResponse } from '../types/api';
-import { getResultBadge } from '../features/results/presentation';
+import { getResultBadge, getResultDescription } from '../features/results/presentation';
 
 interface ResultsTableProps {
   results: ResultResponse[];
@@ -64,6 +64,7 @@ export function ResultsTable({ results }: ResultsTableProps) {
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
             {results.map((result, idx) => {
               const badge = getResultBadge(result.result_type);
+              const resultDescription = getResultDescription(result.result_type);
               const isExpanded = expandedRow === idx;
               
               return (
@@ -105,7 +106,9 @@ export function ResultsTable({ results }: ResultsTableProps) {
                           </svg>
                         </button>
                       ) : (
-                        <span className="text-sm text-gray-400 dark:text-gray-500">—</span>
+                        <span className={`text-sm ${resultDescription ? 'text-gray-600 dark:text-gray-300' : 'text-gray-400 dark:text-gray-500'}`}>
+                          {resultDescription ?? '—'}
+                        </span>
                       )}
                     </td>
                   </tr>

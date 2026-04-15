@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { filterResults, getResultBadge, getResultFilterCounts } from './presentation';
+import { filterResults, getResultBadge, getResultDescription, getResultFilterCounts, RESULT_FILTER_OPTIONS } from './presentation';
 import type { ResultResponse } from '../../types/api';
 
 const RESULTS: ResultResponse[] = [
@@ -111,11 +111,30 @@ test('returns the expected badges for standard and duplicate result types', () =
     bg: 'border border-orange-200 bg-orange-50/70 dark:border-orange-900/70 dark:bg-orange-950/25',
   });
   expect(getResultBadge('unkeyed_left')).toMatchObject({
-    label: 'Unkeyed Left',
+    label: 'Ignored in File B',
     dot: 'bg-rose-500 dark:bg-rose-400',
   });
   expect(getResultBadge('unkeyed_right')).toMatchObject({
-    label: 'Unkeyed Right',
+    label: 'Ignored in File A',
     dot: 'bg-fuchsia-500 dark:bg-fuchsia-400',
   });
+});
+
+test('uses clearer labels and descriptions for one-sided and ignored results', () => {
+  expect(RESULT_FILTER_OPTIONS.find((option) => option.value === 'missing_left')).toMatchObject({
+    label: 'Only in File B',
+  });
+  expect(RESULT_FILTER_OPTIONS.find((option) => option.value === 'missing_right')).toMatchObject({
+    label: 'Only in File A',
+  });
+  expect(RESULT_FILTER_OPTIONS.find((option) => option.value === 'unkeyed_left')).toMatchObject({
+    label: 'Ignored in File B',
+  });
+  expect(RESULT_FILTER_OPTIONS.find((option) => option.value === 'unkeyed_right')).toMatchObject({
+    label: 'Ignored in File A',
+  });
+  expect(getResultDescription('missing_left')).toBe('Present only in File B for the selected key.');
+  expect(getResultDescription('missing_right')).toBe('Present only in File A for the selected key.');
+  expect(getResultDescription('unkeyed_left')).toBe('Skipped because File B has an unusable selected key for this row.');
+  expect(getResultDescription('unkeyed_right')).toBe('Skipped because File A has an unusable selected key for this row.');
 });
