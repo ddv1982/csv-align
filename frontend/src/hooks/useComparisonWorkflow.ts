@@ -84,15 +84,26 @@ export function useComparisonWorkflow() {
       return;
     }
 
+    const keyPairs = new Set(keyColumnsA.map((fileAColumn, index) => `${fileAColumn}::${keyColumnsB[index] ?? ''}`));
+    const filteredComparisonPairs = comparisonColumnsA
+      .map((fileAColumn, index) => ({
+        fileAColumn,
+        fileBColumn: comparisonColumnsB[index] ?? '',
+      }))
+      .filter((pair) => !keyPairs.has(`${pair.fileAColumn}::${pair.fileBColumn}`));
+    const filteredColumnMappings = columnMappings.filter(
+      (mapping) => !keyPairs.has(`${mapping.file_a_column}::${mapping.file_b_column}`),
+    );
+
     setState((previousState) => ({ ...previousState, loading: true, error: null }));
 
     try {
       const response = await compareFiles(state.sessionId, {
         key_columns_a: keyColumnsA,
         key_columns_b: keyColumnsB,
-        comparison_columns_a: comparisonColumnsA,
-        comparison_columns_b: comparisonColumnsB,
-        column_mappings: columnMappings.map((mapping) => ({
+        comparison_columns_a: filteredComparisonPairs.map((pair) => pair.fileAColumn),
+        comparison_columns_b: filteredComparisonPairs.map((pair) => pair.fileBColumn),
+        column_mappings: filteredColumnMappings.map((mapping) => ({
           file_a_column: mapping.file_a_column,
           file_b_column: mapping.file_b_column,
           mapping_type: mapping.mapping_type,
@@ -103,7 +114,7 @@ export function useComparisonWorkflow() {
 
       setState((previousState) => ({
         ...previousState,
-        mappings: columnMappings,
+        mappings: filteredColumnMappings,
         results: response.results,
         summary: response.summary,
         loading: false,
@@ -190,6 +201,18 @@ export function useComparisonWorkflow() {
       return;
     }
 
+    const hasExplicitKeySelection = mappingSelection.keyColumnsA.length > 0
+      && mappingSelection.keyColumnsB.length > 0
+      && mappingSelection.keyColumnsA.length === mappingSelection.keyColumnsB.length;
+
+    if (!hasExplicitKeySelection) {
+      setState((previousState) => ({
+        ...previousState,
+        error: 'Select the same number of key columns in File A and File B before using auto-pair.',
+      }));
+      return;
+    }
+
     setState((previousState) => ({ ...previousState, loading: true, error: null }));
 
     try {
@@ -208,11 +231,16 @@ export function useComparisonWorkflow() {
         fileBHeaders: state.fileB.headers,
         mappings: response.mappings,
         leadingSide,
+        keyColumnsA: mappingSelection.keyColumnsA,
+        keyColumnsB: mappingSelection.keyColumnsB,
         excludedColumnsA: effectiveKeyColumnsA,
         excludedColumnsB: effectiveKeyColumnsB,
       });
 
-      if (autoPairSelection.comparisonColumnsA.length === 0) {
+      const noAdditionalComparisonPairsFound =
+        autoPairSelection.comparisonColumnsA.length === mappingSelection.keyColumnsA.length;
+
+      if (noAdditionalComparisonPairsFound) {
         setState((previousState) => ({
           ...previousState,
           error: `No confident comparison column pairs were found using ${leadingSide === 'a' ? 'File A' : 'File B'} order.`,

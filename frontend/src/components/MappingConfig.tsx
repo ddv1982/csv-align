@@ -70,6 +70,10 @@ export function MappingConfig({
     comparisonColumnsA.length > 0 &&
     comparisonColumnsB.length > 0 &&
     comparisonColumnsA.length === comparisonColumnsB.length;
+  const hasValidAutoPairKeySelection =
+    keyColumnsA.length > 0 &&
+    keyColumnsB.length > 0 &&
+    keyColumnsA.length === keyColumnsB.length;
 
   const manualMappings: MappingResponse[] = comparisonColumnsA.map((fileAColumn, index) => ({
     file_a_column: fileAColumn,
@@ -112,7 +116,7 @@ export function MappingConfig({
       <div className="card p-6">
         <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">Manual column pairing</h3>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Select comparison columns in File A and File B in the order you want to pair them, or auto-pair confident matches using File A or File B as the leading order.
+          Select key columns first, then choose comparison columns manually or auto-pair confident matches using File A or File B as the leading order.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <button onClick={onSavePairOrder} className="btn btn-secondary" type="button">
@@ -121,10 +125,20 @@ export function MappingConfig({
           <button onClick={handleLoadButtonClick} className="btn btn-secondary" type="button">
             Load pair order
           </button>
-          <button onClick={() => onAutoPairComparisonColumns('a')} className="btn btn-secondary" type="button">
+          <button
+            onClick={() => onAutoPairComparisonColumns('a')}
+            disabled={!hasValidAutoPairKeySelection}
+            className={`btn btn-secondary ${!hasValidAutoPairKeySelection ? 'cursor-not-allowed opacity-50' : ''}`}
+            type="button"
+          >
             Auto-pair from File A
           </button>
-          <button onClick={() => onAutoPairComparisonColumns('b')} className="btn btn-secondary" type="button">
+          <button
+            onClick={() => onAutoPairComparisonColumns('b')}
+            disabled={!hasValidAutoPairKeySelection}
+            className={`btn btn-secondary ${!hasValidAutoPairKeySelection ? 'cursor-not-allowed opacity-50' : ''}`}
+            type="button"
+          >
             Auto-pair from File B
           </button>
           <input
@@ -136,7 +150,9 @@ export function MappingConfig({
           />
         </div>
         <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-          Auto-pair keeps the current key selection and only applies confident one-to-one comparison matches.
+          {hasValidAutoPairKeySelection
+            ? 'Auto-pair places the selected key pair(s) first, then adds the remaining confident one-to-one comparison matches.'
+            : 'Select the same number of key columns in File A and File B to enable auto-pair. The selected key pair(s) will be placed first.'}
         </p>
       </div>
 

@@ -7,6 +7,8 @@ interface BuildAutoPairSelectionArgs {
   fileBHeaders: string[];
   mappings: MappingResponse[];
   leadingSide: FileLetter;
+  keyColumnsA?: string[];
+  keyColumnsB?: string[];
   excludedColumnsA?: string[];
   excludedColumnsB?: string[];
 }
@@ -26,22 +28,29 @@ export function buildAutoPairSelection({
   fileBHeaders,
   mappings,
   leadingSide,
+  keyColumnsA = [],
+  keyColumnsB = [],
   excludedColumnsA = [],
   excludedColumnsB = [],
 }: BuildAutoPairSelectionArgs) {
   const fileAIndex = buildHeaderIndex(fileAHeaders);
   const fileBIndex = buildHeaderIndex(fileBHeaders);
+  const prefixedKeysA = [...keyColumnsA];
+  const prefixedKeysB = [...keyColumnsB];
   const excludedA = new Set(excludedColumnsA);
   const excludedB = new Set(excludedColumnsB);
+  const selectedA = new Set(prefixedKeysA);
+  const selectedB = new Set(prefixedKeysB);
 
   const orderedMappings = mappings
     .filter(isConfidentAutoPairMapping)
     .filter((mapping) => !excludedA.has(mapping.file_a_column) && !excludedB.has(mapping.file_b_column))
+    .filter((mapping) => !selectedA.has(mapping.file_a_column) && !selectedB.has(mapping.file_b_column))
     .sort((left, right) => compareMappings(left, right, fileAIndex, fileBIndex, leadingSide));
 
   return {
-    comparisonColumnsA: orderedMappings.map((mapping) => mapping.file_a_column),
-    comparisonColumnsB: orderedMappings.map((mapping) => mapping.file_b_column),
+    comparisonColumnsA: [...prefixedKeysA, ...orderedMappings.map((mapping) => mapping.file_a_column)],
+    comparisonColumnsB: [...prefixedKeysB, ...orderedMappings.map((mapping) => mapping.file_b_column)],
   };
 }
 

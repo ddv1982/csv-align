@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.17 - 2026-04-15
+
+- Updated auto-pair so users must select matching key columns first, and the chosen key pair(s) are shown first in the auto-pair order before the remaining confident matches.
+- Clarified the configure-step guidance for key-first auto-pairing and replaced the recent instance-matching regression fixtures with neutral test data.
+
 ## v1.0.16 - 2026-04-15
 
 - Improved auto-pairing so loaded CSV content can drive confident comparison-column matches even when the headers are very different.

@@ -39,11 +39,12 @@ test('shows the simplified cleanup copy and labels', () => {
   renderMappingConfig();
 
   expect(screen.getByRole('heading', { name: 'Manual column pairing' })).toBeInTheDocument();
-  expect(screen.getByText('Select comparison columns in File A and File B in the order you want to pair them, or auto-pair confident matches using File A or File B as the leading order.')).toBeInTheDocument();
+  expect(screen.getByText('Select key columns first, then choose comparison columns manually or auto-pair confident matches using File A or File B as the leading order.')).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Cleanup before compare' })).toBeInTheDocument();
   expect(screen.getByLabelText('Treat blank cells as missing')).toBeInTheDocument();
   expect(screen.getByText('Also treat these exact values as missing')).toBeInTheDocument();
   expect(screen.getByLabelText('Match dates across different formats')).toBeInTheDocument();
+  expect(screen.getByText('Select the same number of key columns in File A and File B to enable auto-pair. The selected key pair(s) will be placed first.')).toBeInTheDocument();
 });
 
 test('keeps advanced date controls collapsed by default and lets users reveal them', () => {

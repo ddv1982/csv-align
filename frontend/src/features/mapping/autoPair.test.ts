@@ -22,6 +22,28 @@ test('keeps only confident non-key mappings and orders them by File A', () => {
   });
 });
 
+test('prepends selected key pairs before the remaining confident matches', () => {
+  const selection = buildAutoPairSelection({
+    fileAHeaders: ['source_id', 'display_label', 'contact_value'],
+    fileBHeaders: ['external_key', 'public_name', 'email_value'],
+    leadingSide: 'a',
+    keyColumnsA: ['source_id'],
+    keyColumnsB: ['external_key'],
+    excludedColumnsA: ['source_id'],
+    excludedColumnsB: ['external_key'],
+    mappings: [
+      { file_a_column: 'source_id', file_b_column: 'external_key', mapping_type: 'fuzzy', similarity: 0.97 },
+      { file_a_column: 'contact_value', file_b_column: 'email_value', mapping_type: 'fuzzy', similarity: 0.94 },
+      { file_a_column: 'display_label', file_b_column: 'public_name', mapping_type: 'fuzzy', similarity: 0.95 },
+    ],
+  });
+
+  expect(selection).toEqual({
+    comparisonColumnsA: ['source_id', 'display_label', 'contact_value'],
+    comparisonColumnsB: ['external_key', 'public_name', 'email_value'],
+  });
+});
+
 test('orders confident mappings by File B when File B leads', () => {
   const selection = buildAutoPairSelection({
     fileAHeaders: ['id', 'email_address', 'full_name'],
