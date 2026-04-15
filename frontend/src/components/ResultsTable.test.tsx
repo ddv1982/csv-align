@@ -33,4 +33,8 @@ test('shows clearer labels and explanations for one-sided and ignored rows', () 
   expect(screen.getByText('Skipped because File B has an unusable selected key for this row.')).toBeInTheDocument();
   expect(screen.queryByText('Missing Right')).not.toBeInTheDocument();
   expect(screen.queryByText('Unkeyed Left')).not.toBeInTheDocument();
+
+  const fileAOnlyBadge = screen.getByText('Only in File A').closest('span');
+  expect(fileAOnlyBadge).toHaveClass('whitespace-nowrap');
+  expect(fileAOnlyBadge).toHaveClass('w-fit');
 });

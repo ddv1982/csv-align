@@ -1,6 +1,10 @@
 import { useCallback, useState } from 'react';
 import { ColumnInfo } from '../types/api';
 
+function hasCsvExtension(fileName: string): boolean {
+  return fileName.toLowerCase().endsWith('.csv');
+}
+
 interface FileSelectorProps {
   label: string;
   file: {
@@ -14,6 +18,21 @@ interface FileSelectorProps {
 
 export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
   const [isDragging, setIsDragging] = useState(false);
+  const [selectionError, setSelectionError] = useState<string | null>(null);
+
+  const handleSelectedFile = useCallback((selectedFile?: File) => {
+    if (!selectedFile) {
+      return;
+    }
+
+    if (!hasCsvExtension(selectedFile.name)) {
+      setSelectionError('Please choose a file with a .csv extension.');
+      return;
+    }
+
+    setSelectionError(null);
+    onSelect(selectedFile);
+  }, [onSelect]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -31,19 +50,15 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
 
     const files = e.dataTransfer.files;
     if (files.length > 0) {
-      const droppedFile = files[0];
-      if (droppedFile.name.endsWith('.csv')) {
-        onSelect(droppedFile);
-      }
+      handleSelectedFile(files[0]);
     }
-  }, [onSelect]);
+  }, [handleSelectedFile]);
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (files && files.length > 0) {
-      onSelect(files[0]);
-    }
-  }, [onSelect]);
+    handleSelectedFile(files?.[0]);
+    e.target.value = '';
+  }, [handleSelectedFile]);
 
   return (
     <div className="card p-6">
@@ -150,6 +165,12 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
           </div>
         </div>
       )}
+
+      {selectionError && (
+        <p className="mt-3 text-sm font-medium text-rose-600 dark:text-rose-300">{selectionError}</p>
+      )}
     </div>
   );
 }
+
+export { hasCsvExtension };

@@ -44,7 +44,7 @@ export function ResultsTable({ results }: ResultsTableProps) {
         <table className="w-full">
           <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
             <tr>
-              <th className="w-24 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+              <th className="w-40 min-w-[11rem] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
                 Type
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
@@ -72,12 +72,12 @@ export function ResultsTable({ results }: ResultsTableProps) {
                   <tr
                     className="bg-white transition-colors hover:bg-gray-50 dark:bg-gray-900/70 dark:hover:bg-gray-800/70"
                   >
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded-full ${badge.bg} ${badge.text}`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${badge.dot}`} aria-hidden="true" />
-                        {badge.label}
-                      </span>
-                    </td>
+                     <td className="px-4 py-3 align-top">
+                       <span className={`inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ${badge.bg} ${badge.text}`}>
+                         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${badge.dot}`} aria-hidden="true" />
+                         {badge.label}
+                       </span>
+                     </td>
                     <td className="px-4 py-3">
                       <span className="font-medium text-gray-900 dark:text-gray-100">
                         {result.key.join(', ')}

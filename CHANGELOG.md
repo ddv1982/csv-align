@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.14 - 2026-04-15
+
+- Improved results-table status badges so longer labels stay readable and keep their dot indicator visible instead of collapsing in narrow type cells.
+- Restricted comparison file selection to `.csv` filename extensions only while preserving compatibility with Python-generated CSV files that may not advertise a CSV MIME type.
+
 ## v1.0.13 - 2026-04-15
 
 - Clarified result UX by relabeling one-sided rows as file-oriented outcomes, moving unusable-key rows into an explicit ignored-rows explanation, and aligning export wording with the new presentation.
