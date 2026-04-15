@@ -30,6 +30,7 @@ function renderMappingConfig(normalization: ComparisonNormalizationConfig = INIT
       onCompare={() => undefined}
       onSavePairOrder={() => undefined}
       onLoadPairOrder={() => undefined}
+      onAutoPairComparisonColumns={() => undefined}
     />
   );
 }
@@ -38,7 +39,7 @@ test('shows the simplified cleanup copy and labels', () => {
   renderMappingConfig();
 
   expect(screen.getByRole('heading', { name: 'Manual column pairing' })).toBeInTheDocument();
-  expect(screen.getByText('Select comparison columns in File A and File B in the order you want to pair them. No automatic suggestions are applied.')).toBeInTheDocument();
+  expect(screen.getByText('Select comparison columns in File A and File B in the order you want to pair them, or auto-pair confident matches using File A or File B as the leading order.')).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Cleanup before compare' })).toBeInTheDocument();
   expect(screen.getByLabelText('Treat blank cells as missing')).toBeInTheDocument();
   expect(screen.getByText('Also treat these exact values as missing')).toBeInTheDocument();

@@ -1,5 +1,5 @@
 import { MappingConfig } from '../MappingConfig';
-import type { ComparisonNormalizationConfig, MappingResponse } from '../../types/api';
+import type { ComparisonNormalizationConfig, FileLetter, MappingResponse } from '../../types/api';
 import type { AppFile, MappingSelectionState } from '../../types/ui';
 
 interface ConfigurationStepProps {
@@ -19,6 +19,7 @@ interface ConfigurationStepProps {
   ) => void;
   onSavePairOrder: () => void;
   onLoadPairOrder: (file?: File) => void;
+  onAutoPairComparisonColumns: (leadingSide: FileLetter) => void;
   onBack: () => void;
 }
 
@@ -32,6 +33,7 @@ export function ConfigurationStep({
   onCompare,
   onSavePairOrder,
   onLoadPairOrder,
+  onAutoPairComparisonColumns,
   onBack,
 }: ConfigurationStepProps) {
   return (
@@ -54,6 +56,7 @@ export function ConfigurationStep({
         onCompare={onCompare}
         onSavePairOrder={onSavePairOrder}
         onLoadPairOrder={onLoadPairOrder}
+        onAutoPairComparisonColumns={onAutoPairComparisonColumns}
       />
     </div>
   );

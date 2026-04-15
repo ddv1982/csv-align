@@ -1,6 +1,6 @@
 import type { ChangeEvent } from 'react';
 import { useRef } from 'react';
-import type { ComparisonNormalizationConfig, MappingResponse } from '../types/api';
+import type { ComparisonNormalizationConfig, FileLetter, MappingResponse } from '../types/api';
 import { isTauri } from '../services/tauri';
 import type { AppFile, MappingSelectionState } from '../types/ui';
 import { ColumnChipSelector } from './mapping-config/ColumnChipSelector';
@@ -24,6 +24,7 @@ interface MappingConfigProps {
   ) => void;
   onSavePairOrder: () => void;
   onLoadPairOrder: (file?: File) => void;
+  onAutoPairComparisonColumns: (leadingSide: FileLetter) => void;
 }
 
 function toggleColumnSelection(selectedColumns: string[], column: string) {
@@ -42,6 +43,7 @@ export function MappingConfig({
   onCompare,
   onSavePairOrder,
   onLoadPairOrder,
+  onAutoPairComparisonColumns,
 }: MappingConfigProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { keyColumnsA, keyColumnsB, comparisonColumnsA, comparisonColumnsB } = selection;
@@ -110,7 +112,7 @@ export function MappingConfig({
       <div className="card p-6">
         <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">Manual column pairing</h3>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Select comparison columns in File A and File B in the order you want to pair them. No automatic suggestions are applied.
+          Select comparison columns in File A and File B in the order you want to pair them, or auto-pair confident matches using File A or File B as the leading order.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <button onClick={onSavePairOrder} className="btn btn-secondary" type="button">
@@ -118,6 +120,12 @@ export function MappingConfig({
           </button>
           <button onClick={handleLoadButtonClick} className="btn btn-secondary" type="button">
             Load pair order
+          </button>
+          <button onClick={() => onAutoPairComparisonColumns('a')} className="btn btn-secondary" type="button">
+            Auto-pair from File A
+          </button>
+          <button onClick={() => onAutoPairComparisonColumns('b')} className="btn btn-secondary" type="button">
+            Auto-pair from File B
           </button>
           <input
             ref={fileInputRef}
@@ -127,6 +135,9 @@ export function MappingConfig({
             type="file"
           />
         </div>
+        <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+          Auto-pair keeps the current key selection and only applies confident one-to-one comparison matches.
+        </p>
       </div>
 
       <NormalizationPanel normalization={normalization} onChange={updateNormalization} onDateChange={updateDateNormalization} />

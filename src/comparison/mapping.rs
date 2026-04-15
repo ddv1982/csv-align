@@ -1,4 +1,5 @@
 use super::super::data::types::{ColumnMapping, MappingType};
+use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use strsim::{jaro_winkler, normalized_levenshtein};
@@ -55,10 +56,20 @@ fn score_mapping_candidate(col_a: &str, col_b: &str) -> Option<(f64, MappingType
     let normalized_b = normalize_column_name(col_b);
     let compact_a = normalized_a.replace(' ', "");
     let compact_b = normalized_b.replace(' ', "");
+    let canonical_a = canonical_column_alias(&normalized_a);
+    let canonical_b = canonical_column_alias(&normalized_b);
 
     // Equivalent after normalization (snake/camel/spacing differences)
     if normalized_a == normalized_b || compact_a == compact_b {
         return Some((0.98, MappingType::ExactMatch));
+    }
+
+    // Conservative explicit header aliases help with common exports while still
+    // producing an inferred mapping rather than pretending the names were exact.
+    if canonical_a == canonical_b
+        && (canonical_a.as_ref() != normalized_a || canonical_b.as_ref() != normalized_b)
+    {
+        return Some((0.93, MappingType::FuzzyMatch(0.93)));
     }
 
     let tokens_a = tokenize_column_name(&normalized_a);
@@ -119,6 +130,15 @@ fn tokenize_column_name(normalized: &str) -> Vec<String> {
         .filter(|token| !token.is_empty())
         .map(ToString::to_string)
         .collect()
+}
+
+fn canonical_column_alias(normalized: &str) -> Cow<'_, str> {
+    match normalized {
+        "display name" | "full name" => Cow::Borrowed("name"),
+        "email address" | "email addr" => Cow::Borrowed("email"),
+        "record id" | "record identifier" => Cow::Borrowed("id"),
+        _ => Cow::Borrowed(normalized),
+    }
 }
 
 fn token_jaccard(tokens_a: &[String], tokens_b: &[String]) -> f64 {

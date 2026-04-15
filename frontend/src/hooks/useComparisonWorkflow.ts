@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { INITIAL_NORMALIZATION_CONFIG } from '../config/normalization';
+import { buildAutoPairSelection } from '../features/mapping/autoPair';
 import { filterResults } from '../features/results/presentation';
-import { compareFiles, createSession, downloadBlob, exportResults, loadFile, loadPairOrder, savePairOrder } from '../services/tauri';
-import type { AppState, ComparisonNormalizationConfig, MappingResponse, ResultFilter } from '../types/api';
+import { compareFiles, createSession, downloadBlob, exportResults, loadFile, loadPairOrder, savePairOrder, suggestMappings } from '../services/tauri';
+import type { AppState, ComparisonNormalizationConfig, FileLetter, MappingResponse, ResultFilter } from '../types/api';
 import { INITIAL_MAPPING_SELECTION, type AppStep, type MappingSelectionState } from '../types/ui';
 
 const INITIAL_STATE: AppState = {
@@ -184,6 +185,57 @@ export function useComparisonWorkflow() {
     }
   }, [state.sessionId]);
 
+  const handleAutoPairComparisonColumns = useCallback(async (leadingSide: FileLetter) => {
+    if (!state.sessionId || !state.fileA || !state.fileB) {
+      return;
+    }
+
+    setState((previousState) => ({ ...previousState, loading: true, error: null }));
+
+    try {
+      const response = await suggestMappings(state.sessionId, {
+        columns_a: state.fileA.headers,
+        columns_b: state.fileB.headers,
+      });
+      const effectiveKeyColumnsA = mappingSelection.keyColumnsA.length > 0
+        ? mappingSelection.keyColumnsA
+        : [state.fileA.headers[0]];
+      const effectiveKeyColumnsB = mappingSelection.keyColumnsB.length > 0
+        ? mappingSelection.keyColumnsB
+        : [state.fileB.headers[0]];
+      const autoPairSelection = buildAutoPairSelection({
+        fileAHeaders: state.fileA.headers,
+        fileBHeaders: state.fileB.headers,
+        mappings: response.mappings,
+        leadingSide,
+        excludedColumnsA: effectiveKeyColumnsA,
+        excludedColumnsB: effectiveKeyColumnsB,
+      });
+
+      if (autoPairSelection.comparisonColumnsA.length === 0) {
+        setState((previousState) => ({
+          ...previousState,
+          error: `No confident comparison column pairs were found using ${leadingSide === 'a' ? 'File A' : 'File B'} order.`,
+          loading: false,
+          mappings: response.mappings,
+        }));
+        return;
+      }
+
+      setMappingSelection((previousSelection) => ({
+        ...previousSelection,
+        ...autoPairSelection,
+      }));
+      setState((previousState) => ({
+        ...previousState,
+        mappings: response.mappings,
+        loading: false,
+      }));
+    } catch (error) {
+      setState((previousState) => ({ ...previousState, error: (error as Error).message, loading: false }));
+    }
+  }, [mappingSelection.keyColumnsA, mappingSelection.keyColumnsB, state.fileA, state.fileB, state.sessionId]);
+
   const resetWorkflowState = useCallback(() => {
     setState(INITIAL_STATE);
     setMappingSelection(INITIAL_MAPPING_SELECTION);
@@ -215,6 +267,7 @@ export function useComparisonWorkflow() {
     handleExport,
     handleSavePairOrder,
     handleLoadPairOrder,
+    handleAutoPairComparisonColumns,
     handleFilterChange,
     handleReset,
     handleBackToConfigure: () => setStep('configure'),

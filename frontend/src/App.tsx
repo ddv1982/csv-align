@@ -23,6 +23,7 @@ function App() {
     handleExport,
     handleSavePairOrder,
     handleLoadPairOrder,
+    handleAutoPairComparisonColumns,
     handleFilterChange,
     handleReset,
     handleBackToConfigure,
@@ -60,6 +61,7 @@ function App() {
             onCompare={handleCompare}
             onSavePairOrder={handleSavePairOrder}
             onLoadPairOrder={handleLoadPairOrder}
+            onAutoPairComparisonColumns={handleAutoPairComparisonColumns}
             onBack={handleBackToSelection}
           />
         )}

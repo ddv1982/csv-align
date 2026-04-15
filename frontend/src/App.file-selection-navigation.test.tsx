@@ -10,6 +10,7 @@ const {
   loadPairOrderMock,
   downloadBlobMock,
   savePairOrderMock,
+  suggestMappingsMock,
 } = vi.hoisted(() => ({
   createSessionMock: vi.fn(),
   loadFileMock: vi.fn(),
@@ -18,6 +19,7 @@ const {
   loadPairOrderMock: vi.fn(),
   downloadBlobMock: vi.fn(),
   savePairOrderMock: vi.fn(),
+  suggestMappingsMock: vi.fn(),
 }));
 
 vi.mock('./services/tauri', () => ({
@@ -28,6 +30,7 @@ vi.mock('./services/tauri', () => ({
   loadPairOrder: loadPairOrderMock,
   downloadBlob: downloadBlobMock,
   savePairOrder: savePairOrderMock,
+  suggestMappings: suggestMappingsMock,
 }));
 
 vi.mock('./components/FileSelector', () => ({
@@ -128,6 +131,7 @@ beforeEach(() => {
   loadPairOrderMock.mockReset();
   downloadBlobMock.mockReset();
   savePairOrderMock.mockReset();
+  suggestMappingsMock.mockReset();
 
   createSessionMock.mockResolvedValue({ session_id: 'session-123' });
   loadFileMock.mockImplementation(async (_sessionId: string, file: File) => ({

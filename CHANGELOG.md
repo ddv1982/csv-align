@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.15 - 2026-04-15
+
+- Added configure-step auto-pair controls that can select confident comparison-column pairs using File A or File B as the leading order beside the existing pair-order actions.
+- Reused the existing mapping workflow with conservative confidence filtering and small export-header aliases so auto-pairing prefers clear one-to-one matches and leaves weak columns unselected.
+
 ## v1.0.14 - 2026-04-15
 
 - Improved results-table status badges so longer labels stay readable and keep their dot indicator visible instead of collapsing in narrow type cells.
