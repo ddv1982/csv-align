@@ -146,7 +146,6 @@ csv-align/
 
 - [Auto-pairing](docs/auto-pairing.md)
 - [Release workflow](docs/releasing.md)
-- [Cleanup review / guardrails](docs/cleanup-review.md)
 - [Changelog](CHANGELOG.md)
 
 ## Notes for maintainers
