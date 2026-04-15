@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.16 - 2026-04-15
+
+- Improved auto-pairing so loaded CSV content can drive confident comparison-column matches even when the headers are very different.
+- Added conservative low-information guards so repeated categorical values and small numeric score domains are not auto-paired just because their value sets overlap.
+
 ## v1.0.15 - 2026-04-15
 
 - Added configure-step auto-pair controls that can select confident comparison-column pairs using File A or File B as the leading order beside the existing pair-order actions.

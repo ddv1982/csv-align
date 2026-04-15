@@ -54,7 +54,12 @@ pub fn apply_csv_to_session(
             .iter()
             .map(|c| c.name.clone())
             .collect();
-        session_data.column_mappings = mapping::suggest_mappings(&col_names_a, &col_names_b);
+        session_data.column_mappings = mapping::suggest_mappings_with_data(
+            &col_names_a,
+            &col_names_b,
+            session_data.csv_a.as_ref(),
+            session_data.csv_b.as_ref(),
+        );
     }
 
     response
@@ -64,7 +69,15 @@ pub fn suggest_mappings_workflow(
     session_data: Option<&mut SessionData>,
     request: &SuggestMappingsRequest,
 ) -> SuggestMappingsResponse {
-    let mappings = mapping::suggest_mappings(&request.columns_a, &request.columns_b);
+    let mappings = match session_data.as_deref() {
+        Some(session_data) => mapping::suggest_mappings_with_data(
+            &request.columns_a,
+            &request.columns_b,
+            session_data.csv_a.as_ref(),
+            session_data.csv_b.as_ref(),
+        ),
+        None => mapping::suggest_mappings(&request.columns_a, &request.columns_b),
+    };
     let response = suggest_mappings_response(&mappings);
 
     if let Some(session_data) = session_data {
