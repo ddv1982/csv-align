@@ -39,6 +39,10 @@ fn values_match_with_config(
     }
 }
 
+pub(crate) fn value_is_nullish(value: &str, normalization: &ComparisonNormalizationConfig) -> bool {
+    matches!(normalize_value(value, normalization), NormalizedValue::Null)
+}
+
 fn normalize_value(value: &str, normalization: &ComparisonNormalizationConfig) -> NormalizedValue {
     let mut normalized = if normalization.trim_whitespace {
         value.trim().to_string()

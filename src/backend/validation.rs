@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use crate::backend::requests::{CompareRequest, CompareValidationError, MappingRequest};
+use crate::comparison::value_compare::value_is_nullish;
 use crate::data::types::{ColumnMapping, ComparisonConfig, CsvData, MappingType};
 
 pub(crate) fn build_comparison_config(
@@ -24,6 +25,18 @@ pub(crate) fn build_comparison_config(
         key_columns_a.len(),
         "Key columns for File B",
         key_columns_b.len(),
+    )?;
+    validate_key_column_values(
+        "Key columns for File A",
+        csv_a,
+        &key_columns_a,
+        &normalization,
+    )?;
+    validate_key_column_values(
+        "Key columns for File B",
+        csv_b,
+        &key_columns_b,
+        &normalization,
     )?;
 
     validate_selected_columns(
@@ -220,6 +233,38 @@ fn validate_matching_counts(
             count_a,
             selection_b,
             count_b,
+        })
+    }
+}
+
+fn validate_key_column_values(
+    selection: &'static str,
+    csv: &CsvData,
+    selected: &[String],
+    normalization: &crate::data::types::ComparisonNormalizationConfig,
+) -> Result<(), CompareValidationError> {
+    let offending_columns: Vec<String> = selected
+        .iter()
+        .filter(|column| {
+            let Some(index) = csv.headers.iter().position(|header| header == *column) else {
+                return false;
+            };
+
+            csv.rows.iter().any(|row| {
+                row.get(index)
+                    .map(|value| value_is_nullish(value, normalization))
+                    .unwrap_or_else(|| value_is_nullish("", normalization))
+            })
+        })
+        .cloned()
+        .collect();
+
+    if offending_columns.is_empty() {
+        Ok(())
+    } else {
+        Err(CompareValidationError::NullishKeyValues {
+            selection,
+            columns: offending_columns,
         })
     }
 }

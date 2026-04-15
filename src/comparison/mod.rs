@@ -1,5 +1,5 @@
 mod rows;
-mod value_compare;
+pub(crate) mod value_compare;
 
 pub mod engine;
 pub mod mapping;

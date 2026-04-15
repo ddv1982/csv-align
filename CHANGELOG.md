@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.10 - 2026-04-15
+
+- Prevented misleading duplicate-key results by rejecting comparisons when the selected key columns contain nullish or empty values under the active normalization rules.
+- Added separate Rust regression coverage for nullish key validation and bumped release metadata for the patch release.
+
 ## v1.0.9 - 2026-04-15
 
 - Fixed the desktop Load pair order action by granting the Tauri open-dialog permission required to show the native file picker.
