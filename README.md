@@ -10,6 +10,7 @@ A modern application to compare two CSV files with visual difference highlightin
 - **Select key columns** for row matching
 - **Select comparison columns** to compare in a manual left/right pair order
 - **Save and load pair-order files** to reuse the same comparison setup with matching CSV headers
+- **Auto-pair confident comparison columns** after selecting matching key columns, generating a comparison order from File A or File B when reliable one-to-one matches are available
 - **Compare rows side by side** with results showing:
   - Exact matches
   - Mismatched values (with highlighted differences)
@@ -232,8 +233,14 @@ Pushing the `v*` tag triggers the release workflow. If `CHANGELOG.md` is missing
 2. **Configure Comparison**:
    - Select key columns (used to match rows between files)
    - Select comparison columns (values to compare)
-   - Pair columns manually in the order you want to compare them
+   - Pair columns manually in the order you want to compare them or use **Auto-pair from File A/File B** to fill in confident one-to-one matches after the selected key pairs
    - Use **Save pair order** to download the current key/comparison selection and **Load pair order** to restore it when the same File A/File B headers are loaded
+
+### Auto-pair support
+
+CSV Align supports guided auto-pairing for comparison columns. After you pick the same number of key columns in File A and File B, the app can build a comparison order from File A or File B when it finds reliable one-to-one matches. In those cases it starts from the selected key pairs and then appends only the remaining confident comparison matches.
+
+See [docs/auto-pairing.md](docs/auto-pairing.md) for a concise explanation of how the auto-pairing logic works and what it intentionally leaves unmatched.
 
 3. **Run Comparison**: Click "Run Comparison" to compare the files.
 

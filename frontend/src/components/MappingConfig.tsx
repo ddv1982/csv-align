@@ -151,8 +151,8 @@ export function MappingConfig({
         </div>
         <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
           {hasValidAutoPairKeySelection
-            ? 'Auto-pair places the selected key pair(s) first, then adds the remaining confident one-to-one comparison matches.'
-            : 'Select the same number of key columns in File A and File B to enable auto-pair. The selected key pair(s) will be placed first.'}
+            ? 'When confident comparison matches are found, auto-pair starts with the selected key pair(s) and then adds the remaining one-to-one matches.'
+            : 'Select the same number of key columns in File A and File B to enable auto-pair. Those key pairs are used as the starting point for any generated comparison order.'}
         </p>
       </div>
 

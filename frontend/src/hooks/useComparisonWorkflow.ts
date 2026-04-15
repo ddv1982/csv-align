@@ -3,7 +3,7 @@ import { INITIAL_NORMALIZATION_CONFIG } from '../config/normalization';
 import { buildAutoPairSelection } from '../features/mapping/autoPair';
 import { filterResults } from '../features/results/presentation';
 import { compareFiles, createSession, downloadBlob, exportResults, loadFile, loadPairOrder, savePairOrder, suggestMappings } from '../services/tauri';
-import type { AppState, ComparisonNormalizationConfig, FileLetter, MappingResponse, ResultFilter } from '../types/api';
+import type { AppState, CompareRequest, ComparisonNormalizationConfig, FileLetter, MappingResponse, ResultFilter } from '../types/api';
 import { INITIAL_MAPPING_SELECTION, type AppStep, type MappingSelectionState } from '../types/ui';
 
 const INITIAL_STATE: AppState = {
@@ -18,11 +18,85 @@ const INITIAL_STATE: AppState = {
   loading: false,
 };
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Unexpected error';
+}
+
+function buildCompareRequestPayload(
+  keyColumnsA: string[],
+  keyColumnsB: string[],
+  comparisonColumnsA: string[],
+  comparisonColumnsB: string[],
+  columnMappings: MappingResponse[],
+  normalization: ComparisonNormalizationConfig,
+): { request: CompareRequest; retainedMappings: MappingResponse[] } {
+  const keyPairs = new Set(keyColumnsA.map((fileAColumn, index) => `${fileAColumn}::${keyColumnsB[index] ?? ''}`));
+
+  const filteredComparisonPairs = comparisonColumnsA
+    .map((fileAColumn, index) => ({
+      fileAColumn,
+      fileBColumn: comparisonColumnsB[index] ?? '',
+    }))
+    .filter((pair) => !keyPairs.has(`${pair.fileAColumn}::${pair.fileBColumn}`));
+
+  const retainedMappings = columnMappings.filter(
+    (mapping) => !keyPairs.has(`${mapping.file_a_column}::${mapping.file_b_column}`),
+  );
+
+  return {
+    request: {
+      key_columns_a: keyColumnsA,
+      key_columns_b: keyColumnsB,
+      comparison_columns_a: filteredComparisonPairs.map((pair) => pair.fileAColumn),
+      comparison_columns_b: filteredComparisonPairs.map((pair) => pair.fileBColumn),
+      column_mappings: retainedMappings.map((mapping) => ({
+        file_a_column: mapping.file_a_column,
+        file_b_column: mapping.file_b_column,
+        mapping_type: mapping.mapping_type,
+        similarity: mapping.similarity,
+      })),
+      normalization,
+    },
+    retainedMappings,
+  };
+}
+
 export function useComparisonWorkflow() {
   const [state, setState] = useState<AppState>(INITIAL_STATE);
   const [step, setStep] = useState<AppStep>('select');
   const [mappingSelection, setMappingSelection] = useState<MappingSelectionState>(INITIAL_MAPPING_SELECTION);
   const [normalizationConfig, setNormalizationConfig] = useState<ComparisonNormalizationConfig>(INITIAL_NORMALIZATION_CONFIG);
+
+  const startLoading = useCallback((clearError = true) => {
+    setState((previousState) => ({
+      ...previousState,
+      loading: true,
+      ...(clearError ? { error: null } : {}),
+    }));
+  }, []);
+
+  const finishLoading = useCallback((updates: Partial<AppState> = {}) => {
+    setState((previousState) => ({
+      ...previousState,
+      ...updates,
+      loading: false,
+    }));
+  }, []);
+
+  const failLoading = useCallback((error: unknown) => {
+    setState((previousState) => ({
+      ...previousState,
+      error: getErrorMessage(error),
+      loading: false,
+    }));
+  }, []);
+
+  const setWorkflowError = useCallback((error: unknown) => {
+    setState((previousState) => ({
+      ...previousState,
+      error: getErrorMessage(error),
+    }));
+  }, []);
 
   useEffect(() => {
     async function initSession() {
@@ -30,12 +104,12 @@ export function useComparisonWorkflow() {
         const response = await createSession();
         setState((previousState) => ({ ...previousState, sessionId: response.session_id }));
       } catch (error) {
-        setState((previousState) => ({ ...previousState, error: (error as Error).message }));
+        setWorkflowError(error);
       }
     }
 
     initSession();
-  }, []);
+  }, [setWorkflowError]);
 
   useEffect(() => {
     if (state.fileA && state.fileB) {
@@ -51,7 +125,7 @@ export function useComparisonWorkflow() {
       return;
     }
 
-    setState((previousState) => ({ ...previousState, loading: true, error: null }));
+    startLoading();
 
     try {
       const response = await loadFile(state.sessionId, file, fileLetter);
@@ -62,15 +136,11 @@ export function useComparisonWorkflow() {
         rowCount: response.row_count,
       };
 
-      setState((previousState) => ({
-        ...previousState,
-        [fileLetter === 'a' ? 'fileA' : 'fileB']: fileData,
-        loading: false,
-      }));
+      finishLoading({ [fileLetter === 'a' ? 'fileA' : 'fileB']: fileData } as Partial<AppState>);
     } catch (error) {
-      setState((previousState) => ({ ...previousState, error: (error as Error).message, loading: false }));
+      failLoading(error);
     }
-  }, [state.sessionId]);
+  }, [failLoading, finishLoading, startLoading, state.sessionId]);
 
   const handleCompare = useCallback(async (
     keyColumnsA: string[],
@@ -84,64 +154,48 @@ export function useComparisonWorkflow() {
       return;
     }
 
-    const keyPairs = new Set(keyColumnsA.map((fileAColumn, index) => `${fileAColumn}::${keyColumnsB[index] ?? ''}`));
-    const filteredComparisonPairs = comparisonColumnsA
-      .map((fileAColumn, index) => ({
-        fileAColumn,
-        fileBColumn: comparisonColumnsB[index] ?? '',
-      }))
-      .filter((pair) => !keyPairs.has(`${pair.fileAColumn}::${pair.fileBColumn}`));
-    const filteredColumnMappings = columnMappings.filter(
-      (mapping) => !keyPairs.has(`${mapping.file_a_column}::${mapping.file_b_column}`),
+    const { request, retainedMappings } = buildCompareRequestPayload(
+      keyColumnsA,
+      keyColumnsB,
+      comparisonColumnsA,
+      comparisonColumnsB,
+      columnMappings,
+      normalization,
     );
 
-    setState((previousState) => ({ ...previousState, loading: true, error: null }));
+    startLoading();
 
     try {
-      const response = await compareFiles(state.sessionId, {
-        key_columns_a: keyColumnsA,
-        key_columns_b: keyColumnsB,
-        comparison_columns_a: filteredComparisonPairs.map((pair) => pair.fileAColumn),
-        comparison_columns_b: filteredComparisonPairs.map((pair) => pair.fileBColumn),
-        column_mappings: filteredColumnMappings.map((mapping) => ({
-          file_a_column: mapping.file_a_column,
-          file_b_column: mapping.file_b_column,
-          mapping_type: mapping.mapping_type,
-          similarity: mapping.similarity,
-        })),
-        normalization,
-      });
+      const response = await compareFiles(state.sessionId, request);
 
-      setState((previousState) => ({
-        ...previousState,
-        mappings: filteredColumnMappings,
+      finishLoading({
+        mappings: retainedMappings,
         results: response.results,
         summary: response.summary,
-        loading: false,
-      }));
+      });
       setStep('results');
     } catch (error) {
-      setState((previousState) => ({ ...previousState, error: (error as Error).message, loading: false }));
+      failLoading(error);
     }
-  }, [state.sessionId]);
+  }, [failLoading, finishLoading, startLoading, state.sessionId]);
 
   const handleExport = useCallback(async () => {
     if (!state.sessionId) {
       return;
     }
 
-    setState((previousState) => ({ ...previousState, loading: true }));
+    startLoading(false);
 
     try {
       const blob = await exportResults(state.sessionId);
       if (blob) {
         downloadBlob(blob, 'comparison-results.csv');
       }
-      setState((previousState) => ({ ...previousState, loading: false }));
+      finishLoading();
     } catch (error) {
-      setState((previousState) => ({ ...previousState, error: (error as Error).message, loading: false }));
+      failLoading(error);
     }
-  }, [state.sessionId]);
+  }, [failLoading, finishLoading, startLoading, state.sessionId]);
 
   const handleFilterChange = useCallback((filter: ResultFilter) => {
     setState((previousState) => ({ ...previousState, filter }));
@@ -152,7 +206,7 @@ export function useComparisonWorkflow() {
       return;
     }
 
-    setState((previousState) => ({ ...previousState, loading: true, error: null }));
+    startLoading();
 
     try {
       const blob = await savePairOrder(state.sessionId, {
@@ -166,18 +220,18 @@ export function useComparisonWorkflow() {
         downloadBlob(blob, 'pair-order.txt');
       }
 
-      setState((previousState) => ({ ...previousState, loading: false }));
+      finishLoading();
     } catch (error) {
-      setState((previousState) => ({ ...previousState, error: (error as Error).message, loading: false }));
+      failLoading(error);
     }
-  }, [mappingSelection, state.sessionId]);
+  }, [failLoading, finishLoading, mappingSelection, startLoading, state.sessionId]);
 
   const handleLoadPairOrder = useCallback(async (file?: File) => {
     if (!state.sessionId) {
       return;
     }
 
-    setState((previousState) => ({ ...previousState, loading: true, error: null }));
+    startLoading();
 
     try {
       const response = await loadPairOrder(state.sessionId, file);
@@ -190,11 +244,11 @@ export function useComparisonWorkflow() {
         });
       }
 
-      setState((previousState) => ({ ...previousState, loading: false }));
+      finishLoading();
     } catch (error) {
-      setState((previousState) => ({ ...previousState, error: (error as Error).message, loading: false }));
+      failLoading(error);
     }
-  }, [state.sessionId]);
+  }, [failLoading, finishLoading, startLoading, state.sessionId]);
 
   const handleAutoPairComparisonColumns = useCallback(async (leadingSide: FileLetter) => {
     if (!state.sessionId || !state.fileA || !state.fileB) {
@@ -213,19 +267,13 @@ export function useComparisonWorkflow() {
       return;
     }
 
-    setState((previousState) => ({ ...previousState, loading: true, error: null }));
+    startLoading();
 
     try {
       const response = await suggestMappings(state.sessionId, {
         columns_a: state.fileA.headers,
         columns_b: state.fileB.headers,
       });
-      const effectiveKeyColumnsA = mappingSelection.keyColumnsA.length > 0
-        ? mappingSelection.keyColumnsA
-        : [state.fileA.headers[0]];
-      const effectiveKeyColumnsB = mappingSelection.keyColumnsB.length > 0
-        ? mappingSelection.keyColumnsB
-        : [state.fileB.headers[0]];
       const autoPairSelection = buildAutoPairSelection({
         fileAHeaders: state.fileA.headers,
         fileBHeaders: state.fileB.headers,
@@ -233,8 +281,8 @@ export function useComparisonWorkflow() {
         leadingSide,
         keyColumnsA: mappingSelection.keyColumnsA,
         keyColumnsB: mappingSelection.keyColumnsB,
-        excludedColumnsA: effectiveKeyColumnsA,
-        excludedColumnsB: effectiveKeyColumnsB,
+        excludedColumnsA: mappingSelection.keyColumnsA,
+        excludedColumnsB: mappingSelection.keyColumnsB,
       });
 
       const noAdditionalComparisonPairsFound =
@@ -260,9 +308,9 @@ export function useComparisonWorkflow() {
         loading: false,
       }));
     } catch (error) {
-      setState((previousState) => ({ ...previousState, error: (error as Error).message, loading: false }));
+      failLoading(error);
     }
-  }, [mappingSelection.keyColumnsA, mappingSelection.keyColumnsB, state.fileA, state.fileB, state.sessionId]);
+  }, [failLoading, mappingSelection.keyColumnsA, mappingSelection.keyColumnsB, startLoading, state.fileA, state.fileB, state.sessionId]);
 
   const resetWorkflowState = useCallback(() => {
     setState(INITIAL_STATE);
@@ -278,9 +326,9 @@ export function useComparisonWorkflow() {
       const response = await createSession();
       setState((previousState) => ({ ...previousState, sessionId: response.session_id }));
     } catch (error) {
-      setState((previousState) => ({ ...previousState, error: (error as Error).message }));
+      setWorkflowError(error);
     }
-  }, [resetWorkflowState]);
+  }, [resetWorkflowState, setWorkflowError]);
 
   return {
     state,

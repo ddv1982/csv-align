@@ -20,47 +20,37 @@ fn compute_layout(
     let mut layout = ExportLayout::default();
 
     for result in results {
+        layout.max_key_columns = layout.max_key_columns.max(result.key().len());
+
         match result {
             RowComparisonResult::Match {
-                key,
-                values_a,
-                values_b,
+                values_a, values_b, ..
             }
             | RowComparisonResult::Mismatch {
-                key,
-                values_a,
-                values_b,
-                ..
+                values_a, values_b, ..
             } => {
-                layout.max_key_columns = layout.max_key_columns.max(key.len());
                 layout.max_file_a_value_columns =
                     layout.max_file_a_value_columns.max(values_a.len());
                 layout.max_file_b_value_columns =
                     layout.max_file_b_value_columns.max(values_b.len());
             }
-            RowComparisonResult::MissingLeft { key, values_b } => {
-                layout.max_key_columns = layout.max_key_columns.max(key.len());
+            RowComparisonResult::MissingLeft { values_b, .. } => {
                 layout.max_file_b_value_columns =
                     layout.max_file_b_value_columns.max(values_b.len());
             }
-            RowComparisonResult::MissingRight { key, values_a } => {
-                layout.max_key_columns = layout.max_key_columns.max(key.len());
+            RowComparisonResult::MissingRight { values_a, .. } => {
                 layout.max_file_a_value_columns =
                     layout.max_file_a_value_columns.max(values_a.len());
             }
-            RowComparisonResult::UnkeyedLeft { key, values_b } => {
-                layout.max_key_columns = layout.max_key_columns.max(key.len());
+            RowComparisonResult::UnkeyedLeft { values_b, .. } => {
                 layout.max_file_b_value_columns =
                     layout.max_file_b_value_columns.max(values_b.len());
             }
-            RowComparisonResult::UnkeyedRight { key, values_a } => {
-                layout.max_key_columns = layout.max_key_columns.max(key.len());
+            RowComparisonResult::UnkeyedRight { values_a, .. } => {
                 layout.max_file_a_value_columns =
                     layout.max_file_a_value_columns.max(values_a.len());
             }
-            RowComparisonResult::Duplicate { key, .. } => {
-                layout.max_key_columns = layout.max_key_columns.max(key.len());
-            }
+            RowComparisonResult::Duplicate { .. } => {}
         }
     }
 
@@ -152,7 +142,8 @@ fn append_padded_columns(record: &mut Vec<String>, values: &[String], target_len
 
 fn format_difference_summary(result: &RowComparisonResult) -> String {
     match result {
-        RowComparisonResult::Mismatch { differences, .. } => differences
+        RowComparisonResult::Mismatch { .. } => result
+            .differences()
             .iter()
             .map(|diff| {
                 let columns = if diff.column_a == diff.column_b {
@@ -260,12 +251,8 @@ fn build_record(result: &RowComparisonResult, layout: &ExportLayout) -> Vec<Stri
             append_padded_columns(&mut record, values_a, layout.max_file_a_value_columns);
             append_padded_columns(&mut record, &[], layout.max_file_b_value_columns);
         }
-        RowComparisonResult::Duplicate {
-            key,
-            values_a,
-            values_b,
-        } => {
-            let source_str = match DuplicateSource::from_duplicate_rows(values_a, values_b) {
+        RowComparisonResult::Duplicate { key, .. } => {
+            let source_str = match result.duplicate_source() {
                 Some(DuplicateSource::FileA) => "File A",
                 Some(DuplicateSource::FileB) => "File B",
                 Some(DuplicateSource::Both) | None => "Both Files",

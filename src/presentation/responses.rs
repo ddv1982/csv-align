@@ -1,6 +1,6 @@
 use crate::data::types::{
-    ColumnDataType, ColumnInfo, ColumnMapping, ComparisonSummary, DuplicateSource, FileSide,
-    MappingKind, MappingType, ResultType, RowComparisonResult, ValueDifference,
+    ColumnDataType, ColumnInfo, ColumnMapping, ComparisonSummary, FileSide, MappingKind,
+    MappingType, ResultType, RowComparisonResult, ValueDifference,
 };
 use serde::Serialize;
 
@@ -125,83 +125,18 @@ fn mapping_response(mapping: &ColumnMapping) -> MappingResponse {
 }
 
 fn result_response(result: &RowComparisonResult) -> ResultResponse {
-    match result {
-        RowComparisonResult::Match {
-            key,
-            values_a,
-            values_b,
-        } => ResultResponse {
-            result_type: ResultType::Match,
-            key: key.clone(),
-            values_a: values_a.clone(),
-            values_b: values_b.clone(),
-            duplicate_values_a: Vec::new(),
-            duplicate_values_b: Vec::new(),
-            differences: Vec::new(),
-        },
-        RowComparisonResult::Mismatch {
-            key,
-            values_a,
-            values_b,
-            differences,
-        } => ResultResponse {
-            result_type: ResultType::Mismatch,
-            key: key.clone(),
-            values_a: values_a.clone(),
-            values_b: values_b.clone(),
-            duplicate_values_a: Vec::new(),
-            duplicate_values_b: Vec::new(),
-            differences: differences.iter().map(difference_response).collect(),
-        },
-        RowComparisonResult::MissingLeft { key, values_b } => ResultResponse {
-            result_type: ResultType::MissingLeft,
-            key: key.clone(),
-            values_a: Vec::new(),
-            values_b: values_b.clone(),
-            duplicate_values_a: Vec::new(),
-            duplicate_values_b: Vec::new(),
-            differences: Vec::new(),
-        },
-        RowComparisonResult::MissingRight { key, values_a } => ResultResponse {
-            result_type: ResultType::MissingRight,
-            key: key.clone(),
-            values_a: values_a.clone(),
-            values_b: Vec::new(),
-            duplicate_values_a: Vec::new(),
-            duplicate_values_b: Vec::new(),
-            differences: Vec::new(),
-        },
-        RowComparisonResult::UnkeyedLeft { key, values_b } => ResultResponse {
-            result_type: ResultType::UnkeyedLeft,
-            key: key.clone(),
-            values_a: Vec::new(),
-            values_b: values_b.clone(),
-            duplicate_values_a: Vec::new(),
-            duplicate_values_b: Vec::new(),
-            differences: Vec::new(),
-        },
-        RowComparisonResult::UnkeyedRight { key, values_a } => ResultResponse {
-            result_type: ResultType::UnkeyedRight,
-            key: key.clone(),
-            values_a: values_a.clone(),
-            values_b: Vec::new(),
-            duplicate_values_a: Vec::new(),
-            duplicate_values_b: Vec::new(),
-            differences: Vec::new(),
-        },
-        RowComparisonResult::Duplicate {
-            key,
-            values_a,
-            values_b,
-        } => ResultResponse {
-            result_type: duplicate_result_type(values_a, values_b),
-            key: key.clone(),
-            values_a: values_a.first().cloned().unwrap_or_default(),
-            values_b: values_b.first().cloned().unwrap_or_default(),
-            duplicate_values_a: values_a.clone(),
-            duplicate_values_b: values_b.clone(),
-            differences: Vec::new(),
-        },
+    ResultResponse {
+        result_type: result.result_type(),
+        key: result.key().to_vec(),
+        values_a: result.values_a().to_vec(),
+        values_b: result.values_b().to_vec(),
+        duplicate_values_a: result.duplicate_values_a().to_vec(),
+        duplicate_values_b: result.duplicate_values_b().to_vec(),
+        differences: result
+            .differences()
+            .iter()
+            .map(difference_response)
+            .collect(),
     }
 }
 
@@ -234,13 +169,5 @@ fn mapping_type_response(mapping_type: &MappingType) -> (MappingKind, Option<f64
         MappingType::ExactMatch => (MappingKind::Exact, None),
         MappingType::ManualMatch => (MappingKind::Manual, None),
         MappingType::FuzzyMatch(score) => (MappingKind::Fuzzy, Some(*score)),
-    }
-}
-
-fn duplicate_result_type(values_a: &[Vec<String>], values_b: &[Vec<String>]) -> ResultType {
-    match DuplicateSource::from_duplicate_rows(values_a, values_b) {
-        Some(DuplicateSource::FileA) => ResultType::DuplicateFileA,
-        Some(DuplicateSource::FileB) => ResultType::DuplicateFileB,
-        Some(DuplicateSource::Both) | None => ResultType::DuplicateBoth,
     }
 }

@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { open, save } from '@tauri-apps/plugin-dialog';
-import {
+import type {
   FileLoadResponse,
   SuggestMappingsRequest,
   SuggestMappingsResponse,
@@ -14,17 +14,57 @@ import {
 // Check if we're running in Tauri
 const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
+async function readErrorMessage(response: Response, fallback: string): Promise<string> {
+  try {
+    const payload = await response.json() as { error?: string };
+    if (typeof payload.error === 'string' && payload.error.trim().length > 0) {
+      return payload.error;
+    }
+  } catch {
+    // Fall back to the caller-provided message when the response is not JSON.
+  }
+
+  return fallback;
+}
+
+async function fetchJson<T>(input: string, init: RequestInit, fallbackError: string): Promise<T> {
+  const response = await fetch(input, init);
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, fallbackError));
+  }
+
+  return response.json() as Promise<T>;
+}
+
+async function fetchBlob(input: string, init: RequestInit, fallbackError: string): Promise<Blob> {
+  const response = await fetch(input, init);
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, fallbackError));
+  }
+
+  return response.blob();
+}
+
+async function postJson<TResponse>(input: string, body: unknown, fallbackError: string): Promise<TResponse> {
+  return fetchJson<TResponse>(input, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  }, fallbackError);
+}
+
+async function readFileBytes(file: File): Promise<number[]> {
+  return Array.from(new Uint8Array(await file.arrayBuffer()));
+}
+
 export async function createSession(): Promise<SessionResponse> {
   if (isTauri) {
-    return await invoke('create_session');
+    return invoke('create_session');
   }
-  
-  const response = await fetch('/api/sessions', { method: 'POST' });
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to create session');
-  }
-  return response.json();
+
+  return fetchJson('/api/sessions', { method: 'POST' }, 'Failed to create session');
 }
 
 export async function loadFile(
@@ -35,38 +75,31 @@ export async function loadFile(
   if (isTauri) {
     // In Tauri, support both direct path loading and File object loading.
     if (typeof file === 'string') {
-      return await invoke('load_csv', {
+      return invoke('load_csv', {
         sessionId,
         fileLetter,
         filePath: file,
       });
     }
 
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    return await invoke('load_csv_bytes', {
+    return invoke('load_csv_bytes', {
       sessionId,
       fileLetter,
       fileName: file.name,
-      fileBytes: Array.from(bytes),
+      fileBytes: await readFileBytes(file),
     });
   }
-  
+
   // Browser mode - use HTTP API
   const formData = new FormData();
   if (file instanceof File) {
     formData.append('file', file);
   }
-  
-  const response = await fetch(`/api/sessions/${sessionId}/files/${fileLetter}`, {
+
+  return fetchJson(`/api/sessions/${sessionId}/files/${fileLetter}`, {
     method: 'POST',
     body: formData,
-  });
-  
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to load file');
-  }
-  return response.json();
+  }, 'Failed to load file');
 }
 
 export async function suggestMappings(
@@ -74,23 +107,13 @@ export async function suggestMappings(
   request: SuggestMappingsRequest
 ): Promise<SuggestMappingsResponse> {
   if (isTauri) {
-    return await invoke('suggest_mappings', {
+    return invoke('suggest_mappings', {
       sessionId,
       request,
     });
   }
-  
-  const response = await fetch(`/api/sessions/${sessionId}/mappings`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-  });
-  
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to get mappings');
-  }
-  return response.json();
+
+  return postJson(`/api/sessions/${sessionId}/mappings`, request, 'Failed to get mappings');
 }
 
 export async function compareFiles(
@@ -98,23 +121,13 @@ export async function compareFiles(
   request: CompareRequest
 ): Promise<CompareResponse> {
   if (isTauri) {
-    return await invoke('compare', {
+    return invoke('compare', {
       sessionId,
       request,
     });
   }
-  
-  const response = await fetch(`/api/sessions/${sessionId}/compare`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-  });
-  
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to compare files');
-  }
-  return response.json();
+
+  return postJson(`/api/sessions/${sessionId}/compare`, request, 'Failed to compare files');
 }
 
 export async function exportResults(sessionId: string): Promise<Blob | void> {
@@ -135,16 +148,10 @@ export async function exportResults(sessionId: string): Promise<Blob | void> {
 
     return;
   }
-  
-  const response = await fetch(`/api/sessions/${sessionId}/export`, {
+
+  return fetchBlob(`/api/sessions/${sessionId}/export`, {
     method: 'GET',
-  });
-  
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to export results');
-  }
-  return response.blob();
+  }, 'Failed to export results');
 }
 
 export async function savePairOrder(
@@ -170,18 +177,11 @@ export async function savePairOrder(
     return;
   }
 
-  const response = await fetch(`/api/sessions/${sessionId}/pair-order/save`, {
+  return fetchBlob(`/api/sessions/${sessionId}/pair-order/save`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ selection }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to save pair order');
-  }
-
-  return response.blob();
+  }, 'Failed to save pair order');
 }
 
 export async function loadPairOrder(
@@ -198,7 +198,7 @@ export async function loadPairOrder(
       return;
     }
 
-    return await invoke('load_pair_order', {
+    return invoke('load_pair_order', {
       sessionId,
       filePath,
     });
@@ -209,18 +209,8 @@ export async function loadPairOrder(
   }
 
   const contents = await file.text();
-  const response = await fetch(`/api/sessions/${sessionId}/pair-order/load`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents }),
-  });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to load pair order');
-  }
-
-  return response.json();
+  return postJson(`/api/sessions/${sessionId}/pair-order/load`, { contents }, 'Failed to load pair order');
 }
 
 export function downloadBlob(blob: Blob, filename: string): void {

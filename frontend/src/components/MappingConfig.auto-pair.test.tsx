@@ -40,7 +40,7 @@ test('keeps auto-pair disabled until matching key selections are present', () =>
 
   expect(screen.getByRole('button', { name: 'Auto-pair from File A' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'Auto-pair from File B' })).toBeDisabled();
-  expect(screen.getByText('Select the same number of key columns in File A and File B to enable auto-pair. The selected key pair(s) will be placed first.')).toBeInTheDocument();
+  expect(screen.getByText('Select the same number of key columns in File A and File B to enable auto-pair. Those key pairs are used as the starting point for any generated comparison order.')).toBeInTheDocument();
 });
 
 test('enables auto-pair beside the pair-order actions after matching key selections and forwards the leading side', () => {
@@ -71,7 +71,7 @@ test('enables auto-pair beside the pair-order actions after matching key selecti
   fireEvent.click(screen.getByRole('button', { name: 'Auto-pair from File A' }));
   fireEvent.click(screen.getByRole('button', { name: 'Auto-pair from File B' }));
 
-  expect(screen.getByText('Auto-pair places the selected key pair(s) first, then adds the remaining confident one-to-one comparison matches.')).toBeInTheDocument();
+  expect(screen.getByText('When confident comparison matches are found, auto-pair starts with the selected key pair(s) and then adds the remaining one-to-one matches.')).toBeInTheDocument();
   expect(onAutoPairComparisonColumns).toHaveBeenNthCalledWith(1, 'a');
   expect(onAutoPairComparisonColumns).toHaveBeenNthCalledWith(2, 'b');
 });

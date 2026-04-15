@@ -1,9 +1,10 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
 use crate::backend::requests::{LoadPairOrderResponse, PairOrderSelection};
 use crate::backend::session::SessionData;
+use crate::backend::validation::audit_selected_columns;
 
 const PAIR_ORDER_FILE_VERSION: u8 = 1;
 
@@ -113,17 +114,14 @@ fn validate_selected_columns(
     headers: &[String],
     selected_columns: &[String],
 ) -> Result<(), String> {
-    let mut seen = HashSet::new();
-    let available: HashSet<&str> = headers.iter().map(String::as_str).collect();
+    let audit = audit_selected_columns(headers, selected_columns);
 
-    for column in selected_columns {
-        if !available.contains(column.as_str()) {
-            return Err(format!("{label} reference missing columns: {column}"));
-        }
+    if let Some(column) = audit.missing.first() {
+        return Err(format!("{label} reference missing columns: {column}"));
+    }
 
-        if !seen.insert(column.as_str()) {
-            return Err(format!("{label} contain duplicate columns: {column}"));
-        }
+    if let Some(column) = audit.duplicates.first() {
+        return Err(format!("{label} contain duplicate columns: {column}"));
     }
 
     Ok(())

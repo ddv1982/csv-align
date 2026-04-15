@@ -44,7 +44,7 @@ test('shows the simplified cleanup copy and labels', () => {
   expect(screen.getByLabelText('Treat blank cells as missing')).toBeInTheDocument();
   expect(screen.getByText('Also treat these exact values as missing')).toBeInTheDocument();
   expect(screen.getByLabelText('Match dates across different formats')).toBeInTheDocument();
-  expect(screen.getByText('Select the same number of key columns in File A and File B to enable auto-pair. The selected key pair(s) will be placed first.')).toBeInTheDocument();
+  expect(screen.getByText('Select the same number of key columns in File A and File B to enable auto-pair. Those key pairs are used as the starting point for any generated comparison order.')).toBeInTheDocument();
 });
 
 test('keeps advanced date controls collapsed by default and lets users reveal them', () => {

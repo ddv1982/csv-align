@@ -238,15 +238,7 @@ pub fn generate_summary(
 
     for result in results {
         match result {
-            RowComparisonResult::Match { .. } => summary.matches += 1,
-            RowComparisonResult::Mismatch { .. } => summary.mismatches += 1,
-            RowComparisonResult::MissingLeft { .. } => summary.missing_left += 1,
-            RowComparisonResult::MissingRight { .. } => summary.missing_right += 1,
-            RowComparisonResult::UnkeyedLeft { .. } => summary.unkeyed_left += 1,
-            RowComparisonResult::UnkeyedRight { .. } => summary.unkeyed_right += 1,
-            RowComparisonResult::Duplicate {
-                values_a, values_b, ..
-            } => match DuplicateSource::from_duplicate_rows(values_a, values_b) {
+            RowComparisonResult::Duplicate { .. } => match result.duplicate_source() {
                 Some(DuplicateSource::FileA) => summary.duplicates_a += 1,
                 Some(DuplicateSource::FileB) => summary.duplicates_b += 1,
                 Some(DuplicateSource::Both) => {
@@ -254,6 +246,19 @@ pub fn generate_summary(
                     summary.duplicates_b += 1;
                 }
                 None => {}
+            },
+            _ => match result.result_type() {
+                ResultType::Match => summary.matches += 1,
+                ResultType::Mismatch => summary.mismatches += 1,
+                ResultType::MissingLeft => summary.missing_left += 1,
+                ResultType::MissingRight => summary.missing_right += 1,
+                ResultType::UnkeyedLeft => summary.unkeyed_left += 1,
+                ResultType::UnkeyedRight => summary.unkeyed_right += 1,
+                ResultType::DuplicateFileA
+                | ResultType::DuplicateFileB
+                | ResultType::DuplicateBoth => unreachable!(
+                    "duplicate rows are handled by duplicate_source to preserve summary semantics"
+                ),
             },
         }
     }

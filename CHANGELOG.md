@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.18 - 2026-04-15
+
+- Refactored shared backend/frontend comparison plumbing to reduce repeated response, projection, workflow, and transport logic while keeping the existing behavior and contracts intact.
+- Added concise README and docs coverage for auto-pairing so users can understand when it is available and how it chooses confident matches.
+
 ## v1.0.17 - 2026-04-15
 
 - Updated auto-pair so users must select matching key columns first, and the chosen key pair(s) are shown first in the auto-pair order before the remaining confident matches.

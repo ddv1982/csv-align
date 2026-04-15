@@ -170,3 +170,53 @@ fn run_comparison_uses_positional_mapping_compatibility_when_mappings_are_omitte
     assert_eq!(execution.response.summary.matches, 1);
     assert_eq!(execution.response.summary.mismatches, 1);
 }
+
+#[test]
+fn save_pair_order_rejects_missing_columns_with_stable_message() {
+    let session = SessionData {
+        csv_a: Some(csv_loader::load_csv_from_bytes(b"id,name\n1,Alice\n").unwrap()),
+        csv_b: Some(csv_loader::load_csv_from_bytes(b"id,full_name\n1,Alice\n").unwrap()),
+        ..SessionData::new()
+    };
+
+    let error = save_pair_order_workflow(
+        &session,
+        PairOrderSelection {
+            key_columns_a: vec!["missing".to_string()],
+            key_columns_b: vec!["id".to_string()],
+            comparison_columns_a: vec!["name".to_string()],
+            comparison_columns_b: vec!["full_name".to_string()],
+        },
+    )
+    .unwrap_err();
+
+    assert_eq!(
+        error,
+        "Saved key columns for File A reference missing columns: missing"
+    );
+}
+
+#[test]
+fn save_pair_order_rejects_duplicate_columns_with_stable_message() {
+    let session = SessionData {
+        csv_a: Some(csv_loader::load_csv_from_bytes(b"id,name\n1,Alice\n").unwrap()),
+        csv_b: Some(csv_loader::load_csv_from_bytes(b"id,full_name\n1,Alice\n").unwrap()),
+        ..SessionData::new()
+    };
+
+    let error = save_pair_order_workflow(
+        &session,
+        PairOrderSelection {
+            key_columns_a: vec!["id".to_string(), "id".to_string()],
+            key_columns_b: vec!["id".to_string(), "id".to_string()],
+            comparison_columns_a: vec!["name".to_string()],
+            comparison_columns_b: vec!["full_name".to_string()],
+        },
+    )
+    .unwrap_err();
+
+    assert_eq!(
+        error,
+        "Saved key columns for File A contain duplicate columns: id"
+    );
+}

@@ -4,7 +4,7 @@ use axum::{
     body::to_bytes,
     extract::{Path, State},
     http::StatusCode,
-    response::Response,
+    response::{IntoResponse, Response},
     Json,
 };
 use csv_align::api::{
@@ -141,6 +141,35 @@ async fn response_contracts_suggest_mappings_serializes_exact_and_fuzzy_mappings
     assert!(
         similarity <= 1.0,
         "expected fuzzy similarity <= 1.0, got {similarity}"
+    );
+}
+
+#[tokio::test]
+async fn response_contracts_create_and_delete_session_keep_stable_status_and_error_shapes() {
+    let state = AppState::new();
+
+    let create_response = handlers::create_session(State(state.clone()))
+        .await
+        .into_response();
+    assert_eq!(create_response.status(), StatusCode::OK);
+
+    let created = response_json(create_response).await;
+    let session_id = created["session_id"]
+        .as_str()
+        .expect("session_id should serialize as a string")
+        .to_string();
+    assert!(!session_id.is_empty(), "session_id should not be empty");
+
+    let delete_response =
+        handlers::delete_session(State(state.clone()), Path(session_id.clone())).await;
+    assert_eq!(delete_response.status(), StatusCode::NO_CONTENT);
+
+    let missing_response = handlers::delete_session(State(state), Path(session_id)).await;
+    assert_eq!(missing_response.status(), StatusCode::NOT_FOUND);
+    let missing_json = response_json(missing_response).await;
+    assert_eq!(
+        missing_json,
+        serde_json::json!({ "error": "Session not found" })
     );
 }
 

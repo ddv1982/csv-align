@@ -31,6 +31,24 @@ pub struct ErrorResponse {
     pub error: String,
 }
 
+fn error_response(status: StatusCode, error: impl Into<String>) -> Response {
+    (
+        status,
+        Json(ErrorResponse {
+            error: error.into(),
+        }),
+    )
+        .into_response()
+}
+
+fn bad_request_response(error: impl Into<String>) -> Response {
+    error_response(StatusCode::BAD_REQUEST, error)
+}
+
+fn session_not_found_response() -> Response {
+    error_response(StatusCode::NOT_FOUND, "Session not found")
+}
+
 /// Health check endpoint
 pub async fn health_check() -> impl IntoResponse {
     Json(HealthResponse {
@@ -53,13 +71,7 @@ pub async fn delete_session(
     if state.delete_session(&session_id).await {
         StatusCode::NO_CONTENT.into_response()
     } else {
-        (
-            StatusCode::NOT_FOUND,
-            Json(ErrorResponse {
-                error: "Session not found".to_string(),
-            }),
-        )
-            .into_response()
+        session_not_found_response()
     }
 }
 
@@ -70,65 +82,27 @@ pub async fn load_csv_file(
     mut multipart: Multipart,
 ) -> Response {
     if let Err(error) = validate_file_letter(&file_letter) {
-        return (StatusCode::BAD_REQUEST, Json(ErrorResponse { error })).into_response();
+        return bad_request_response(error);
     }
 
     if state.with_session(&session_id, |_| ()).await.is_none() {
-        return (
-            StatusCode::NOT_FOUND,
-            Json(ErrorResponse {
-                error: "Session not found".to_string(),
-            }),
-        )
-            .into_response();
+        return session_not_found_response();
     }
 
     let field = match multipart.next_field().await {
         Ok(Some(field)) => field,
-        Ok(None) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(ErrorResponse {
-                    error: "No file provided".to_string(),
-                }),
-            )
-                .into_response()
-        }
-        Err(e) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(ErrorResponse {
-                    error: format!("Failed to read multipart: {e}"),
-                }),
-            )
-                .into_response()
-        }
+        Ok(None) => return bad_request_response("No file provided"),
+        Err(e) => return bad_request_response(format!("Failed to read multipart: {e}")),
     };
 
     let bytes = match field.bytes().await {
         Ok(bytes) => bytes,
-        Err(e) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(ErrorResponse {
-                    error: format!("Failed to read file: {e}"),
-                }),
-            )
-                .into_response()
-        }
+        Err(e) => return bad_request_response(format!("Failed to read file: {e}")),
     };
 
     let csv_data = match csv_loader::load_csv_from_bytes(&bytes) {
         Ok(data) => data,
-        Err(e) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(ErrorResponse {
-                    error: format!("Failed to parse CSV: {e}"),
-                }),
-            )
-                .into_response()
-        }
+        Err(e) => return bad_request_response(format!("Failed to parse CSV: {e}")),
     };
 
     let response = match state
@@ -140,15 +114,7 @@ pub async fn load_csv_file(
         .await
     {
         Some(response) => response,
-        None => {
-            return (
-                StatusCode::NOT_FOUND,
-                Json(ErrorResponse {
-                    error: "Session not found".to_string(),
-                }),
-            )
-                .into_response()
-        }
+        None => return session_not_found_response(),
     };
 
     Json(response).into_response()
@@ -178,26 +144,14 @@ pub async fn compare(
 ) -> Response {
     let comparison_input = match state.with_session(&session_id, comparison_inputs).await {
         Some(Ok(input)) => input,
-        Some(Err(error)) => {
-            return (StatusCode::BAD_REQUEST, Json(ErrorResponse { error })).into_response()
-        }
-        None => {
-            return (
-                StatusCode::NOT_FOUND,
-                Json(ErrorResponse {
-                    error: "Session not found".to_string(),
-                }),
-            )
-                .into_response()
-        }
+        Some(Err(error)) => return bad_request_response(error),
+        None => return session_not_found_response(),
     };
 
     let (csv_a, csv_b) = comparison_input;
     let execution = match run_comparison(&csv_a, &csv_b, request) {
         Ok(execution) => execution,
-        Err(error) => {
-            return (StatusCode::BAD_REQUEST, Json(ErrorResponse { error })).into_response()
-        }
+        Err(error) => return bad_request_response(error),
     };
 
     let _ = state
@@ -217,31 +171,18 @@ pub async fn export_csv(State(state): State<AppState>, Path(session_id): Path<St
         .await
     {
         Some(Ok(snapshot)) => snapshot,
-        Some(Err(error)) => {
-            return (StatusCode::BAD_REQUEST, Json(ErrorResponse { error })).into_response()
-        }
-        None => {
-            return (
-                StatusCode::NOT_FOUND,
-                Json(ErrorResponse {
-                    error: "Session not found".to_string(),
-                }),
-            )
-                .into_response()
-        }
+        Some(Err(error)) => return bad_request_response(error),
+        None => return session_not_found_response(),
     };
 
     let (results, comparison_config) = snapshot;
     let csv_content = match export_results_to_bytes(&results, comparison_config.as_ref()) {
         Ok(bytes) => bytes,
         Err(e) => {
-            return (
+            return error_response(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: format!("Failed to build CSV export: {e}"),
-                }),
+                format!("Failed to build CSV export: {e}"),
             )
-                .into_response()
         }
     };
 
@@ -269,18 +210,8 @@ pub async fn save_pair_order(
         .await
     {
         Some(Ok(contents)) => contents,
-        Some(Err(error)) => {
-            return (StatusCode::BAD_REQUEST, Json(ErrorResponse { error })).into_response()
-        }
-        None => {
-            return (
-                StatusCode::NOT_FOUND,
-                Json(ErrorResponse {
-                    error: "Session not found".to_string(),
-                }),
-            )
-                .into_response()
-        }
+        Some(Err(error)) => return bad_request_response(error),
+        None => return session_not_found_response(),
     };
 
     Response::builder()
@@ -306,18 +237,8 @@ pub async fn load_pair_order(
         .await
     {
         Some(Ok(response)) => response,
-        Some(Err(error)) => {
-            return (StatusCode::BAD_REQUEST, Json(ErrorResponse { error })).into_response()
-        }
-        None => {
-            return (
-                StatusCode::NOT_FOUND,
-                Json(ErrorResponse {
-                    error: "Session not found".to_string(),
-                }),
-            )
-                .into_response()
-        }
+        Some(Err(error)) => return bad_request_response(error),
+        None => return session_not_found_response(),
     };
 
     Json(response).into_response()

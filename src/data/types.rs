@@ -181,7 +181,97 @@ pub struct ValueDifference {
     pub value_b: String,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+const EMPTY_VALUES: &[String] = &[];
+const EMPTY_DUPLICATE_VALUES: &[Vec<String>] = &[];
+const EMPTY_DIFFERENCES: &[ValueDifference] = &[];
+
+impl RowComparisonResult {
+    pub fn key(&self) -> &[String] {
+        match self {
+            Self::Match { key, .. }
+            | Self::Mismatch { key, .. }
+            | Self::MissingLeft { key, .. }
+            | Self::MissingRight { key, .. }
+            | Self::UnkeyedLeft { key, .. }
+            | Self::UnkeyedRight { key, .. }
+            | Self::Duplicate { key, .. } => key,
+        }
+    }
+
+    pub fn values_a(&self) -> &[String] {
+        match self {
+            Self::Match { values_a, .. }
+            | Self::Mismatch { values_a, .. }
+            | Self::MissingRight { values_a, .. }
+            | Self::UnkeyedRight { values_a, .. } => values_a,
+            Self::Duplicate { values_a, .. } => {
+                values_a.first().map(Vec::as_slice).unwrap_or(EMPTY_VALUES)
+            }
+            Self::MissingLeft { .. } | Self::UnkeyedLeft { .. } => EMPTY_VALUES,
+        }
+    }
+
+    pub fn values_b(&self) -> &[String] {
+        match self {
+            Self::Match { values_b, .. }
+            | Self::Mismatch { values_b, .. }
+            | Self::MissingLeft { values_b, .. }
+            | Self::UnkeyedLeft { values_b, .. } => values_b,
+            Self::Duplicate { values_b, .. } => {
+                values_b.first().map(Vec::as_slice).unwrap_or(EMPTY_VALUES)
+            }
+            Self::MissingRight { .. } | Self::UnkeyedRight { .. } => EMPTY_VALUES,
+        }
+    }
+
+    pub fn duplicate_values_a(&self) -> &[Vec<String>] {
+        match self {
+            Self::Duplicate { values_a, .. } => values_a,
+            _ => EMPTY_DUPLICATE_VALUES,
+        }
+    }
+
+    pub fn duplicate_values_b(&self) -> &[Vec<String>] {
+        match self {
+            Self::Duplicate { values_b, .. } => values_b,
+            _ => EMPTY_DUPLICATE_VALUES,
+        }
+    }
+
+    pub fn differences(&self) -> &[ValueDifference] {
+        match self {
+            Self::Mismatch { differences, .. } => differences,
+            _ => EMPTY_DIFFERENCES,
+        }
+    }
+
+    pub fn duplicate_source(&self) -> Option<DuplicateSource> {
+        match self {
+            Self::Duplicate {
+                values_a, values_b, ..
+            } => DuplicateSource::from_duplicate_rows(values_a, values_b),
+            _ => None,
+        }
+    }
+
+    pub fn result_type(&self) -> ResultType {
+        match self {
+            Self::Match { .. } => ResultType::Match,
+            Self::Mismatch { .. } => ResultType::Mismatch,
+            Self::MissingLeft { .. } => ResultType::MissingLeft,
+            Self::MissingRight { .. } => ResultType::MissingRight,
+            Self::UnkeyedLeft { .. } => ResultType::UnkeyedLeft,
+            Self::UnkeyedRight { .. } => ResultType::UnkeyedRight,
+            Self::Duplicate { .. } => match self.duplicate_source() {
+                Some(DuplicateSource::FileA) => ResultType::DuplicateFileA,
+                Some(DuplicateSource::FileB) => ResultType::DuplicateFileB,
+                Some(DuplicateSource::Both) | None => ResultType::DuplicateBoth,
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DuplicateSource {
     FileA,
     FileB,

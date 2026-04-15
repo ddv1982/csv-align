@@ -3,6 +3,12 @@ use std::collections::HashSet;
 use crate::backend::requests::{CompareRequest, CompareValidationError, MappingRequest};
 use crate::data::types::{ColumnMapping, ComparisonConfig, CsvData, MappingType};
 
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub(crate) struct SelectedColumnsAudit {
+    pub duplicates: Vec<String>,
+    pub missing: Vec<String>,
+}
+
 pub(crate) fn build_comparison_config(
     csv_a: &CsvData,
     csv_b: &CsvData,
@@ -181,27 +187,21 @@ fn validate_selected_columns(
         return Err(CompareValidationError::EmptyColumns(selection));
     }
 
-    let duplicates = duplicate_values(selected);
-    if !duplicates.is_empty() {
+    let audit = audit_selected_columns(headers, selected);
+
+    if !audit.duplicates.is_empty() {
         return Err(CompareValidationError::DuplicateColumns {
             selection,
-            columns: duplicates,
+            columns: audit.duplicates,
         });
     }
 
-    let header_set: HashSet<&str> = headers.iter().map(String::as_str).collect();
-    let missing: Vec<String> = selected
-        .iter()
-        .filter(|column| !header_set.contains(column.as_str()))
-        .cloned()
-        .collect();
-
-    if missing.is_empty() {
+    if audit.missing.is_empty() {
         Ok(())
     } else {
         Err(CompareValidationError::MissingColumns {
             selection,
-            columns: missing,
+            columns: audit.missing,
         })
     }
 }
@@ -235,4 +235,20 @@ fn duplicate_values(values: &[String]) -> Vec<String> {
     }
 
     duplicates
+}
+
+pub(crate) fn audit_selected_columns(
+    headers: &[String],
+    selected: &[String],
+) -> SelectedColumnsAudit {
+    let header_set: HashSet<&str> = headers.iter().map(String::as_str).collect();
+
+    SelectedColumnsAudit {
+        duplicates: duplicate_values(selected),
+        missing: selected
+            .iter()
+            .filter(|column| !header_set.contains(column.as_str()))
+            .cloned()
+            .collect(),
+    }
 }
