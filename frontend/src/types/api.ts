@@ -110,6 +110,17 @@ export interface SessionResponse {
   session_id: string;
 }
 
+export interface PairOrderSelection {
+  key_columns_a: string[];
+  key_columns_b: string[];
+  comparison_columns_a: string[];
+  comparison_columns_b: string[];
+}
+
+export interface LoadPairOrderResponse {
+  selection: PairOrderSelection;
+}
+
 export interface ErrorResponse {
   error: string;
 }

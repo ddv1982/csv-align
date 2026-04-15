@@ -8,7 +8,8 @@ A modern application to compare two CSV files with visual difference highlightin
 - **Auto-detect columns** and data types
 - **Manual column pairing** for precise comparisons
 - **Select key columns** for row matching
-- **Select comparison columns** to compare
+- **Select comparison columns** to compare in a manual left/right pair order
+- **Save and load pair-order files** to reuse the same comparison setup with matching CSV headers
 - **Compare rows side by side** with results showing:
   - Exact matches
   - Mismatched values (with highlighted differences)
@@ -59,40 +60,34 @@ Run the web server locally (see Development section below).
 
 ```
 csv-align/
-├── Cargo.toml              # Rust project config
-├── src/
-│   ├── main.rs             # Web server entry point
-│   ├── lib.rs              # Library root
-│   ├── api/                # Web API handlers
-│   │   ├── mod.rs
-│   │   ├── handlers.rs     # HTTP endpoints
-│   │   └── state.rs        # Session state
-│   ├── comparison/         # Comparison engine
-│   │   ├── mod.rs
-│   │   ├── engine.rs       # Core comparison logic
-│   │   └── mapping.rs      # Column mapping logic
-│   └── data/               # Data structures and I/O
-│       ├── mod.rs
-│       ├── types.rs        # Data types
-│       ├── csv_loader.rs   # CSV loading
-│       └── export.rs       # CSV export
-├── src-tauri/              # Tauri desktop app wrapper
-│   ├── Cargo.toml
-│   ├── tauri.conf.json
-│   └── src/main.rs
-├── frontend/               # React frontend
-│   ├── package.json
-│   ├── vite.config.ts
+├── Cargo.toml / Cargo.lock       # Core Rust crate metadata
+├── CHANGELOG.md                  # Release notes
+├── README.md                     # Project documentation
+├── docs/                         # Supporting project docs
+├── src/                          # Shared Rust application/library code
+│   ├── api/                      # Axum HTTP layer
+│   ├── backend/                  # Shared workflows, validation, session logic
+│   ├── comparison/               # Core comparison engine
+│   ├── data/                     # CSV loading/export and domain types
+│   └── presentation/             # Shared response shaping
+├── tests/                        # Rust integration/regression tests
+├── src-tauri/                    # Tauri desktop wrapper and config
+│   ├── src/                      # Desktop commands/tests
+│   └── tauri.conf.json
+├── frontend/                     # React + TypeScript frontend
 │   ├── src/
-│   │   ├── App.tsx         # Main app component
-│   │   ├── components/     # UI components
-│   │   ├── services/       # API service (web + Tauri)
-│   │   └── types/          # TypeScript types
-│   └── dist/               # Built frontend
-├── .github/workflows/      # CI/CD workflows
-│   ├── ci.yml              # Test & build
-│   └── release.yml         # Release packaging
-└── samples/                # Sample CSV files
+│   │   ├── components/           # UI components
+│   │   ├── config/               # Frontend defaults
+│   │   ├── features/             # Feature-specific helpers
+│   │   ├── hooks/                # Workflow/theme hooks
+│   │   ├── services/             # Web + Tauri transport helpers
+│   │   ├── test/                 # Frontend test setup
+│   │   └── types/                # Frontend API/UI types
+│   └── package.json
+├── .github/workflows/
+│   ├── ci.yml                    # Test and build workflow
+│   └── release.yml               # Tagged release packaging workflow
+└── samples/
     ├── file_a.csv
     └── file_b.csv
 ```
@@ -167,8 +162,8 @@ The packaged app will be in `src-tauri/target/release/bundle/`.
 The approved cleanup pass is intentionally conservative:
 
 - backend response-contract changes must be protected by characterization tests before DTO/mapping dedupe
-- frontend structural cleanup is gated because `frontend/package.json` currently has no test script/tooling
-- dead-code removal must be re-verified with search evidence plus passing `cargo check`, `cargo test`, and `cd frontend && npm run build`
+- frontend structural cleanup should preserve the current Vitest coverage and production build path
+- dead-code removal must be re-verified with search evidence plus passing `cargo check`, `cargo test`, `cd src-tauri && cargo test`, `cd frontend && npm test`, and `cd frontend && npm run build`
 
 See [`docs/cleanup-review.md`](docs/cleanup-review.md) for the current review findings and execution guardrails.
 
@@ -195,20 +190,23 @@ This project uses GitHub Actions for continuous integration and delivery:
 ```bash
 # Update version in:
 # - Cargo.toml
-# - src-tauri/Cargo.toml  
+# - Cargo.lock
+# - src-tauri/Cargo.toml
+# - src-tauri/Cargo.lock
 # - src-tauri/tauri.conf.json
 # - frontend/package.json
+# - frontend/package-lock.json
 
 # Add release notes in CHANGELOG.md using this exact heading format:
-# ## v0.2.3 - YYYY-MM-DD
+# ## v1.0.8 - YYYY-MM-DD
 # - First release note bullet
 
 # Commit and tag
 git add -A
-git commit -m "Release v0.2.3"
-git tag v0.2.3
+git commit -m "Release v1.0.8"
+git tag v1.0.8
 git push origin main
-git push origin v0.2.3
+git push origin v1.0.8
 ```
 
 Pushing the `v*` tag triggers the release workflow. If `CHANGELOG.md` is missing, the tag heading does not exactly match, or the section has no release-note content, the workflow fails before creating the GitHub Release.
@@ -223,16 +221,19 @@ Pushing the `v*` tag triggers the release workflow. If `CHANGELOG.md` is missing
 | `/api/sessions/:id/files/:letter` | POST | Load CSV file (a or b) into the session |
 | `/api/sessions/:id/mappings` | POST | Get column mappings |
 | `/api/sessions/:id/compare` | POST | Run comparison |
+| `/api/sessions/:id/pair-order/save` | POST | Save the current key/comparison pair order as a text file |
+| `/api/sessions/:id/pair-order/load` | POST | Load a saved pair order when the current file headers are compatible |
 | `/api/sessions/:id/export` | GET | Export results as CSV |
 
 ## Usage
 
 1. **Select Files**: Drag and drop or click to choose two local CSV files.
 
-2. **Configure Comparison**: 
+2. **Configure Comparison**:
    - Select key columns (used to match rows between files)
    - Select comparison columns (values to compare)
    - Pair columns manually in the order you want to compare them
+   - Use **Save pair order** to download the current key/comparison selection and **Load pair order** to restore it when the same File A/File B headers are loaded
 
 3. **Run Comparison**: Click "Run Comparison" to compare the files.
 
@@ -253,13 +254,20 @@ The `samples/` directory contains example CSV files:
 ## Running Tests
 
 ```bash
-# Rust tests
+# Core Rust tests
 cargo test
 
-# Check formatting
-cargo fmt --check
+# Desktop wrapper tests
+cd src-tauri && cargo test
 
-# Run linter
+# Frontend tests
+cd frontend && npm test
+
+# Frontend production build
+cd frontend && npm run build
+
+# Optional formatting/lint checks
+cargo fmt --check
 cargo clippy
 ```
 

@@ -28,6 +28,8 @@ function renderMappingConfig(normalization: ComparisonNormalizationConfig = INIT
       onSelectionChange={() => undefined}
       onNormalizationChange={() => undefined}
       onCompare={() => undefined}
+      onSavePairOrder={() => undefined}
+      onLoadPairOrder={() => undefined}
     />
   );
 }

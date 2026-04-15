@@ -12,6 +12,9 @@ use crate::backend::{
     export_session_results_snapshot, parse_file_side, run_comparison, suggest_mappings_workflow,
     validate_file_letter,
 };
+use crate::backend::{
+    load_pair_order_workflow, save_pair_order_workflow, LoadPairOrderRequest, SavePairOrderRequest,
+};
 pub use crate::backend::{CompareRequest, MappingRequest, SessionResponse, SuggestMappingsRequest};
 use crate::data::csv_loader;
 
@@ -252,4 +255,70 @@ pub async fn export_csv(State(state): State<AppState>, Path(session_id): Path<St
         )
         .body(Body::from(csv_content))
         .unwrap()
+}
+
+pub async fn save_pair_order(
+    State(state): State<AppState>,
+    Path(session_id): Path<String>,
+    Json(request): Json<SavePairOrderRequest>,
+) -> Response {
+    let contents = match state
+        .with_session(&session_id, |session_data| {
+            save_pair_order_workflow(session_data, request.selection)
+        })
+        .await
+    {
+        Some(Ok(contents)) => contents,
+        Some(Err(error)) => {
+            return (StatusCode::BAD_REQUEST, Json(ErrorResponse { error })).into_response()
+        }
+        None => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(ErrorResponse {
+                    error: "Session not found".to_string(),
+                }),
+            )
+                .into_response()
+        }
+    };
+
+    Response::builder()
+        .status(StatusCode::OK)
+        .header("Content-Type", "text/plain; charset=utf-8")
+        .header(
+            "Content-Disposition",
+            "attachment; filename=\"pair-order.txt\"",
+        )
+        .body(Body::from(contents))
+        .unwrap()
+}
+
+pub async fn load_pair_order(
+    State(state): State<AppState>,
+    Path(session_id): Path<String>,
+    Json(request): Json<LoadPairOrderRequest>,
+) -> Response {
+    let response = match state
+        .with_session(&session_id, |session_data| {
+            load_pair_order_workflow(session_data, &request.contents)
+        })
+        .await
+    {
+        Some(Ok(response)) => response,
+        Some(Err(error)) => {
+            return (StatusCode::BAD_REQUEST, Json(ErrorResponse { error })).into_response()
+        }
+        None => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(ErrorResponse {
+                    error: "Session not found".to_string(),
+                }),
+            )
+                .into_response()
+        }
+    };
+
+    Json(response).into_response()
 }

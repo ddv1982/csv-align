@@ -1,4 +1,7 @@
+import type { ChangeEvent } from 'react';
+import { useRef } from 'react';
 import type { ComparisonNormalizationConfig, MappingResponse } from '../types/api';
+import { isTauri } from '../services/tauri';
 import type { AppFile, MappingSelectionState } from '../types/ui';
 import { ColumnChipSelector } from './mapping-config/ColumnChipSelector';
 import { NormalizationPanel } from './mapping-config/NormalizationPanel';
@@ -19,6 +22,8 @@ interface MappingConfigProps {
     columnMappings: MappingResponse[],
     normalization: ComparisonNormalizationConfig,
   ) => void;
+  onSavePairOrder: () => void;
+  onLoadPairOrder: (file?: File) => void;
 }
 
 function toggleColumnSelection(selectedColumns: string[], column: string) {
@@ -35,7 +40,10 @@ export function MappingConfig({
   onSelectionChange,
   onNormalizationChange,
   onCompare,
+  onSavePairOrder,
+  onLoadPairOrder,
 }: MappingConfigProps) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { keyColumnsA, keyColumnsB, comparisonColumnsA, comparisonColumnsB } = selection;
 
   const updateSelection = (updates: Partial<MappingSelectionState>) => {
@@ -82,6 +90,21 @@ export function MappingConfig({
     );
   };
 
+  const handleLoadButtonClick = () => {
+    if (isTauri) {
+      onLoadPairOrder();
+      return;
+    }
+
+    fileInputRef.current?.click();
+  };
+
+  const handleLoadInputChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const [file] = Array.from(event.target.files ?? []);
+    await onLoadPairOrder(file);
+    event.target.value = '';
+  };
+
   return (
     <div className="space-y-6">
       <div className="card p-6">
@@ -89,6 +112,21 @@ export function MappingConfig({
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Select comparison columns in File A and File B in the order you want to pair them. No automatic suggestions are applied.
         </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button onClick={onSavePairOrder} className="btn btn-secondary" type="button">
+            Save pair order
+          </button>
+          <button onClick={handleLoadButtonClick} className="btn btn-secondary" type="button">
+            Load pair order
+          </button>
+          <input
+            ref={fileInputRef}
+            accept=".txt,text/plain,application/json"
+            className="hidden"
+            onChange={handleLoadInputChange}
+            type="file"
+          />
+        </div>
       </div>
 
       <NormalizationPanel normalization={normalization} onChange={updateNormalization} onDateChange={updateDateNormalization} />

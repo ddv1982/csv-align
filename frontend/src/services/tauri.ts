@@ -1,11 +1,13 @@
 import { invoke } from '@tauri-apps/api/core';
-import { save } from '@tauri-apps/plugin-dialog';
+import { open, save } from '@tauri-apps/plugin-dialog';
 import {
   FileLoadResponse,
   SuggestMappingsRequest,
   SuggestMappingsResponse,
   CompareRequest,
   CompareResponse,
+  LoadPairOrderResponse,
+  PairOrderSelection,
   SessionResponse,
 } from '../types/api';
 
@@ -143,6 +145,82 @@ export async function exportResults(sessionId: string): Promise<Blob | void> {
     throw new Error(error.error || 'Failed to export results');
   }
   return response.blob();
+}
+
+export async function savePairOrder(
+  sessionId: string,
+  selection: PairOrderSelection,
+): Promise<Blob | void> {
+  if (isTauri) {
+    const outputPath = await save({
+      defaultPath: 'pair-order.txt',
+      filters: [{ name: 'Text Files', extensions: ['txt'] }],
+    });
+
+    if (!outputPath) {
+      return;
+    }
+
+    await invoke('save_pair_order', {
+      sessionId,
+      selection,
+      outputPath,
+    });
+
+    return;
+  }
+
+  const response = await fetch(`/api/sessions/${sessionId}/pair-order/save`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ selection }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to save pair order');
+  }
+
+  return response.blob();
+}
+
+export async function loadPairOrder(
+  sessionId: string,
+  file?: File,
+): Promise<LoadPairOrderResponse | void> {
+  if (isTauri) {
+    const filePath = await open({
+      multiple: false,
+      filters: [{ name: 'Text Files', extensions: ['txt'] }],
+    });
+
+    if (!filePath || Array.isArray(filePath)) {
+      return;
+    }
+
+    return await invoke('load_pair_order', {
+      sessionId,
+      filePath,
+    });
+  }
+
+  if (!(file instanceof File)) {
+    throw new Error('No pair-order file selected');
+  }
+
+  const contents = await file.text();
+  const response = await fetch(`/api/sessions/${sessionId}/pair-order/load`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contents }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to load pair order');
+  }
+
+  return response.json();
 }
 
 export function downloadBlob(blob: Blob, filename: string): void {

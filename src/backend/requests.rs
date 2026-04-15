@@ -30,6 +30,29 @@ pub struct SuggestMappingsRequest {
     pub columns_b: Vec<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PairOrderSelection {
+    pub key_columns_a: Vec<String>,
+    pub key_columns_b: Vec<String>,
+    pub comparison_columns_a: Vec<String>,
+    pub comparison_columns_b: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SavePairOrderRequest {
+    pub selection: PairOrderSelection,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct LoadPairOrderRequest {
+    pub contents: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct LoadPairOrderResponse {
+    pub selection: PairOrderSelection,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct SessionResponse {
     pub session_id: String,

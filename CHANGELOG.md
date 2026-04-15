@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.8 - 2026-04-15
+
+- Added save/load support for manual pair-order selections so repeated comparisons can restore the same key and comparison column setup when the loaded CSV headers match.
+- Added frontend and Rust regression coverage for pair-order persistence, and updated release docs/version metadata for the new release.
+
 ## v1.0.7 - 2026-04-14
 
 - Fixed the macOS release workflow so empty Apple signing variables are no longer exposed to Tauri, allowing unsigned builds to fall back cleanly to ad-hoc signing.

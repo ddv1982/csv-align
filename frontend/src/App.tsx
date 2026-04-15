@@ -21,6 +21,8 @@ function App() {
     handleFileSelection,
     handleCompare,
     handleExport,
+    handleSavePairOrder,
+    handleLoadPairOrder,
     handleFilterChange,
     handleReset,
     handleBackToConfigure,
@@ -56,6 +58,8 @@ function App() {
             onSelectionChange={setMappingSelection}
             onNormalizationChange={setNormalizationConfig}
             onCompare={handleCompare}
+            onSavePairOrder={handleSavePairOrder}
+            onLoadPairOrder={handleLoadPairOrder}
             onBack={handleBackToSelection}
           />
         )}

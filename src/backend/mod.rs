@@ -1,11 +1,14 @@
+mod pair_order;
 mod requests;
 mod session;
 mod validation;
 mod workflow;
 
+pub use pair_order::{load_pair_order_workflow, save_pair_order_workflow};
 pub use requests::{
-    CompareExecution, CompareRequest, CompareValidationError, MappingRequest, SessionResponse,
-    SuggestMappingsRequest,
+    CompareExecution, CompareRequest, CompareValidationError, LoadPairOrderRequest,
+    LoadPairOrderResponse, MappingRequest, PairOrderSelection, SavePairOrderRequest,
+    SessionResponse, SuggestMappingsRequest,
 };
 pub use session::SessionData;
 pub use workflow::{

@@ -1,10 +1,13 @@
 use std::collections::HashMap;
+use std::fs;
 use std::sync::Mutex;
 
 use csv_align::backend::{
-    apply_csv_to_session, comparison_inputs, export_session_results_snapshot, parse_file_side,
-    run_comparison, suggest_mappings_workflow, validate_file_letter, write_export_results,
-    CompareRequest, SessionData, SessionResponse, SuggestMappingsRequest,
+    apply_csv_to_session, comparison_inputs, export_session_results_snapshot,
+    load_pair_order_workflow, parse_file_side, run_comparison, save_pair_order_workflow,
+    suggest_mappings_workflow, validate_file_letter, write_export_results, CompareRequest,
+    LoadPairOrderResponse, PairOrderSelection, SessionData, SessionResponse,
+    SuggestMappingsRequest,
 };
 use csv_align::data::csv_loader;
 use csv_align::presentation::responses::{
@@ -142,8 +145,44 @@ fn export_results(
     write_export_results(&results, comparison_config.as_ref(), &output_path)
 }
 
+#[tauri::command]
+fn save_pair_order(
+    state: tauri::State<AppState>,
+    session_id: String,
+    selection: PairOrderSelection,
+    output_path: String,
+) -> Result<(), String> {
+    let contents = state
+        .with_session(&session_id, |session_data| {
+            save_pair_order_workflow(session_data, selection)
+        })
+        .ok_or_else(|| "Session not found".to_string())??;
+
+    fs::write(&output_path, contents)
+        .map_err(|error| format!("Failed to save pair-order file: {error}"))
+}
+
+#[tauri::command]
+fn load_pair_order(
+    state: tauri::State<AppState>,
+    session_id: String,
+    file_path: String,
+) -> Result<LoadPairOrderResponse, String> {
+    let contents = fs::read_to_string(&file_path)
+        .map_err(|error| format!("Failed to read pair-order file: {error}"))?;
+
+    state
+        .with_session(&session_id, |session_data| {
+            load_pair_order_workflow(session_data, &contents)
+        })
+        .ok_or_else(|| "Session not found".to_string())?
+}
+
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod pair_order_tests;
 
 fn main() {
     tauri::Builder::default()
@@ -158,6 +197,8 @@ fn main() {
             suggest_mappings,
             compare,
             export_results,
+            save_pair_order,
+            load_pair_order,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

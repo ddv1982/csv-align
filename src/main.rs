@@ -70,6 +70,14 @@ async fn main() {
         )
         // Comparison
         .route("/api/sessions/:session_id/compare", post(handlers::compare))
+        .route(
+            "/api/sessions/:session_id/pair-order/save",
+            post(handlers::save_pair_order),
+        )
+        .route(
+            "/api/sessions/:session_id/pair-order/load",
+            post(handlers::load_pair_order),
+        )
         // Export
         .route(
             "/api/sessions/:session_id/export",

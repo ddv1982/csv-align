@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { INITIAL_NORMALIZATION_CONFIG } from '../config/normalization';
 import { filterResults } from '../features/results/presentation';
-import { compareFiles, createSession, downloadBlob, exportResults, loadFile } from '../services/tauri';
+import { compareFiles, createSession, downloadBlob, exportResults, loadFile, loadPairOrder, savePairOrder } from '../services/tauri';
 import type { AppState, ComparisonNormalizationConfig, MappingResponse, ResultFilter } from '../types/api';
 import { INITIAL_MAPPING_SELECTION, type AppStep, type MappingSelectionState } from '../types/ui';
 
@@ -135,6 +135,55 @@ export function useComparisonWorkflow() {
     setState((previousState) => ({ ...previousState, filter }));
   }, []);
 
+  const handleSavePairOrder = useCallback(async () => {
+    if (!state.sessionId) {
+      return;
+    }
+
+    setState((previousState) => ({ ...previousState, loading: true, error: null }));
+
+    try {
+      const blob = await savePairOrder(state.sessionId, {
+        key_columns_a: mappingSelection.keyColumnsA,
+        key_columns_b: mappingSelection.keyColumnsB,
+        comparison_columns_a: mappingSelection.comparisonColumnsA,
+        comparison_columns_b: mappingSelection.comparisonColumnsB,
+      });
+
+      if (blob) {
+        downloadBlob(blob, 'pair-order.txt');
+      }
+
+      setState((previousState) => ({ ...previousState, loading: false }));
+    } catch (error) {
+      setState((previousState) => ({ ...previousState, error: (error as Error).message, loading: false }));
+    }
+  }, [mappingSelection, state.sessionId]);
+
+  const handleLoadPairOrder = useCallback(async (file?: File) => {
+    if (!state.sessionId) {
+      return;
+    }
+
+    setState((previousState) => ({ ...previousState, loading: true, error: null }));
+
+    try {
+      const response = await loadPairOrder(state.sessionId, file);
+      if (response) {
+        setMappingSelection({
+          keyColumnsA: response.selection.key_columns_a,
+          keyColumnsB: response.selection.key_columns_b,
+          comparisonColumnsA: response.selection.comparison_columns_a,
+          comparisonColumnsB: response.selection.comparison_columns_b,
+        });
+      }
+
+      setState((previousState) => ({ ...previousState, loading: false }));
+    } catch (error) {
+      setState((previousState) => ({ ...previousState, error: (error as Error).message, loading: false }));
+    }
+  }, [state.sessionId]);
+
   const resetWorkflowState = useCallback(() => {
     setState(INITIAL_STATE);
     setMappingSelection(INITIAL_MAPPING_SELECTION);
@@ -164,6 +213,8 @@ export function useComparisonWorkflow() {
     handleFileSelection,
     handleCompare,
     handleExport,
+    handleSavePairOrder,
+    handleLoadPairOrder,
     handleFilterChange,
     handleReset,
     handleBackToConfigure: () => setStep('configure'),

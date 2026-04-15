@@ -10,13 +10,17 @@ const {
   createSessionMock,
   downloadBlobMock,
   exportResultsMock,
+  loadPairOrderMock,
   loadFileMock,
+  savePairOrderMock,
 } = vi.hoisted(() => ({
   compareFilesMock: vi.fn(),
   createSessionMock: vi.fn(),
   downloadBlobMock: vi.fn(),
   exportResultsMock: vi.fn(),
+  loadPairOrderMock: vi.fn(),
   loadFileMock: vi.fn(),
+  savePairOrderMock: vi.fn(),
 }));
 
 vi.mock('../services/tauri', () => ({
@@ -24,7 +28,9 @@ vi.mock('../services/tauri', () => ({
   createSession: createSessionMock,
   downloadBlob: downloadBlobMock,
   exportResults: exportResultsMock,
+  loadPairOrder: loadPairOrderMock,
   loadFile: loadFileMock,
+  savePairOrder: savePairOrderMock,
 }));
 
 const FILE_COLUMNS = [
@@ -54,7 +60,9 @@ beforeEach(() => {
   createSessionMock.mockReset();
   downloadBlobMock.mockReset();
   exportResultsMock.mockReset();
+  loadPairOrderMock.mockReset();
   loadFileMock.mockReset();
+  savePairOrderMock.mockReset();
 
   createSessionMock.mockResolvedValue({ session_id: 'session-1' });
   loadFileMock.mockImplementation(async (_sessionId: string, file: File) => ({
@@ -97,6 +105,15 @@ beforeEach(() => {
       duplicates_b: 0,
     },
   });
+  loadPairOrderMock.mockResolvedValue({
+    selection: {
+      key_columns_a: ['id'],
+      key_columns_b: ['id'],
+      comparison_columns_a: ['name'],
+      comparison_columns_b: ['name'],
+    },
+  });
+  savePairOrderMock.mockResolvedValue(undefined);
 });
 
 test('surfaces a bootstrap session error when initial session creation fails', async () => {

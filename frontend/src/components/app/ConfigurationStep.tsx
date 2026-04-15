@@ -17,6 +17,8 @@ interface ConfigurationStepProps {
     columnMappings: MappingResponse[],
     normalization: ComparisonNormalizationConfig,
   ) => void;
+  onSavePairOrder: () => void;
+  onLoadPairOrder: (file?: File) => void;
   onBack: () => void;
 }
 
@@ -28,6 +30,8 @@ export function ConfigurationStep({
   onSelectionChange,
   onNormalizationChange,
   onCompare,
+  onSavePairOrder,
+  onLoadPairOrder,
   onBack,
 }: ConfigurationStepProps) {
   return (
@@ -48,6 +52,8 @@ export function ConfigurationStep({
         onSelectionChange={onSelectionChange}
         onNormalizationChange={onNormalizationChange}
         onCompare={onCompare}
+        onSavePairOrder={onSavePairOrder}
+        onLoadPairOrder={onLoadPairOrder}
       />
     </div>
   );
