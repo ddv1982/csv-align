@@ -54,6 +54,8 @@ pub struct SummaryResponse {
     pub mismatches: usize,
     pub missing_left: usize,
     pub missing_right: usize,
+    pub unkeyed_left: usize,
+    pub unkeyed_right: usize,
     pub duplicates_a: usize,
     pub duplicates_b: usize,
 }
@@ -169,6 +171,24 @@ fn result_response(result: &RowComparisonResult) -> ResultResponse {
             duplicate_values_b: Vec::new(),
             differences: Vec::new(),
         },
+        RowComparisonResult::UnkeyedLeft { key, values_b } => ResultResponse {
+            result_type: ResultType::UnkeyedLeft,
+            key: key.clone(),
+            values_a: Vec::new(),
+            values_b: values_b.clone(),
+            duplicate_values_a: Vec::new(),
+            duplicate_values_b: Vec::new(),
+            differences: Vec::new(),
+        },
+        RowComparisonResult::UnkeyedRight { key, values_a } => ResultResponse {
+            result_type: ResultType::UnkeyedRight,
+            key: key.clone(),
+            values_a: values_a.clone(),
+            values_b: Vec::new(),
+            duplicate_values_a: Vec::new(),
+            duplicate_values_b: Vec::new(),
+            differences: Vec::new(),
+        },
         RowComparisonResult::Duplicate {
             key,
             values_a,
@@ -202,6 +222,8 @@ fn summary_response(summary: &ComparisonSummary) -> SummaryResponse {
         mismatches: summary.mismatches,
         missing_left: summary.missing_left,
         missing_right: summary.missing_right,
+        unkeyed_left: summary.unkeyed_left,
+        unkeyed_right: summary.unkeyed_right,
         duplicates_a: summary.duplicates_a,
         duplicates_b: summary.duplicates_b,
     }

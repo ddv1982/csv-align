@@ -8,6 +8,8 @@ export type CompareResultType =
   | 'mismatch'
   | 'missing_left'
   | 'missing_right'
+  | 'unkeyed_left'
+  | 'unkeyed_right'
   | 'duplicate_filea'
   | 'duplicate_fileb'
   | 'duplicate_both';
@@ -96,6 +98,8 @@ export interface SummaryResponse {
   mismatches: number;
   missing_left: number;
   missing_right: number;
+  unkeyed_left: number;
+  unkeyed_right: number;
   duplicates_a: number;
   duplicates_b: number;
 }
@@ -125,7 +129,15 @@ export interface ErrorResponse {
   error: string;
 }
 
-export type ResultFilter = 'all' | 'match' | 'mismatch' | 'missing_left' | 'missing_right' | 'duplicate';
+export type ResultFilter =
+  | 'all'
+  | 'match'
+  | 'mismatch'
+  | 'missing_left'
+  | 'missing_right'
+  | 'unkeyed_left'
+  | 'unkeyed_right'
+  | 'duplicate';
 
 export interface AppState {
   sessionId: string | null;

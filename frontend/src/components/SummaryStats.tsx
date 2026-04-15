@@ -65,6 +65,34 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
         </svg>
+        ),
+    },
+    {
+      label: 'Unkeyed Left',
+      value: summary.unkeyed_left,
+      surface: 'border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900/70',
+      iconBg: 'bg-rose-500/12 dark:bg-rose-400/20',
+      iconText: 'text-rose-700 dark:text-rose-300',
+      valueText: 'text-gray-900 dark:text-gray-100',
+      labelText: 'text-gray-600 dark:text-gray-300',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h8m-8 5h8m-8 5h5M6 3h12a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2z" />
+        </svg>
+      ),
+    },
+    {
+      label: 'Unkeyed Right',
+      value: summary.unkeyed_right,
+      surface: 'border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900/70',
+      iconBg: 'bg-fuchsia-500/12 dark:bg-fuchsia-400/20',
+      iconText: 'text-fuchsia-700 dark:text-fuchsia-300',
+      valueText: 'text-gray-900 dark:text-gray-100',
+      labelText: 'text-gray-600 dark:text-gray-300',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h8m-8 5h8m-8 5h5M6 3h12a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2z" />
+        </svg>
       ),
     },
   ];
@@ -113,7 +141,7 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
         {stats.map((stat) => (
           <div
             key={stat.label}
@@ -139,6 +167,19 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
             </svg>
             <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
               Duplicates found: {summary.duplicates_a} in File A, {summary.duplicates_b} in File B
+            </span>
+          </div>
+        </div>
+      )}
+
+      {(summary.unkeyed_left > 0 || summary.unkeyed_right > 0) && (
+        <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50/70 p-4 dark:border-rose-900/60 dark:bg-rose-950/25">
+          <div className="flex items-center gap-2">
+            <svg className="h-5 w-5 text-rose-600 dark:text-rose-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6M7 4h10a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z" />
+            </svg>
+            <span className="text-sm font-medium text-rose-800 dark:text-rose-200">
+              Unusable selected keys: {summary.unkeyed_left} in File B, {summary.unkeyed_right} in File A
             </span>
           </div>
         </div>

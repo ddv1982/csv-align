@@ -7,7 +7,7 @@ use csv_align::data::types::{ComparisonNormalizationConfig, RowComparisonResult}
 use common::{comparison_config, csv_data};
 
 #[test]
-fn comparison_treats_nullish_key_rows_as_one_sided_missing_and_keeps_valid_matches() {
+fn comparison_reports_nullish_key_rows_as_unkeyed_and_keeps_valid_matches() {
     let csv_a = csv_data(
         "left.csv",
         &["id", "value"],
@@ -54,6 +54,16 @@ fn comparison_treats_nullish_key_rows_as_one_sided_missing_and_keeps_valid_match
         .iter()
         .filter(|result| matches!(result, RowComparisonResult::MissingLeft { .. }))
         .count();
+    let unkeyed_right = execution
+        .results
+        .iter()
+        .filter(|result| matches!(result, RowComparisonResult::UnkeyedRight { .. }))
+        .count();
+    let unkeyed_left = execution
+        .results
+        .iter()
+        .filter(|result| matches!(result, RowComparisonResult::UnkeyedLeft { .. }))
+        .count();
     let matches = execution
         .results
         .iter()
@@ -65,14 +75,18 @@ fn comparison_treats_nullish_key_rows_as_one_sided_missing_and_keeps_valid_match
         .filter(|result| matches!(result, RowComparisonResult::Duplicate { .. }))
         .count();
 
-    assert_eq!(missing_right, 2);
-    assert_eq!(missing_left, 1);
+    assert_eq!(missing_right, 0);
+    assert_eq!(missing_left, 0);
+    assert_eq!(unkeyed_right, 2);
+    assert_eq!(unkeyed_left, 1);
     assert_eq!(matches, 1);
     assert_eq!(duplicates, 0);
 
     assert_eq!(execution.response.summary.matches, 1);
-    assert_eq!(execution.response.summary.missing_right, 2);
-    assert_eq!(execution.response.summary.missing_left, 1);
+    assert_eq!(execution.response.summary.missing_right, 0);
+    assert_eq!(execution.response.summary.missing_left, 0);
+    assert_eq!(execution.response.summary.unkeyed_right, 2);
+    assert_eq!(execution.response.summary.unkeyed_left, 1);
     assert_eq!(execution.response.summary.duplicates_a, 0);
     assert_eq!(execution.response.summary.duplicates_b, 0);
 }
@@ -112,28 +126,42 @@ fn engine_does_not_group_multiple_nullish_keys_into_duplicate_buckets() {
         "nullish keys should stay out of duplicate buckets"
     );
 
-    let nullish_missing_right = results
+    let nullish_unkeyed_right = results
         .iter()
         .filter(|result| {
             matches!(
                 result,
-                RowComparisonResult::MissingRight { key, .. }
+                RowComparisonResult::UnkeyedRight { key, .. }
                     if key == &vec!["".to_string()] || key == &vec![" ".to_string()]
             )
         })
         .count();
-    let nullish_missing_left = results
+    let nullish_unkeyed_left = results
         .iter()
         .filter(|result| {
             matches!(
                 result,
-                RowComparisonResult::MissingLeft { key, .. } if key == &vec!["NULL".to_string()]
+                RowComparisonResult::UnkeyedLeft { key, .. } if key == &vec!["NULL".to_string()]
             )
         })
         .count();
 
-    assert_eq!(nullish_missing_right, 2);
-    assert_eq!(nullish_missing_left, 1);
+    assert_eq!(nullish_unkeyed_right, 2);
+    assert_eq!(nullish_unkeyed_left, 1);
+    assert!(
+        results.iter().all(|result| {
+            !matches!(
+                result,
+                RowComparisonResult::MissingLeft { key, .. }
+                    if key == &vec!["NULL".to_string()]
+            ) && !matches!(
+                result,
+                RowComparisonResult::MissingRight { key, .. }
+                    if key == &vec!["".to_string()] || key == &vec![" ".to_string()]
+            )
+        }),
+        "nullish keys should not be reported as one-sided missing"
+    );
     assert!(
         results
             .iter()

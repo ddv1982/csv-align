@@ -40,6 +40,24 @@ const RESULTS: ResultResponse[] = [
     differences: [],
   },
   {
+    result_type: 'unkeyed_left',
+    key: ['NULL'],
+    values_a: [],
+    values_b: ['Erin'],
+    duplicate_values_a: [],
+    duplicate_values_b: [],
+    differences: [],
+  },
+  {
+    result_type: 'unkeyed_right',
+    key: [''],
+    values_a: ['Finn'],
+    values_b: [],
+    duplicate_values_a: [],
+    duplicate_values_b: [],
+    differences: [],
+  },
+  {
     result_type: 'duplicate_filea',
     key: ['5'],
     values_a: ['Evan'],
@@ -61,16 +79,20 @@ const RESULTS: ResultResponse[] = [
 
 test('filters duplicate-prefixed results together and counts each badge bucket', () => {
   expect(filterResults(RESULTS, 'duplicate')).toEqual([
-    RESULTS[4],
-    RESULTS[5],
+    RESULTS[6],
+    RESULTS[7],
   ]);
   expect(filterResults(RESULTS, 'missing_right')).toEqual([RESULTS[3]]);
+  expect(filterResults(RESULTS, 'unkeyed_left')).toEqual([RESULTS[4]]);
+  expect(filterResults(RESULTS, 'unkeyed_right')).toEqual([RESULTS[5]]);
   expect(getResultFilterCounts(RESULTS)).toEqual({
-    all: 6,
+    all: 8,
     match: 1,
     mismatch: 1,
     missing_left: 1,
     missing_right: 1,
+    unkeyed_left: 1,
+    unkeyed_right: 1,
     duplicate: 2,
   });
 });
@@ -87,5 +109,13 @@ test('returns the expected badges for standard and duplicate result types', () =
   expect(getResultBadge('duplicate_both')).toMatchObject({
     label: 'Duplicate',
     bg: 'border border-orange-200 bg-orange-50/70 dark:border-orange-900/70 dark:bg-orange-950/25',
+  });
+  expect(getResultBadge('unkeyed_left')).toMatchObject({
+    label: 'Unkeyed Left',
+    dot: 'bg-rose-500 dark:bg-rose-400',
+  });
+  expect(getResultBadge('unkeyed_right')).toMatchObject({
+    label: 'Unkeyed Right',
+    dot: 'bg-fuchsia-500 dark:bg-fuchsia-400',
   });
 });

@@ -26,6 +26,8 @@ export const RESULT_FILTER_OPTIONS: ResultFilterOption[] = [
   { value: 'mismatch', label: 'Mismatches', accent: 'bg-amber-500 dark:bg-amber-400' },
   { value: 'missing_left', label: 'Missing Left', accent: 'bg-sky-500 dark:bg-sky-400' },
   { value: 'missing_right', label: 'Missing Right', accent: 'bg-violet-500 dark:bg-violet-400' },
+  { value: 'unkeyed_left', label: 'Unkeyed Left', accent: 'bg-rose-500 dark:bg-rose-400' },
+  { value: 'unkeyed_right', label: 'Unkeyed Right', accent: 'bg-fuchsia-500 dark:bg-fuchsia-400' },
   { value: 'duplicate', label: 'Duplicates', accent: DUPLICATE_BADGE.dot },
 ];
 
@@ -52,6 +54,8 @@ export function getResultFilterCounts(results: ResultResponse[]): Record<ResultF
     mismatch: results.filter((result) => matchesResultFilter(result, 'mismatch')).length,
     missing_left: results.filter((result) => matchesResultFilter(result, 'missing_left')).length,
     missing_right: results.filter((result) => matchesResultFilter(result, 'missing_right')).length,
+    unkeyed_left: results.filter((result) => matchesResultFilter(result, 'unkeyed_left')).length,
+    unkeyed_right: results.filter((result) => matchesResultFilter(result, 'unkeyed_right')).length,
     duplicate: results.filter((result) => matchesResultFilter(result, 'duplicate')).length,
   };
 }
@@ -85,6 +89,20 @@ export function getResultBadge(resultType: CompareResultType): ResultBadge {
         text: 'text-violet-800 dark:text-violet-200',
         dot: 'bg-violet-500 dark:bg-violet-400',
         label: 'Missing Right',
+      };
+    case 'unkeyed_left':
+      return {
+        bg: 'border border-rose-200 bg-rose-50/70 dark:border-rose-900/70 dark:bg-rose-950/25',
+        text: 'text-rose-800 dark:text-rose-200',
+        dot: 'bg-rose-500 dark:bg-rose-400',
+        label: 'Unkeyed Left',
+      };
+    case 'unkeyed_right':
+      return {
+        bg: 'border border-fuchsia-200 bg-fuchsia-50/70 dark:border-fuchsia-900/70 dark:bg-fuchsia-950/25',
+        text: 'text-fuchsia-800 dark:text-fuchsia-200',
+        dot: 'bg-fuchsia-500 dark:bg-fuchsia-400',
+        label: 'Unkeyed Right',
       };
     default:
       if (resultType.startsWith('duplicate')) {

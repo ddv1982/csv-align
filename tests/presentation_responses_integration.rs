@@ -138,6 +138,46 @@ fn presentation_compare_payload_shape_is_stable_for_each_result_variant() {
     );
 
     assert_compare_shape(
+        RowComparisonResult::UnkeyedLeft {
+            key: vec!["NULL".to_string()],
+            values_b: vec!["unusable in b".to_string()],
+        },
+        json!({
+            "success": true,
+            "results": [{
+                "result_type": "unkeyed_left",
+                "key": ["NULL"],
+                "values_a": [],
+                "values_b": ["unusable in b"],
+                "duplicate_values_a": [],
+                "duplicate_values_b": [],
+                "differences": []
+            }],
+            "summary": default_summary_json()
+        }),
+    );
+
+    assert_compare_shape(
+        RowComparisonResult::UnkeyedRight {
+            key: vec!["".to_string()],
+            values_a: vec!["unusable in a".to_string()],
+        },
+        json!({
+            "success": true,
+            "results": [{
+                "result_type": "unkeyed_right",
+                "key": [""],
+                "values_a": ["unusable in a"],
+                "values_b": [],
+                "duplicate_values_a": [],
+                "duplicate_values_b": [],
+                "differences": []
+            }],
+            "summary": default_summary_json()
+        }),
+    );
+
+    assert_compare_shape(
         RowComparisonResult::Duplicate {
             key: vec!["dup".to_string()],
             values_a: vec![vec!["A1".to_string(), "A2".to_string()]],
@@ -172,6 +212,8 @@ fn default_summary() -> ComparisonSummary {
         mismatches: 0,
         missing_left: 0,
         missing_right: 0,
+        unkeyed_left: 0,
+        unkeyed_right: 0,
         duplicates_a: 0,
         duplicates_b: 0,
     }
@@ -185,6 +227,8 @@ fn default_summary_json() -> serde_json::Value {
         "mismatches": 0,
         "missing_left": 0,
         "missing_right": 0,
+        "unkeyed_left": 0,
+        "unkeyed_right": 0,
         "duplicates_a": 0,
         "duplicates_b": 0
     })

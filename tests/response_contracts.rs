@@ -36,7 +36,12 @@ fn build_compare_request() -> CompareRequest {
                 similarity: None,
             },
         ],
-        normalization: ComparisonNormalizationConfig::default(),
+        normalization: ComparisonNormalizationConfig {
+            treat_empty_as_null: true,
+            trim_whitespace: true,
+            null_tokens: vec!["null".to_string()],
+            ..ComparisonNormalizationConfig::default()
+        },
     }
 }
 
@@ -48,6 +53,7 @@ fn build_csv_a() -> CsvData {
             &["1", "Alice", "100"],
             &["2", "Bob", "200"],
             &["3", "Charlie", "300"],
+            &["", "No Key Left", "350"],
             &["5", "Dupe One", "500"],
             &["5", "Dupe Two", "501"],
         ],
@@ -62,6 +68,7 @@ fn build_csv_b() -> CsvData {
             &["1", "Alice", "100"],
             &["2", "Robert", "200"],
             &["4", "Dana", "400"],
+            &["NULL", "No Key Right", "450"],
         ],
     )
 }
@@ -162,7 +169,7 @@ async fn response_contracts_compare_serializes_each_result_variant_and_summary_s
     let results = json["results"]
         .as_array()
         .expect("results should be an array");
-    assert_eq!(results.len(), 5, "expected one response per result variant");
+    assert_eq!(results.len(), 7, "expected one response per result variant");
 
     let matched = result_by_type(results, "match");
     assert_eq!(matched["key"], serde_json::json!(["1"]));
@@ -217,15 +224,39 @@ async fn response_contracts_compare_serializes_each_result_variant_and_summary_s
     assert_eq!(duplicate["duplicate_values_b"], serde_json::json!([]));
     assert_eq!(duplicate["differences"], serde_json::json!([]));
 
+    let unkeyed_left = result_by_type(results, "unkeyed_left");
+    assert_eq!(unkeyed_left["key"], serde_json::json!(["NULL"]));
+    assert_eq!(unkeyed_left["values_a"], serde_json::json!([]));
+    assert_eq!(
+        unkeyed_left["values_b"],
+        serde_json::json!(["No Key Right", "450"])
+    );
+    assert_eq!(unkeyed_left["duplicate_values_a"], serde_json::json!([]));
+    assert_eq!(unkeyed_left["duplicate_values_b"], serde_json::json!([]));
+    assert_eq!(unkeyed_left["differences"], serde_json::json!([]));
+
+    let unkeyed_right = result_by_type(results, "unkeyed_right");
+    assert_eq!(unkeyed_right["key"], serde_json::json!([""]));
+    assert_eq!(
+        unkeyed_right["values_a"],
+        serde_json::json!(["No Key Left", "350"])
+    );
+    assert_eq!(unkeyed_right["values_b"], serde_json::json!([]));
+    assert_eq!(unkeyed_right["duplicate_values_a"], serde_json::json!([]));
+    assert_eq!(unkeyed_right["duplicate_values_b"], serde_json::json!([]));
+    assert_eq!(unkeyed_right["differences"], serde_json::json!([]));
+
     assert_eq!(
         json["summary"],
         serde_json::json!({
-            "total_rows_a": 5,
-            "total_rows_b": 3,
+            "total_rows_a": 6,
+            "total_rows_b": 4,
             "matches": 1,
             "mismatches": 1,
             "missing_left": 1,
             "missing_right": 1,
+            "unkeyed_left": 1,
+            "unkeyed_right": 1,
             "duplicates_a": 1,
             "duplicates_b": 0
         })

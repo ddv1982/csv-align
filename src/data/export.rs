@@ -48,6 +48,16 @@ fn compute_layout(
                 layout.max_file_a_value_columns =
                     layout.max_file_a_value_columns.max(values_a.len());
             }
+            RowComparisonResult::UnkeyedLeft { key, values_b } => {
+                layout.max_key_columns = layout.max_key_columns.max(key.len());
+                layout.max_file_b_value_columns =
+                    layout.max_file_b_value_columns.max(values_b.len());
+            }
+            RowComparisonResult::UnkeyedRight { key, values_a } => {
+                layout.max_key_columns = layout.max_key_columns.max(key.len());
+                layout.max_file_a_value_columns =
+                    layout.max_file_a_value_columns.max(values_a.len());
+            }
             RowComparisonResult::Duplicate { key, .. } => {
                 layout.max_key_columns = layout.max_key_columns.max(key.len());
             }
@@ -234,6 +244,18 @@ fn build_record(result: &RowComparisonResult, layout: &ExportLayout) -> Vec<Stri
         }
         RowComparisonResult::MissingRight { key, values_a } => {
             record.push("Missing Right".to_string());
+            append_padded_columns(&mut record, key, layout.max_key_columns);
+            append_padded_columns(&mut record, values_a, layout.max_file_a_value_columns);
+            append_padded_columns(&mut record, &[], layout.max_file_b_value_columns);
+        }
+        RowComparisonResult::UnkeyedLeft { key, values_b } => {
+            record.push("Unkeyed Left".to_string());
+            append_padded_columns(&mut record, key, layout.max_key_columns);
+            append_padded_columns(&mut record, &[], layout.max_file_a_value_columns);
+            append_padded_columns(&mut record, values_b, layout.max_file_b_value_columns);
+        }
+        RowComparisonResult::UnkeyedRight { key, values_a } => {
+            record.push("Unkeyed Right".to_string());
             append_padded_columns(&mut record, key, layout.max_key_columns);
             append_padded_columns(&mut record, values_a, layout.max_file_a_value_columns);
             append_padded_columns(&mut record, &[], layout.max_file_b_value_columns);

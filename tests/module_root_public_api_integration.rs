@@ -97,6 +97,8 @@ fn data_and_presentation_module_roots_re_export_legacy_entry_points() {
             mismatches: 0,
             missing_left: 0,
             missing_right: 0,
+            unkeyed_left: 0,
+            unkeyed_right: 0,
             duplicates_a: 0,
             duplicates_b: 0,
         },

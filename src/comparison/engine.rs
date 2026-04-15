@@ -25,14 +25,14 @@ pub fn compare_csv_data(
         split_rows_by_key_usable(csv_b, &key_indices_b, &config.normalization);
 
     for row_index in nullish_rows_a {
-        results.push(RowComparisonResult::MissingRight {
+        results.push(RowComparisonResult::UnkeyedRight {
             key: extract_columns(&csv_a.rows[row_index], &key_indices_a),
             values_a: extract_columns(&csv_a.rows[row_index], &comp_indices_a),
         });
     }
 
     for row_index in nullish_rows_b {
-        results.push(RowComparisonResult::MissingLeft {
+        results.push(RowComparisonResult::UnkeyedLeft {
             key: extract_columns(&csv_b.rows[row_index], &key_indices_b),
             values_b: extract_columns(&csv_b.rows[row_index], &comp_indices_b),
         });
@@ -230,6 +230,8 @@ pub fn generate_summary(
         mismatches: 0,
         missing_left: 0,
         missing_right: 0,
+        unkeyed_left: 0,
+        unkeyed_right: 0,
         duplicates_a: 0,
         duplicates_b: 0,
     };
@@ -240,6 +242,8 @@ pub fn generate_summary(
             RowComparisonResult::Mismatch { .. } => summary.mismatches += 1,
             RowComparisonResult::MissingLeft { .. } => summary.missing_left += 1,
             RowComparisonResult::MissingRight { .. } => summary.missing_right += 1,
+            RowComparisonResult::UnkeyedLeft { .. } => summary.unkeyed_left += 1,
+            RowComparisonResult::UnkeyedRight { .. } => summary.unkeyed_right += 1,
             RowComparisonResult::Duplicate {
                 values_a, values_b, ..
             } => match DuplicateSource::from_duplicate_rows(values_a, values_b) {

@@ -101,6 +101,8 @@ beforeEach(() => {
       mismatches: 0,
       missing_left: 0,
       missing_right: 0,
+      unkeyed_left: 0,
+      unkeyed_right: 0,
       duplicates_a: 1,
       duplicates_b: 0,
     },

@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.12 - 2026-04-15
+
+- Restored the pre-v1.0.10 missing-left/right behavior for valid keys by separating rows with unusable selected keys into explicit unkeyed result buckets.
+- Prevented nullish selected keys from distorting missing counts, updated the API/UI/export contracts accordingly, and added regression coverage for the new unkeyed result handling.
+
 ## v1.0.11 - 2026-04-15
 
 - Restored comparison execution when some selected key values are nullish by treating those rows as one-sided missing results instead of rejecting the whole comparison.

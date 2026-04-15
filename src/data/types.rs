@@ -136,6 +136,14 @@ pub enum RowComparisonResult {
         key: Vec<String>,
         values_a: Vec<String>,
     },
+    UnkeyedLeft {
+        key: Vec<String>,
+        values_b: Vec<String>,
+    },
+    UnkeyedRight {
+        key: Vec<String>,
+        values_a: Vec<String>,
+    },
     Duplicate {
         key: Vec<String>,
         values_a: Vec<Vec<String>>,
@@ -153,6 +161,10 @@ pub enum ResultType {
     MissingLeft,
     #[serde(rename = "missing_right")]
     MissingRight,
+    #[serde(rename = "unkeyed_left")]
+    UnkeyedLeft,
+    #[serde(rename = "unkeyed_right")]
+    UnkeyedRight,
     #[serde(rename = "duplicate_filea")]
     DuplicateFileA,
     #[serde(rename = "duplicate_fileb")]
@@ -196,6 +208,8 @@ pub struct ComparisonSummary {
     pub mismatches: usize,
     pub missing_left: usize,
     pub missing_right: usize,
+    pub unkeyed_left: usize,
+    pub unkeyed_right: usize,
     pub duplicates_a: usize,
     pub duplicates_b: usize,
 }
