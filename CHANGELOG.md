@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.9 - 2026-04-15
+
+- Fixed the desktop Load pair order action by granting the Tauri open-dialog permission required to show the native file picker.
+- Kept the existing save/load pair-order workflow intact and bumped release metadata for the new patch release.
+
 ## v1.0.8 - 2026-04-15
 
 - Added save/load support for manual pair-order selections so repeated comparisons can restore the same key and comparison column setup when the loaded CSV headers match.
