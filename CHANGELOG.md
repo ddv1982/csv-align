@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.4 - 2026-04-16
+
+- Updated the release workflow so Linux packaging can still upload to GitHub Releases even if macOS notarization fails, and added early Ubuntu cleanup to reduce runner disk pressure during release builds.
+
 ## v1.1.3 - 2026-04-16
 
 - Fixed the results filter dark-mode hover so inactive filter pill text uses gray-100 instead of the near-white gray-50, avoiding a jarring bright-on-dark effect.
