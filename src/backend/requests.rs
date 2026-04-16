@@ -3,7 +3,9 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 
 use crate::data::types::{ComparisonConfig, ComparisonNormalizationConfig, RowComparisonResult};
-use crate::presentation::responses::CompareResponse;
+use crate::presentation::responses::{
+    ColumnResponse, CompareResponse, MappingResponse, ResultResponse, SummaryResponse,
+};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct MappingRequest {
@@ -51,6 +53,30 @@ pub struct LoadPairOrderRequest {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct LoadPairOrderResponse {
     pub selection: PairOrderSelection,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ComparisonSnapshotFile {
+    pub name: String,
+    pub headers: Vec<String>,
+    pub columns: Vec<ColumnResponse>,
+    pub row_count: usize,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct LoadComparisonSnapshotRequest {
+    pub contents: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct LoadComparisonSnapshotResponse {
+    pub file_a: ComparisonSnapshotFile,
+    pub file_b: ComparisonSnapshotFile,
+    pub selection: PairOrderSelection,
+    pub mappings: Vec<MappingResponse>,
+    pub normalization: ComparisonNormalizationConfig,
+    pub results: Vec<ResultResponse>,
+    pub summary: SummaryResponse,
 }
 
 #[derive(Debug, Clone, Serialize)]

@@ -75,7 +75,7 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
 
       {file ? (
         <div className="animate-slide-up">
-          <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-700/50">
+          <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm shadow-gray-950/5 dark:border-gray-600 dark:bg-gray-700/50 dark:shadow-none">
             <svg className="w-10 h-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
@@ -85,8 +85,8 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
                 {file.rowCount} rows • {file.headers.length} columns
               </p>
             </div>
-            <div className="w-8 h-8 bg-success rounded-full flex items-center justify-center">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200">
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
@@ -98,7 +98,7 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
               {file.columns.map((col) => (
                 <span
                   key={col.name}
-                  className="rounded-full border border-gray-200 bg-gray-100 px-3 py-1 text-sm text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                  className="rounded-full border border-gray-200 bg-white px-3 py-1 text-sm text-gray-700 shadow-sm shadow-gray-950/5 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:shadow-none"
                 >
                   {col.name}
                   <span className="ml-1 text-xs text-gray-400 dark:text-gray-500">({col.data_type})</span>
@@ -122,12 +122,12 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 ${
+          className={`rounded-xl border-2 border-dashed p-8 text-center transition-all duration-200 ${
             isDragging
-              ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-              : 'border-gray-300 hover:border-primary-400 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800/60'
-          }`}
-        >
+              ? 'border-primary-400 bg-primary-50 shadow-sm shadow-primary-500/10 dark:bg-primary-900/20 dark:shadow-none'
+              : 'border-gray-300 bg-white/80 hover:border-primary-400 hover:bg-white dark:border-gray-600 dark:bg-gray-800/40 dark:hover:bg-gray-800/60'
+           }`}
+         >
           <div className="flex flex-col items-center">
             <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
               isDragging ? 'bg-primary-100 dark:bg-primary-900/40' : 'bg-gray-100 dark:bg-gray-700'
@@ -150,7 +150,7 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
             <p className="mb-1 text-lg font-medium text-gray-900 dark:text-gray-100">
               {isDragging ? 'Drop the local CSV file here' : 'Drag & drop a local CSV file to choose it'}
             </p>
-            <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">or</p>
+             <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">or</p>
 
             <label className="btn btn-primary cursor-pointer">
               <input
@@ -167,7 +167,7 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
       )}
 
       {selectionError && (
-        <p className="mt-3 text-sm font-medium text-rose-600 dark:text-rose-300">{selectionError}</p>
+        <p className="mt-3 text-sm font-medium text-rose-700 dark:text-rose-300">{selectionError}</p>
       )}
     </div>
   );

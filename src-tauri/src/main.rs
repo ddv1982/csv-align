@@ -4,8 +4,9 @@ use std::sync::Mutex;
 
 use csv_align::backend::{
     apply_csv_to_session, comparison_inputs, export_session_results_snapshot,
-    load_pair_order_workflow, parse_file_side, run_comparison, save_pair_order_workflow,
-    suggest_mappings_workflow, validate_file_letter, write_export_results, CompareRequest,
+    load_comparison_snapshot_workflow, load_pair_order_workflow, parse_file_side, run_comparison,
+    save_comparison_snapshot_workflow, save_pair_order_workflow, suggest_mappings_workflow,
+    validate_file_letter, write_export_results, CompareRequest, LoadComparisonSnapshotResponse,
     LoadPairOrderResponse, PairOrderSelection, SessionData, SessionResponse,
     SuggestMappingsRequest,
 };
@@ -178,11 +179,44 @@ fn load_pair_order(
         .ok_or_else(|| "Session not found".to_string())?
 }
 
+#[tauri::command]
+fn save_comparison_snapshot(
+    state: tauri::State<AppState>,
+    session_id: String,
+    output_path: String,
+) -> Result<(), String> {
+    let contents = state
+        .with_session(&session_id, save_comparison_snapshot_workflow)
+        .ok_or_else(|| "Session not found".to_string())??;
+
+    fs::write(&output_path, contents)
+        .map_err(|error| format!("Failed to save comparison snapshot file: {error}"))
+}
+
+#[tauri::command]
+fn load_comparison_snapshot(
+    state: tauri::State<AppState>,
+    session_id: String,
+    file_path: String,
+) -> Result<LoadComparisonSnapshotResponse, String> {
+    let contents = fs::read_to_string(&file_path)
+        .map_err(|error| format!("Failed to read comparison snapshot file: {error}"))?;
+
+    state
+        .with_session_mut(&session_id, |session_data| {
+            load_comparison_snapshot_workflow(session_data, &contents)
+        })
+        .ok_or_else(|| "Session not found".to_string())?
+}
+
 #[cfg(test)]
 mod tests;
 
 #[cfg(test)]
 mod pair_order_tests;
+
+#[cfg(test)]
+mod comparison_snapshot_tests;
 
 fn main() {
     tauri::Builder::default()
@@ -199,6 +233,8 @@ fn main() {
             export_results,
             save_pair_order,
             load_pair_order,
+            save_comparison_snapshot,
+            load_comparison_snapshot,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

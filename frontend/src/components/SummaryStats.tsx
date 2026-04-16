@@ -73,27 +73,27 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
 
   return (
     <div className="card p-6">
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
           <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
           </svg>
           Comparison Summary
         </h3>
-        <div className="flex items-center gap-4">
-          <div className="text-sm text-gray-500 dark:text-gray-400">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="text-sm text-gray-600 dark:text-gray-400">
             <div>
               File A: <span className="font-semibold text-gray-900 dark:text-gray-100">{summary.total_rows_a}</span> rows
             </div>
-            <div className="mt-0.5 max-w-[280px] truncate text-xs text-gray-400 dark:text-gray-500" title={fileAName}>
+            <div className="mt-0.5 max-w-[280px] truncate text-xs text-gray-500 dark:text-gray-500" title={fileAName}>
               {fileAName}
             </div>
           </div>
-          <div className="text-sm text-gray-500 dark:text-gray-400">
+          <div className="text-sm text-gray-600 dark:text-gray-400">
             <div>
               File B: <span className="font-semibold text-gray-900 dark:text-gray-100">{summary.total_rows_b}</span> rows
             </div>
-            <div className="mt-0.5 max-w-[280px] truncate text-xs text-gray-400 dark:text-gray-500" title={fileBName}>
+            <div className="mt-0.5 max-w-[280px] truncate text-xs text-gray-500 dark:text-gray-500" title={fileBName}>
               {fileBName}
             </div>
           </div>
@@ -115,7 +115,7 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {comparableStats.map((stat) => (
           <div
             key={stat.label}

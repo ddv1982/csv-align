@@ -6,9 +6,9 @@ interface AppHeaderProps {
 
 export function AppHeader({ theme, onThemeToggle, onReset }: AppHeaderProps) {
   return (
-    <header className="border-b border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
+    <header className="border-b border-gray-200/80 bg-white/90 shadow-sm backdrop-blur dark:border-gray-700 dark:bg-gray-900/90">
       <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-600">
               <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -16,11 +16,11 @@ export function AppHeader({ theme, onThemeToggle, onReset }: AppHeaderProps) {
               </svg>
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">CSV Align</h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Compare CSV files with ease</p>
+              <h1 className="text-xl font-bold text-gray-950 dark:text-gray-100">CSV Align</h1>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Compare CSV files with ease</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button onClick={onThemeToggle} className="btn btn-secondary flex items-center gap-2" aria-label="Toggle theme">
               {theme === 'dark' ? (
                 <>

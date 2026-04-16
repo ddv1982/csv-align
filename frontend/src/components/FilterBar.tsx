@@ -22,13 +22,13 @@ export function FilterBar({ filter, results, onFilterChange, onExport }: FilterB
               onClick={() => onFilterChange(f.value)}
               className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all flex items-center gap-2 ${
                 filter === f.value
-                  ? 'border-gray-300 bg-gray-100 text-gray-900 ring-2 ring-primary-500/70 ring-offset-1 shadow-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:ring-primary-400/60 dark:ring-offset-gray-900'
-                  : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-gray-600 dark:hover:bg-gray-800'
+                  ? 'border-primary-200 bg-primary-50 text-gray-900 ring-2 ring-primary-500/70 ring-offset-1 shadow-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:ring-primary-400/60 dark:ring-offset-gray-900'
+                  : 'border-gray-200 bg-white text-gray-700 shadow-sm shadow-gray-950/5 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:shadow-none dark:hover:border-gray-600 dark:hover:bg-gray-800'
               }`}
             >
               <span className={`h-2 w-2 rounded-full ${f.accent}`} aria-hidden="true" />
               {f.label}
-              <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs text-gray-600 dark:border-gray-600 dark:bg-gray-700/70 dark:text-gray-200">
+              <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 text-xs text-gray-600 dark:border-gray-600 dark:bg-gray-700/70 dark:text-gray-200">
                 {counts[f.value]}
               </span>
             </button>

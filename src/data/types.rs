@@ -85,13 +85,13 @@ pub struct ComparisonConfig {
     pub normalization: ComparisonNormalizationConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
 pub struct DateNormalizationConfig {
     pub enabled: bool,
     pub formats: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ComparisonNormalizationConfig {
     pub treat_empty_as_null: bool,
     pub null_tokens: Vec<String>,
@@ -151,7 +151,7 @@ pub enum RowComparisonResult {
     },
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ResultType {
     #[serde(rename = "match")]
     Match,

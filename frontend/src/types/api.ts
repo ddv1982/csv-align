@@ -125,6 +125,23 @@ export interface LoadPairOrderResponse {
   selection: PairOrderSelection;
 }
 
+export interface ComparisonSnapshotFileResponse {
+  name: string;
+  headers: string[];
+  columns: ColumnInfo[];
+  row_count: number;
+}
+
+export interface LoadComparisonSnapshotResponse {
+  file_a: ComparisonSnapshotFileResponse;
+  file_b: ComparisonSnapshotFileResponse;
+  selection: PairOrderSelection;
+  mappings: MappingResponse[];
+  normalization: ComparisonNormalizationConfig;
+  results: ResultResponse[];
+  summary: SummaryResponse;
+}
+
 export interface ErrorResponse {
   error: string;
 }
@@ -146,6 +163,7 @@ export interface AppState {
   mappings: MappingResponse[];
   results: ResultResponse[];
   summary: SummaryResponse | null;
+  snapshotReadOnly: boolean;
   filter: ResultFilter;
   error: string | null;
   loading: boolean;

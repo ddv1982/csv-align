@@ -37,7 +37,7 @@ export function NormalizationPanel({ normalization, onChange, onDateChange }: No
             onChange({ null_tokens: tokens });
           }}
           placeholder="null"
-          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+          className="input px-3 py-2 text-sm"
         />
         <label className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
           <input
@@ -84,7 +84,7 @@ export function NormalizationPanel({ normalization, onChange, onDateChange }: No
         </label>
         <p className="text-sm text-gray-500 dark:text-gray-400">Off by default. Turn this on only if your files store the same dates in different formats.</p>
 
-        <details className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-800/60">
+        <details className="rounded-lg border border-gray-200 bg-white/80 px-4 py-3 shadow-sm shadow-gray-950/5 dark:border-gray-700 dark:bg-gray-800/60 dark:shadow-none">
           <summary className="cursor-pointer text-sm font-medium text-gray-700 marker:hidden dark:text-gray-300">
             <span aria-hidden="true" className="mr-2 text-gray-400 dark:text-gray-500">▸</span>
             Advanced date patterns
@@ -103,7 +103,7 @@ export function NormalizationPanel({ normalization, onChange, onDateChange }: No
 
                 onDateChange({ formats });
               }}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+              className="input px-3 py-2 text-sm"
             />
           </div>
         </details>

@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.19 - 2026-04-16
+
+- Refreshed the light-mode presentation so the desktop and web UI stay clearer and more polished outside the default dark theme.
+- Added saved comparison snapshot save/load support so users can reopen prior comparison setup and results in read-only mode, with the save action surfaced from results and the load entry point surfaced from file selection.
+- Fixed file-selection back navigation so leaving a comparison can return users to the file-picking step instead of stranding them in later setup flow.
+
 ## v1.0.18 - 2026-04-15
 
 - Refactored shared backend/frontend comparison plumbing to reduce repeated response, projection, workflow, and transport logic while keeping the existing behavior and contracts intact.

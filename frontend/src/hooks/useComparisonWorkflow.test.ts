@@ -10,8 +10,10 @@ const {
   createSessionMock,
   downloadBlobMock,
   exportResultsMock,
+  loadComparisonSnapshotMock,
   loadPairOrderMock,
   loadFileMock,
+  saveComparisonSnapshotMock,
   savePairOrderMock,
   suggestMappingsMock,
 } = vi.hoisted(() => ({
@@ -19,8 +21,10 @@ const {
   createSessionMock: vi.fn(),
   downloadBlobMock: vi.fn(),
   exportResultsMock: vi.fn(),
+  loadComparisonSnapshotMock: vi.fn(),
   loadPairOrderMock: vi.fn(),
   loadFileMock: vi.fn(),
+  saveComparisonSnapshotMock: vi.fn(),
   savePairOrderMock: vi.fn(),
   suggestMappingsMock: vi.fn(),
 }));
@@ -30,8 +34,10 @@ vi.mock('../services/tauri', () => ({
   createSession: createSessionMock,
   downloadBlob: downloadBlobMock,
   exportResults: exportResultsMock,
+  loadComparisonSnapshot: loadComparisonSnapshotMock,
   loadPairOrder: loadPairOrderMock,
   loadFile: loadFileMock,
+  saveComparisonSnapshot: saveComparisonSnapshotMock,
   savePairOrder: savePairOrderMock,
   suggestMappings: suggestMappingsMock,
 }));
@@ -63,8 +69,10 @@ beforeEach(() => {
   createSessionMock.mockReset();
   downloadBlobMock.mockReset();
   exportResultsMock.mockReset();
+  loadComparisonSnapshotMock.mockReset();
   loadPairOrderMock.mockReset();
   loadFileMock.mockReset();
+  saveComparisonSnapshotMock.mockReset();
   savePairOrderMock.mockReset();
   suggestMappingsMock.mockReset();
 

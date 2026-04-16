@@ -13,7 +13,9 @@ use crate::backend::{
     validate_file_letter,
 };
 use crate::backend::{
-    load_pair_order_workflow, save_pair_order_workflow, LoadPairOrderRequest, SavePairOrderRequest,
+    load_comparison_snapshot_workflow, load_pair_order_workflow, save_comparison_snapshot_workflow,
+    save_pair_order_workflow, LoadComparisonSnapshotRequest, LoadPairOrderRequest,
+    SavePairOrderRequest,
 };
 pub use crate::backend::{CompareRequest, MappingRequest, SessionResponse, SuggestMappingsRequest};
 use crate::data::csv_loader;
@@ -95,15 +97,21 @@ pub async fn load_csv_file(
         Err(e) => return bad_request_response(format!("Failed to read multipart: {e}")),
     };
 
+    let file_name = field.file_name().map(str::to_string);
+
     let bytes = match field.bytes().await {
         Ok(bytes) => bytes,
         Err(e) => return bad_request_response(format!("Failed to read file: {e}")),
     };
 
-    let csv_data = match csv_loader::load_csv_from_bytes(&bytes) {
+    let mut csv_data = match csv_loader::load_csv_from_bytes(&bytes) {
         Ok(data) => data,
         Err(e) => return bad_request_response(format!("Failed to parse CSV: {e}")),
     };
+
+    if let Some(file_name) = file_name {
+        csv_data.file_path = Some(file_name);
+    }
 
     let response = match state
         .with_session_mut(&session_id, |session_data| {
@@ -233,6 +241,49 @@ pub async fn load_pair_order(
     let response = match state
         .with_session(&session_id, |session_data| {
             load_pair_order_workflow(session_data, &request.contents)
+        })
+        .await
+    {
+        Some(Ok(response)) => response,
+        Some(Err(error)) => return bad_request_response(error),
+        None => return session_not_found_response(),
+    };
+
+    Json(response).into_response()
+}
+
+pub async fn save_comparison_snapshot(
+    State(state): State<AppState>,
+    Path(session_id): Path<String>,
+) -> Response {
+    let contents = match state
+        .with_session(&session_id, save_comparison_snapshot_workflow)
+        .await
+    {
+        Some(Ok(contents)) => contents,
+        Some(Err(error)) => return bad_request_response(error),
+        None => return session_not_found_response(),
+    };
+
+    Response::builder()
+        .status(StatusCode::OK)
+        .header("Content-Type", "application/json; charset=utf-8")
+        .header(
+            "Content-Disposition",
+            "attachment; filename=\"comparison-snapshot.json\"",
+        )
+        .body(Body::from(contents))
+        .unwrap()
+}
+
+pub async fn load_comparison_snapshot(
+    State(state): State<AppState>,
+    Path(session_id): Path<String>,
+    Json(request): Json<LoadComparisonSnapshotRequest>,
+) -> Response {
+    let response = match state
+        .with_session_mut(&session_id, |session_data| {
+            load_comparison_snapshot_workflow(session_data, &request.contents)
         })
         .await
     {

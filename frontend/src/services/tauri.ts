@@ -6,6 +6,7 @@ import type {
   SuggestMappingsResponse,
   CompareRequest,
   CompareResponse,
+  LoadComparisonSnapshotResponse,
   LoadPairOrderResponse,
   PairOrderSelection,
   SessionResponse,
@@ -211,6 +212,59 @@ export async function loadPairOrder(
   const contents = await file.text();
 
   return postJson(`/api/sessions/${sessionId}/pair-order/load`, { contents }, 'Failed to load pair order');
+}
+
+export async function saveComparisonSnapshot(sessionId: string): Promise<Blob | void> {
+  if (isTauri) {
+    const outputPath = await save({
+      defaultPath: 'comparison-snapshot.json',
+      filters: [{ name: 'JSON Files', extensions: ['json'] }],
+    });
+
+    if (!outputPath) {
+      return;
+    }
+
+    await invoke('save_comparison_snapshot', {
+      sessionId,
+      outputPath,
+    });
+
+    return;
+  }
+
+  return fetchBlob(`/api/sessions/${sessionId}/comparison-snapshot/save`, {
+    method: 'POST',
+  }, 'Failed to save comparison snapshot');
+}
+
+export async function loadComparisonSnapshot(
+  sessionId: string,
+  file?: File,
+): Promise<LoadComparisonSnapshotResponse | void> {
+  if (isTauri) {
+    const filePath = await open({
+      multiple: false,
+      filters: [{ name: 'JSON Files', extensions: ['json'] }],
+    });
+
+    if (!filePath || Array.isArray(filePath)) {
+      return;
+    }
+
+    return invoke('load_comparison_snapshot', {
+      sessionId,
+      filePath,
+    });
+  }
+
+  if (!(file instanceof File)) {
+    throw new Error('No comparison snapshot file selected');
+  }
+
+  const contents = await file.text();
+
+  return postJson(`/api/sessions/${sessionId}/comparison-snapshot/load`, { contents }, 'Failed to load comparison snapshot');
 }
 
 export function downloadBlob(blob: Blob, filename: string): void {

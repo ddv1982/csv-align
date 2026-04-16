@@ -16,11 +16,14 @@ function App() {
     mappingSelection,
     normalizationConfig,
     filteredResults,
+    isSnapshotReadOnly,
     setMappingSelection,
     setNormalizationConfig,
     handleFileSelection,
     handleCompare,
     handleExport,
+    handleSaveComparisonSnapshot,
+    handleLoadComparisonSnapshot,
     handleSavePairOrder,
     handleLoadPairOrder,
     handleAutoPairComparisonColumns,
@@ -32,7 +35,7 @@ function App() {
   } = useComparisonWorkflow();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 text-gray-900 transition-colors dark:from-gray-950 dark:to-gray-900 dark:text-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-gray-100 text-gray-900 transition-colors dark:from-gray-950 dark:to-gray-900 dark:text-gray-100">
       <AppHeader theme={theme} onThemeToggle={toggleTheme} onReset={handleReset} />
 
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -46,6 +49,7 @@ function App() {
             fileA={state.fileA}
             fileB={state.fileB}
             onFileSelect={handleFileSelection}
+            onLoadResult={handleLoadComparisonSnapshot}
             onContinue={handleContinueToConfigure}
           />
         )}
@@ -74,14 +78,16 @@ function App() {
             filter={state.filter}
             results={state.results}
             filteredResults={filteredResults}
+            snapshotReadOnly={isSnapshotReadOnly}
             onFilterChange={handleFilterChange}
             onExport={handleExport}
+            onSaveResult={handleSaveComparisonSnapshot}
             onBack={handleBackToConfigure}
           />
         )}
       </div>
 
-      <footer className="mt-auto py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+      <footer className="mt-auto py-6 text-center text-sm text-gray-600 dark:text-gray-400">
         <p>CSV Align - Compare CSV files with visual difference highlighting</p>
       </footer>
     </div>

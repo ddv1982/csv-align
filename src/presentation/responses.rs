@@ -2,16 +2,16 @@ use crate::data::types::{
     ColumnDataType, ColumnInfo, ColumnMapping, ComparisonSummary, FileSide, MappingKind,
     MappingType, ResultType, RowComparisonResult, ValueDifference,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ColumnResponse {
     pub index: usize,
     pub name: String,
     pub data_type: ColumnDataType,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct FileLoadResponse {
     pub success: bool,
     pub file_letter: FileSide,
@@ -20,14 +20,14 @@ pub struct FileLoadResponse {
     pub row_count: usize,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CompareResponse {
     pub success: bool,
     pub results: Vec<ResultResponse>,
     pub summary: SummaryResponse,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ResultResponse {
     pub result_type: ResultType,
     pub key: Vec<String>,
@@ -38,7 +38,7 @@ pub struct ResultResponse {
     pub differences: Vec<DifferenceResponse>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct DifferenceResponse {
     pub column_a: String,
     pub column_b: String,
@@ -46,7 +46,7 @@ pub struct DifferenceResponse {
     pub value_b: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct SummaryResponse {
     pub total_rows_a: usize,
     pub total_rows_b: usize,
@@ -60,12 +60,12 @@ pub struct SummaryResponse {
     pub duplicates_b: usize,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SuggestMappingsResponse {
     pub mappings: Vec<MappingResponse>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct MappingResponse {
     pub file_a_column: String,
     pub file_b_column: String,

@@ -55,3 +55,12 @@ test('accepts dropped files with an uppercase .CSV extension', () => {
   expect(onSelect).toHaveBeenCalledTimes(1);
   expect(onSelect.mock.calls[0][0].name).toBe('UPPERCASE.CSV');
 });
+
+test('renders a dark-mode idle background for the empty dropzone', () => {
+  const onSelect = vi.fn();
+  render(<FileSelector label="File A" file={null} onSelect={onSelect} />);
+
+  const dropzone = screen.getByText('Drag & drop a local CSV file to choose it').closest('div')?.parentElement;
+
+  expect(dropzone).toHaveClass('dark:bg-gray-800/40');
+});

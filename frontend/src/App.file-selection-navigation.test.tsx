@@ -23,6 +23,7 @@ const {
 }));
 
 vi.mock('./services/tauri', () => ({
+  isTauri: false,
   createSession: createSessionMock,
   loadFile: loadFileMock,
   compareFiles: compareFilesMock,

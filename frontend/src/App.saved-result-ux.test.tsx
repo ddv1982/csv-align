@@ -3,33 +3,39 @@ import { beforeEach, expect, test, vi } from 'vitest';
 import type { ComparisonNormalizationConfig, MappingResponse } from './types/api';
 
 const {
-  createSessionMock,
-  loadFileMock,
   compareFilesMock,
-  exportResultsMock,
-  loadPairOrderMock,
+  createSessionMock,
   downloadBlobMock,
+  exportResultsMock,
+  loadComparisonSnapshotMock,
+  loadFileMock,
+  loadPairOrderMock,
+  saveComparisonSnapshotMock,
   savePairOrderMock,
   suggestMappingsMock,
 } = vi.hoisted(() => ({
-  createSessionMock: vi.fn(),
-  loadFileMock: vi.fn(),
   compareFilesMock: vi.fn(),
-  exportResultsMock: vi.fn(),
-  loadPairOrderMock: vi.fn(),
+  createSessionMock: vi.fn(),
   downloadBlobMock: vi.fn(),
+  exportResultsMock: vi.fn(),
+  loadComparisonSnapshotMock: vi.fn(),
+  loadFileMock: vi.fn(),
+  loadPairOrderMock: vi.fn(),
+  saveComparisonSnapshotMock: vi.fn(),
   savePairOrderMock: vi.fn(),
   suggestMappingsMock: vi.fn(),
 }));
 
 vi.mock('./services/tauri', () => ({
   isTauri: false,
-  createSession: createSessionMock,
-  loadFile: loadFileMock,
   compareFiles: compareFilesMock,
-  exportResults: exportResultsMock,
-  loadPairOrder: loadPairOrderMock,
+  createSession: createSessionMock,
   downloadBlob: downloadBlobMock,
+  exportResults: exportResultsMock,
+  loadComparisonSnapshot: loadComparisonSnapshotMock,
+  loadFile: loadFileMock,
+  loadPairOrder: loadPairOrderMock,
+  saveComparisonSnapshot: saveComparisonSnapshotMock,
   savePairOrder: savePairOrderMock,
   suggestMappings: suggestMappingsMock,
 }));
@@ -63,7 +69,7 @@ vi.mock('./components/MappingConfig', () => ({
       comparisonColumnsA: string[],
       comparisonColumnsB: string[],
       columnMappings: MappingResponse[],
-      normalization: ComparisonNormalizationConfig
+      normalization: ComparisonNormalizationConfig,
     ) => void;
   }) => (
     <section>
@@ -82,7 +88,7 @@ vi.mock('./components/MappingConfig', () => ({
                 mapping_type: 'manual',
               },
             ],
-            normalization
+            normalization,
           )
         }
       >
@@ -107,16 +113,18 @@ vi.mock('./components/ResultsTable', () => ({
 import App from './App';
 
 beforeEach(() => {
-  createSessionMock.mockReset();
-  loadFileMock.mockReset();
   compareFilesMock.mockReset();
-  exportResultsMock.mockReset();
-  loadPairOrderMock.mockReset();
+  createSessionMock.mockReset();
   downloadBlobMock.mockReset();
+  exportResultsMock.mockReset();
+  loadComparisonSnapshotMock.mockReset();
+  loadFileMock.mockReset();
+  loadPairOrderMock.mockReset();
+  saveComparisonSnapshotMock.mockReset();
   savePairOrderMock.mockReset();
   suggestMappingsMock.mockReset();
 
-  createSessionMock.mockResolvedValue({ session_id: 'session-456' });
+  createSessionMock.mockResolvedValue({ session_id: 'session-789' });
   loadFileMock.mockResolvedValue({
     success: true,
     file_letter: 'a',
@@ -153,31 +161,114 @@ beforeEach(() => {
       duplicates_b: 0,
     },
   });
+  loadComparisonSnapshotMock.mockResolvedValue({
+    file_a: {
+      name: 'saved-left.csv',
+      headers: ['id', 'name'],
+      columns: [
+        { index: 0, name: 'id', data_type: 'string' },
+        { index: 1, name: 'name', data_type: 'string' },
+      ],
+      row_count: 2,
+    },
+    file_b: {
+      name: 'saved-right.csv',
+      headers: ['id', 'name'],
+      columns: [
+        { index: 0, name: 'id', data_type: 'string' },
+        { index: 1, name: 'name', data_type: 'string' },
+      ],
+      row_count: 2,
+    },
+    selection: {
+      key_columns_a: ['id'],
+      key_columns_b: ['id'],
+      comparison_columns_a: ['name'],
+      comparison_columns_b: ['name'],
+    },
+    mappings: [],
+    normalization: {
+      treat_empty_as_null: false,
+      null_tokens: [],
+      null_token_case_insensitive: true,
+      case_insensitive: false,
+      trim_whitespace: true,
+      date_normalization: {
+        enabled: false,
+        formats: [],
+      },
+    },
+    results: [
+      {
+        result_type: 'match',
+        key: ['1'],
+        values_a: ['Alice'],
+        values_b: ['Alice'],
+        duplicate_values_a: [],
+        duplicate_values_b: [],
+        differences: [],
+      },
+    ],
+    summary: {
+      total_rows_a: 1,
+      total_rows_b: 1,
+      matches: 1,
+      mismatches: 0,
+      missing_left: 0,
+      missing_right: 0,
+      unkeyed_left: 0,
+      unkeyed_right: 0,
+      duplicates_a: 0,
+      duplicates_b: 0,
+    },
+  });
 });
 
-test('returns from results to configuration', async () => {
+test('loads a saved result from step 1 through the app workflow', async () => {
   render(<App />);
 
   await waitFor(() => {
     expect(createSessionMock).toHaveBeenCalledTimes(1);
   });
 
-  expect(screen.getByRole('heading', { name: 'Select two local CSV files' })).toBeInTheDocument();
+  expect(screen.getByText('Already have a saved result?')).toBeInTheDocument();
+
+  fireEvent.change(screen.getByTestId('load-result-input'), {
+    target: {
+      files: [new File(['saved'], 'comparison-snapshot.json', { type: 'application/json' })],
+    },
+  });
+
+  await screen.findByText('Mock Summary');
+
+  expect(loadComparisonSnapshotMock).toHaveBeenCalledWith(
+    'session-789',
+    expect.objectContaining({ name: 'comparison-snapshot.json' }),
+  );
+  expect(screen.getByText('Loaded snapshots are read-only results. Use Reset to start a new comparison.')).toBeInTheDocument();
+});
+
+test('saves the current result from the results step through the app workflow', async () => {
+  saveComparisonSnapshotMock.mockResolvedValue(new Blob(['saved snapshot'], { type: 'application/json' }));
+
+  render(<App />);
+
+  await waitFor(() => {
+    expect(createSessionMock).toHaveBeenCalledTimes(1);
+  });
 
   fireEvent.click(screen.getByRole('button', { name: 'Select File A' }));
   await screen.findByRole('button', { name: 'Select File B' });
   fireEvent.click(screen.getByRole('button', { name: 'Select File B' }));
 
   await screen.findByRole('heading', { name: 'Mock Configure' });
-
   fireEvent.click(screen.getByRole('button', { name: 'Run compare' }));
 
   await screen.findByText('Mock Summary');
-  expect(screen.getByText('Mock Filter Bar')).toBeInTheDocument();
-  expect(screen.getByText('Mock Results Table')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Save result' }));
 
-  fireEvent.click(screen.getByRole('button', { name: 'Back to configuration' }));
-
-  await screen.findByRole('heading', { name: 'Mock Configure' });
-  expect(compareFilesMock).toHaveBeenCalledTimes(1);
+  await waitFor(() => {
+    expect(saveComparisonSnapshotMock).toHaveBeenCalledWith('session-789');
+  });
+  expect(downloadBlobMock).toHaveBeenCalledWith(expect.any(Blob), 'comparison-snapshot.json');
 });

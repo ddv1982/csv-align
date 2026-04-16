@@ -78,6 +78,14 @@ async fn main() {
             "/api/sessions/:session_id/pair-order/load",
             post(handlers::load_pair_order),
         )
+        .route(
+            "/api/sessions/:session_id/comparison-snapshot/save",
+            post(handlers::save_comparison_snapshot),
+        )
+        .route(
+            "/api/sessions/:session_id/comparison-snapshot/load",
+            post(handlers::load_comparison_snapshot),
+        )
         // Export
         .route(
             "/api/sessions/:session_id/export",

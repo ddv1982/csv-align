@@ -42,7 +42,7 @@ export function ResultsTable({ results }: ResultsTableProps) {
     <div className="card overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
+          <thead className="border-b border-gray-200 bg-gray-50/90 dark:border-gray-700 dark:bg-gray-800">
             <tr>
               <th className="w-40 min-w-[11rem] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
                 Type
@@ -69,9 +69,7 @@ export function ResultsTable({ results }: ResultsTableProps) {
               
               return (
                 <Fragment key={idx}>
-                  <tr
-                    className="bg-white transition-colors hover:bg-gray-50 dark:bg-gray-900/70 dark:hover:bg-gray-800/70"
-                  >
+                    <tr className="bg-white transition-colors hover:bg-slate-50 dark:bg-gray-900/70 dark:hover:bg-gray-800/70">
                      <td className="px-4 py-3 align-top">
                        <span className={`inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ${badge.bg} ${badge.text}`}>
                          <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${badge.dot}`} aria-hidden="true" />
@@ -115,15 +113,15 @@ export function ResultsTable({ results }: ResultsTableProps) {
                   
                   {/* Expanded Differences */}
                   {isExpanded && result.differences.length > 0 && (
-                    <tr className="bg-gray-50/70 dark:bg-gray-800/60">
+                    <tr className="bg-slate-50/80 dark:bg-gray-800/60">
                       <td colSpan={5} className="px-4 py-4">
                         <div className="space-y-2">
                           <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Value Differences:</p>
                           {result.differences.map((diff, diffIdx) => (
                             <div
                               key={diffIdx}
-                              className="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800/80"
-                            >
+                               className="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-3 shadow-sm shadow-gray-950/5 dark:border-gray-600 dark:bg-gray-800/80 dark:shadow-none"
+                             >
                               <div className="flex-1">
                                 <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">
                                   {diff.column_a} → {diff.column_b}
@@ -155,7 +153,7 @@ export function ResultsTable({ results }: ResultsTableProps) {
       
       {/* Pagination hint */}
       {results.length > 50 && (
-        <div className="border-t border-gray-200 bg-gray-50 px-4 py-3 text-center dark:border-gray-700 dark:bg-gray-800">
+         <div className="border-t border-gray-200 bg-gray-50/90 px-4 py-3 text-center dark:border-gray-700 dark:bg-gray-800">
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Showing {results.length} results. Use filters to narrow down.
           </p>

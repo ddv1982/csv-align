@@ -21,8 +21,10 @@ vi.mock('../services/tauri', () => ({
   downloadBlob: vi.fn(),
   exportResults: vi.fn(),
   isTauri: false,
+  loadComparisonSnapshot: vi.fn(),
   loadFile: loadFileMock,
   loadPairOrder: vi.fn(),
+  saveComparisonSnapshot: vi.fn(),
   savePairOrder: vi.fn(),
   suggestMappings: suggestMappingsMock,
 }));
