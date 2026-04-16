@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.25 - 2026-04-16
+
+- Softened the new results styling by removing the heavier gradient backgrounds so the app feels closer to the earlier dark mode while keeping the stronger icon colors and cleaner results presentation.
+- Revalidated the refreshed Tailwind v4 frontend plus the Rust and Tauri suites before publishing the patch release.
+
 ## v1.0.24 - 2026-04-16
 
 - Refined the results experience with stronger summary icon chips and more polished result panels, filters, banners, and diff rows so dark mode keeps the same confident color cues as light mode.

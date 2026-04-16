@@ -45,7 +45,7 @@ test('keeps summary icon chips vivid in both light and dark mode styles', () => 
     />,
   );
 
-  const matchesCard = screen.getByText('Matches').closest('div.rounded-2xl');
+  const matchesCard = screen.getByText('Matches').closest('div.rounded-xl');
   const ignoredBanner = screen.getByText('Ignored rows').closest('div.rounded-2xl');
 
   expect(matchesCard).toBeTruthy();
