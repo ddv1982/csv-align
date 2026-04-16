@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.26 - 2026-04-16
+
+- Improved the dark-mode results-filter hover state so inactive pills are easier to read, with clearer hover contrast against the surrounding results panel.
+- Added the same CSV Align app logo used by the desktop shell into the in-app header and reran the full validation workflow before publishing the patch release.
+
 ## v1.0.25 - 2026-04-16
 
 - Softened the new results styling by removing the heavier gradient backgrounds so the app feels closer to the earlier dark mode while keeping the stronger icon colors and cleaner results presentation.

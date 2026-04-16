@@ -44,7 +44,9 @@ test('uses stronger active and hover-ready styling for result filters', () => {
   expect(activeFilter).toHaveClass('bg-primary-50');
   expect(activeFilter).toHaveClass('dark:ring-primary-300/30');
   expect(inactiveFilter).toHaveClass('rounded-xl');
-  expect(inactiveFilter).toHaveClass('dark:hover:bg-gray-800/90');
+  expect(inactiveFilter).toHaveClass('dark:hover:bg-gray-800');
+  expect(inactiveFilter).toHaveClass('dark:hover:border-gray-400');
+  expect(inactiveFilter).toHaveClass('dark:hover:text-gray-50');
 
   fireEvent.click(inactiveFilter!);
   expect(onFilterChange).toHaveBeenCalledWith('missing_left');
