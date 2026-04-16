@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.20 - 2026-04-16
+
+- Improved the results experience for live and saved comparisons with stronger light-theme contrast, clearer dark-mode read-only status styling, and more deliberate summary, filter, and diff callouts.
+- Validated Rust tests, the frontend test suite, the frontend production build, and the Tauri desktop crate build before cutting the patch release.
+
 ## v1.0.19 - 2026-04-16
 
 - Refreshed the light-mode presentation so the desktop and web UI stay clearer and more polished outside the default dark theme.
