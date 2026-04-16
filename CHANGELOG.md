@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.2 - 2026-04-16
+
+- Updated the macOS release workflow so Apple ID notarization can proceed without forcing `APPLE_TEAM_ID`, which avoids the inaccessible-team error for single-team Apple Developer accounts.
+- Removed the repository `APPLE_TEAM_ID` secret and bumped release metadata across the Rust crates, desktop config, frontend package, and lockfiles for the follow-up release.
+
 ## v1.1.1 - 2026-04-16
 
 - Rebuilt the macOS release certificate bundle in a `security import` compatible format and updated the GitHub signing secrets so the Apple certificate can be imported successfully during release builds.

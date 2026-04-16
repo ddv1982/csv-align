@@ -158,11 +158,13 @@ jobs:
             HAS_CERT=true
           fi
 
-          if [ "$HAS_CERT" = true ] && [ -n "$APPLE_ID_SECRET" ] && [ -n "$APPLE_PASSWORD_SECRET" ] && [ -n "$APPLE_TEAM_ID_SECRET" ]; then
+          if [ "$HAS_CERT" = true ] && [ -n "$APPLE_ID_SECRET" ] && [ -n "$APPLE_PASSWORD_SECRET" ]; then
             {
               echo "APPLE_ID=$APPLE_ID_SECRET"
               echo "APPLE_PASSWORD=$APPLE_PASSWORD_SECRET"
-              echo "APPLE_TEAM_ID=$APPLE_TEAM_ID_SECRET"
+              if [ -n "$APPLE_TEAM_ID_SECRET" ]; then
+                echo "APPLE_TEAM_ID=$APPLE_TEAM_ID_SECRET"
+              fi
             } >> "$GITHUB_ENV"
             HAS_NOTARIZATION=true
           fi
