@@ -43,6 +43,8 @@ test('uses stronger active and hover-ready styling for result filters', () => {
   expect(inactiveFilter).toBeTruthy();
   expect(activeFilter).toHaveClass('bg-primary-50');
   expect(activeFilter).toHaveClass('dark:ring-primary-300/30');
+  expect(activeFilter).toHaveClass('dark:bg-primary-900/70');
+  expect(activeFilter).toHaveClass('dark:text-primary-50');
   expect(inactiveFilter).toHaveClass('rounded-xl');
   expect(inactiveFilter).toHaveClass('dark:hover:bg-gray-800');
   expect(inactiveFilter).toHaveClass('dark:hover:border-gray-400');

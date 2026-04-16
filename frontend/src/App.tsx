@@ -83,6 +83,7 @@ function App() {
             onExport={handleExport}
             onSaveResult={handleSaveComparisonSnapshot}
             onBack={handleBackToConfigure}
+            onStartNewComparison={handleReset}
           />
         )}
       </div>

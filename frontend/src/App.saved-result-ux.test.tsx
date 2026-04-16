@@ -245,7 +245,12 @@ test('loads a saved result from step 1 through the app workflow', async () => {
     'session-789',
     expect.objectContaining({ name: 'comparison-snapshot.json' }),
   );
-  expect(screen.getByText('Loaded snapshots are read-only results. Use Reset to start a new comparison.')).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      'Loaded snapshots are read-only results. Start a new comparison to edit mappings or load different files.',
+    ),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Start new comparison' })).toBeInTheDocument();
 });
 
 test('saves the current result from the results step through the app workflow', async () => {

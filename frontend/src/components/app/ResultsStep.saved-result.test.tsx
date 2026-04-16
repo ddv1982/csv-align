@@ -57,6 +57,7 @@ test('shows a save result entry point for live comparison results', () => {
       onExport={vi.fn()}
       onSaveResult={onSaveResult}
       onBack={onBack}
+      onStartNewComparison={vi.fn()}
     />,
   );
 
@@ -70,7 +71,9 @@ test('shows a save result entry point for live comparison results', () => {
   expect(onBack).toHaveBeenCalledTimes(1);
 });
 
-test('keeps loaded snapshots read-only and hides the save result action', () => {
+test('keeps loaded snapshots read-only and exposes a start-new-comparison action', () => {
+  const onStartNewComparison = vi.fn();
+
   render(
     <ResultsStep
       summary={SUMMARY}
@@ -84,10 +87,18 @@ test('keeps loaded snapshots read-only and hides the save result action', () => 
       onExport={vi.fn()}
       onSaveResult={vi.fn()}
       onBack={vi.fn()}
+      onStartNewComparison={onStartNewComparison}
     />,
   );
 
-  expect(screen.getByText('Loaded snapshots are read-only results. Use Reset to start a new comparison.')).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      'Loaded snapshots are read-only results. Start a new comparison to edit mappings or load different files.',
+    ),
+  ).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Save result' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Back to configuration' })).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Start new comparison' }));
+  expect(onStartNewComparison).toHaveBeenCalledTimes(1);
 });

@@ -23,7 +23,7 @@ export function FilterBar({ filter, results, onFilterChange, onExport }: FilterB
                 onClick={() => onFilterChange(f.value)}
                 className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-all ${
                   filter === f.value
-                    ? 'border-primary-200 bg-primary-50 text-primary-950 shadow-sm shadow-primary-100 ring-2 ring-primary-500/25 ring-offset-1 dark:border-primary-300/55 dark:bg-primary-950/35 dark:text-primary-100 dark:shadow-none dark:ring-primary-300/30 dark:ring-offset-gray-900'
+                    ? 'border-primary-200 bg-primary-50 text-primary-950 shadow-sm shadow-primary-100 ring-2 ring-primary-500/25 ring-offset-1 dark:border-primary-300/60 dark:bg-primary-900/70 dark:text-primary-50 dark:shadow-none dark:ring-primary-300/30 dark:ring-offset-gray-900'
                     : 'border-gray-200/90 bg-gray-50/80 text-gray-700 hover:border-gray-300 hover:bg-white dark:border-gray-700 dark:bg-gray-950/35 dark:text-gray-200 dark:hover:border-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100'
                 }`}
               >
@@ -31,7 +31,7 @@ export function FilterBar({ filter, results, onFilterChange, onExport }: FilterB
                 {f.label}
                 <span className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
                   filter === f.value
-                    ? 'border-primary-200/80 bg-white/80 text-primary-700 dark:border-primary-400/20 dark:bg-primary-900/60 dark:text-primary-100'
+                    ? 'border-primary-200/80 bg-white/80 text-primary-700 dark:border-primary-300/40 dark:bg-primary-950/70 dark:text-primary-50'
                     : 'border-gray-200/90 bg-white text-gray-600 dark:border-gray-600 dark:bg-gray-800/90 dark:text-gray-100'
                 }`}>
                   {counts[f.value]}

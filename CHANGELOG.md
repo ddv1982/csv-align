@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.5 - 2026-04-17
+
+- Restored dark-mode readability on the results filter by adding the missing `primary-950` shade to the Tailwind palette and strengthening the active pill contrast so the label and count stay clearly visible.
+- Added a discoverable "Start new comparison" button to the read-only snapshot banner so loaded snapshots can be exited without having to restart the app.
+
 ## v1.1.4 - 2026-04-16
 
 - Updated the release workflow so Linux packaging can still upload to GitHub Releases even if macOS notarization fails, and added early Ubuntu cleanup to reduce runner disk pressure during release builds.
