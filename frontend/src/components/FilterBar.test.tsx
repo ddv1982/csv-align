@@ -46,7 +46,7 @@ test('uses stronger active and hover-ready styling for result filters', () => {
   expect(inactiveFilter).toHaveClass('rounded-xl');
   expect(inactiveFilter).toHaveClass('dark:hover:bg-gray-800');
   expect(inactiveFilter).toHaveClass('dark:hover:border-gray-400');
-  expect(inactiveFilter).toHaveClass('dark:hover:text-gray-50');
+  expect(inactiveFilter).toHaveClass('dark:hover:text-gray-100');
 
   fireEvent.click(inactiveFilter!);
   expect(onFilterChange).toHaveBeenCalledWith('missing_left');

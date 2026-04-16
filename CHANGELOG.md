@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.3 - 2026-04-16
+
+- Fixed the results filter dark-mode hover so inactive filter pill text uses gray-100 instead of the near-white gray-50, avoiding a jarring bright-on-dark effect.
+
 ## v1.1.2 - 2026-04-16
 
 - Updated the macOS release workflow so Apple ID notarization can proceed without forcing `APPLE_TEAM_ID`, which avoids the inaccessible-team error for single-team Apple Developer accounts.
