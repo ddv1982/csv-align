@@ -24,7 +24,7 @@ const RESULTS: ResultResponse[] = [
   },
 ];
 
-test('uses stronger dark-mode contrast for active and hover-ready result filters', () => {
+test('uses stronger active and hover-ready styling for result filters', () => {
   const onFilterChange = vi.fn();
 
   render(
@@ -41,10 +41,10 @@ test('uses stronger dark-mode contrast for active and hover-ready result filters
 
   expect(activeFilter).toBeTruthy();
   expect(inactiveFilter).toBeTruthy();
-  expect(activeFilter).toHaveClass('dark:bg-primary-400/20');
+  expect(activeFilter).toHaveClass('bg-primary-600');
   expect(activeFilter).toHaveClass('dark:ring-primary-300/35');
-  expect(inactiveFilter).toHaveClass('dark:hover:border-gray-500');
-  expect(inactiveFilter).toHaveClass('dark:hover:bg-gray-800/90');
+  expect(inactiveFilter).toHaveClass('rounded-full');
+  expect(inactiveFilter).toHaveClass('dark:hover:bg-white/[0.06]');
 
   fireEvent.click(inactiveFilter!);
   expect(onFilterChange).toHaveBeenCalledWith('missing_left');

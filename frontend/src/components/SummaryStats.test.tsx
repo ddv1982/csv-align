@@ -36,7 +36,7 @@ test('separates ignored rows from comparable summary stats', () => {
   expect(screen.queryByText('Unkeyed Right')).not.toBeInTheDocument();
 });
 
-test('uses stronger dark-mode icon contrast for summary cards and banners', () => {
+test('keeps summary icon chips vivid in both light and dark mode styles', () => {
   render(
     <SummaryStats
       summary={SUMMARY}
@@ -45,14 +45,14 @@ test('uses stronger dark-mode icon contrast for summary cards and banners', () =
     />,
   );
 
-  const matchesCard = screen.getByText('Matches').closest('div.rounded-xl');
+  const matchesCard = screen.getByText('Matches').closest('div.rounded-2xl');
   const ignoredBanner = screen.getByText('Ignored rows').closest('div.rounded-2xl');
 
   expect(matchesCard).toBeTruthy();
   expect(ignoredBanner).toBeTruthy();
-  expect(matchesCard?.innerHTML).toContain('dark:bg-emerald-400/28');
-  expect(matchesCard?.innerHTML).toContain('dark:text-emerald-100');
-  expect(matchesCard?.innerHTML).toContain('dark:ring-white/10');
-  expect(ignoredBanner?.innerHTML).toContain('dark:bg-sky-400/28');
-  expect(ignoredBanner?.innerHTML).toContain('dark:ring-sky-300/20');
+  expect(matchesCard?.innerHTML).toContain('bg-emerald-100');
+  expect(matchesCard?.innerHTML).toContain('text-emerald-700');
+  expect(matchesCard?.innerHTML).toContain('ring-emerald-200/80');
+  expect(ignoredBanner?.innerHTML).toContain('bg-sky-100');
+  expect(ignoredBanner?.innerHTML).toContain('ring-sky-200/80');
 });

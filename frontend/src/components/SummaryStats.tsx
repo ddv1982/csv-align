@@ -22,8 +22,8 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
             'Ignored rows were not compared because the selected key was empty or matched a missing-value token after cleanup settings.',
             'Ignored rows may correspond to one-sided results on the other file, but they could not be matched confidently by key.',
           ],
-          containerClassName: 'border-sky-200/90 bg-sky-50/95 dark:border-sky-500/40 dark:bg-sky-950/35',
-          iconWrapClassName: 'bg-sky-100 text-sky-700 dark:bg-sky-400/28 dark:text-sky-100 dark:ring-sky-300/20',
+          containerClassName: 'border-sky-200/85 bg-gradient-to-br from-sky-50/95 to-white/95 shadow-[0_20px_45px_-34px_rgba(14,165,233,0.45)] dark:border-sky-400/25 dark:from-sky-500/[0.12] dark:to-slate-950/80 dark:shadow-[0_24px_56px_-40px_rgba(56,189,248,0.5)]',
+          iconWrapClassName: 'bg-sky-100 text-sky-700 ring-sky-200/80',
           titleClassName: 'text-sky-950 dark:text-sky-100',
           summaryClassName: 'text-sky-800 dark:text-sky-200',
           detailClassName: 'text-sky-700 dark:text-sky-300',
@@ -40,8 +40,8 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
           title: 'Duplicate keys detected',
           summary: `Duplicates found: ${summary.duplicates_a} in File A, ${summary.duplicates_b} in File B`,
           details: ['Rows with duplicate selected keys can produce repeated matches or one-sided results and are worth reviewing before export.'],
-          containerClassName: 'border-amber-200/90 bg-amber-50/95 dark:border-amber-500/40 dark:bg-amber-950/35',
-          iconWrapClassName: 'bg-amber-100 text-amber-700 dark:bg-amber-400/28 dark:text-amber-100 dark:ring-amber-300/20',
+          containerClassName: 'border-amber-200/85 bg-gradient-to-br from-amber-50/95 to-white/95 shadow-[0_20px_45px_-34px_rgba(245,158,11,0.45)] dark:border-amber-400/25 dark:from-amber-500/[0.12] dark:to-slate-950/80 dark:shadow-[0_24px_56px_-40px_rgba(245,158,11,0.52)]',
+          iconWrapClassName: 'bg-amber-100 text-amber-700 ring-amber-200/80',
           titleClassName: 'text-amber-950 dark:text-amber-100',
           summaryClassName: 'text-amber-800 dark:text-amber-200',
           detailClassName: 'text-amber-700 dark:text-amber-300',
@@ -58,11 +58,11 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
     {
       label: 'Matches',
       value: summary.matches,
-      surface: 'border border-emerald-200/80 bg-emerald-50/80 shadow-sm shadow-emerald-100/70 dark:border-emerald-500/25 dark:bg-emerald-950/20 dark:shadow-none',
-      iconBg: 'bg-emerald-100 dark:bg-emerald-400/28',
-      iconText: 'text-emerald-700 dark:text-emerald-100',
-      valueText: 'text-gray-900 dark:text-gray-100',
-      labelText: 'text-gray-600 dark:text-gray-300',
+      surface: 'border border-emerald-200/80 bg-gradient-to-br from-emerald-50/95 to-white/95 shadow-[0_20px_42px_-32px_rgba(16,185,129,0.55)] dark:border-emerald-400/20 dark:from-emerald-500/[0.12] dark:to-slate-950/75 dark:shadow-[0_24px_52px_-38px_rgba(16,185,129,0.65)]',
+      iconBg: 'bg-emerald-100 ring-emerald-200/80',
+      iconText: 'text-emerald-700',
+      valueText: 'text-slate-950 dark:text-slate-50',
+      labelText: 'text-slate-600 dark:text-slate-300',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -72,11 +72,11 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
     {
       label: 'Mismatches',
       value: summary.mismatches,
-      surface: 'border border-amber-200/80 bg-amber-50/80 shadow-sm shadow-amber-100/70 dark:border-amber-500/25 dark:bg-amber-950/20 dark:shadow-none',
-      iconBg: 'bg-amber-100 dark:bg-amber-400/28',
-      iconText: 'text-amber-700 dark:text-amber-100',
-      valueText: 'text-gray-900 dark:text-gray-100',
-      labelText: 'text-gray-600 dark:text-gray-300',
+      surface: 'border border-amber-200/80 bg-gradient-to-br from-amber-50/95 to-white/95 shadow-[0_20px_42px_-32px_rgba(245,158,11,0.5)] dark:border-amber-400/20 dark:from-amber-500/[0.12] dark:to-slate-950/75 dark:shadow-[0_24px_52px_-38px_rgba(245,158,11,0.6)]',
+      iconBg: 'bg-amber-100 ring-amber-200/80',
+      iconText: 'text-amber-700',
+      valueText: 'text-slate-950 dark:text-slate-50',
+      labelText: 'text-slate-600 dark:text-slate-300',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -86,11 +86,11 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
     {
       label: getResultLabel('missing_left'),
       value: summary.missing_left,
-      surface: 'border border-sky-200/80 bg-sky-50/80 shadow-sm shadow-sky-100/70 dark:border-sky-500/25 dark:bg-sky-950/20 dark:shadow-none',
-      iconBg: 'bg-sky-100 dark:bg-sky-400/28',
-      iconText: 'text-sky-700 dark:text-sky-100',
-      valueText: 'text-gray-900 dark:text-gray-100',
-      labelText: 'text-gray-600 dark:text-gray-300',
+      surface: 'border border-sky-200/80 bg-gradient-to-br from-sky-50/95 to-white/95 shadow-[0_20px_42px_-32px_rgba(14,165,233,0.5)] dark:border-sky-400/20 dark:from-sky-500/[0.12] dark:to-slate-950/75 dark:shadow-[0_24px_52px_-38px_rgba(56,189,248,0.58)]',
+      iconBg: 'bg-sky-100 ring-sky-200/80',
+      iconText: 'text-sky-700',
+      valueText: 'text-slate-950 dark:text-slate-50',
+      labelText: 'text-slate-600 dark:text-slate-300',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
@@ -100,11 +100,11 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
     {
       label: getResultLabel('missing_right'),
       value: summary.missing_right,
-      surface: 'border border-violet-200/80 bg-violet-50/80 shadow-sm shadow-violet-100/70 dark:border-violet-500/25 dark:bg-violet-950/20 dark:shadow-none',
-      iconBg: 'bg-violet-100 dark:bg-violet-400/28',
-      iconText: 'text-violet-700 dark:text-violet-100',
-      valueText: 'text-gray-900 dark:text-gray-100',
-      labelText: 'text-gray-600 dark:text-gray-300',
+      surface: 'border border-violet-200/80 bg-gradient-to-br from-violet-50/95 to-white/95 shadow-[0_20px_42px_-32px_rgba(139,92,246,0.5)] dark:border-violet-400/20 dark:from-violet-500/[0.12] dark:to-slate-950/75 dark:shadow-[0_24px_52px_-38px_rgba(167,139,250,0.6)]',
+      iconBg: 'bg-violet-100 ring-violet-200/80',
+      iconText: 'text-violet-700',
+      valueText: 'text-slate-950 dark:text-slate-50',
+      labelText: 'text-slate-600 dark:text-slate-300',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
@@ -114,8 +114,8 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
   ];
 
   return (
-    <div className="card overflow-hidden border-gray-200/90 bg-white shadow-xl shadow-gray-200/70 dark:border-gray-700/90 dark:bg-gray-900/85 dark:shadow-black/30">
-      <div className="border-b border-gray-200/80 bg-gray-50/80 px-6 py-5 dark:border-gray-700/80 dark:bg-gray-950/40">
+    <div className="card overflow-hidden border-white/70 bg-white/95 shadow-[0_30px_80px_-48px_rgba(15,23,42,0.35)] dark:border-white/10 dark:bg-slate-950/78 dark:shadow-[0_34px_90px_-56px_rgba(2,6,23,0.9)]">
+      <div className="border-b border-gray-200/70 bg-gradient-to-r from-slate-50/95 via-white/95 to-slate-50/80 px-6 py-5 dark:border-white/10 dark:from-slate-900/95 dark:via-slate-950/85 dark:to-slate-900/80">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
@@ -126,20 +126,20 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
             </h3>
             <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">Review the overall match quality before drilling into filtered result rows.</p>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border border-gray-200/90 bg-white/90 px-4 py-3 shadow-sm shadow-gray-200/70 dark:border-gray-700 dark:bg-gray-900/70 dark:shadow-none">
-              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">File A</div>
-              <div className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                <span className="font-semibold text-gray-900 dark:text-gray-100">{summary.total_rows_a}</span> rows
-              </div>
-              <div className="mt-1 max-w-[280px] truncate text-xs text-gray-500 dark:text-gray-400" title={fileAName}>
-                {fileAName}
-              </div>
-            </div>
-            <div className="rounded-xl border border-gray-200/90 bg-white/90 px-4 py-3 shadow-sm shadow-gray-200/70 dark:border-gray-700 dark:bg-gray-900/70 dark:shadow-none">
-              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">File B</div>
-              <div className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                <span className="font-semibold text-gray-900 dark:text-gray-100">{summary.total_rows_b}</span> rows
+            <div className="grid gap-3 sm:grid-cols-2">
+             <div className="rounded-2xl border border-gray-200/80 bg-white/90 px-4 py-3 shadow-[0_18px_38px_-32px_rgba(15,23,42,0.28)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none">
+               <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">File A</div>
+               <div className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                 <span className="font-semibold text-gray-900 dark:text-gray-100">{summary.total_rows_a}</span> rows
+               </div>
+               <div className="mt-1 max-w-[280px] truncate text-xs text-gray-500 dark:text-gray-400" title={fileAName}>
+                 {fileAName}
+               </div>
+             </div>
+             <div className="rounded-2xl border border-gray-200/80 bg-white/90 px-4 py-3 shadow-[0_18px_38px_-32px_rgba(15,23,42,0.28)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none">
+               <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">File B</div>
+               <div className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                 <span className="font-semibold text-gray-900 dark:text-gray-100">{summary.total_rows_b}</span> rows
               </div>
               <div className="mt-1 max-w-[280px] truncate text-xs text-gray-500 dark:text-gray-400" title={fileBName}>
                 {fileBName}
@@ -150,7 +150,7 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
       </div>
 
       <div className="space-y-6 px-6 py-6">
-        <div className="rounded-2xl border border-gray-200/90 bg-gray-50/90 p-4 shadow-sm shadow-gray-200/70 dark:border-gray-700/80 dark:bg-gray-950/40 dark:shadow-none">
+        <div className="rounded-2xl border border-gray-200/80 bg-gradient-to-r from-slate-50/95 via-white to-slate-50/90 p-4 shadow-[0_18px_42px_-34px_rgba(15,23,42,0.24)] dark:border-white/10 dark:from-slate-900/80 dark:via-slate-950/75 dark:to-slate-900/70 dark:shadow-none">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Match rate of comparable rows</span>
             <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{matchPercent}%</span>
@@ -167,10 +167,10 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
           {comparableStats.map((stat) => (
             <div
               key={stat.label}
-              className={`${stat.surface} rounded-xl p-4 transition-colors hover:border-gray-300 hover:bg-white dark:hover:border-gray-500 dark:hover:bg-gray-900/80`}
+              className={`${stat.surface} rounded-2xl p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-[0_24px_46px_-34px_rgba(15,23,42,0.32)] dark:hover:border-white/20 dark:hover:shadow-[0_28px_52px_-38px_rgba(15,23,42,0.78)]`}
             >
               <div className="mb-3 flex items-center justify-between gap-3">
-                <div className={`${stat.iconBg} ${stat.iconText} flex h-9 w-9 items-center justify-center rounded-lg border border-current/10 dark:ring-1 dark:ring-inset dark:ring-white/10`}>
+                <div className={`${stat.iconBg} ${stat.iconText} flex h-10 w-10 items-center justify-center rounded-xl ring-1 ring-inset shadow-sm shadow-white/40`}>
                   {stat.icon}
                 </div>
                 <span className={`text-2xl font-bold ${stat.valueText}`}>{stat.value}</span>
@@ -183,9 +183,9 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
         {infoBanners.length > 0 && (
           <div className="space-y-4">
             {infoBanners.map((banner) => (
-              <div key={banner.key} className={`rounded-2xl border p-4 shadow-sm shadow-gray-200/70 dark:shadow-none ${banner.containerClassName}`}>
+              <div key={banner.key} className={`rounded-2xl border p-4 ${banner.containerClassName}`}>
                 <div className="flex items-start gap-3">
-                  <div className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset ring-current/10 ${banner.iconWrapClassName}`}>
+                  <div className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset shadow-sm shadow-white/40 ${banner.iconWrapClassName}`}>
                     {banner.icon}
                   </div>
                   <div className="space-y-1.5">

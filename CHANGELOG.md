@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.24 - 2026-04-16
+
+- Refined the results experience with stronger summary icon chips and more polished result panels, filters, banners, and diff rows so dark mode keeps the same confident color cues as light mode.
+- Migrated the frontend from Tailwind CSS v3 to v4 using the official Vite integration while preserving the manual dark-theme toggle, then reran the full release validation workflow before publishing.
+
 ## v1.0.23 - 2026-04-16
 
 - Confirmed that additional refactoring was not the best next step and instead strengthened the most valuable missing test coverage around local file loading and compare-request validation.
