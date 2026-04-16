@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.27 - 2026-04-16
+
+- Added sortable comparison-result columns so you can reorder rows by type, key, or the visible File A/File B values directly from the table header.
+- Added a results-table search field that filters the currently visible comparison rows by keys, values, duplicate rows, and difference text, then reran the full release validation workflow before publishing.
+
 ## v1.0.26 - 2026-04-16
 
 - Improved the dark-mode results-filter hover state so inactive pills are easier to read, with clearer hover contrast against the surrounding results panel.
