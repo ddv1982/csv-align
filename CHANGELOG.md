@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.1 - 2026-04-16
+
+- Rebuilt the macOS release certificate bundle in a `security import` compatible format and updated the GitHub signing secrets so the Apple certificate can be imported successfully during release builds.
+- Fixed the macOS release workflow to search the temporary keychain alongside the system trust stores before resolving the `Developer ID Application` identity, allowing notarized signing to proceed in CI.
+
 ## v1.1.0 - 2026-04-16
 
 - Added a dedicated macOS release entitlements plist and switched the desktop bundle away from hardcoded ad-hoc signing so tagged builds can use the configured Developer ID certificate and notarization flow.
