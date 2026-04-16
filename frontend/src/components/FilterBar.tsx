@@ -23,8 +23,8 @@ export function FilterBar({ filter, results, onFilterChange, onExport }: FilterB
                 onClick={() => onFilterChange(f.value)}
                 className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-all ${
                   filter === f.value
-                    ? 'border-primary-200 bg-primary-50 text-primary-950 shadow-sm shadow-primary-100 ring-2 ring-primary-500/25 ring-offset-1 dark:border-primary-400/40 dark:bg-primary-500/12 dark:text-primary-100 dark:shadow-none dark:ring-primary-400/30 dark:ring-offset-gray-900'
-                    : 'border-gray-200/90 bg-gray-50/80 text-gray-700 hover:border-gray-300 hover:bg-white dark:border-gray-700 dark:bg-gray-950/35 dark:text-gray-200 dark:hover:border-gray-600 dark:hover:bg-gray-900/80'
+                    ? 'border-primary-200 bg-primary-50 text-primary-950 shadow-sm shadow-primary-100 ring-2 ring-primary-500/25 ring-offset-1 dark:border-primary-300/60 dark:bg-primary-400/20 dark:text-primary-50 dark:shadow-none dark:ring-primary-300/35 dark:ring-offset-gray-900'
+                    : 'border-gray-200/90 bg-gray-50/80 text-gray-700 hover:border-gray-300 hover:bg-white dark:border-gray-700 dark:bg-gray-950/35 dark:text-gray-200 dark:hover:border-gray-500 dark:hover:bg-gray-800/90'
                 }`}
               >
                 <span className={`h-2.5 w-2.5 rounded-full ring-2 ring-white/80 dark:ring-gray-900 ${f.accent}`} aria-hidden="true" />

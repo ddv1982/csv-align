@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.21 - 2026-04-16
+
+- Restored stronger dark-mode results contrast by making summary icons easier to read and giving result-filter hover and active states clearer visual feedback.
+- Validated the patch with results-focused frontend coverage and the full release checks required before publishing.
+
 ## v1.0.20 - 2026-04-16
 
 - Improved the results experience for live and saved comparisons with stronger light-theme contrast, clearer dark-mode read-only status styling, and more deliberate summary, filter, and diff callouts.

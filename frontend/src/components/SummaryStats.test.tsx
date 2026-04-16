@@ -35,3 +35,24 @@ test('separates ignored rows from comparable summary stats', () => {
   expect(screen.queryByText('Unkeyed Left')).not.toBeInTheDocument();
   expect(screen.queryByText('Unkeyed Right')).not.toBeInTheDocument();
 });
+
+test('uses stronger dark-mode icon contrast for summary cards and banners', () => {
+  render(
+    <SummaryStats
+      summary={SUMMARY}
+      fileAName="file-a.csv"
+      fileBName="file-b.csv"
+    />,
+  );
+
+  const matchesCard = screen.getByText('Matches').closest('div.rounded-xl');
+  const ignoredBanner = screen.getByText('Ignored rows').closest('div.rounded-2xl');
+
+  expect(matchesCard).toBeTruthy();
+  expect(ignoredBanner).toBeTruthy();
+  expect(matchesCard?.innerHTML).toContain('dark:bg-emerald-400/28');
+  expect(matchesCard?.innerHTML).toContain('dark:text-emerald-100');
+  expect(matchesCard?.innerHTML).toContain('dark:ring-white/10');
+  expect(ignoredBanner?.innerHTML).toContain('dark:bg-sky-400/28');
+  expect(ignoredBanner?.innerHTML).toContain('dark:ring-sky-300/20');
+});

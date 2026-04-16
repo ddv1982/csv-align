@@ -23,7 +23,7 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
             'Ignored rows may correspond to one-sided results on the other file, but they could not be matched confidently by key.',
           ],
           containerClassName: 'border-sky-200/90 bg-sky-50/95 dark:border-sky-500/40 dark:bg-sky-950/35',
-          iconWrapClassName: 'bg-sky-100 text-sky-700 dark:bg-sky-400/18 dark:text-sky-200',
+          iconWrapClassName: 'bg-sky-100 text-sky-700 dark:bg-sky-400/28 dark:text-sky-100 dark:ring-sky-300/20',
           titleClassName: 'text-sky-950 dark:text-sky-100',
           summaryClassName: 'text-sky-800 dark:text-sky-200',
           detailClassName: 'text-sky-700 dark:text-sky-300',
@@ -41,7 +41,7 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
           summary: `Duplicates found: ${summary.duplicates_a} in File A, ${summary.duplicates_b} in File B`,
           details: ['Rows with duplicate selected keys can produce repeated matches or one-sided results and are worth reviewing before export.'],
           containerClassName: 'border-amber-200/90 bg-amber-50/95 dark:border-amber-500/40 dark:bg-amber-950/35',
-          iconWrapClassName: 'bg-amber-100 text-amber-700 dark:bg-amber-400/18 dark:text-amber-200',
+          iconWrapClassName: 'bg-amber-100 text-amber-700 dark:bg-amber-400/28 dark:text-amber-100 dark:ring-amber-300/20',
           titleClassName: 'text-amber-950 dark:text-amber-100',
           summaryClassName: 'text-amber-800 dark:text-amber-200',
           detailClassName: 'text-amber-700 dark:text-amber-300',
@@ -59,8 +59,8 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
       label: 'Matches',
       value: summary.matches,
       surface: 'border border-emerald-200/80 bg-emerald-50/80 shadow-sm shadow-emerald-100/70 dark:border-emerald-500/25 dark:bg-emerald-950/20 dark:shadow-none',
-      iconBg: 'bg-emerald-100 dark:bg-emerald-400/18',
-      iconText: 'text-emerald-700 dark:text-emerald-200',
+      iconBg: 'bg-emerald-100 dark:bg-emerald-400/28',
+      iconText: 'text-emerald-700 dark:text-emerald-100',
       valueText: 'text-gray-900 dark:text-gray-100',
       labelText: 'text-gray-600 dark:text-gray-300',
       icon: (
@@ -73,8 +73,8 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
       label: 'Mismatches',
       value: summary.mismatches,
       surface: 'border border-amber-200/80 bg-amber-50/80 shadow-sm shadow-amber-100/70 dark:border-amber-500/25 dark:bg-amber-950/20 dark:shadow-none',
-      iconBg: 'bg-amber-100 dark:bg-amber-400/18',
-      iconText: 'text-amber-700 dark:text-amber-200',
+      iconBg: 'bg-amber-100 dark:bg-amber-400/28',
+      iconText: 'text-amber-700 dark:text-amber-100',
       valueText: 'text-gray-900 dark:text-gray-100',
       labelText: 'text-gray-600 dark:text-gray-300',
       icon: (
@@ -87,8 +87,8 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
       label: getResultLabel('missing_left'),
       value: summary.missing_left,
       surface: 'border border-sky-200/80 bg-sky-50/80 shadow-sm shadow-sky-100/70 dark:border-sky-500/25 dark:bg-sky-950/20 dark:shadow-none',
-      iconBg: 'bg-sky-100 dark:bg-sky-400/18',
-      iconText: 'text-sky-700 dark:text-sky-200',
+      iconBg: 'bg-sky-100 dark:bg-sky-400/28',
+      iconText: 'text-sky-700 dark:text-sky-100',
       valueText: 'text-gray-900 dark:text-gray-100',
       labelText: 'text-gray-600 dark:text-gray-300',
       icon: (
@@ -101,8 +101,8 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
       label: getResultLabel('missing_right'),
       value: summary.missing_right,
       surface: 'border border-violet-200/80 bg-violet-50/80 shadow-sm shadow-violet-100/70 dark:border-violet-500/25 dark:bg-violet-950/20 dark:shadow-none',
-      iconBg: 'bg-violet-100 dark:bg-violet-400/18',
-      iconText: 'text-violet-700 dark:text-violet-200',
+      iconBg: 'bg-violet-100 dark:bg-violet-400/28',
+      iconText: 'text-violet-700 dark:text-violet-100',
       valueText: 'text-gray-900 dark:text-gray-100',
       labelText: 'text-gray-600 dark:text-gray-300',
       icon: (
@@ -170,7 +170,7 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
               className={`${stat.surface} rounded-xl p-4 transition-colors hover:border-gray-300 hover:bg-white dark:hover:border-gray-500 dark:hover:bg-gray-900/80`}
             >
               <div className="mb-3 flex items-center justify-between gap-3">
-                <div className={`${stat.iconBg} ${stat.iconText} flex h-9 w-9 items-center justify-center rounded-lg border border-current/10`}>
+                <div className={`${stat.iconBg} ${stat.iconText} flex h-9 w-9 items-center justify-center rounded-lg border border-current/10 dark:ring-1 dark:ring-inset dark:ring-white/10`}>
                   {stat.icon}
                 </div>
                 <span className={`text-2xl font-bold ${stat.valueText}`}>{stat.value}</span>
