@@ -141,8 +141,20 @@ async fn local_file_loading_persists_file_names_on_the_session() {
         .get_session(&session_id)
         .await
         .expect("session should still exist");
-    assert_eq!(session.csv_a.as_ref().and_then(|csv| csv.file_path.as_deref()), Some("left.csv"));
-    assert_eq!(session.csv_b.as_ref().and_then(|csv| csv.file_path.as_deref()), Some("right.csv"));
+    assert_eq!(
+        session
+            .csv_a
+            .as_ref()
+            .and_then(|csv| csv.file_path.as_deref()),
+        Some("left.csv")
+    );
+    assert_eq!(
+        session
+            .csv_b
+            .as_ref()
+            .and_then(|csv| csv.file_path.as_deref()),
+        Some("right.csv")
+    );
 }
 
 #[tokio::test]
@@ -183,7 +195,8 @@ async fn loading_the_second_local_file_populates_auto_suggested_mappings() {
         .get_session(&session_id)
         .await
         .expect("session should exist after the second local file load");
-    assert!(after_second.column_mappings.iter().any(|mapping| {
-        mapping.file_a_column == "id" && mapping.file_b_column == "id"
-    }));
+    assert!(after_second
+        .column_mappings
+        .iter()
+        .any(|mapping| { mapping.file_a_column == "id" && mapping.file_b_column == "id" }));
 }
