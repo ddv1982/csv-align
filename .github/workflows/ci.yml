@@ -46,6 +46,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Free disk space (Ubuntu)
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          echo "Disk usage before cleanup:"
+          df -h
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo apt-get clean
+          echo "Disk usage after cleanup:"
+          df -h
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
@@ -53,11 +63,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cargo/bin/
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
-            target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
@@ -114,6 +122,16 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Free disk space (Ubuntu)
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          echo "Disk usage before cleanup:"
+          df -h
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo apt-get clean
+          echo "Disk usage after cleanup:"
+          df -h
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
