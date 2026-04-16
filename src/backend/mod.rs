@@ -21,9 +21,3 @@ pub use workflow::{
     export_session_results_snapshot, parse_file_side, run_comparison, suggest_mappings_workflow,
     validate_file_letter, write_export_results,
 };
-
-#[cfg(test)]
-mod comparison_snapshot_tests;
-
-#[cfg(test)]
-mod tests;

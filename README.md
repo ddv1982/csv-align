@@ -137,10 +137,12 @@ csv-align/
 ├── src/          # Shared Rust backend and comparison logic
 ├── src-tauri/    # Native desktop wrapper
 ├── frontend/     # React + TypeScript UI
-├── tests/        # Rust integration/regression tests
+├── tests/        # Rust integration/regression tests for public workflows and APIs
 ├── docs/         # Supporting documentation
 └── samples/      # Example CSV files
 ```
+
+Top-level `tests/` is for public Rust integration coverage; frontend Vitest files stay colocated under `frontend/src/`.
 
 ## Documentation
 

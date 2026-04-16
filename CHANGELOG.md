@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.22 - 2026-04-16
+
+- Realigned the Rust test structure by moving backend public-behavior workflow coverage into top-level integration tests while keeping the frontend's colocated test layout intact.
+- Clarified the project structure succinctly in the README and prepared the patch release with the full validation workflow required by the documented release process.
+
 ## v1.0.21 - 2026-04-16
 
 - Restored stronger dark-mode results contrast by making summary icons easier to read and giving result-filter hover and active states clearer visual feedback.
