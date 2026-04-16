@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.23 - 2026-04-16
+
+- Confirmed that additional refactoring was not the best next step and instead strengthened the most valuable missing test coverage around local file loading and compare-request validation.
+- Added regression coverage for local-file loading failures and session side effects, aligned the new wording with a local-only tool, and reran the full release validation workflow before publishing.
+
 ## v1.0.22 - 2026-04-16
 
 - Realigned the Rust test structure by moving backend public-behavior workflow coverage into top-level integration tests while keeping the frontend's colocated test layout intact.
@@ -137,7 +142,7 @@
 ## v0.2.18 - 2026-04-13
 
 - Fixed CSV import for XML-converted exports by decoding BOM-marked UTF-8/UTF-16 inputs before parsing and auto-detecting semicolon-delimited files.
-- Added regression coverage for standard comma CSVs plus semicolon-delimited and UTF-16 BOM upload variants.
+- Added regression coverage for standard comma CSVs plus semicolon-delimited and UTF-16 BOM local file variants.
 - Bumped the release version across the Rust crate, Tauri app, frontend package metadata, and desktop config to keep distribution surfaces in sync.
 
 ## v0.2.17 - 2026-04-10

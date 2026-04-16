@@ -73,6 +73,18 @@ fn build_csv_b() -> CsvData {
     )
 }
 
+async fn session_with_loaded_csvs() -> (AppState, String) {
+    let state = AppState::new();
+    let session_id = state.create_session().await;
+
+    let mut session = SessionData::new();
+    session.csv_a = Some(build_csv_a());
+    session.csv_b = Some(build_csv_b());
+    assert!(state.update_session(&session_id, session).await);
+
+    (state, session_id)
+}
+
 async fn response_json(response: Response) -> Value {
     let body = to_bytes(response.into_body(), usize::MAX)
         .await
@@ -346,13 +358,7 @@ async fn response_contracts_compare_rejects_unknown_mapping_types() {
 
 #[tokio::test]
 async fn response_contracts_compare_rejects_missing_selected_columns() {
-    let state = AppState::new();
-    let session_id = state.create_session().await;
-
-    let mut session = SessionData::new();
-    session.csv_a = Some(build_csv_a());
-    session.csv_b = Some(build_csv_b());
-    assert!(state.update_session(&session_id, session).await);
+    let (state, session_id) = session_with_loaded_csvs().await;
 
     let mut request = build_compare_request();
     request.comparison_columns_b = vec!["name".to_string()];
@@ -362,4 +368,91 @@ async fn response_contracts_compare_rejects_missing_selected_columns() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     let json = response_json(response).await;
     assert_eq!(json["error"], "Comparison columns for File A and Comparison columns for File B must contain the same number of columns (got 2 and 1)");
+}
+
+#[tokio::test]
+async fn response_contracts_compare_rejects_fuzzy_mappings_without_similarity() {
+    let (state, session_id) = session_with_loaded_csvs().await;
+
+    let mut request = build_compare_request();
+    request.column_mappings[0].mapping_type = "fuzzy".to_string();
+    request.column_mappings[0].similarity = None;
+
+    let response = handlers::compare(State(state), Path(session_id), Json(request)).await;
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let json = response_json(response).await;
+    assert_eq!(
+        json["error"],
+        "Fuzzy mappings require a similarity value between 0.0 and 1.0"
+    );
+}
+
+#[tokio::test]
+async fn response_contracts_compare_rejects_out_of_range_fuzzy_similarity() {
+    let (state, session_id) = session_with_loaded_csvs().await;
+
+    let mut request = build_compare_request();
+    request.column_mappings[0].mapping_type = "fuzzy".to_string();
+    request.column_mappings[0].similarity = Some(1.2);
+
+    let response = handlers::compare(State(state), Path(session_id), Json(request)).await;
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let json = response_json(response).await;
+    assert_eq!(
+        json["error"],
+        "Fuzzy mappings require a similarity value between 0.0 and 1.0"
+    );
+}
+
+#[tokio::test]
+async fn response_contracts_compare_rejects_mappings_outside_selected_columns() {
+    let (state, session_id) = session_with_loaded_csvs().await;
+
+    let mut request = build_compare_request();
+    request.column_mappings[0].file_b_column = "id".to_string();
+
+    let response = handlers::compare(State(state), Path(session_id), Json(request)).await;
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let json = response_json(response).await;
+    assert_eq!(
+        json["error"],
+        "Column mappings must only reference selected comparison columns"
+    );
+}
+
+#[tokio::test]
+async fn response_contracts_compare_rejects_reused_mapping_columns() {
+    let (state, session_id) = session_with_loaded_csvs().await;
+
+    let mut request = build_compare_request();
+    request.column_mappings[1].file_b_column = "name".to_string();
+
+    let response = handlers::compare(State(state), Path(session_id), Json(request)).await;
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let json = response_json(response).await;
+    assert_eq!(
+        json["error"],
+        "Column mappings must pair each selected comparison column exactly once"
+    );
+}
+
+#[tokio::test]
+async fn response_contracts_compare_rejects_incomplete_mapping_coverage() {
+    let (state, session_id) = session_with_loaded_csvs().await;
+
+    let mut request = build_compare_request();
+    request.column_mappings.pop();
+
+    let response = handlers::compare(State(state), Path(session_id), Json(request)).await;
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let json = response_json(response).await;
+    assert_eq!(
+        json["error"],
+        "Provided column mappings for File A and selected comparison columns must contain the same number of columns (got 1 and 2)"
+    );
 }

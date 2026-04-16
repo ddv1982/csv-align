@@ -15,7 +15,7 @@ pub fn load_csv(file_path: &str) -> Result<CsvData, Box<dyn Error>> {
     Ok(csv_data)
 }
 
-/// Load CSV from bytes (for web uploads)
+/// Load CSV from raw file bytes provided by the app
 pub fn load_csv_from_bytes(bytes: &[u8]) -> Result<CsvData, Box<dyn Error>> {
     let csv_data = decode_csv_text(Cursor::new(bytes))?;
     parse_csv_text(&csv_data)

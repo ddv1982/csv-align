@@ -42,7 +42,7 @@ test('createSession surfaces the backend error payload in browser mode', async (
   expect(fetchMock).toHaveBeenCalledWith('/api/sessions', { method: 'POST' });
 });
 
-test('loadFile sends browser uploads as multipart form data', async () => {
+test('loadFile sends selected local files as multipart form data', async () => {
   const fetchMock = vi.mocked(globalThis.fetch);
   const file = new File(['id,name\n1,Alice'], 'left.csv', { type: 'text/csv' });
 

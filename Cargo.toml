@@ -1,6 +1,6 @@
 [package]
 name = "csv-align"
-version = "1.0.22"
+version = "1.0.23"
 edition = "2021"
 description = "CSV file comparison tool with modern web UI"
 license = "MIT"
@@ -19,7 +19,7 @@ log = "0.4"
 # Web server dependencies
 axum = { version = "0.7", features = ["multipart"] }
 tokio = { version = "1.0", features = ["full"] }
-tower = "0.4"
+tower = { version = "0.4", features = ["util"] }
 tower-http = { version = "0.5", features = ["cors", "fs"] }
 uuid = { version = "1.0", features = ["v4"] }
 
