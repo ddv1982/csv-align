@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.0 - 2026-04-16
+
+- Added a dedicated macOS release entitlements plist and switched the desktop bundle away from hardcoded ad-hoc signing so tagged builds can use the configured Developer ID certificate and notarization flow.
+- Tightened the release workflow to require a `Developer ID Application` identity and bumped release metadata across the Rust crates, desktop config, frontend package, and lockfiles for the v1.1.0 release prep.
+
 ## v1.0.27 - 2026-04-16
 
 - Added sortable comparison-result columns so you can reorder rows by type, key, or the visible File A/File B values directly from the table header.

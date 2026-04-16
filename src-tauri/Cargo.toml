@@ -1,6 +1,6 @@
 [package]
 name = "csv-align-app"
-version = "1.0.27"
+version = "1.1.0"
 edition = "2021"
 description = "CSV file comparison desktop application"
 license = "MIT"
