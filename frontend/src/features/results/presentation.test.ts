@@ -58,7 +58,7 @@ const RESULTS: ResultResponse[] = [
     differences: [],
   },
   {
-    result_type: 'duplicate_file_a',
+    result_type: 'duplicate_filea',
     key: ['5'],
     values_a: ['Evan'],
     values_b: ['Evan'],
@@ -102,7 +102,7 @@ test('returns the expected badges for standard and duplicate result types', () =
     label: 'Match',
     dot: 'bg-emerald-500 dark:bg-emerald-400',
   });
-  expect(getResultBadge('duplicate_file_a')).toMatchObject({
+  expect(getResultBadge('duplicate_filea')).toMatchObject({
     label: 'Duplicate',
     dot: 'bg-orange-500 dark:bg-orange-400',
   });

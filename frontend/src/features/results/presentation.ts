@@ -43,11 +43,11 @@ const RESULT_COPY: Record<CompareResultType, ResultStaticCopy> = {
     label: 'Ignored in File A',
     description: 'Skipped because File A has an unusable selected key for this row.',
   },
-  duplicate_file_a: {
+  duplicate_filea: {
     label: 'Duplicate',
     description: 'Multiple File A rows share this selected key.',
   },
-  duplicate_file_b: {
+  duplicate_fileb: {
     label: 'Duplicate',
     description: 'Multiple File B rows share this selected key.',
   },
