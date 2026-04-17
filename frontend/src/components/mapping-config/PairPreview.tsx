@@ -3,12 +3,25 @@ interface PairPreviewProps {
   comparisonColumnsB: string[];
 }
 
+function normalizeVisibleText(value: string) {
+  return value.replace(/\s+/g, ' ').trim();
+}
+
 export function PairPreview({ comparisonColumnsA, comparisonColumnsB }: PairPreviewProps) {
   const pairs = comparisonColumnsA
     .slice(0, comparisonColumnsB.length)
-    .map((columnA, index) => ({ columnA, columnB: comparisonColumnsB[index] }));
+    .map((columnA, index) => {
+      const normalizedColumnA = normalizeVisibleText(columnA);
+      const normalizedColumnB = normalizeVisibleText(comparisonColumnsB[index]);
+
+      return {
+        columnA: normalizedColumnA,
+        columnB: normalizedColumnB,
+        displayText: `${index + 1} ${normalizedColumnA} → ${normalizedColumnB}`,
+      };
+    });
   const pairOrderText = pairs.length > 0
-    ? pairs.map((pair, index) => `${index + 1} ${pair.columnA} → ${pair.columnB}`).join('\n')
+    ? pairs.map((pair) => pair.displayText).join('\n')
     : 'No pairs selected yet.';
 
   const handleCopy = async () => {
@@ -26,11 +39,8 @@ export function PairPreview({ comparisonColumnsA, comparisonColumnsB }: PairPrev
       {pairs.length > 0 ? (
         <div className="space-y-1 text-sm text-gray-700 dark:text-gray-300">
           {pairs.map((pair, index) => (
-            <div key={`${pair.columnA}-${pair.columnB}-${index}`} className="flex items-center gap-2">
-              <span className="rounded border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs text-gray-700 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200">{index + 1}</span>
-              <span className="truncate" title={pair.columnA}>{pair.columnA}</span>
-              <span aria-hidden="true">→</span>
-              <span className="truncate" title={pair.columnB}>{pair.columnB}</span>
+            <div key={`${pair.columnA}-${pair.columnB}-${index}`} className="truncate" title={pair.displayText}>
+              {pair.displayText}
             </div>
           ))}
         </div>

@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.7 - 2026-04-17
+
+- Fixed the Current pair order copy action so it now copies only the exact text shown on screen, including browser-normalized whitespace in column labels.
+- Prepared the v1.1.7 follow-up patch release by updating the required version metadata and rerunning the full validation workflow.
+
 ## v1.1.6 - 2026-04-17
 
 - Added a "Copy current pair order" action so the currently displayed mapping order can be copied directly in the same text format used by pair-order save/load workflows.

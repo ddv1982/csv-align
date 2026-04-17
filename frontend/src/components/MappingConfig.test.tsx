@@ -89,6 +89,9 @@ test('copies the current pair order in the same displayed text format', async ()
     />
   );
 
+  expect(screen.getByText('1 id → value')).toBeInTheDocument();
+  expect(screen.getByText('2 name → id')).toBeInTheDocument();
+
   fireEvent.click(screen.getByRole('button', { name: 'Copy current pair order' }));
 
   expect(writeText).toHaveBeenCalledWith('1 id → value\n2 name → id');
@@ -107,5 +110,41 @@ test('copies the empty-state text when no pairs are selected yet', () => {
   fireEvent.click(screen.getByRole('button', { name: 'Copy current pair order' }));
 
   expect(writeText).toHaveBeenCalledWith('No pairs selected yet.');
+  vi.unstubAllGlobals();
+});
+
+test('copies the same whitespace-collapsed text shown in the pair preview', () => {
+  const writeText = vi.fn().mockResolvedValue(undefined);
+  vi.stubGlobal('navigator', {
+    ...navigator,
+    clipboard: { writeText },
+  });
+
+  render(
+    <MappingConfig
+      fileA={file}
+      fileB={file}
+      selection={{
+        keyColumnsA: [],
+        keyColumnsB: [],
+        comparisonColumnsA: ['full   name', 'zip\ncode'],
+        comparisonColumnsB: ['customer\tid', 'postal   code'],
+      }}
+      normalization={INITIAL_NORMALIZATION_CONFIG}
+      onSelectionChange={() => undefined}
+      onNormalizationChange={() => undefined}
+      onCompare={() => undefined}
+      onSavePairOrder={() => undefined}
+      onLoadPairOrder={() => undefined}
+      onAutoPairComparisonColumns={() => undefined}
+    />
+  );
+
+  expect(screen.getByText('1 full name → customer id')).toBeInTheDocument();
+  expect(screen.getByText('2 zip code → postal code')).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Copy current pair order' }));
+
+  expect(writeText).toHaveBeenCalledWith('1 full name → customer id\n2 zip code → postal code');
   vi.unstubAllGlobals();
 });
