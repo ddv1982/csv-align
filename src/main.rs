@@ -5,6 +5,7 @@ use axum::{
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use tower_http::services::ServeDir;
+use tracing::info;
 
 use csv_align::api::{handlers, state::AppState};
 
@@ -38,7 +39,10 @@ fn frontend_dist_path() -> PathBuf {
 #[tokio::main]
 async fn main() {
     // Initialize logging
-    env_logger::init();
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .try_init()
+        .expect("failed to initialize tracing subscriber");
 
     // Create shared state
     let state = AppState::new();
@@ -46,7 +50,7 @@ async fn main() {
     // Get frontend dist path
     let frontend_path = frontend_dist_path();
 
-    println!("Frontend path: {frontend_path:?}");
+    info!(frontend_path = ?frontend_path, "resolved frontend dist path");
 
     // Build the API router
     let api_routes = Router::new()
