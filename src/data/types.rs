@@ -32,15 +32,6 @@ pub enum FileSide {
     B,
 }
 
-impl FileSide {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::A => "a",
-            Self::B => "b",
-        }
-    }
-}
-
 /// Mapping between columns in file A and file B
 #[derive(Debug, Clone)]
 pub struct ColumnMapping {
@@ -62,16 +53,6 @@ pub enum MappingType {
     ExactMatch,
     ManualMatch,
     FuzzyMatch(f64), // similarity score
-}
-
-impl MappingType {
-    pub fn kind(&self) -> MappingKind {
-        match self {
-            Self::ExactMatch => MappingKind::Exact,
-            Self::ManualMatch => MappingKind::Manual,
-            Self::FuzzyMatch(_) => MappingKind::Fuzzy,
-        }
-    }
 }
 
 /// Configuration for comparison

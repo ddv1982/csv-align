@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import appLogo from '../../../../src-tauri/icons/icon.svg';
+import appLogo from '../../assets/icon.svg';
 import { openNewAppWindow } from '../../services/tauri';
 
 interface AppHeaderProps {

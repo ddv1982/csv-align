@@ -50,7 +50,7 @@ async fn main() {
     // Get frontend dist path
     let frontend_path = frontend_dist_path();
 
-    info!(frontend_path = ?frontend_path, "resolved frontend dist path");
+    info!(frontend_path = %frontend_path.display(), "resolved frontend dist path");
 
     // Build the API router
     let api_routes = Router::new()
@@ -102,11 +102,12 @@ async fn main() {
     let app = Router::new()
         .merge(api_routes)
         // Serve static files from frontend/dist
-        .fallback_service(ServeDir::new(frontend_path).append_index_html_on_directories(true));
+        .fallback_service(ServeDir::new(&frontend_path).append_index_html_on_directories(true));
 
     // Start the server
     let addr = SocketAddr::from(([127, 0, 0, 1], 3001));
     info!(listen_url = %format!("http://{addr}"), "csv-align server starting");
+    info!(frontend_path = %frontend_path.display(), "serving built frontend assets");
     info!(open_url = %format!("http://{addr}"), "open the app in your browser");
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
