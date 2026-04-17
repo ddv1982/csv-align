@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.2.3 - 2026-04-17
+
+- Polished the comparison Results table with a refreshed header row (stacked up/down sort glyphs with the active direction highlighted in the primary color), a monospace pill for the Key column, and a consistent mono-boxed treatment for the File A / File B value cells that matches the rest of the app's typography.
+- Redesigned the expanded Value Differences panel: each diff now renders as a self-contained card with a column_a → column_b title row, explicit File A (rose) / File B (emerald) labels, and a circular arrow separator, so before/after values are easier to scan in both light and dark mode.
+- Bumped release metadata across the Rust crates, desktop bundle config, frontend package manifests, and lockfiles for the v1.2.3 patch release.
+
 ## v1.2.2 - 2026-04-17
 
 - Polished the Configure step so it shares the same section anatomy (icon chip, eyebrow label, title, description) already used on the Results step, replacing the heavier borders and decorative backgrounds with the softer translucent-white-over-subtle-border treatment used across the rest of the app.

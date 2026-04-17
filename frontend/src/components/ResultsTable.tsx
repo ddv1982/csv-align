@@ -14,6 +14,69 @@ interface ResultRowEntry {
   result: ResultResponse;
 }
 
+interface DiffRowProps {
+  columnA: string;
+  columnB: string;
+  valueA: string;
+  valueB: string;
+}
+
+function DiffRow({ columnA, columnB, valueA, valueB }: DiffRowProps) {
+  const sameColumn = columnA === columnB;
+
+  return (
+    <div className="rounded-xl border border-gray-200/90 bg-white/95 p-3.5 shadow-sm shadow-gray-200/60 transition-colors hover:border-gray-300/90 dark:border-gray-700/90 dark:bg-gray-900/70 dark:shadow-none dark:hover:border-gray-600/90">
+      <div className="mb-2.5 flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400">
+        <span className="font-mono text-[11px] font-semibold tracking-tight text-gray-700 dark:text-gray-200">
+          {columnA}
+        </span>
+        {!sameColumn && (
+          <>
+            <svg className="h-3 w-3 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+            </svg>
+            <span className="font-mono text-[11px] font-semibold tracking-tight text-gray-700 dark:text-gray-200">
+              {columnB}
+            </span>
+          </>
+        )}
+      </div>
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+        <div className="min-w-0">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-rose-600/90 dark:text-rose-300/90">File A</p>
+          <span className="block truncate rounded-md border border-rose-200/80 bg-rose-50/70 px-2.5 py-1.5 font-mono text-sm text-rose-800 dark:border-rose-500/40 dark:bg-rose-950/40 dark:text-rose-100" title={valueA}>
+            {valueA}
+          </span>
+        </div>
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-gray-200/90 bg-gray-50 text-gray-500 dark:border-gray-700/80 dark:bg-gray-800/60 dark:text-gray-400">
+          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
+        </div>
+        <div className="min-w-0">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-600/90 dark:text-emerald-300/90">File B</p>
+          <span className="block truncate rounded-md border border-emerald-200/80 bg-emerald-50/70 px-2.5 py-1.5 font-mono text-sm text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-950/40 dark:text-emerald-100" title={valueB}>
+            {valueB}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SortGlyph({ state }: { state: 'asc' | 'desc' | 'inactive' }) {
+  const baseClass = 'block leading-none text-[8px]';
+  const upClass = state === 'asc' ? 'text-primary-600 dark:text-primary-300' : 'text-gray-400 dark:text-gray-500';
+  const downClass = state === 'desc' ? 'text-primary-600 dark:text-primary-300' : 'text-gray-400 dark:text-gray-500';
+
+  return (
+    <span className="ml-1 flex flex-col items-center" aria-hidden="true">
+      <span className={`${baseClass} ${upClass}`}>▲</span>
+      <span className={`${baseClass} ${downClass}`}>▼</span>
+    </span>
+  );
+}
+
 export function ResultsTable({ results }: ResultsTableProps) {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -98,18 +161,25 @@ export function ResultsTable({ results }: ResultsTableProps) {
 
   const renderSortHeader = (label: string, column: SortColumn, className: string) => {
     const isActive = sortColumn === column;
+    const glyphState: 'asc' | 'desc' | 'inactive' = isActive ? sortDirection : 'inactive';
 
     return (
-      <th className={className} aria-sort={isActive ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}>
+      <th
+        scope="col"
+        className={className}
+        aria-sort={isActive ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+      >
         <button
           type="button"
           onClick={() => handleSort(column)}
-          className="inline-flex items-center gap-1 rounded-md text-left transition-colors hover:text-gray-900 dark:hover:text-gray-100"
+          className={`group inline-flex items-center rounded-md text-left transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-50 dark:focus-visible:ring-offset-gray-950 ${
+            isActive
+              ? 'text-gray-900 dark:text-gray-50'
+              : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100'
+          }`}
         >
           {label}
-          <span className={`text-[10px] ${isActive ? 'text-primary-600 dark:text-primary-300' : 'text-gray-400 dark:text-gray-500'}`} aria-hidden="true">
-            {isActive ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}
-          </span>
+          <SortGlyph state={glyphState} />
         </button>
       </th>
     );
@@ -125,7 +195,10 @@ export function ResultsTable({ results }: ResultsTableProps) {
     return (
       <div className="space-y-1 text-sm text-gray-700 dark:text-gray-200">
         {displayRows.map((row, rowIndex) => (
-          <div key={rowIndex} className="rounded bg-gray-50 px-2 py-1 dark:bg-gray-800/80">
+          <div
+            key={rowIndex}
+            className="rounded-md border border-gray-200/80 bg-gray-50/80 px-2.5 py-1.5 font-mono text-[13px] leading-5 dark:border-gray-700/80 dark:bg-gray-900/60"
+          >
             {row.length > 0 ? row.join(', ') : '—'}
           </div>
         ))}
@@ -188,14 +261,14 @@ export function ResultsTable({ results }: ResultsTableProps) {
         <table className="w-full">
           <thead className="border-b border-gray-200/90 bg-gray-50/90 dark:border-gray-700 dark:bg-gray-950/45">
             <tr>
-              {renderSortHeader('Type', 'type', 'w-40 min-w-[11rem] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300')}
-              {renderSortHeader('Key', 'key', 'px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300')}
-              {renderSortHeader('File A Values', 'fileA', 'px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300')}
-              {renderSortHeader('File B Values', 'fileB', 'px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300')}
-              {renderSortHeader('Details', 'details', 'w-32 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300')}
+              {renderSortHeader('Type', 'type', 'w-40 min-w-[11rem] px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300')}
+              {renderSortHeader('Key', 'key', 'px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300')}
+              {renderSortHeader('File A Values', 'fileA', 'px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300')}
+              {renderSortHeader('File B Values', 'fileB', 'px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300')}
+              {renderSortHeader('Details', 'details', 'w-32 px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300')}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+          <tbody className="divide-y divide-gray-200/80 dark:divide-gray-700/80">
             {visibleResults.map(({ id, result }) => {
               const badge = getResultBadge(result.result_type);
               const resultDescription = getResultDescription(result.result_type);
@@ -203,28 +276,34 @@ export function ResultsTable({ results }: ResultsTableProps) {
 
               return (
                 <Fragment key={id}>
-                  <tr className="bg-white transition-colors hover:bg-gray-50/80 dark:bg-gray-900/70 dark:hover:bg-gray-800/80">
-                    <td className="px-4 py-3 align-top">
+                  <tr className={`transition-colors ${isExpanded ? 'bg-gray-50/80 dark:bg-gray-950/35' : 'bg-white hover:bg-gray-50/70 dark:bg-gray-900/70 dark:hover:bg-gray-800/60'}`}>
+                    <td className="px-4 py-3.5 align-top">
                       <span className={`inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ${badge.bg} ${badge.text}`}>
                         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${badge.dot}`} aria-hidden="true" />
                         {badge.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <span className="font-medium text-gray-900 dark:text-gray-100">{result.key.join(', ')}</span>
+                    <td className="px-4 py-3.5 align-top">
+                      <span className="inline-block max-w-full truncate rounded-md bg-gray-100/80 px-2.5 py-1 font-mono text-sm font-semibold text-gray-900 dark:bg-gray-800/80 dark:text-gray-100" title={result.key.join(', ')}>
+                        {result.key.join(', ')}
+                      </span>
                     </td>
-                    <td className="px-4 py-3">{renderValueRows(result.duplicate_values_a, result.values_a)}</td>
-                    <td className="px-4 py-3">{renderValueRows(result.duplicate_values_b, result.values_b)}</td>
-                    <td className="px-4 py-3 align-top">
+                    <td className="px-4 py-3.5 align-top">{renderValueRows(result.duplicate_values_a, result.values_a)}</td>
+                    <td className="px-4 py-3.5 align-top">{renderValueRows(result.duplicate_values_b, result.values_b)}</td>
+                    <td className="px-4 py-3.5 align-top">
                       {result.differences.length > 0 ? (
                         <button
                           onClick={() => setExpandedRow(isExpanded ? null : id)}
-                          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+                          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900 ${
+                            isExpanded
+                              ? 'border-primary-300 bg-primary-50 text-primary-700 dark:border-primary-500/40 dark:bg-primary-500/15 dark:text-primary-200'
+                              : 'border-gray-200 bg-gray-50/70 text-gray-700 hover:border-gray-300 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800/60 dark:text-gray-200 dark:hover:border-gray-600 dark:hover:bg-gray-800'
+                          }`}
                           aria-expanded={isExpanded}
                         >
                           {result.differences.length} diff{result.differences.length > 1 ? 's' : ''}
                           <svg
-                            className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                            className={`h-3.5 w-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -241,33 +320,31 @@ export function ResultsTable({ results }: ResultsTableProps) {
                   </tr>
 
                   {isExpanded && result.differences.length > 0 && (
-                    <tr className="bg-gray-50/80 dark:bg-gray-950/35">
+                    <tr className="bg-gray-50/60 dark:bg-gray-950/35">
                       <td colSpan={5} className="px-4 py-4">
-                        <div className="space-y-2">
-                          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Value Differences:</p>
-                          {result.differences.map((diff, diffIdx) => (
-                            <div
-                              key={diffIdx}
-                              className="flex items-center gap-4 rounded-xl border border-gray-200/90 bg-white p-3 shadow-sm shadow-gray-200/70 dark:border-gray-600 dark:bg-gray-900/70 dark:shadow-none"
-                            >
-                              <div className="flex-1">
-                                <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-                                  {diff.column_a} <span className="text-gray-400 dark:text-gray-500">→</span> {diff.column_b}
-                                </p>
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <span className="rounded-md border border-rose-200/90 bg-rose-50/90 px-2 py-1 text-sm text-rose-700 dark:border-rose-500/40 dark:bg-rose-950/35 dark:text-rose-200">
-                                    {diff.value_a}
-                                  </span>
-                                  <svg className="h-4 w-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                  </svg>
-                                  <span className="rounded-md border border-emerald-200/90 bg-emerald-50/90 px-2 py-1 text-sm text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-950/35 dark:text-emerald-200">
-                                    {diff.value_b}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
+                        <div className="rounded-2xl border border-gray-200/80 bg-white/80 p-4 shadow-sm shadow-gray-200/50 dark:border-gray-700/80 dark:bg-gray-900/60 dark:shadow-none">
+                          <div className="mb-3 flex items-center gap-2">
+                            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary-100 text-primary-700 ring-1 ring-inset ring-primary-200/80 dark:bg-primary-500/15 dark:text-primary-200 dark:ring-primary-500/30">
+                              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                              </svg>
+                            </span>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Value Differences:</p>
+                            <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">
+                              {result.differences.length} field{result.differences.length > 1 ? 's' : ''}
+                            </span>
+                          </div>
+                          <div className="grid gap-3 sm:grid-cols-1 lg:grid-cols-2">
+                            {result.differences.map((diff, diffIdx) => (
+                              <DiffRow
+                                key={diffIdx}
+                                columnA={diff.column_a}
+                                columnB={diff.column_b}
+                                valueA={diff.value_a}
+                                valueB={diff.value_b}
+                              />
+                            ))}
+                          </div>
                         </div>
                       </td>
                     </tr>
