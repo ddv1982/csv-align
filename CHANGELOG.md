@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.6 - 2026-04-17
+
+- Added a "Copy current pair order" action so the currently displayed mapping order can be copied directly in the same text format used by pair-order save/load workflows.
+- Prepared the v1.1.6 patch release by updating version metadata across the Rust crates, desktop bundle config, frontend package manifests, and lockfiles before rerunning broad validation.
+
 ## v1.1.5 - 2026-04-17
 
 - Restored dark-mode readability on the results filter by adding the missing `primary-950` shade to the Tailwind palette and strengthening the active pill contrast so the label and count stay clearly visible.

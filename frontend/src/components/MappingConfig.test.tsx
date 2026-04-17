@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 import { MappingConfig } from './MappingConfig';
 import { INITIAL_NORMALIZATION_CONFIG } from '../config/normalization';
 import { ComparisonNormalizationConfig } from '../types/api';
@@ -60,4 +60,52 @@ test('keeps advanced date controls collapsed by default and lets users reveal th
   expect(within(details).getByRole('textbox')).toHaveValue(
     INITIAL_NORMALIZATION_CONFIG.date_normalization.formats.join('\n')
   );
+});
+
+test('copies the current pair order in the same displayed text format', async () => {
+  const writeText = vi.fn().mockResolvedValue(undefined);
+  vi.stubGlobal('navigator', {
+    ...navigator,
+    clipboard: { writeText },
+  });
+
+  render(
+    <MappingConfig
+      fileA={file}
+      fileB={file}
+      selection={{
+        keyColumnsA: [],
+        keyColumnsB: [],
+        comparisonColumnsA: ['id', 'name'],
+        comparisonColumnsB: ['value', 'id'],
+      }}
+      normalization={INITIAL_NORMALIZATION_CONFIG}
+      onSelectionChange={() => undefined}
+      onNormalizationChange={() => undefined}
+      onCompare={() => undefined}
+      onSavePairOrder={() => undefined}
+      onLoadPairOrder={() => undefined}
+      onAutoPairComparisonColumns={() => undefined}
+    />
+  );
+
+  fireEvent.click(screen.getByRole('button', { name: 'Copy current pair order' }));
+
+  expect(writeText).toHaveBeenCalledWith('1 id → value\n2 name → id');
+  vi.unstubAllGlobals();
+});
+
+test('copies the empty-state text when no pairs are selected yet', () => {
+  const writeText = vi.fn().mockResolvedValue(undefined);
+  vi.stubGlobal('navigator', {
+    ...navigator,
+    clipboard: { writeText },
+  });
+
+  renderMappingConfig();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Copy current pair order' }));
+
+  expect(writeText).toHaveBeenCalledWith('No pairs selected yet.');
+  vi.unstubAllGlobals();
 });

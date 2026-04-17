@@ -7,10 +7,22 @@ export function PairPreview({ comparisonColumnsA, comparisonColumnsB }: PairPrev
   const pairs = comparisonColumnsA
     .slice(0, comparisonColumnsB.length)
     .map((columnA, index) => ({ columnA, columnB: comparisonColumnsB[index] }));
+  const pairOrderText = pairs.length > 0
+    ? pairs.map((pair, index) => `${index + 1} ${pair.columnA} → ${pair.columnB}`).join('\n')
+    : 'No pairs selected yet.';
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(pairOrderText);
+  };
 
   return (
     <div className="mt-6 rounded-lg border border-gray-200 bg-white/80 p-4 shadow-sm shadow-gray-950/5 dark:border-gray-700 dark:bg-gray-800/60 dark:shadow-none">
-      <h4 className="mb-2 text-sm font-semibold text-gray-800 dark:text-gray-200">Current pair order</h4>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Current pair order</h4>
+        <button aria-label="Copy current pair order" className="btn btn-secondary px-3 py-1 text-xs" onClick={handleCopy} type="button">
+          Copy
+        </button>
+      </div>
       {pairs.length > 0 ? (
         <div className="space-y-1 text-sm text-gray-700 dark:text-gray-300">
           {pairs.map((pair, index) => (
