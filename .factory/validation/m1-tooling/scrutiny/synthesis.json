@@ -1,0 +1,91 @@
+{
+  "milestone": "m1-tooling",
+  "round": 1,
+  "status": "fail",
+  "validatorsRun": {
+    "test": {
+      "passed": true,
+      "command": "cargo test -j 4 && (cd src-tauri && cargo test -j 4) && (cd frontend && npm test -- --run)",
+      "exitCode": 0
+    },
+    "typecheck": {
+      "passed": true,
+      "command": "cd frontend && npx tsc --noEmit",
+      "exitCode": 0
+    },
+    "lint": {
+      "passed": true,
+      "command": "cd frontend && npm run lint",
+      "exitCode": 0
+    }
+  },
+  "reviewsSummary": {
+    "total": 6,
+    "passed": 4,
+    "failed": 2,
+    "failedFeatures": [
+      "m1-drop-env-logger-adopt-tracing",
+      "m1-frontend-oxlint-setup"
+    ]
+  },
+  "blockingIssues": [
+    {
+      "featureId": "m1-drop-env-logger-adopt-tracing",
+      "severity": "blocking",
+      "description": "Out-of-scope feature change: commit fa6a52e replaced an existing startup println! with tracing::info! despite explicit feature scope stating println replacements belonged to a separate feature."
+    },
+    {
+      "featureId": "m1-frontend-oxlint-setup",
+      "severity": "blocking",
+      "description": "Commit ec5bc86 changed frontend duplicate result literals to duplicate_file_a/duplicate_file_b while backend still emitted duplicate_filea/duplicate_fileb at that point, creating a frontend/backend wire-contract mismatch for duplicate rows."
+    }
+  ],
+  "appliedUpdates": [],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "skills",
+      "suggestion": "Add a documented \"tooling/dependency/deletion-only\" fast path to rust-worker, frontend-worker, and fullstack-worker that allows baseline-first validation instead of strict red-first test authoring when behavior contracts are intentionally unchanged.",
+      "evidence": "Multiple reviews flagged procedure mismatches for this pattern: m1-drop-env-logger-adopt-tracing, m1-add-thiserror-anyhow-deps, m1-trim-tokio-features, and m1-drop-dead-code-and-glob-reexports.",
+      "isSystemic": true
+    },
+    {
+      "target": "skills",
+      "suggestion": "Allow feature-level verification scopes to override default worker verification matrices (e.g., when a feature contract requires src-tauri tests but not fmt/clippy in that crate).",
+      "evidence": "m1-drop-env-logger-adopt-tracing review noted rust-worker default verification conflicted with explicit feature-level requirements.",
+      "isSystemic": true
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Resolve contradictory guidance around startup logging migration by clarifying precedence when mission-wide conventions (\"no println for logging\") conflict with feature-level scope freezes.",
+      "evidence": "m1-drop-env-logger-adopt-tracing review identified conflicting directives between mission AGENTS and the feature specification.",
+      "isSystemic": true
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Align commit-message guidance with accepted practice (or enforce consistently) by clarifying whether chore(...) commits are permitted for dependency/tooling features.",
+      "evidence": "m1-trim-tokio-features review found AGENTS listed feat/fix/refactor while accepted feature commits used chore(deps).",
+      "isSystemic": true
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Clarify policy for worker edits under .factory/ when a feature explicitly requires shared-library notes, to avoid conflicting instructions.",
+      "evidence": "m1-frontend-oxlint-setup review observed conflict between AGENTS prohibition on .factory changes and feature instructions requesting a .factory/library note.",
+      "isSystemic": true
+    }
+  ],
+  "rejectedObservations": [
+    {
+      "observation": "Worker-base YAML parsing fallback guidance should be added immediately to library docs.",
+      "reason": "ambiguous"
+    },
+    {
+      "observation": "Duplicate-result wire literal inconsistency in shared docs should be applied as a shared-state correction for m1.",
+      "reason": "already-documented"
+    },
+    {
+      "observation": "Repeated notes that strict TDD requirements caused justified deviations on dependency/tooling-only features.",
+      "reason": "duplicate"
+    }
+  ],
+  "previousRound": null
+}

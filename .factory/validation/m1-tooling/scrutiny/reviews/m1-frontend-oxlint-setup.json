@@ -1,0 +1,38 @@
+{
+  "featureId": "m1-frontend-oxlint-setup",
+  "reviewedAt": "2026-04-17T23:32:16Z",
+  "commitId": "ec5bc86baeb0d494f0b54430c8dc6d1ef0964c33",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "The commit correctly adds oxlint and wires the lint script, but it also changes frontend result-type wire literals from `duplicate_filea`/`duplicate_fileb` to `duplicate_file_a`/`duplicate_file_b` without backend changes, introducing a runtime contract mismatch.",
+    "issues": [
+      {
+        "file": "frontend/src/types/api.ts",
+        "line": 13,
+        "severity": "blocking",
+        "description": "This commit changes `CompareResultType` to `duplicate_file_a`/`duplicate_file_b` while Rust still serializes `duplicate_filea`/`duplicate_fileb` (`src/data/types.rs:168,170` in commit ec5bc86). Duplicate results from the backend will not match the frontend type/copy map, and calls such as `getResultDescription(result.result_type)` (`frontend/src/features/results/presentation.ts:83`, used at `frontend/src/components/ResultsTable.tsx:274`) can dereference `undefined` and break duplicate-row rendering."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "knowledge",
+      "observation": "Shared-state docs and actual wire contract are inconsistent for duplicate result literals. Mission/library docs instruct workers that legacy `duplicate_filea`/`duplicate_fileb` must not appear, but backend code in this feature still emits those legacy literals.",
+      "evidence": "Mission AGENTS: `/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c/AGENTS.md:42`; architecture doc: `.factory/library/architecture.md:109`; backend at reviewed commit: `git show ec5bc86:src/data/types.rs` shows `#[serde(rename = \"duplicate_filea\")]` and `#[serde(rename = \"duplicate_fileb\")]` at lines 168 and 170."
+    },
+    {
+      "area": "conventions",
+      "observation": "Mission instructions conflict on `.factory` edits: AGENTS forbids worker `.factory` changes, but this feature explicitly required adding an environment note under `.factory/library/environment.md`.",
+      "evidence": "Mission AGENTS prohibition: `/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c/AGENTS.md:50`; feature requirement: `/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c/features.json:1243`."
+    },
+    {
+      "area": "skills",
+      "observation": "The worker reported procedure deviations (no explicit red-first test and no agent-browser run) for this tooling-heavy feature. The current frontend-worker skill is strict on TDD sequence and UI-check guidance, but this class of feature likely needs an explicit tooling-only exception path.",
+      "evidence": "Handoff skill feedback marks deviations: `/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c/handoffs/2026-04-17T23-19-15-318Z__m1-frontend-oxlint-setup__f9688287-6c0b-4061-9499-195dd5372cbc.json:55-64`; skill procedure references: `.factory/skills/frontend-worker/SKILL.md:30-41`."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed transcript skeleton, handoff, and commit ec5bc86 diff. Feature goals for oxlint wiring were mostly implemented, but the commit introduced a blocking frontend/backend wire-literal mismatch for duplicate result types, so this review is marked fail."
+}

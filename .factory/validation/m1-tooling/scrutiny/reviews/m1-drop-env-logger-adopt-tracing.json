@@ -1,0 +1,38 @@
+{
+  "featureId": "m1-drop-env-logger-adopt-tracing",
+  "reviewedAt": "2026-04-17T23:31:32Z",
+  "commitId": "fa6a52e",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "The core migration from env_logger/log to tracing + tracing-subscriber is implemented correctly in Cargo.toml and src/main.rs, and both lockfiles were updated as expected. However, the commit includes a scope-violating behavior change by replacing an existing startup println! with tracing::info!, which directly conflicts with the feature instruction that println! calls in src/main.rs must not be replaced in this feature.",
+    "issues": [
+      {
+        "file": "src/main.rs",
+        "line": 50,
+        "severity": "blocking",
+        "description": "Out-of-scope change: `println!(\"Frontend path: ...\")` was replaced with `info!(...)` in commit `fa6a52e`, but the feature description explicitly said \"DO NOT replace println! calls in src/main.rs — that belongs to a separate feature.\""
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "The rust-worker skill currently enforces failing-test-first TDD even for dependency/bootstrap-only features where no behavior contract changed. This repeatedly causes documented deviations in handoffs.",
+      "evidence": "`.factory/skills/rust-worker/SKILL.md` (Red→Green TDD step) versus handoff `.../handoffs/2026-04-17T23-09-11-835Z__m1-drop-env-logger-adopt-tracing__812bdfed-96f2-492e-b36f-6d6ce635e79a.json` where `skillFeedback.followedProcedure=false` and deviation notes no new failing test for dependency-only work."
+    },
+    {
+      "area": "skills",
+      "observation": "Final verification requirements are inconsistent between rust-worker skill and feature-level contracts for non-Tauri changes: skill mandates src-tauri fmt+clippy+test always, while this feature contract required only src-tauri tests.",
+      "evidence": "`.factory/skills/rust-worker/SKILL.md` final verification step includes `cd src-tauri && cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test`; this handoff records deviation for running only `cd src-tauri && cargo test` per feature scope."
+    },
+    {
+      "area": "conventions",
+      "observation": "There is directive ambiguity around startup logging migration: mission conventions say no println! for logging, while this feature specification explicitly forbids replacing println! in src/main.rs.",
+      "evidence": "`/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c/AGENTS.md` states \"No `println!` for logging\", but `features.json` description for `m1-drop-env-logger-adopt-tracing` includes \"DO NOT replace println! calls in src/main.rs\"."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed feature m1-drop-env-logger-adopt-tracing using the feature record, handoff, transcript skeleton, skill file, and commit diff (`fa6a52e`). The tracing dependency/init migration is mostly correct, but the implementation fails scope compliance due to replacing a println! line that was explicitly out of scope for this feature."
+}
