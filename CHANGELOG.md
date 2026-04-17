@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.8 - 2026-04-17
+
+- Replaced the Current pair order copy action with an icon-only control that flips to a green checkmark after copying, keeping the interaction compact while preserving accessible copy feedback.
+- Added frontend regression coverage for the icon-only copy button state and refreshed release metadata across the Rust crates, desktop config, frontend package manifests, and lockfiles for the v1.1.8 patch release.
+
 ## v1.1.7 - 2026-04-17
 
 - Fixed the Current pair order copy action so it now copies only the exact text shown on screen, including browser-normalized whitespace in column labels.

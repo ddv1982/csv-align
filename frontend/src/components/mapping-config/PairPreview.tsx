@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+
 interface PairPreviewProps {
   comparisonColumnsA: string[];
   comparisonColumnsB: string[];
@@ -8,6 +10,7 @@ function normalizeVisibleText(value: string) {
 }
 
 export function PairPreview({ comparisonColumnsA, comparisonColumnsB }: PairPreviewProps) {
+  const [copySucceeded, setCopySucceeded] = useState(false);
   const pairs = comparisonColumnsA
     .slice(0, comparisonColumnsB.length)
     .map((columnA, index) => {
@@ -24,16 +27,49 @@ export function PairPreview({ comparisonColumnsA, comparisonColumnsB }: PairPrev
     ? pairs.map((pair) => pair.displayText).join('\n')
     : 'No pairs selected yet.';
 
+  useEffect(() => {
+    if (!copySucceeded) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setCopySucceeded(false);
+    }, 2000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [copySucceeded]);
+
   const handleCopy = async () => {
     await navigator.clipboard.writeText(pairOrderText);
+    setCopySucceeded(true);
   };
+
+  const buttonLabel = copySucceeded ? 'Copied current pair order' : 'Copy current pair order';
 
   return (
     <div className="mt-6 rounded-lg border border-gray-200 bg-white/80 p-4 shadow-sm shadow-gray-950/5 dark:border-gray-700 dark:bg-gray-800/60 dark:shadow-none">
       <div className="mb-2 flex items-center justify-between gap-3">
         <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Current pair order</h4>
-        <button aria-label="Copy current pair order" className="btn btn-secondary px-3 py-1 text-xs" onClick={handleCopy} type="button">
-          Copy
+        <button
+          aria-label={buttonLabel}
+          className={`btn btn-secondary px-2 py-1 text-xs ${copySucceeded ? 'text-green-600 dark:text-green-400' : ''}`}
+          onClick={handleCopy}
+          title={buttonLabel}
+          type="button"
+        >
+          <span className="sr-only">{buttonLabel}</span>
+          {copySucceeded ? (
+            <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75">
+              <path d="M3.5 8.5 6.5 11.5 12.5 4.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          ) : (
+            <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <rect x="5.25" y="3.25" width="7.5" height="9.5" rx="1.25" />
+              <path d="M3.25 10.75V4.5C3.25 3.81 3.81 3.25 4.5 3.25H9.75" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
         </button>
       </div>
       {pairs.length > 0 ? (

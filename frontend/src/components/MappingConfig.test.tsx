@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { expect, test, vi } from 'vitest';
 import { MappingConfig } from './MappingConfig';
 import { INITIAL_NORMALIZATION_CONFIG } from '../config/normalization';
@@ -62,7 +62,7 @@ test('keeps advanced date controls collapsed by default and lets users reveal th
   );
 });
 
-test('copies the current pair order in the same displayed text format', async () => {
+test('copies the current pair order in the same displayed text format and shows success state', async () => {
   const writeText = vi.fn().mockResolvedValue(undefined);
   vi.stubGlobal('navigator', {
     ...navigator,
@@ -92,13 +92,21 @@ test('copies the current pair order in the same displayed text format', async ()
   expect(screen.getByText('1 id → value')).toBeInTheDocument();
   expect(screen.getByText('2 name → id')).toBeInTheDocument();
 
-  fireEvent.click(screen.getByRole('button', { name: 'Copy current pair order' }));
+  const copyButton = screen.getByRole('button', { name: 'Copy current pair order' });
+  expect(copyButton).toHaveAttribute('title', 'Copy current pair order');
 
-  expect(writeText).toHaveBeenCalledWith('1 id → value\n2 name → id');
+  fireEvent.click(copyButton);
+
+  await waitFor(() => {
+    expect(writeText).toHaveBeenCalledWith('1 id → value\n2 name → id');
+    expect(screen.getByRole('button', { name: 'Copied current pair order' })).toHaveClass('text-green-600');
+    expect(screen.getByRole('button', { name: 'Copied current pair order' })).toHaveAttribute('title', 'Copied current pair order');
+  });
+
   vi.unstubAllGlobals();
 });
 
-test('copies the empty-state text when no pairs are selected yet', () => {
+test('copies the empty-state text when no pairs are selected yet', async () => {
   const writeText = vi.fn().mockResolvedValue(undefined);
   vi.stubGlobal('navigator', {
     ...navigator,
@@ -109,11 +117,14 @@ test('copies the empty-state text when no pairs are selected yet', () => {
 
   fireEvent.click(screen.getByRole('button', { name: 'Copy current pair order' }));
 
-  expect(writeText).toHaveBeenCalledWith('No pairs selected yet.');
+  await waitFor(() => {
+    expect(writeText).toHaveBeenCalledWith('No pairs selected yet.');
+  });
+
   vi.unstubAllGlobals();
 });
 
-test('copies the same whitespace-collapsed text shown in the pair preview', () => {
+test('copies the same whitespace-collapsed text shown in the pair preview', async () => {
   const writeText = vi.fn().mockResolvedValue(undefined);
   vi.stubGlobal('navigator', {
     ...navigator,
@@ -145,6 +156,9 @@ test('copies the same whitespace-collapsed text shown in the pair preview', () =
 
   fireEvent.click(screen.getByRole('button', { name: 'Copy current pair order' }));
 
-  expect(writeText).toHaveBeenCalledWith('1 full name → customer id\n2 zip code → postal code');
+  await waitFor(() => {
+    expect(writeText).toHaveBeenCalledWith('1 full name → customer id\n2 zip code → postal code');
+  });
+
   vi.unstubAllGlobals();
 });
