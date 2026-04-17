@@ -25,3 +25,8 @@ What does NOT live here: service ports/commands (use `.factory/services.yaml`).
 - macOS is the dev environment; CI runs Ubuntu 22.04 + macOS latest.
 - Tauri Linux builds require libwebkit2gtk-4.1 + libayatana-appindicator3 + librsvg2 + patchelf (CI already installs).
 - Tauri v2 Linux builds need WebKitGTK 4.1 at runtime.
+
+## Frontend linting
+
+- `frontend` uses `oxlint` via `npm run lint`.
+- The current setup runs `oxlint . --deny-warnings` from `frontend/` and relies on oxlint's built-in sensible defaults; no separate config file is needed yet.

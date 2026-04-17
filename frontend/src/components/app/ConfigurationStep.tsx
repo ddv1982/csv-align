@@ -1,5 +1,5 @@
 import { MappingConfig } from '../MappingConfig';
-import type { ComparisonNormalizationConfig, FileLetter, MappingResponse } from '../../types/api';
+import type { ComparisonNormalizationConfig, FileLetter, MappingDto } from '../../types/api';
 import type { AppFile, MappingSelectionState } from '../../types/ui';
 
 interface ConfigurationStepProps {
@@ -14,7 +14,7 @@ interface ConfigurationStepProps {
     keyColumnsB: string[],
     comparisonColumnsA: string[],
     comparisonColumnsB: string[],
-    columnMappings: MappingResponse[],
+    columnMappings: MappingDto[],
     normalization: ComparisonNormalizationConfig,
   ) => void;
   onSavePairOrder: () => void;

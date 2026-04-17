@@ -10,8 +10,8 @@ export type CompareResultType =
   | 'missing_right'
   | 'unkeyed_left'
   | 'unkeyed_right'
-  | 'duplicate_filea'
-  | 'duplicate_fileb'
+  | 'duplicate_file_a'
+  | 'duplicate_file_b'
   | 'duplicate_both';
 
 export interface ColumnInfo {
@@ -28,14 +28,7 @@ export interface FileLoadResponse {
   row_count: number;
 }
 
-export interface MappingRequest {
-  file_a_column: string;
-  file_b_column: string;
-  mapping_type: MappingType;
-  similarity?: number;
-}
-
-export interface MappingResponse {
+export interface MappingDto {
   file_a_column: string;
   file_b_column: string;
   mapping_type: MappingType;
@@ -48,7 +41,7 @@ export interface SuggestMappingsRequest {
 }
 
 export interface SuggestMappingsResponse {
-  mappings: MappingResponse[];
+  mappings: MappingDto[];
 }
 
 export interface CompareRequest {
@@ -56,7 +49,7 @@ export interface CompareRequest {
   key_columns_b: string[];
   comparison_columns_a: string[];
   comparison_columns_b: string[];
-  column_mappings: MappingRequest[];
+  column_mappings: MappingDto[];
   normalization?: ComparisonNormalizationConfig;
 }
 
@@ -136,14 +129,10 @@ export interface LoadComparisonSnapshotResponse {
   file_a: ComparisonSnapshotFileResponse;
   file_b: ComparisonSnapshotFileResponse;
   selection: PairOrderSelection;
-  mappings: MappingResponse[];
+  mappings: MappingDto[];
   normalization: ComparisonNormalizationConfig;
   results: ResultResponse[];
   summary: SummaryResponse;
-}
-
-export interface ErrorResponse {
-  error: string;
 }
 
 export type ResultFilter =
@@ -160,7 +149,7 @@ export interface AppState {
   sessionId: string | null;
   fileA: AppFile | null;
   fileB: AppFile | null;
-  mappings: MappingResponse[];
+  mappings: MappingDto[];
   results: ResultResponse[];
   summary: SummaryResponse | null;
   snapshotReadOnly: boolean;

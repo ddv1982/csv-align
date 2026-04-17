@@ -14,7 +14,7 @@ import {
   savePairOrder,
   suggestMappings,
 } from '../services/tauri';
-import type { AppState, CompareRequest, ComparisonNormalizationConfig, FileLetter, MappingResponse, ResultFilter } from '../types/api';
+import type { AppState, CompareRequest, ComparisonNormalizationConfig, FileLetter, MappingDto, ResultFilter } from '../types/api';
 import { INITIAL_MAPPING_SELECTION, type AppStep, type MappingSelectionState } from '../types/ui';
 
 const INITIAL_STATE: AppState = {
@@ -41,9 +41,9 @@ function buildCompareRequestPayload(
   keyColumnsB: string[],
   comparisonColumnsA: string[],
   comparisonColumnsB: string[],
-  columnMappings: MappingResponse[],
+  columnMappings: MappingDto[],
   normalization: ComparisonNormalizationConfig,
-): { request: CompareRequest; retainedMappings: MappingResponse[] } {
+): { request: CompareRequest; retainedMappings: MappingDto[] } {
   const keyPairs = new Set(keyColumnsA.map((fileAColumn, index) => `${fileAColumn}::${keyColumnsB[index] ?? ''}`));
 
   const filteredComparisonPairs = comparisonColumnsA
@@ -176,7 +176,7 @@ export function useComparisonWorkflow() {
     keyColumnsB: string[],
     comparisonColumnsA: string[],
     comparisonColumnsB: string[],
-    columnMappings: MappingResponse[],
+    columnMappings: MappingDto[],
     normalization: ComparisonNormalizationConfig,
   ) => {
     if (!state.sessionId) {

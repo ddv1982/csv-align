@@ -1,6 +1,6 @@
 import type { ChangeEvent, ReactNode } from 'react';
 import { useRef } from 'react';
-import type { ComparisonNormalizationConfig, FileLetter, MappingResponse } from '../types/api';
+import type { ComparisonNormalizationConfig, FileLetter, MappingDto } from '../types/api';
 import { isTauri } from '../services/tauri';
 import type { AppFile, MappingSelectionState } from '../types/ui';
 import { ColumnChipSelector } from './mapping-config/ColumnChipSelector';
@@ -19,7 +19,7 @@ interface MappingConfigProps {
     keyColumnsB: string[],
     comparisonColumnsA: string[],
     comparisonColumnsB: string[],
-    columnMappings: MappingResponse[],
+    columnMappings: MappingDto[],
     normalization: ComparisonNormalizationConfig,
   ) => void;
   onSavePairOrder: () => void;
@@ -109,7 +109,7 @@ export function MappingConfig({
     keyColumnsB.length > 0 &&
     keyColumnsA.length === keyColumnsB.length;
 
-  const manualMappings: MappingResponse[] = comparisonColumnsA.map((fileAColumn, index) => ({
+  const manualMappings: MappingDto[] = comparisonColumnsA.map((fileAColumn, index) => ({
     file_a_column: fileAColumn,
     file_b_column: comparisonColumnsB[index] ?? '',
     mapping_type: 'manual',

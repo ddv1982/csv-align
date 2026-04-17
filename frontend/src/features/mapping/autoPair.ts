@@ -1,11 +1,11 @@
-import type { FileLetter, MappingResponse } from '../../types/api';
+import type { FileLetter, MappingDto } from '../../types/api';
 
 export const AUTO_PAIR_MIN_FUZZY_SIMILARITY = 0.85;
 
 interface BuildAutoPairSelectionArgs {
   fileAHeaders: string[];
   fileBHeaders: string[];
-  mappings: MappingResponse[];
+  mappings: MappingDto[];
   leadingSide: FileLetter;
   keyColumnsA?: string[];
   keyColumnsB?: string[];
@@ -13,7 +13,7 @@ interface BuildAutoPairSelectionArgs {
   excludedColumnsB?: string[];
 }
 
-export function isConfidentAutoPairMapping(mapping: MappingResponse): boolean {
+export function isConfidentAutoPairMapping(mapping: MappingDto): boolean {
   if (mapping.mapping_type === 'exact') {
     return true;
   }
@@ -59,8 +59,8 @@ function buildHeaderIndex(headers: string[]) {
 }
 
 function compareMappings(
-  left: MappingResponse,
-  right: MappingResponse,
+  left: MappingDto,
+  right: MappingDto,
   fileAIndex: Map<string, number>,
   fileBIndex: Map<string, number>,
   leadingSide: FileLetter,

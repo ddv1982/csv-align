@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, expect, test, vi } from 'vitest';
 import { INITIAL_NORMALIZATION_CONFIG } from '../config/normalization';
-import type { ComparisonNormalizationConfig, MappingResponse } from '../types/api';
+import type { ComparisonNormalizationConfig, MappingDto } from '../types/api';
 import { INITIAL_MAPPING_SELECTION } from '../types/ui';
 import { useComparisonWorkflow } from './useComparisonWorkflow';
 
@@ -50,7 +50,7 @@ const FILE_COLUMNS = [
 const FILE_A = new File(['id,name\n1,Alice'], 'left.csv', { type: 'text/csv' });
 const FILE_B = new File(['id,name\n1,Alice'], 'right.csv', { type: 'text/csv' });
 
-const COLUMN_MAPPINGS: MappingResponse[] = [
+const COLUMN_MAPPINGS: MappingDto[] = [
   {
     file_a_column: 'name',
     file_b_column: 'name',
@@ -97,7 +97,7 @@ beforeEach(() => {
         differences: [],
       },
       {
-        result_type: 'duplicate_filea',
+        result_type: 'duplicate_file_a',
         key: ['2'],
         values_a: ['Bob'],
         values_b: ['Bob'],
@@ -252,7 +252,7 @@ test('submits comparisons, updates filtered results, and resets with a fresh ses
 
   expect(result.current.state.filter).toBe('duplicate');
   expect(result.current.filteredResults).toEqual([
-    expect.objectContaining({ result_type: 'duplicate_filea' }),
+    expect.objectContaining({ result_type: 'duplicate_file_a' }),
   ]);
 
   await act(async () => {

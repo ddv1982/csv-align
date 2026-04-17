@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, expect, test, vi } from 'vitest';
-import type { ComparisonNormalizationConfig, MappingResponse } from './types/api';
+import type { ComparisonNormalizationConfig, MappingDto } from './types/api';
 
 const {
   createSessionMock,
@@ -62,7 +62,7 @@ vi.mock('./components/MappingConfig', () => ({
       keyColumnsB: string[],
       comparisonColumnsA: string[],
       comparisonColumnsB: string[],
-      columnMappings: MappingResponse[],
+      columnMappings: MappingDto[],
       normalization: ComparisonNormalizationConfig
     ) => void;
   }) => (
