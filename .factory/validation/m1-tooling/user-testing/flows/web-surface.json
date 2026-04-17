@@ -1,0 +1,33 @@
+{
+  "groupId": "web-surface",
+  "milestone": "m1-tooling",
+  "assertions": [
+    {
+      "id": "VAL-SHELL-013",
+      "status": "pass",
+      "reason": "GET /api/health on :3001 returned HTTP 200 with JSON body containing status=ok and a valid semantic version (1.2.3).",
+      "evidence": [
+        "m1-tooling/web-surface/VAL-SHELL-013-health-3001.txt"
+      ],
+      "toolsUsed": ["curl"]
+    },
+    {
+      "id": "VAL-CROSS-008",
+      "status": "pass",
+      "reason": "Port wiring is consistent post-M1: :3001 root returns 200, :3000 is not serving, browser fetches hit :3001, and both vite proxy + Axum bind are configured for 3001.",
+      "evidence": [
+        "m1-tooling/web-surface/VAL-CROSS-008-root-3001.txt",
+        "m1-tooling/web-surface/VAL-CROSS-008-root-3000.err",
+        "m1-tooling/web-surface/VAL-CROSS-008-browser-fetch-health.txt",
+        "m1-tooling/web-surface/VAL-CROSS-008-browser-network.txt",
+        "m1-tooling/web-surface/VAL-CROSS-008-browser-home-annotated.png",
+        "m1-tooling/web-surface/VAL-CROSS-008-browser-errors.txt",
+        "m1-tooling/web-surface/VAL-CROSS-008-grep-3001.txt"
+      ],
+      "toolsUsed": ["agent-browser", "curl", "grep"]
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "toolsUsed": ["agent-browser", "curl", "grep"]
+}

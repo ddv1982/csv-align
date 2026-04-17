@@ -1,0 +1,27 @@
+{
+  "groupId": "repo-checks",
+  "milestone": "m1-tooling",
+  "assertions": [
+    {
+      "id": "VAL-LIB-008",
+      "status": "pass",
+      "reason": "`cd frontend && npm run lint` exited 0 and reported 'Found 0 warnings and 0 errors.'",
+      "evidence": [
+        "m1-tooling/repo-checks/VAL-LIB-008-npm-run-lint.txt"
+      ],
+      "toolsUsed": ["npm"]
+    },
+    {
+      "id": "VAL-LIB-009",
+      "status": "pass",
+      "reason": "`rg -n -C 2 \"#\\[allow\\(dead_code\\)\\]|#\\[allow\\(unused\" src src-tauri tests` returned no matches (count 0), so there are no unjustified allow attributes to inspect.",
+      "evidence": [
+        "m1-tooling/repo-checks/VAL-LIB-009-allow-attributes-rg.txt"
+      ],
+      "toolsUsed": ["rg"]
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "toolsUsed": ["npm", "rg", "shell"]
+}

@@ -1,0 +1,28 @@
+{
+  "milestone": "m1-tooling",
+  "round": 1,
+  "status": "pass",
+  "assertionsSummary": {
+    "total": 4,
+    "passed": 4,
+    "failed": 0,
+    "blocked": 0
+  },
+  "passedAssertions": [
+    "VAL-CROSS-008",
+    "VAL-LIB-008",
+    "VAL-LIB-009",
+    "VAL-SHELL-013"
+  ],
+  "failedAssertions": [],
+  "blockedAssertions": [],
+  "appliedUpdates": [
+    {
+      "target": "user-testing.md",
+      "description": "Added Flow Validator Guidance sections for web and repo-checks surfaces to define isolation boundaries for concurrent flow validators.",
+      "source": "setup"
+    }
+  ],
+  "previousRound": null,
+  "generatedAt": "2026-04-17T23:41:03.962437Z"
+}
