@@ -46,7 +46,8 @@ export function ResultsStep({
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-semibold text-sky-950 dark:text-sky-100">Snapshot loaded in read-only mode</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-200">Read-only snapshot</p>
+                <p className="mt-0.5 text-sm font-semibold text-sky-950 dark:text-sky-100">Snapshot loaded in read-only mode</p>
                 <p className="mt-1 text-sm leading-6 text-sky-800 dark:text-sky-200">
                   Loaded snapshots are read-only results. Start a new comparison to edit mappings or load different files.
                 </p>
@@ -67,14 +68,23 @@ export function ResultsStep({
           </div>
         </div>
       ) : (
-        <div className="rounded-2xl border border-gray-200/90 bg-white/95 p-4 shadow-sm shadow-gray-200/70 dark:border-gray-700/90 dark:bg-gray-900/85 dark:shadow-none">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Save this result for later review</h3>
-              <p className="mt-1 text-sm leading-6 text-gray-600 dark:text-gray-300">Save a snapshot of this comparison to reopen the same results later in read-only mode.</p>
+        <div className="rounded-2xl border border-gray-200/90 bg-white/95 p-5 shadow-sm shadow-gray-200/70 dark:border-gray-700/90 dark:bg-gray-900/85 dark:shadow-none">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-100 text-primary-700 ring-1 ring-inset ring-primary-200/80 shadow-sm shadow-white/40 dark:bg-primary-500/15 dark:text-primary-200 dark:ring-primary-500/30">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-6 4h6" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-primary-600 dark:text-primary-300">Next step</p>
+                <h3 className="mt-0.5 text-sm font-semibold text-gray-900 dark:text-gray-100">Save this result for later review</h3>
+                <p className="mt-1 text-sm leading-6 text-gray-600 dark:text-gray-300">Save a snapshot of this comparison to reopen the same results later in read-only mode.</p>
+              </div>
             </div>
 
-            <div className="flex flex-wrap justify-end gap-3">
+            <div className="flex flex-wrap justify-end gap-3 lg:shrink-0">
               <button onClick={onBack} className="btn btn-secondary flex items-center gap-2 shadow-sm shadow-gray-200/70 dark:shadow-none">
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />

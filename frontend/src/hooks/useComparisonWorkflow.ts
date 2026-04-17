@@ -443,6 +443,65 @@ export function useComparisonWorkflow() {
     }
   }, [resetWorkflowState, setWorkflowError]);
 
+  const unlockedSteps = (() => {
+    const steps: AppStep[] = ['select'];
+    const hasBothFiles = Boolean(state.fileA && state.fileB);
+    const hasSummary = state.summary !== null;
+
+    if (state.snapshotReadOnly) {
+      // Snapshot mode is locked to the loaded results view.
+      if (hasSummary) {
+        steps.push('results');
+      }
+      return steps;
+    }
+
+    if (hasBothFiles) {
+      steps.push('configure');
+    }
+    if (hasSummary) {
+      steps.push('results');
+    }
+
+    return steps;
+  })();
+
+  const handleStepNavigation = useCallback((target: AppStep) => {
+    if (target === step) {
+      return;
+    }
+
+    if (state.snapshotReadOnly) {
+      if (target === 'results' && state.summary !== null) {
+        setStep('results');
+        return;
+      }
+      blockSnapshotFollowOnWorkflow();
+      return;
+    }
+
+    if (target === 'select') {
+      shouldAutoAdvanceFromSelectionRef.current = false;
+      setStep('select');
+      return;
+    }
+
+    if (target === 'configure') {
+      if (!state.fileA || !state.fileB) {
+        return;
+      }
+      setStep('configure');
+      return;
+    }
+
+    if (target === 'results') {
+      if (state.summary === null) {
+        return;
+      }
+      setStep('results');
+    }
+  }, [blockSnapshotFollowOnWorkflow, state.fileA, state.fileB, state.snapshotReadOnly, state.summary, step]);
+
   return {
     state,
     step,
@@ -450,6 +509,7 @@ export function useComparisonWorkflow() {
     normalizationConfig,
     filteredResults: filterResults(state.results, state.filter),
     isSnapshotReadOnly: state.snapshotReadOnly,
+    unlockedSteps,
     setMappingSelection,
     setNormalizationConfig,
     handleFileSelection,
@@ -462,6 +522,7 @@ export function useComparisonWorkflow() {
     handleAutoPairComparisonColumns,
     handleFilterChange,
     handleReset,
+    handleStepNavigation,
     handleBackToConfigure: () => {
       if (state.snapshotReadOnly) {
         blockSnapshotFollowOnWorkflow();

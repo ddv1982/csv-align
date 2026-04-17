@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.2.1 - 2026-04-17
+
+- Upgraded the comparison results page with a consistent section anatomy (icon chip, eyebrow label, title, description) across the summary, save-strip, results filter, and results table, plus a dedicated Match rate block that shows absolute counts alongside the percentage and per-outcome share labels on each stat card.
+- Made the progress stepper directly navigable: clicking an unlocked step number jumps straight to that step (Step 1 is always reachable, Step 2 unlocks once both files are loaded, and Step 3 unlocks once a comparison summary exists), while locked steps stay visually disabled and snapshot read-only guards are preserved.
+- Bumped release metadata across the Rust crates, desktop bundle config, frontend package manifests, and lockfiles for the v1.2.1 patch release.
+
 ## v1.2.0 - 2026-04-17
 
 - Refreshed the application UI for a more minimal and professional feel: compact sticky header with a translucent surface, simplified progress-step indicators, and flatter results filter pills with solid primary highlighting, while preserving all existing functionality.

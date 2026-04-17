@@ -181,3 +181,40 @@ test('returns from results to configuration', async () => {
   await screen.findByRole('heading', { name: 'Mock Configure' });
   expect(compareFilesMock).toHaveBeenCalledTimes(1);
 });
+
+test('clicking unlocked step numbers in the stepper navigates between steps', async () => {
+  render(<App />);
+
+  await waitFor(() => {
+    expect(createSessionMock).toHaveBeenCalledTimes(1);
+  });
+
+  // Step 2 and Step 3 are locked before files are loaded — no navigation buttons exist.
+  expect(screen.queryByRole('button', { name: /Go to step 2:/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: /Go to step 3:/ })).toBeNull();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Select File A' }));
+  await screen.findByRole('button', { name: 'Select File B' });
+  fireEvent.click(screen.getByRole('button', { name: 'Select File B' }));
+
+  await screen.findByRole('heading', { name: 'Mock Configure' });
+
+  // On Configure, Step 1 (select) is clickable to go back.
+  fireEvent.click(screen.getByRole('button', { name: /Go to step 1:/ }));
+  await screen.findByRole('heading', { name: 'Select two local CSV files' });
+
+  // Step 2 (configure) is now clickable to go forward.
+  fireEvent.click(screen.getByRole('button', { name: /Go to step 2:/ }));
+  await screen.findByRole('heading', { name: 'Mock Configure' });
+
+  fireEvent.click(screen.getByRole('button', { name: 'Run compare' }));
+  await screen.findByText('Mock Summary');
+
+  // From Results: jump back to Step 1 directly via the stepper.
+  fireEvent.click(screen.getByRole('button', { name: /Go to step 1:/ }));
+  await screen.findByRole('heading', { name: 'Select two local CSV files' });
+
+  // Step 3 (results) is still unlocked because the summary persists.
+  fireEvent.click(screen.getByRole('button', { name: /Go to step 3:/ }));
+  await screen.findByText('Mock Summary');
+});

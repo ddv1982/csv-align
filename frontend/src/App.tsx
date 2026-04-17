@@ -17,6 +17,7 @@ function App() {
     normalizationConfig,
     filteredResults,
     isSnapshotReadOnly,
+    unlockedSteps,
     setMappingSelection,
     setNormalizationConfig,
     handleFileSelection,
@@ -29,6 +30,7 @@ function App() {
     handleAutoPairComparisonColumns,
     handleFilterChange,
     handleReset,
+    handleStepNavigation,
     handleBackToConfigure,
     handleBackToSelection,
     handleContinueToConfigure,
@@ -39,7 +41,7 @@ function App() {
       <AppHeader theme={theme} onThemeToggle={toggleTheme} onReset={handleReset} />
 
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <ProgressSteps step={step} />
+        <ProgressSteps step={step} unlockedSteps={unlockedSteps} onStepChange={handleStepNavigation} />
 
         {state.error && <ErrorBanner error={state.error} />}
         {state.loading && <LoadingState />}

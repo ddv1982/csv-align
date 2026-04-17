@@ -54,15 +54,22 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
       : null,
   ].filter((banner): banner is NonNullable<typeof banner> => banner !== null);
 
+  const describeShare = (value: number) =>
+    comparableTotal > 0
+      ? `${Math.round((value / comparableTotal) * 100)}% of comparable rows`
+      : 'No comparable rows';
+
   const comparableStats = [
     {
       label: 'Matches',
       value: summary.matches,
+      description: describeShare(summary.matches),
       surface: 'border border-emerald-200/80 bg-emerald-50/90 shadow-[0_18px_34px_-30px_rgba(16,185,129,0.24)] dark:border-emerald-500/25 dark:bg-emerald-950/22 dark:shadow-none',
       iconBg: 'bg-emerald-100 ring-emerald-200/80',
       iconText: 'text-emerald-700',
       valueText: 'text-slate-950 dark:text-slate-50',
-      labelText: 'text-slate-600 dark:text-slate-300',
+      labelText: 'text-slate-700 dark:text-slate-200',
+      descriptionText: 'text-slate-500 dark:text-slate-400',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -72,11 +79,13 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
     {
       label: 'Mismatches',
       value: summary.mismatches,
+      description: describeShare(summary.mismatches),
       surface: 'border border-amber-200/80 bg-amber-50/90 shadow-[0_18px_34px_-30px_rgba(245,158,11,0.22)] dark:border-amber-500/25 dark:bg-amber-950/22 dark:shadow-none',
       iconBg: 'bg-amber-100 ring-amber-200/80',
       iconText: 'text-amber-700',
       valueText: 'text-slate-950 dark:text-slate-50',
-      labelText: 'text-slate-600 dark:text-slate-300',
+      labelText: 'text-slate-700 dark:text-slate-200',
+      descriptionText: 'text-slate-500 dark:text-slate-400',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -86,11 +95,13 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
     {
       label: getResultLabel('missing_left'),
       value: summary.missing_left,
+      description: describeShare(summary.missing_left),
       surface: 'border border-sky-200/80 bg-sky-50/90 shadow-[0_18px_34px_-30px_rgba(14,165,233,0.22)] dark:border-sky-500/25 dark:bg-sky-950/22 dark:shadow-none',
       iconBg: 'bg-sky-100 ring-sky-200/80',
       iconText: 'text-sky-700',
       valueText: 'text-slate-950 dark:text-slate-50',
-      labelText: 'text-slate-600 dark:text-slate-300',
+      labelText: 'text-slate-700 dark:text-slate-200',
+      descriptionText: 'text-slate-500 dark:text-slate-400',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
@@ -100,11 +111,13 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
     {
       label: getResultLabel('missing_right'),
       value: summary.missing_right,
+      description: describeShare(summary.missing_right),
       surface: 'border border-violet-200/80 bg-violet-50/90 shadow-[0_18px_34px_-30px_rgba(139,92,246,0.22)] dark:border-violet-500/25 dark:bg-violet-950/22 dark:shadow-none',
       iconBg: 'bg-violet-100 ring-violet-200/80',
       iconText: 'text-violet-700',
       valueText: 'text-slate-950 dark:text-slate-50',
-      labelText: 'text-slate-600 dark:text-slate-300',
+      labelText: 'text-slate-700 dark:text-slate-200',
+      descriptionText: 'text-slate-500 dark:text-slate-400',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
@@ -118,8 +131,9 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
       <div className="border-b border-gray-200/80 bg-gray-50/80 px-6 py-5 dark:border-gray-700/80 dark:bg-gray-950/40">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
-              <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <p className="text-xs font-semibold uppercase tracking-wide text-primary-600 dark:text-primary-300">Step 3 · Results</p>
+            <h3 className="mt-1 flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
+              <svg className="w-5 h-5 text-primary-600 dark:text-primary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
               Comparison Summary
@@ -150,12 +164,18 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
       </div>
 
       <div className="space-y-6 px-6 py-6">
-        <div className="rounded-2xl border border-gray-200/90 bg-gray-50/90 p-4 shadow-sm shadow-gray-200/70 dark:border-gray-700/80 dark:bg-gray-950/40 dark:shadow-none">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Match rate of comparable rows</span>
-            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{matchPercent}%</span>
+        <div className="rounded-2xl border border-gray-200/90 bg-gray-50/90 p-5 shadow-sm shadow-gray-200/70 dark:border-gray-700/80 dark:bg-gray-950/40 dark:shadow-none">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Match rate</p>
+              <p className="mt-0.5 text-sm font-medium text-gray-700 dark:text-gray-300">Match rate of comparable rows</p>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-semibold tabular-nums text-gray-900 dark:text-gray-50">{matchPercent}%</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">{summary.matches} of {comparableTotal} rows</span>
+            </div>
           </div>
-          <div className="h-3 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+          <div className="mt-4 h-3 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
             <div
               className="h-full rounded-full bg-gradient-to-r from-primary-400 via-primary-500 to-primary-600 transition-all duration-500"
               style={{ width: `${matchPercent}%` }}
@@ -163,21 +183,30 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          {comparableStats.map((stat) => (
-            <div
-              key={stat.label}
-              className={`${stat.surface} rounded-xl p-4 transition-colors hover:border-gray-300 hover:bg-white dark:hover:border-gray-500 dark:hover:bg-gray-900/80`}
-            >
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div className={`${stat.iconBg} ${stat.iconText} flex h-10 w-10 items-center justify-center rounded-lg ring-1 ring-inset shadow-sm shadow-white/40 dark:shadow-none`}>
-                  {stat.icon}
-                </div>
-                <span className={`text-2xl font-bold ${stat.valueText}`}>{stat.value}</span>
-              </div>
-              <p className={`text-sm font-medium ${stat.labelText}`}>{stat.label}</p>
+        <div>
+          <div className="mb-3 flex items-baseline justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Outcome breakdown</p>
+              <p className="mt-0.5 text-sm text-gray-600 dark:text-gray-300">How each comparable row was classified.</p>
             </div>
-          ))}
+          </div>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            {comparableStats.map((stat) => (
+              <div
+                key={stat.label}
+                className={`${stat.surface} rounded-xl p-4 transition-colors hover:border-gray-300 hover:bg-white dark:hover:border-gray-500 dark:hover:bg-gray-900/80`}
+              >
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className={`${stat.iconBg} ${stat.iconText} flex h-10 w-10 items-center justify-center rounded-lg ring-1 ring-inset shadow-sm shadow-white/40 dark:shadow-none`}>
+                    {stat.icon}
+                  </div>
+                  <span className={`text-2xl font-bold tabular-nums ${stat.valueText}`}>{stat.value}</span>
+                </div>
+                <p className={`text-sm font-semibold ${stat.labelText}`}>{stat.label}</p>
+                <p className={`mt-0.5 text-xs ${stat.descriptionText}`}>{stat.description}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
         {infoBanners.length > 0 && (
