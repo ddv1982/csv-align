@@ -167,7 +167,7 @@ fn parse_mapping_request(mapping: MappingRequest) -> Result<ColumnMapping, Compa
         other => {
             return Err(CompareValidationError::UnknownMappingType(
                 other.to_string(),
-            ))
+            ));
         }
     };
 

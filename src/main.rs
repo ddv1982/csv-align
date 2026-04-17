@@ -1,6 +1,6 @@
 use axum::{
-    routing::{delete, get, post},
     Router,
+    routing::{delete, get, post},
 };
 use std::net::SocketAddr;
 use std::path::PathBuf;

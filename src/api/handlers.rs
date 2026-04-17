@@ -7,17 +7,17 @@ use axum::{
 use serde::Serialize;
 
 use super::state::AppState;
+pub use crate::backend::{CompareRequest, MappingRequest, SessionResponse, SuggestMappingsRequest};
+use crate::backend::{
+    LoadComparisonSnapshotRequest, LoadPairOrderRequest, SavePairOrderRequest,
+    load_comparison_snapshot_workflow, load_pair_order_workflow, save_comparison_snapshot_workflow,
+    save_pair_order_workflow,
+};
 use crate::backend::{
     apply_csv_to_session, comparison_inputs, export_results_to_bytes,
     export_session_results_snapshot, parse_file_side, run_comparison, suggest_mappings_workflow,
     validate_file_letter,
 };
-use crate::backend::{
-    load_comparison_snapshot_workflow, load_pair_order_workflow, save_comparison_snapshot_workflow,
-    save_pair_order_workflow, LoadComparisonSnapshotRequest, LoadPairOrderRequest,
-    SavePairOrderRequest,
-};
-pub use crate::backend::{CompareRequest, MappingRequest, SessionResponse, SuggestMappingsRequest};
 use crate::data::csv_loader;
 
 /// Response for health check
@@ -190,7 +190,7 @@ pub async fn export_csv(State(state): State<AppState>, Path(session_id): Path<St
             return error_response(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 format!("Failed to build CSV export: {e}"),
-            )
+            );
         }
     };
 

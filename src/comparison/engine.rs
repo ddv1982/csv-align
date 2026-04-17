@@ -105,31 +105,31 @@ pub fn compare_csv_data(
         }
 
         // Handle duplicates in File B
-        if let Some(indices_b) = map_b.get(key) {
-            if indices_b.len() > 1 {
-                // Report duplicates from File B
-                let values: Vec<Vec<String>> = indices_b
-                    .iter()
-                    .map(|&i| extract_columns(&csv_b.rows[i], &comp_indices_b))
-                    .collect();
-                results.push(RowComparisonResult::Duplicate {
-                    key: key.clone(),
-                    values_a: Vec::new(),
-                    values_b: values,
-                });
+        if let Some(indices_b) = map_b.get(key)
+            && indices_b.len() > 1
+        {
+            // Report duplicates from File B
+            let values: Vec<Vec<String>> = indices_b
+                .iter()
+                .map(|&i| extract_columns(&csv_b.rows[i], &comp_indices_b))
+                .collect();
+            results.push(RowComparisonResult::Duplicate {
+                key: key.clone(),
+                values_a: Vec::new(),
+                values_b: values,
+            });
 
-                // Compare the first occurrence in File B with File A
-                let values_a = extract_columns(&csv_a.rows[indices_a[0]], &comp_indices_a);
-                let values_b = extract_columns(&csv_b.rows[indices_b[0]], &comp_indices_b);
+            // Compare the first occurrence in File B with File A
+            let values_a = extract_columns(&csv_a.rows[indices_a[0]], &comp_indices_a);
+            let values_b = extract_columns(&csv_b.rows[indices_b[0]], &comp_indices_b);
 
-                results.push(compare_single_match(
-                    key.clone(),
-                    values_a,
-                    values_b,
-                    config,
-                ));
-                continue;
-            }
+            results.push(compare_single_match(
+                key.clone(),
+                values_a,
+                values_b,
+                config,
+            ));
+            continue;
         }
 
         // Single occurrence in both files or only in File A

@@ -1,11 +1,11 @@
 mod common;
 
 use axum::{
+    Json,
     body::to_bytes,
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
 };
 use csv_align::api::{
     handlers::{self, CompareRequest, MappingRequest, SuggestMappingsRequest},
@@ -367,7 +367,10 @@ async fn response_contracts_compare_rejects_missing_selected_columns() {
 
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     let json = response_json(response).await;
-    assert_eq!(json["error"], "Comparison columns for File A and Comparison columns for File B must contain the same number of columns (got 2 and 1)");
+    assert_eq!(
+        json["error"],
+        "Comparison columns for File A and Comparison columns for File B must contain the same number of columns (got 2 and 1)"
+    );
 }
 
 #[tokio::test]

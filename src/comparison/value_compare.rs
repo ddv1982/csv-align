@@ -58,12 +58,11 @@ fn normalize_value(value: &str, normalization: &ComparisonNormalizationConfig) -
         return NormalizedValue::Null;
     }
 
-    if normalization.date_normalization.enabled {
-        if let Some(parsed_date) =
+    if normalization.date_normalization.enabled
+        && let Some(parsed_date) =
             normalize_date_value(&normalized, &normalization.date_normalization)
-        {
-            normalized = parsed_date;
-        }
+    {
+        normalized = parsed_date;
     }
 
     if normalization.case_insensitive {

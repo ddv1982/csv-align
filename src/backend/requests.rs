@@ -123,7 +123,11 @@ impl fmt::Display for CompareValidationError {
                 )
             }
             Self::MissingColumns { selection, columns } => {
-                write!(f, "{selection} reference missing columns: {}", columns.join(", "))
+                write!(
+                    f,
+                    "{selection} reference missing columns: {}",
+                    columns.join(", ")
+                )
             }
             Self::EmptyColumns(selection) => {
                 write!(f, "{selection} must include at least one column")
@@ -138,7 +142,11 @@ impl fmt::Display for CompareValidationError {
                 "{selection_a} and {selection_b} must contain the same number of columns (got {count_a} and {count_b})"
             ),
             Self::DuplicateColumns { selection, columns } => {
-                write!(f, "{selection} contain duplicate columns: {}", columns.join(", "))
+                write!(
+                    f,
+                    "{selection} contain duplicate columns: {}",
+                    columns.join(", ")
+                )
             }
             Self::InvalidMappings(message) | Self::InvalidSimilarity(message) => {
                 f.write_str(message)

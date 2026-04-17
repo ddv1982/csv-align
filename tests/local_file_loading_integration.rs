@@ -1,8 +1,8 @@
 use axum::{
-    body::{to_bytes, Body},
+    Router,
+    body::{Body, to_bytes},
     http::{Request, StatusCode},
     routing::post,
-    Router,
 };
 use csv_align::api::{handlers, state::AppState};
 use serde_json::Value;
@@ -195,8 +195,10 @@ async fn loading_the_second_local_file_populates_auto_suggested_mappings() {
         .get_session(&session_id)
         .await
         .expect("session should exist after the second local file load");
-    assert!(after_second
-        .column_mappings
-        .iter()
-        .any(|mapping| { mapping.file_a_column == "id" && mapping.file_b_column == "id" }));
+    assert!(
+        after_second
+            .column_mappings
+            .iter()
+            .any(|mapping| { mapping.file_a_column == "id" && mapping.file_b_column == "id" })
+    );
 }

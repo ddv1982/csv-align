@@ -1,5 +1,5 @@
 use csv_align::backend::{
-    apply_csv_to_session, suggest_mappings_workflow, SessionData, SuggestMappingsRequest,
+    SessionData, SuggestMappingsRequest, apply_csv_to_session, suggest_mappings_workflow,
 };
 use csv_align::comparison::suggest_mappings;
 use csv_align::data::csv_loader;
@@ -58,18 +58,24 @@ fn mapping_suggestions_use_loaded_column_values_when_headers_do_not_match() {
             && mapping.file_b_column == "category_name"
             && mapping.similarity.unwrap_or_default() >= 0.85
     }));
-    assert!(!response
-        .mappings
-        .iter()
-        .any(|mapping| mapping.file_a_column == "status_flag"));
-    assert!(!response
-        .mappings
-        .iter()
-        .any(|mapping| mapping.file_a_column == "review_phase"));
-    assert!(!response
-        .mappings
-        .iter()
-        .any(|mapping| mapping.file_a_column == "score_bucket"));
+    assert!(
+        !response
+            .mappings
+            .iter()
+            .any(|mapping| mapping.file_a_column == "status_flag")
+    );
+    assert!(
+        !response
+            .mappings
+            .iter()
+            .any(|mapping| mapping.file_a_column == "review_phase")
+    );
+    assert!(
+        !response
+            .mappings
+            .iter()
+            .any(|mapping| mapping.file_a_column == "score_bucket")
+    );
 }
 
 #[test]

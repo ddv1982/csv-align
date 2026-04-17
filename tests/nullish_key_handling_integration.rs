@@ -1,6 +1,6 @@
 mod common;
 
-use csv_align::backend::{run_comparison, CompareRequest};
+use csv_align::backend::{CompareRequest, run_comparison};
 use csv_align::comparison::engine::compare_csv_data;
 use csv_align::data::types::{ComparisonNormalizationConfig, RowComparisonResult};
 

@@ -9,8 +9,8 @@ use crate::data::{
     types::{ComparisonConfig, CsvData, FileSide, RowComparisonResult},
 };
 use crate::presentation::responses::{
-    compare_response, file_load_response, suggest_mappings_response, FileLoadResponse,
-    SuggestMappingsResponse,
+    FileLoadResponse, SuggestMappingsResponse, compare_response, file_load_response,
+    suggest_mappings_response,
 };
 
 pub fn validate_file_letter(file_letter: &str) -> Result<(), String> {

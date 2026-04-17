@@ -15,9 +15,11 @@ fn mapping_suggest_mappings_returns_exact_matches_for_case_insensitive_names() {
     let mappings = suggest_mappings(&columns_a, &columns_b);
 
     assert_eq!(mappings.len(), 2);
-    assert!(mappings
-        .iter()
-        .any(|mapping| mapping.mapping_type == MappingType::ExactMatch));
+    assert!(
+        mappings
+            .iter()
+            .any(|mapping| mapping.mapping_type == MappingType::ExactMatch)
+    );
 }
 
 #[test]

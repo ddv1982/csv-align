@@ -1,8 +1,8 @@
 use csv_align::backend::{
-    apply_csv_to_session, comparison_inputs, export_results_to_bytes,
-    export_session_results_snapshot, load_comparison_snapshot_workflow, run_comparison,
-    save_comparison_snapshot_workflow, save_pair_order_workflow, CompareRequest, MappingRequest,
-    PairOrderSelection, SessionData,
+    CompareRequest, MappingRequest, PairOrderSelection, SessionData, apply_csv_to_session,
+    comparison_inputs, export_results_to_bytes, export_session_results_snapshot,
+    load_comparison_snapshot_workflow, run_comparison, save_comparison_snapshot_workflow,
+    save_pair_order_workflow,
 };
 use csv_align::data::csv_loader;
 use csv_align::data::types::{ComparisonNormalizationConfig, FileSide};
@@ -58,10 +58,12 @@ fn apply_csv_to_session_autosuggests_after_both_files_load() {
 
     let second = apply_csv_to_session(&mut session, FileSide::B, csv_b);
     assert_eq!(second.file_letter, FileSide::B);
-    assert!(session
-        .column_mappings
-        .iter()
-        .any(|mapping| mapping.file_a_column == "id" && mapping.file_b_column == "id"));
+    assert!(
+        session
+            .column_mappings
+            .iter()
+            .any(|mapping| mapping.file_a_column == "id" && mapping.file_b_column == "id")
+    );
 }
 
 #[test]
