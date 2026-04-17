@@ -537,7 +537,7 @@ dependencies = [
  "encoding_rs_io",
  "serde",
  "serde_json",
- "strsim 0.10.0",
+ "strsim",
  "thiserror 1.0.69",
  "tokio",
  "tower",
@@ -600,7 +600,7 @@ dependencies = [
  "ident_case",
  "proc-macro2",
  "quote",
- "strsim 0.11.1",
+ "strsim",
  "syn 2.0.117",
 ]
 
@@ -3408,12 +3408,6 @@ dependencies = [
  "proc-macro2",
  "quote",
 ]
-
-[[package]]
-name = "strsim"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
 
 [[package]]
 name = "strsim"
