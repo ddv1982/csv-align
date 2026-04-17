@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.2.2 - 2026-04-17
+
+- Polished the Configure step so it shares the same section anatomy (icon chip, eyebrow label, title, description) already used on the Results step, replacing the heavier borders and decorative backgrounds with the softer translucent-white-over-subtle-border treatment used across the rest of the app.
+- Moved the 'Back to file selection' button into a dedicated Configure header strip, unified the comparison/key-column chip styling with the Results filter pills, and gave the 'Current pair order' preview a consistent mini-header.
+- Bumped release metadata across the Rust crates, desktop bundle config, frontend package manifests, and lockfiles for the v1.2.2 patch release.
+
 ## v1.2.1 - 2026-04-17
 
 - Upgraded the comparison results page with a consistent section anatomy (icon chip, eyebrow label, title, description) across the summary, save-strip, results filter, and results table, plus a dedicated Match rate block that shows absolute counts alongside the percentage and per-outcome share labels on each stat card.
