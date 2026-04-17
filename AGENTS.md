@@ -2,7 +2,7 @@
 
 ## Architecture
 - `src/` is the shared Rust library crate (`csv_align`) used by both runtimes.
-- `src/main.rs` is the local web app entrypoint: it serves the API and static `frontend/dist` on `127.0.0.1:3000`.
+- `src/main.rs` is the local web app entrypoint: it serves the API and static `frontend/dist` on `127.0.0.1:3001`.
 - `src-tauri/src/main.rs` is the desktop wrapper: Tauri commands call into the same shared backend workflows from `src/`.
 - `frontend/src/services/tauri.ts` is the frontend transport switch: browser mode calls HTTP `/api`, Tauri mode uses `invoke(...)`.
 
@@ -25,5 +25,3 @@
 - Release tags are `v*` only. The release workflow requires a matching `CHANGELOG.md` section with the exact heading format `## vX.Y.Z - YYYY-MM-DD`, or the GitHub Release job fails.
 - Real releases must bump version metadata in all of: `Cargo.toml`, `Cargo.lock`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json`, `frontend/package.json`, `frontend/package-lock.json`.
 
-## Local Dev Quirk
-- `frontend/vite.config.ts` proxies `/api` to `http://localhost:3001`, but the checked-in Axum server in `src/main.rs` listens on `3000`. Do not assume `cd frontend && npm run dev` alone gives a working API-backed web app.

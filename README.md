@@ -68,7 +68,7 @@ Linux note: Tauri v2 Linux builds require a distro with **WebKitGTK 4.1**.
    cargo run
    ```
 
-5. Open `http://127.0.0.1:3000`
+5. Open `http://127.0.0.1:3001`
 
 ### Run the desktop app locally
 

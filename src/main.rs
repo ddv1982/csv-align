@@ -105,9 +105,9 @@ async fn main() {
         .fallback_service(ServeDir::new(frontend_path).append_index_html_on_directories(true));
 
     // Start the server
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
-    println!("CSV Align server listening on http://{addr}");
-    println!("Open http://{addr} in your browser to use the app");
+    let addr = SocketAddr::from(([127, 0, 0, 1], 3001));
+    info!(listen_url = %format!("http://{addr}"), "csv-align server starting");
+    info!(open_url = %format!("http://{addr}"), "open the app in your browser");
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
