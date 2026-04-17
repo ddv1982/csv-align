@@ -6,7 +6,7 @@ interface ResultsTableProps {
   results: ResultResponse[];
 }
 
-type SortColumn = 'type' | 'key' | 'fileA' | 'fileB';
+type SortColumn = 'type' | 'key' | 'fileA' | 'fileB' | 'details';
 type SortDirection = 'asc' | 'desc';
 
 interface ResultRowEntry {
@@ -64,13 +64,22 @@ export function ResultsTable({ results }: ResultsTableProps) {
           return [...result.values_a, ...result.duplicate_values_a.flat()].join(' ');
         case 'fileB':
           return [...result.values_b, ...result.duplicate_values_b.flat()].join(' ');
+        case 'details':
+          return result.differences.length;
       }
     };
 
     const direction = sortDirection === 'asc' ? 1 : -1;
 
     return [...filtered].sort((left, right) => {
-      return getComparableValue(left).localeCompare(getComparableValue(right), undefined, {
+      const leftValue = getComparableValue(left);
+      const rightValue = getComparableValue(right);
+
+      if (typeof leftValue === 'number' && typeof rightValue === 'number') {
+        return (leftValue - rightValue) * direction;
+      }
+
+      return String(leftValue).localeCompare(String(rightValue), undefined, {
         numeric: true,
         sensitivity: 'base',
       }) * direction;
@@ -175,9 +184,7 @@ export function ResultsTable({ results }: ResultsTableProps) {
               {renderSortHeader('Key', 'key', 'px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300')}
               {renderSortHeader('File A Values', 'fileA', 'px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300')}
               {renderSortHeader('File B Values', 'fileB', 'px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300')}
-              <th className="w-32 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                Details
-              </th>
+              {renderSortHeader('Details', 'details', 'w-32 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300')}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">

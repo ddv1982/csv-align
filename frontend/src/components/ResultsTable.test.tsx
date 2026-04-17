@@ -93,3 +93,139 @@ test('sorts rows by key when the header is clicked', () => {
   expect(within(descendingRows[0]).getByText('NULL')).toBeInTheDocument();
   expect(within(descendingRows[3]).getByText('A-1')).toBeInTheDocument();
 });
+
+test('sorts rows by diff count ascending when the details header is clicked', () => {
+  const resultsWithDiffCounts: ResultResponse[] = [
+    {
+      result_type: 'mismatch',
+      key: ['THREE'],
+      values_a: ['A'],
+      values_b: ['B'],
+      duplicate_values_a: [],
+      duplicate_values_b: [],
+      differences: [
+        {
+          column_a: 'col1',
+          column_b: 'col1',
+          value_a: 'A1',
+          value_b: 'B1',
+        },
+        {
+          column_a: 'col2',
+          column_b: 'col2',
+          value_a: 'A2',
+          value_b: 'B2',
+        },
+        {
+          column_a: 'col3',
+          column_b: 'col3',
+          value_a: 'A3',
+          value_b: 'B3',
+        },
+      ],
+    },
+    {
+      result_type: 'mismatch',
+      key: ['ZERO'],
+      values_a: ['A'],
+      values_b: ['A'],
+      duplicate_values_a: [],
+      duplicate_values_b: [],
+      differences: [],
+    },
+    {
+      result_type: 'mismatch',
+      key: ['ONE'],
+      values_a: ['A'],
+      values_b: ['B'],
+      duplicate_values_a: [],
+      duplicate_values_b: [],
+      differences: [
+        {
+          column_a: 'col1',
+          column_b: 'col1',
+          value_a: 'A1',
+          value_b: 'B1',
+        },
+      ],
+    },
+  ];
+
+  render(<ResultsTable results={resultsWithDiffCounts} />);
+
+  fireEvent.click(screen.getByRole('button', { name: /details/i }));
+
+  const bodyRows = screen.getAllByRole('row').slice(1);
+  expect(within(bodyRows[0]).getByText('ZERO')).toBeInTheDocument();
+  expect(within(bodyRows[1]).getByText('ONE')).toBeInTheDocument();
+  expect(within(bodyRows[2]).getByText('THREE')).toBeInTheDocument();
+});
+
+test('sorts rows by diff count descending when the details header is clicked twice', () => {
+  const resultsWithDiffCounts: ResultResponse[] = [
+    {
+      result_type: 'mismatch',
+      key: ['THREE'],
+      values_a: ['A'],
+      values_b: ['B'],
+      duplicate_values_a: [],
+      duplicate_values_b: [],
+      differences: [
+        {
+          column_a: 'col1',
+          column_b: 'col1',
+          value_a: 'A1',
+          value_b: 'B1',
+        },
+        {
+          column_a: 'col2',
+          column_b: 'col2',
+          value_a: 'A2',
+          value_b: 'B2',
+        },
+        {
+          column_a: 'col3',
+          column_b: 'col3',
+          value_a: 'A3',
+          value_b: 'B3',
+        },
+      ],
+    },
+    {
+      result_type: 'mismatch',
+      key: ['ZERO'],
+      values_a: ['A'],
+      values_b: ['A'],
+      duplicate_values_a: [],
+      duplicate_values_b: [],
+      differences: [],
+    },
+    {
+      result_type: 'mismatch',
+      key: ['ONE'],
+      values_a: ['A'],
+      values_b: ['B'],
+      duplicate_values_a: [],
+      duplicate_values_b: [],
+      differences: [
+        {
+          column_a: 'col1',
+          column_b: 'col1',
+          value_a: 'A1',
+          value_b: 'B1',
+        },
+      ],
+    },
+  ];
+
+  render(<ResultsTable results={resultsWithDiffCounts} />);
+
+  const detailsSort = screen.getByRole('button', { name: /details/i });
+  fireEvent.click(detailsSort);
+  fireEvent.click(detailsSort);
+
+  const bodyRows = screen.getAllByRole('row').slice(1);
+  expect(within(bodyRows[0]).getByText('THREE')).toBeInTheDocument();
+  expect(within(bodyRows[1]).getByText('ONE')).toBeInTheDocument();
+  expect(within(bodyRows[2]).getByText('ZERO')).toBeInTheDocument();
+});

@@ -1,0 +1,57 @@
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, expect, test, vi } from 'vitest';
+
+async function renderHeader(options?: {
+  isTauri?: boolean;
+  openImpl?: () => Promise<void> | void;
+}) {
+  vi.resetModules();
+
+  vi.doMock('../../services/tauri', () => ({
+    openNewAppWindow: vi.fn(options?.openImpl ?? (() => Promise.resolve())),
+  }));
+
+  const { AppHeader } = await import('./AppHeader');
+  const tauriModule = await import('../../services/tauri');
+
+  render(
+    <AppHeader
+      theme={options?.isTauri ? 'dark' : 'light'}
+      onThemeToggle={vi.fn()}
+      onReset={vi.fn()}
+    />,
+  );
+
+  return {
+    openNewAppWindow: tauriModule.openNewAppWindow as ReturnType<typeof vi.fn>,
+  };
+}
+
+afterEach(() => {
+  vi.resetModules();
+  vi.doUnmock('../../services/tauri');
+});
+
+test('opens a new app instance from the header action', async () => {
+  const { openNewAppWindow } = await renderHeader();
+
+  fireEvent.click(screen.getByRole('button', { name: 'New window' }));
+
+  await waitFor(() => {
+    expect(openNewAppWindow).toHaveBeenCalledTimes(1);
+  });
+});
+
+test('shows a header error when opening a new app instance fails', async () => {
+  const { openNewAppWindow } = await renderHeader({
+    openImpl: () => Promise.reject(new Error('blocked')),
+  });
+
+  fireEvent.click(screen.getByRole('button', { name: 'New window' }));
+
+  await waitFor(() => {
+    expect(openNewAppWindow).toHaveBeenCalledTimes(1);
+  });
+
+  expect(await screen.findByRole('alert')).toHaveTextContent('Unable to open a new window right now.');
+});

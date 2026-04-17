@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.9 - 2026-04-17
+
+- Added a header `New window` action so you can open another CSV Align window without manually restarting the app, making side-by-side comparisons easier.
+- Added results-table sorting for diff counts and diff details, and refreshed release metadata across the Rust crates, desktop config, frontend package manifests, and lockfiles for the v1.1.9 patch release.
+
 ## v1.1.8 - 2026-04-17
 
 - Replaced the Current pair order copy action with an icon-only control that flips to a green checkmark after copying, keeping the interaction compact while preserving accessible copy feedback.
