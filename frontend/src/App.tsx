@@ -88,8 +88,8 @@ function App() {
         )}
       </div>
 
-      <footer className="mt-auto py-6 text-center text-sm text-gray-600 dark:text-gray-400">
-        <p>CSV Align - Compare CSV files with visual difference highlighting</p>
+      <footer className="mt-auto border-t border-gray-200/80 py-6 text-center text-xs text-gray-500 dark:border-gray-800 dark:text-gray-500">
+        <p>CSV Align — Compare CSV files with visual difference highlighting</p>
       </footer>
     </div>
   );

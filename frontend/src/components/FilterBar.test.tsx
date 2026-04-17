@@ -24,7 +24,7 @@ const RESULTS: ResultResponse[] = [
   },
 ];
 
-test('uses stronger active and hover-ready styling for result filters', () => {
+test('uses a minimal solid active style and subtle hover-ready styling for result filters', () => {
   const onFilterChange = vi.fn();
 
   render(
@@ -41,14 +41,18 @@ test('uses stronger active and hover-ready styling for result filters', () => {
 
   expect(activeFilter).toBeTruthy();
   expect(inactiveFilter).toBeTruthy();
-  expect(activeFilter).toHaveClass('bg-primary-50');
-  expect(activeFilter).toHaveClass('dark:ring-primary-300/30');
-  expect(activeFilter).toHaveClass('dark:bg-primary-900/70');
-  expect(activeFilter).toHaveClass('dark:text-primary-50');
-  expect(inactiveFilter).toHaveClass('rounded-xl');
+
+  // Active pill is a solid primary-colored, pressed, rounded-full button.
+  expect(activeFilter).toHaveAttribute('aria-pressed', 'true');
+  expect(activeFilter).toHaveClass('bg-primary-600');
+  expect(activeFilter).toHaveClass('text-white');
+  expect(activeFilter).toHaveClass('rounded-full');
+
+  // Inactive pill uses neutral surfaces with subtle hover states in both modes.
+  expect(inactiveFilter).toHaveAttribute('aria-pressed', 'false');
+  expect(inactiveFilter).toHaveClass('rounded-full');
   expect(inactiveFilter).toHaveClass('dark:hover:bg-gray-800');
-  expect(inactiveFilter).toHaveClass('dark:hover:border-gray-400');
-  expect(inactiveFilter).toHaveClass('dark:hover:text-gray-100');
+  expect(inactiveFilter).toHaveClass('dark:hover:border-gray-600');
 
   fireEvent.click(inactiveFilter!);
   expect(onFilterChange).toHaveBeenCalledWith('missing_left');

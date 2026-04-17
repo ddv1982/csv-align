@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.2.0 - 2026-04-17
+
+- Refreshed the application UI for a more minimal and professional feel: compact sticky header with a translucent surface, simplified progress-step indicators, and flatter results filter pills with solid primary highlighting, while preserving all existing functionality.
+- Moved the dark/light mode toggle fully to the right-hand side of the header and made it icon-only — the "Light"/"Dark" text label was dropped in favor of an accessible aria-label and a visual divider separating it from the other actions.
+- Migrated the Tailwind configuration to Tailwind v4 CSS-first best practices: the design palette now lives in `@theme` in `frontend/src/index.css`, the legacy `frontend/tailwind.config.js` and `@config` directive were removed, and class-based dark mode is preserved via `@custom-variant dark`.
+- Bumped release metadata across the Rust crates, desktop bundle config, frontend package manifests, and lockfiles for the v1.2.0 minor release.
+
 ## v1.1.9 - 2026-04-17
 
 - Added a header `New window` action so you can open another CSV Align window without manually restarting the app, making side-by-side comparisons easier.
