@@ -25,3 +25,13 @@
 - Release tags are `v*` only. The release workflow requires a matching `CHANGELOG.md` section with the exact heading format `## vX.Y.Z - YYYY-MM-DD`, or the GitHub Release job fails.
 - Real releases must bump version metadata in all of: `Cargo.toml`, `Cargo.lock`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json`, `frontend/package.json`, `frontend/package-lock.json`.
 
+## Commit Conventions
+- Use Conventional Commits. Allowed types: `feat`, `fix`, `refactor`, `chore`, `perf`, `docs`, `test`, `build`, `ci`.
+- `chore(deps): …` is the expected type for dependency/tooling-only changes.
+
+## Mission .factory/ Edits
+- Workers MAY edit files under `.factory/library/` when a feature description or skill explicitly requires it (e.g., recording a library note). For other infra files (`.factory/services.yaml`, `.factory/init.sh`, `.factory/skills/`) workers should propose changes in their handoff rather than editing directly, unless the feature scope authorizes the edit.
+
+## Logging Policy
+- Prefer `tracing::{info,warn,error,debug,trace}` over `println!`/`eprintln!` in production code. Tests and CLI tools may still use `println!` for explicit output. When a feature explicitly freezes startup strings, honor the scope freeze; otherwise, eliminate stray `println!` opportunistically as part of in-scope edits.
+

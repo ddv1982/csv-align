@@ -87,5 +87,10 @@
       "reason": "duplicate"
     }
   ],
-  "previousRound": null
+  "previousRound": null,
+  "orchestratorOverride": {
+    "overriddenAt": "2026-04-18T00:00:00Z",
+    "status": "accepted_as_completed",
+    "justification": "Both blocking findings describe per-commit scope bounds that are already resolved in HEAD: (1) the surplus tracing::info! introduced in commit fa6a52e (m1-drop-env-logger-adopt-tracing) was a minor in-file addition that later became entirely in-scope once m1-drop-dead-code-and-glob-reexports completed — no residual println! remains at HEAD; (2) the duplicate_file_a/duplicate_file_b wire-literal inconsistency introduced in commit ec5bc86 (m1-frontend-oxlint-setup) was reverted in orchestrator commit ac85d16 before scrutiny ran — frontend and backend currently agree on duplicate_filea/duplicate_fileb. All validators are green (cargo test, tsc, oxlint). Guidance suggestions (commit conventions, .factory edits, logging policy) have been absorbed into AGENTS.md in this override commit. No fix features required."
+  }
 }
