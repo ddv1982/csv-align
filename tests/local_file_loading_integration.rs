@@ -11,7 +11,7 @@ use tower::ServiceExt;
 fn local_file_router(state: AppState) -> Router {
     Router::new()
         .route(
-            "/api/sessions/:session_id/files/:file_letter",
+            "/api/sessions/{session_id}/files/{file_letter}",
             post(handlers::load_csv_file),
         )
         .with_state(state)

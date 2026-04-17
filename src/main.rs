@@ -59,40 +59,43 @@ async fn main() {
         // Session management
         .route("/api/sessions", post(handlers::create_session))
         .route(
-            "/api/sessions/:session_id",
+            "/api/sessions/{session_id}",
             delete(handlers::delete_session),
         )
         // CSV file loading
         .route(
-            "/api/sessions/:session_id/files/:file_letter",
+            "/api/sessions/{session_id}/files/{file_letter}",
             post(handlers::load_csv_file),
         )
         // Column mappings
         .route(
-            "/api/sessions/:session_id/mappings",
+            "/api/sessions/{session_id}/mappings",
             post(handlers::suggest_mappings),
         )
         // Comparison
-        .route("/api/sessions/:session_id/compare", post(handlers::compare))
         .route(
-            "/api/sessions/:session_id/pair-order/save",
+            "/api/sessions/{session_id}/compare",
+            post(handlers::compare),
+        )
+        .route(
+            "/api/sessions/{session_id}/pair-order/save",
             post(handlers::save_pair_order),
         )
         .route(
-            "/api/sessions/:session_id/pair-order/load",
+            "/api/sessions/{session_id}/pair-order/load",
             post(handlers::load_pair_order),
         )
         .route(
-            "/api/sessions/:session_id/comparison-snapshot/save",
+            "/api/sessions/{session_id}/comparison-snapshot/save",
             post(handlers::save_comparison_snapshot),
         )
         .route(
-            "/api/sessions/:session_id/comparison-snapshot/load",
+            "/api/sessions/{session_id}/comparison-snapshot/load",
             post(handlers::load_comparison_snapshot),
         )
         // Export
         .route(
-            "/api/sessions/:session_id/export",
+            "/api/sessions/{session_id}/export",
             get(handlers::export_csv),
         )
         .with_state(state);

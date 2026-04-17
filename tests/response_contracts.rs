@@ -251,7 +251,7 @@ async fn response_contracts_compare_serializes_each_result_variant_and_summary_s
     assert_eq!(missing_right["values_b"], serde_json::json!([]));
     assert_eq!(missing_right["differences"], serde_json::json!([]));
 
-    let duplicate = result_by_type(results, "duplicate_filea");
+    let duplicate = result_by_type(results, "duplicate_file_a");
     assert_eq!(duplicate["key"], serde_json::json!(["5"]));
     assert_eq!(
         duplicate["values_a"],

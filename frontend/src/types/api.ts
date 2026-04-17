@@ -10,8 +10,8 @@ export type CompareResultType =
   | 'missing_right'
   | 'unkeyed_left'
   | 'unkeyed_right'
-  | 'duplicate_filea'
-  | 'duplicate_fileb'
+  | 'duplicate_file_a'
+  | 'duplicate_file_b'
   | 'duplicate_both';
 
 export interface ColumnInfo {

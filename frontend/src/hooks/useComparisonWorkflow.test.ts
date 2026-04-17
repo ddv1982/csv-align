@@ -97,7 +97,7 @@ beforeEach(() => {
         differences: [],
       },
       {
-        result_type: 'duplicate_filea',
+        result_type: 'duplicate_file_a',
         key: ['2'],
         values_a: ['Bob'],
         values_b: ['Bob'],
@@ -252,7 +252,7 @@ test('submits comparisons, updates filtered results, and resets with a fresh ses
 
   expect(result.current.state.filter).toBe('duplicate');
   expect(result.current.filteredResults).toEqual([
-    expect.objectContaining({ result_type: 'duplicate_filea' }),
+    expect.objectContaining({ result_type: 'duplicate_file_a' }),
   ]);
 
   await act(async () => {

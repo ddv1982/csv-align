@@ -133,24 +133,16 @@ pub enum RowComparisonResult {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ResultType {
-    #[serde(rename = "match")]
     Match,
-    #[serde(rename = "mismatch")]
     Mismatch,
-    #[serde(rename = "missing_left")]
     MissingLeft,
-    #[serde(rename = "missing_right")]
     MissingRight,
-    #[serde(rename = "unkeyed_left")]
     UnkeyedLeft,
-    #[serde(rename = "unkeyed_right")]
     UnkeyedRight,
-    #[serde(rename = "duplicate_filea")]
     DuplicateFileA,
-    #[serde(rename = "duplicate_fileb")]
     DuplicateFileB,
-    #[serde(rename = "duplicate_both")]
     DuplicateBoth,
 }
 
