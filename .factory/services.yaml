@@ -1,0 +1,26 @@
+commands:
+  install: cd frontend && npm ci
+  typecheck: cd frontend && npx tsc --noEmit
+  build: cd frontend && npm run build
+  test: cargo test -j 4 && (cd src-tauri && cargo test -j 4) && (cd frontend && npm test -- --run)
+  test-rust: cargo test -j 4
+  test-rust-tauri: cd src-tauri && cargo test -j 4
+  test-frontend: cd frontend && npm test -- --run
+  fmt: cargo fmt --check && (cd src-tauri && cargo fmt --check)
+  clippy: cargo clippy --all-targets -j 4 -- -D warnings && (cd src-tauri && cargo clippy --all-targets -j 4 -- -D warnings)
+  lint: cd frontend && npm run lint
+  ci-parity: cargo fmt --check && cargo clippy --all-targets -j 4 -- -D warnings && cargo test -j 4 && (cd src-tauri && cargo fmt --check && cargo clippy --all-targets -j 4 -- -D warnings && cargo test -j 4) && (cd frontend && npm ci && npm run lint && npm run build && npm test -- --run)
+
+services:
+  web:
+    start: cd /Users/vriesd/projects/csv-align && cargo run &
+    stop: lsof -ti :3001 | xargs kill 2>/dev/null || true; lsof -ti :3000 | xargs kill 2>/dev/null || true
+    healthcheck: curl -sf http://127.0.0.1:3001/api/health || curl -sf http://127.0.0.1:3000/api/health
+    port: 3001
+    depends_on: [frontend-build]
+  frontend-build:
+    start: cd /Users/vriesd/projects/csv-align/frontend && npm run build
+    stop: "true"
+    healthcheck: test -f /Users/vriesd/projects/csv-align/frontend/dist/index.html
+    port: 0
+    depends_on: []
