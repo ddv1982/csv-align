@@ -544,6 +544,7 @@ dependencies = [
 name = "csv-align"
 version = "1.2.3"
 dependencies = [
+ "anyhow",
  "axum",
  "chrono",
  "csv",
@@ -551,6 +552,7 @@ dependencies = [
  "serde",
  "serde_json",
  "strsim 0.10.0",
+ "thiserror 1.0.69",
  "tokio",
  "tower 0.4.13",
  "tower-http 0.5.2",
@@ -563,12 +565,14 @@ dependencies = [
 name = "csv-align-app"
 version = "1.2.3"
 dependencies = [
+ "anyhow",
  "csv-align",
  "serde",
  "serde_json",
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",
+ "thiserror 1.0.69",
  "uuid",
 ]
 
