@@ -5,6 +5,7 @@ import { filterResults } from '../features/results/presentation';
 import {
   compareFiles,
   createSession,
+  deleteSession,
   downloadBlob,
   exportResults,
   loadComparisonSnapshot,
@@ -574,15 +575,19 @@ export function useComparisonWorkflow() {
   }, [blockSnapshotFollowOnWorkflow, failLoading, mappingSelection.keyColumnsA, mappingSelection.keyColumnsB, startLoading, state.fileA, state.fileB, state.sessionId]);
 
   const handleReset = useCallback(async () => {
+    const outgoingSessionId = state.sessionId;
     dispatch({ type: 'resetWorkflow' });
 
     try {
+      if (outgoingSessionId) {
+        await deleteSession(outgoingSessionId);
+      }
       const response = await createSession();
       dispatch({ type: 'sessionCreated', sessionId: response.session_id });
     } catch (error) {
       setWorkflowError(error);
     }
-  }, [setWorkflowError]);
+  }, [setWorkflowError, state.sessionId]);
 
   const unlockedSteps = useMemo(() => {
     const steps: AppStep[] = ['select'];

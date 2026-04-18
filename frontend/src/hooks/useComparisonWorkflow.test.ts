@@ -8,6 +8,7 @@ import { useComparisonWorkflow } from './useComparisonWorkflow';
 const {
   compareFilesMock,
   createSessionMock,
+  deleteSessionMock,
   downloadBlobMock,
   exportResultsMock,
   loadComparisonSnapshotMock,
@@ -19,6 +20,7 @@ const {
 } = vi.hoisted(() => ({
   compareFilesMock: vi.fn(),
   createSessionMock: vi.fn(),
+  deleteSessionMock: vi.fn(),
   downloadBlobMock: vi.fn(),
   exportResultsMock: vi.fn(),
   loadComparisonSnapshotMock: vi.fn(),
@@ -32,6 +34,7 @@ const {
 vi.mock('../services/tauri', () => ({
   compareFiles: compareFilesMock,
   createSession: createSessionMock,
+  deleteSession: deleteSessionMock,
   downloadBlob: downloadBlobMock,
   exportResults: exportResultsMock,
   loadComparisonSnapshot: loadComparisonSnapshotMock,
@@ -67,6 +70,7 @@ const NORMALIZATION: ComparisonNormalizationConfig = {
 beforeEach(() => {
   compareFilesMock.mockReset();
   createSessionMock.mockReset();
+  deleteSessionMock.mockReset();
   downloadBlobMock.mockReset();
   exportResultsMock.mockReset();
   loadComparisonSnapshotMock.mockReset();
@@ -77,6 +81,7 @@ beforeEach(() => {
   suggestMappingsMock.mockReset();
 
   createSessionMock.mockResolvedValue({ session_id: 'session-1' });
+  deleteSessionMock.mockResolvedValue(undefined);
   loadFileMock.mockImplementation(async (_sessionId: string, file: File) => ({
     success: true,
     file_letter: file.name === FILE_A.name ? 'a' : 'b',
@@ -263,6 +268,7 @@ test('submits comparisons, updates filtered results, and resets with a fresh ses
     expect(result.current.state.sessionId).toBe('session-2');
   });
 
+  expect(deleteSessionMock).toHaveBeenCalledWith('session-1');
   expect(createSessionMock).toHaveBeenCalledTimes(2);
   expect(result.current.step).toBe('select');
   expect(result.current.state.fileA).toBeNull();
@@ -373,4 +379,28 @@ test('keeps public handlers stable across rerenders when their dependencies do n
   expect(result.current.handleBackToConfigure).toBe(initialHandlers.handleBackToConfigure);
   expect(result.current.handleBackToSelection).toBe(initialHandlers.handleBackToSelection);
   expect(result.current.handleContinueToConfigure).toBe(initialHandlers.handleContinueToConfigure);
+});
+
+test('surfaces a reset error when deleting the outgoing session fails', async () => {
+  createSessionMock.mockResolvedValueOnce({ session_id: 'session-1' });
+  deleteSessionMock.mockRejectedValueOnce(new Error('delete failed'));
+
+  const { result } = renderHook(() => useComparisonWorkflow());
+
+  await waitFor(() => {
+    expect(result.current.state.sessionId).toBe('session-1');
+  });
+
+  await act(async () => {
+    await result.current.handleReset();
+  });
+
+  await waitFor(() => {
+    expect(result.current.state.error).toBe('delete failed');
+  });
+
+  expect(deleteSessionMock).toHaveBeenCalledWith('session-1');
+  expect(createSessionMock).toHaveBeenCalledTimes(1);
+  expect(result.current.state.sessionId).toBeNull();
+  expect(result.current.step).toBe('select');
 });

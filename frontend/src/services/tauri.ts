@@ -69,6 +69,19 @@ export async function createSession(): Promise<SessionResponse> {
   return fetchJson('/api/sessions', { method: 'POST' }, 'Failed to create session');
 }
 
+export async function deleteSession(sessionId: string): Promise<void> {
+  if (isTauri) {
+    await invoke('delete_session', { sessionId });
+    return;
+  }
+
+  const response = await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'Failed to delete session'));
+  }
+}
+
 export async function openNewAppWindow(): Promise<void> {
   if (isTauri) {
     const label = `app-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
