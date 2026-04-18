@@ -1,0 +1,17 @@
+{
+  "groupId": "repo-no-assertions",
+  "testedAt": "2026-04-18T06:27:57Z",
+  "isolation": {
+    "milestone": "misc-m6-polish",
+    "missionDir": "/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c",
+    "guidanceSection": "Flow Validator Guidance: repo-checks",
+    "assignedAssertions": []
+  },
+  "toolsUsed": [
+    "repo-checks"
+  ],
+  "assertions": [],
+  "frictions": [],
+  "blockers": [],
+  "summary": "No fulfills-mapped assertions exist for milestone misc-m6-polish in this assignment; 0 assertions were tested."
+}
