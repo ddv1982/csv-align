@@ -17,7 +17,6 @@ const {
 vi.mock('../services/tauri', () => ({
   compareFiles: vi.fn(),
   createSession: createSessionMock,
-  downloadBlob: downloadBlobMock,
   exportResults: vi.fn(),
   isTauri: false,
   loadComparisonSnapshot: loadComparisonSnapshotMock,
@@ -26,6 +25,10 @@ vi.mock('../services/tauri', () => ({
   saveComparisonSnapshot: saveComparisonSnapshotMock,
   savePairOrder: vi.fn(),
   suggestMappings: vi.fn(),
+}));
+
+vi.mock('../services/browserDownload', () => ({
+  downloadBlob: downloadBlobMock,
 }));
 
 beforeEach(() => {

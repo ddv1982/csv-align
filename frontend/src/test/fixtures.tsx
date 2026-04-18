@@ -18,9 +18,12 @@ vi.mock('../services/tauri', () => ({
   compareFiles: appTauriMocks.compareFilesMock,
   exportResults: appTauriMocks.exportResultsMock,
   loadPairOrder: appTauriMocks.loadPairOrderMock,
-  downloadBlob: appTauriMocks.downloadBlobMock,
   savePairOrder: appTauriMocks.savePairOrderMock,
   suggestMappings: appTauriMocks.suggestMappingsMock,
+}));
+
+vi.mock('../services/browserDownload', () => ({
+  downloadBlob: appTauriMocks.downloadBlobMock,
 }));
 
 vi.mock('../components/FileSelector', () => ({

@@ -30,7 +30,6 @@ vi.mock('./services/tauri', () => ({
   isTauri: false,
   compareFiles: compareFilesMock,
   createSession: createSessionMock,
-  downloadBlob: downloadBlobMock,
   exportResults: exportResultsMock,
   loadComparisonSnapshot: loadComparisonSnapshotMock,
   loadFile: loadFileMock,
@@ -38,6 +37,10 @@ vi.mock('./services/tauri', () => ({
   saveComparisonSnapshot: saveComparisonSnapshotMock,
   savePairOrder: savePairOrderMock,
   suggestMappings: suggestMappingsMock,
+}));
+
+vi.mock('./services/browserDownload', () => ({
+  downloadBlob: downloadBlobMock,
 }));
 
 vi.mock('./components/FileSelector', () => ({

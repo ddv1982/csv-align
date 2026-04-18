@@ -1,5 +1,4 @@
 import { invoke } from '@tauri-apps/api/core';
-import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import type {
   FileLoadResponse,
@@ -79,33 +78,6 @@ export async function deleteSession(sessionId: string): Promise<void> {
 
   if (!response.ok) {
     throw new Error(await readErrorMessage(response, 'Failed to delete session'));
-  }
-}
-
-export async function openNewAppWindow(): Promise<void> {
-  if (isTauri) {
-    const label = `app-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-    const webviewWindow = new WebviewWindow(label, {
-      title: 'CSV Align',
-      width: 1200,
-      height: 800,
-      center: true,
-      resizable: true,
-      url: window.location.href,
-    });
-
-    await new Promise<void>((resolve, reject) => {
-      void webviewWindow.once('tauri://created', () => resolve());
-      void webviewWindow.once('tauri://error', (event) => reject(new Error(String(event.payload))));
-    });
-
-    return;
-  }
-
-  const openedWindow = window.open(window.location.href, '_blank', 'noopener,noreferrer');
-
-  if (!openedWindow) {
-    throw new Error('Failed to open a new browser window');
   }
 }
 
@@ -306,17 +278,6 @@ export async function loadComparisonSnapshot(
   const contents = await file.text();
 
   return postJson(`/api/sessions/${sessionId}/comparison-snapshot/load`, { contents }, 'Failed to load comparison snapshot');
-}
-
-export function downloadBlob(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
 }
 
 export { isTauri };

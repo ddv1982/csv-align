@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import appLogo from '../../assets/icon.svg';
-import { openNewAppWindow } from '../../services/tauri';
+import { openNewAppWindow } from '../../services/appWindows';
 import { ArrowPathIcon, MoonIcon, SunIcon } from '../icons';
 
 interface AppHeaderProps {

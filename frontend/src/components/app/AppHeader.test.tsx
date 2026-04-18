@@ -7,12 +7,12 @@ async function renderHeader(options?: {
 }) {
   vi.resetModules();
 
-  vi.doMock('../../services/tauri', () => ({
+  vi.doMock('../../services/appWindows', () => ({
     openNewAppWindow: vi.fn(options?.openImpl ?? (() => Promise.resolve())),
   }));
 
   const { AppHeader } = await import('./AppHeader');
-  const tauriModule = await import('../../services/tauri');
+  const appWindowsModule = await import('../../services/appWindows');
 
   render(
     <AppHeader
@@ -23,13 +23,13 @@ async function renderHeader(options?: {
   );
 
   return {
-    openNewAppWindow: tauriModule.openNewAppWindow as ReturnType<typeof vi.fn>,
+    openNewAppWindow: appWindowsModule.openNewAppWindow as ReturnType<typeof vi.fn>,
   };
 }
 
 afterEach(() => {
   vi.resetModules();
-  vi.doUnmock('../../services/tauri');
+  vi.doUnmock('../../services/appWindows');
 });
 
 test('opens a new app instance from the header action', async () => {

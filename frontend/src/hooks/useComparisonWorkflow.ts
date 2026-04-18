@@ -2,11 +2,11 @@ import { useCallback, useEffect, useMemo, useReducer } from 'react';
 import { INITIAL_NORMALIZATION_CONFIG } from '../config/normalization';
 import { buildAutoPairSelection } from '../features/mapping/autoPair';
 import { filterResults } from '../features/results/presentation';
+import { downloadBlob } from '../services/browserDownload';
 import {
   compareFiles,
   createSession,
   deleteSession,
-  downloadBlob,
   exportResults,
   loadComparisonSnapshot,
   loadFile,

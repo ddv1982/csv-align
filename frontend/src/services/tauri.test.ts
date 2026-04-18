@@ -3,8 +3,6 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 const invokeMock = vi.fn();
 const openMock = vi.fn();
 const saveMock = vi.fn();
-const windowOpenMock = vi.fn();
-const webviewWindowMock = vi.fn();
 
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: invokeMock,
@@ -15,13 +13,16 @@ vi.mock('@tauri-apps/plugin-dialog', () => ({
   save: saveMock,
 }));
 
-vi.mock('@tauri-apps/api/webviewWindow', () => ({
-  WebviewWindow: webviewWindowMock,
-}));
-
 async function importTauriModule() {
   vi.resetModules();
   return import('./tauri');
+}
+
+function jsonResponse(body: unknown, init: ResponseInit = {}) {
+  return new Response(JSON.stringify(body), {
+    headers: { 'Content-Type': 'application/json' },
+    ...init,
+  });
 }
 
 describe('transport helpers', () => {
@@ -29,8 +30,6 @@ describe('transport helpers', () => {
     invokeMock.mockReset();
     openMock.mockReset();
     saveMock.mockReset();
-    windowOpenMock.mockReset();
-    webviewWindowMock.mockReset();
     vi.unstubAllGlobals();
     vi.stubGlobal('fetch', vi.fn());
     delete (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
@@ -59,74 +58,168 @@ describe('transport helpers', () => {
     await expect(createSession()).resolves.toEqual({ session_id: 'session-2' });
     expect(invokeMock).toHaveBeenCalledWith('create_session');
   });
-});
 
-describe('openNewAppWindow', () => {
-  beforeEach(() => {
-    invokeMock.mockReset();
-    openMock.mockReset();
-    saveMock.mockReset();
-    windowOpenMock.mockReset();
-    webviewWindowMock.mockReset();
-    vi.unstubAllGlobals();
-    windowOpenMock.mockReturnValue({ focus: vi.fn() });
-    vi.stubGlobal('open', windowOpenMock);
-    delete (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
+  test('loadFile posts multipart form data in browser mode', async () => {
+    const fetchMock = vi.mocked(globalThis.fetch);
+    fetchMock.mockResolvedValue(jsonResponse({
+      success: true,
+      file_letter: 'a',
+      headers: ['id'],
+      columns: [{ index: 0, name: 'id', data_type: 'string' }],
+      row_count: 1,
+    }));
+
+    const { loadFile } = await importTauriModule();
+    const file = new File(['id\n1'], 'example.csv', { type: 'text/csv' });
+
+    await expect(loadFile('session-1', file, 'a')).resolves.toMatchObject({
+      file_letter: 'a',
+      headers: ['id'],
+      row_count: 1,
+    });
+    expect(fetchMock).toHaveBeenCalledWith('/api/sessions/session-1/files/a', expect.objectContaining({
+      method: 'POST',
+      body: expect.any(FormData),
+    }));
+    expect(invokeMock).not.toHaveBeenCalled();
   });
 
-  test('opens the current app URL in a new browser tab when not running in Tauri', async () => {
-    const { openNewAppWindow } = await importTauriModule();
-
-    await openNewAppWindow();
-
-    expect(windowOpenMock).toHaveBeenCalledWith(window.location.href, '_blank', 'noopener,noreferrer');
-    expect(webviewWindowMock).not.toHaveBeenCalled();
-  });
-
-  test('throws when the browser blocks opening a new window', async () => {
-    windowOpenMock.mockReturnValue(null);
-    const { openNewAppWindow } = await importTauriModule();
-
-    await expect(openNewAppWindow()).rejects.toThrow('Failed to open a new browser window');
-  });
-
-  test('creates a Tauri webview window and waits for the created event', async () => {
+  test('loadFile uses invoke with file bytes in Tauri mode', async () => {
     (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
-    webviewWindowMock.mockImplementation(function MockWebviewWindow() {
-      return {
-        once: (event: string, callback: (payload?: unknown) => void) => {
-          if (event === 'tauri://created') {
-            callback();
-          }
-        },
-      };
+    invokeMock.mockResolvedValue({
+      success: true,
+      file_letter: 'b',
+      headers: ['record_id'],
+      columns: [{ index: 0, name: 'record_id', data_type: 'string' }],
+      row_count: 2,
     });
 
-    const { openNewAppWindow } = await importTauriModule();
+    const { loadFile } = await importTauriModule();
+    const file = new File([new Uint8Array([97, 98, 99])], 'tauri.csv', { type: 'text/csv' });
 
-    await openNewAppWindow();
-
-    expect(webviewWindowMock).toHaveBeenCalledTimes(1);
-    const [label, options] = webviewWindowMock.mock.calls[0] as [string, { title: string; url: string }];
-    expect(label).toMatch(/^app-/);
-    expect(options.title).toBe('CSV Align');
-    expect(options.url).toBe(window.location.href);
+    await expect(loadFile('session-2', file, 'b')).resolves.toMatchObject({
+      file_letter: 'b',
+      headers: ['record_id'],
+      row_count: 2,
+    });
+    expect(invokeMock).toHaveBeenCalledWith('load_csv_bytes', {
+      sessionId: 'session-2',
+      fileLetter: 'b',
+      fileName: 'tauri.csv',
+      fileBytes: [97, 98, 99],
+    });
   });
 
-  test('surfaces Tauri window creation errors from the error event', async () => {
+  test('compareFiles posts JSON to the browser API when not running in Tauri', async () => {
+    const fetchMock = vi.mocked(globalThis.fetch);
+    const request = {
+      key_columns_a: ['id'],
+      key_columns_b: ['record_id'],
+      comparison_columns_a: ['name'],
+      comparison_columns_b: ['display_name'],
+      column_mappings: [{
+        file_a_column: 'name',
+        file_b_column: 'display_name',
+        mapping_type: 'manual' as const,
+      }],
+    };
+    fetchMock.mockResolvedValue(jsonResponse({
+      success: true,
+      results: [],
+      summary: {
+        total_rows_a: 1,
+        total_rows_b: 1,
+        matches: 1,
+        mismatches: 0,
+        missing_left: 0,
+        missing_right: 0,
+        unkeyed_left: 0,
+        unkeyed_right: 0,
+        duplicates_a: 0,
+        duplicates_b: 0,
+      },
+    }));
+
+    const { compareFiles } = await importTauriModule();
+
+    await expect(compareFiles('session-3', request)).resolves.toMatchObject({
+      success: true,
+      results: [],
+    });
+    expect(fetchMock).toHaveBeenCalledWith('/api/sessions/session-3/compare', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    });
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+
+  test('compareFiles invokes the Tauri compare command when running in Tauri', async () => {
     (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
-    webviewWindowMock.mockImplementation(function MockWebviewWindow() {
-      return {
-        once: (event: string, callback: (payload?: { payload?: string }) => void) => {
-          if (event === 'tauri://error') {
-            callback({ payload: 'creation failed' });
-          }
-        },
-      };
+    invokeMock.mockResolvedValue({
+      success: true,
+      results: [{ result_type: 'match', key: ['1'], values_a: ['Alice'], values_b: ['Alice'], duplicate_values_a: [], duplicate_values_b: [], differences: [] }],
+      summary: {
+        total_rows_a: 1,
+        total_rows_b: 1,
+        matches: 1,
+        mismatches: 0,
+        missing_left: 0,
+        missing_right: 0,
+        unkeyed_left: 0,
+        unkeyed_right: 0,
+        duplicates_a: 0,
+        duplicates_b: 0,
+      },
     });
 
-    const { openNewAppWindow } = await importTauriModule();
+    const { compareFiles } = await importTauriModule();
+    const request = {
+      key_columns_a: ['id'],
+      key_columns_b: ['record_id'],
+      comparison_columns_a: ['name'],
+      comparison_columns_b: ['display_name'],
+      column_mappings: [],
+    };
 
-    await expect(openNewAppWindow()).rejects.toThrow('creation failed');
+    await compareFiles('session-4', request);
+
+    expect(invokeMock).toHaveBeenCalledWith('compare', {
+      sessionId: 'session-4',
+      request,
+    });
+  });
+
+  test('saveComparisonSnapshot posts to the browser snapshot endpoint when not running in Tauri', async () => {
+    const fetchMock = vi.mocked(globalThis.fetch);
+    fetchMock.mockResolvedValue(new Response('snapshot-bytes', { status: 200 }));
+
+    const { saveComparisonSnapshot } = await importTauriModule();
+
+    const blob = await saveComparisonSnapshot('session-5');
+
+    await expect(blob?.text()).resolves.toBe('snapshot-bytes');
+    expect(fetchMock).toHaveBeenCalledWith('/api/sessions/session-5/comparison-snapshot/save', {
+      method: 'POST',
+    });
+    expect(saveMock).not.toHaveBeenCalled();
+  });
+
+  test('saveComparisonSnapshot opens a save dialog and invokes the Tauri command when running in Tauri', async () => {
+    (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
+    saveMock.mockResolvedValue('/tmp/comparison-snapshot.json');
+    invokeMock.mockResolvedValue(undefined);
+
+    const { saveComparisonSnapshot } = await importTauriModule();
+
+    await expect(saveComparisonSnapshot('session-6')).resolves.toBeUndefined();
+    expect(saveMock).toHaveBeenCalledWith({
+      defaultPath: 'comparison-snapshot.json',
+      filters: [{ name: 'JSON Files', extensions: ['json'] }],
+    });
+    expect(invokeMock).toHaveBeenCalledWith('save_comparison_snapshot', {
+      sessionId: 'session-6',
+      outputPath: '/tmp/comparison-snapshot.json',
+    });
   });
 });
