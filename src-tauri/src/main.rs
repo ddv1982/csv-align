@@ -4,14 +4,14 @@ use std::sync::Arc;
 use tracing::instrument;
 
 use csv_align::backend::{
-    CompareRequest, CsvAlignError, LoadComparisonSnapshotResponse, LoadPairOrderResponse,
-    PairOrderSelection, SessionResponse, SessionStore, SuggestMappingsRequest,
-    apply_csv_to_session, comparison_inputs, export_session_results_snapshot,
-    load_comparison_snapshot_workflow, load_pair_order_workflow, parse_file_side, run_comparison,
-    save_comparison_snapshot_workflow, save_pair_order_workflow, suggest_mappings_workflow,
-    validate_file_letter, write_export_results,
+    CompareRequest, CsvAlignError, CsvLoadSource, LoadComparisonSnapshotResponse,
+    LoadPairOrderResponse, PairOrderSelection, SessionResponse, SessionStore,
+    SuggestMappingsRequest, apply_csv_to_session, comparison_inputs,
+    export_session_results_snapshot, load_comparison_snapshot_workflow, load_csv_workflow,
+    load_pair_order_workflow, parse_file_side, run_comparison, save_comparison_snapshot_workflow,
+    save_pair_order_workflow, suggest_mappings_workflow, validate_file_letter,
+    write_export_results,
 };
-use csv_align::data::csv_loader;
 use csv_align::presentation::responses::{
     CompareResponse, FileLoadResponse, SuggestMappingsResponse,
 };
@@ -36,13 +36,15 @@ fn load_csv(
 ) -> Result<FileLoadResponse, CsvAlignError> {
     validate_file_letter(&file_letter)?;
     let file_side = parse_file_side(&file_letter)?;
-
-    let csv_data = csv_loader::load_csv(&file_path)
-        .map_err(|error| CsvAlignError::Parse(format!("Failed to load CSV: {error}")))?;
+    let loaded = load_csv_workflow(
+        &file_letter,
+        Some(file_path.clone()),
+        CsvLoadSource::FilePath(file_path),
+    )?;
 
     state
         .with_session_mut(&session_id, |session_data| {
-            apply_csv_to_session(session_data, file_side, csv_data)
+            apply_csv_to_session(session_data, file_side, loaded.csv_data)
         })
         .ok_or_else(|| CsvAlignError::NotFound {
             resource: "Session".to_string(),
@@ -61,17 +63,15 @@ fn load_csv_bytes(
 ) -> Result<FileLoadResponse, CsvAlignError> {
     validate_file_letter(&file_letter)?;
     let file_side = parse_file_side(&file_letter)?;
-
-    let mut csv_data = csv_loader::load_csv_from_bytes(&file_bytes)
-        .map_err(|error| CsvAlignError::Parse(format!("Failed to parse CSV bytes: {error}")))?;
-
-    if !file_name.trim().is_empty() {
-        csv_data.file_path = Some(file_name);
-    }
+    let loaded = load_csv_workflow(
+        &file_letter,
+        Some(file_name),
+        CsvLoadSource::Bytes(file_bytes),
+    )?;
 
     state
         .with_session_mut(&session_id, |session_data| {
-            apply_csv_to_session(session_data, file_side, csv_data)
+            apply_csv_to_session(session_data, file_side, loaded.csv_data)
         })
         .ok_or_else(|| CsvAlignError::NotFound {
             resource: "Session".to_string(),

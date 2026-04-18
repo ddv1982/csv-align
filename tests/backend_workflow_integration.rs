@@ -1,12 +1,14 @@
 use csv_align::backend::{
-    CompareRequest, CsvAlignError, MappingRequest, PairOrderSelection, SessionData,
+    CompareRequest, CsvAlignError, CsvLoadSource, MappingRequest, PairOrderSelection, SessionData,
     apply_csv_to_session, comparison_inputs, export_results_to_bytes,
-    export_session_results_snapshot, load_comparison_snapshot_workflow, run_comparison,
-    save_comparison_snapshot_workflow, save_pair_order_workflow,
+    export_session_results_snapshot, load_comparison_snapshot_workflow, load_csv_workflow,
+    run_comparison, save_comparison_snapshot_workflow, save_pair_order_workflow,
 };
 use csv_align::data::csv_loader;
 use csv_align::data::types::{ComparisonNormalizationConfig, FileSide};
+use std::io::Write;
 use std::sync::Arc;
+use tempfile::NamedTempFile;
 
 fn prepared_snapshot_session() -> SessionData {
     let mut session = SessionData::new();
@@ -65,6 +67,41 @@ fn apply_csv_to_session_autosuggests_after_both_files_load() {
             .iter()
             .any(|mapping| mapping.file_a_column == "id" && mapping.file_b_column == "id")
     );
+}
+
+#[test]
+fn load_csv_workflow_supports_bytes_and_trims_blank_file_name() {
+    let loaded = load_csv_workflow(
+        "a",
+        Some("   ".to_string()),
+        CsvLoadSource::Bytes(b"id,name\n1,Alice\n".to_vec()),
+    )
+    .unwrap();
+
+    assert_eq!(loaded.response.file_letter, FileSide::A);
+    assert_eq!(loaded.response.headers, vec!["id", "name"]);
+    assert_eq!(loaded.response.row_count, 1);
+    assert_eq!(loaded.csv_data.file_path, None);
+}
+
+#[test]
+fn load_csv_workflow_supports_file_paths_and_sets_file_name() {
+    let mut temp_file = NamedTempFile::new().unwrap();
+    writeln!(temp_file, "id,name").unwrap();
+    writeln!(temp_file, "1,Alice").unwrap();
+
+    let path = temp_file.path().to_string_lossy().into_owned();
+    let loaded = load_csv_workflow(
+        "b",
+        Some(path.clone()),
+        CsvLoadSource::FilePath(path.clone()),
+    )
+    .unwrap();
+
+    assert_eq!(loaded.response.file_letter, FileSide::B);
+    assert_eq!(loaded.response.headers, vec!["id", "name"]);
+    assert_eq!(loaded.response.row_count, 1);
+    assert_eq!(loaded.csv_data.file_path.as_deref(), Some(path.as_str()));
 }
 
 #[test]

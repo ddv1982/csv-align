@@ -9,16 +9,15 @@ use serde::Serialize;
 use super::state::AppState;
 pub use crate::backend::{CompareRequest, MappingRequest, SessionResponse, SuggestMappingsRequest};
 use crate::backend::{
-    CsvAlignError, LoadComparisonSnapshotRequest, LoadPairOrderRequest, SavePairOrderRequest,
-    load_comparison_snapshot_workflow, load_pair_order_workflow, save_comparison_snapshot_workflow,
-    save_pair_order_workflow,
+    CsvAlignError, CsvLoadSource, LoadComparisonSnapshotRequest, LoadPairOrderRequest,
+    SavePairOrderRequest, load_comparison_snapshot_workflow, load_csv_workflow,
+    load_pair_order_workflow, save_comparison_snapshot_workflow, save_pair_order_workflow,
 };
 use crate::backend::{
     apply_csv_to_session, comparison_inputs, export_results_to_bytes,
     export_session_results_snapshot, parse_file_side, run_comparison, suggest_mappings_workflow,
     validate_file_letter,
 };
-use crate::data::csv_loader;
 
 /// Response for health check
 #[derive(Serialize)]
@@ -137,24 +136,25 @@ pub async fn load_csv_file(
         }
     };
 
-    let mut csv_data = match csv_loader::load_csv_from_bytes(&bytes) {
-        Ok(data) => data,
-        Err(e) => return CsvAlignError::Parse(format!("Failed to parse CSV: {e}")).into_response(),
+    let loaded = match load_csv_workflow(
+        &file_letter,
+        file_name,
+        CsvLoadSource::Bytes(bytes.to_vec()),
+    ) {
+        Ok(loaded) => loaded,
+        Err(error) => return error.into_response(),
     };
-
-    if let Some(file_name) = file_name {
-        csv_data.file_path = Some(file_name);
-    }
 
     let response = match state.with_session_mut(&session_id, |session_data| {
         let file_side = parse_file_side(&file_letter)
             .expect("validated file letter should parse into a file side");
-        apply_csv_to_session(session_data, file_side, csv_data)
+        apply_csv_to_session(session_data, file_side, loaded.csv_data)
     }) {
         Some(response) => response,
         None => return session_not_found_response(),
     };
 
+    debug_assert_eq!(response, loaded.response);
     Json(response).into_response()
 }
 

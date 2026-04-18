@@ -1,4 +1,5 @@
 use std::borrow::Borrow;
+use std::io::Read;
 use std::path::Path;
 use std::sync::Arc;
 
@@ -16,6 +17,16 @@ use crate::presentation::responses::{
     suggest_mappings_response,
 };
 
+pub enum CsvLoadSource {
+    FilePath(String),
+    Bytes(Vec<u8>),
+}
+
+pub struct LoadedCsv {
+    pub csv_data: CsvData,
+    pub response: FileLoadResponse,
+}
+
 pub fn validate_file_letter(file_letter: &str) -> Result<(), CsvAlignError> {
     parse_file_side(file_letter).map(|_| ())
 }
@@ -28,6 +39,47 @@ pub fn parse_file_side(file_letter: &str) -> Result<FileSide, CsvAlignError> {
             "File letter must be 'a' or 'b'".to_string(),
         )),
     }
+}
+
+pub fn load_csv_workflow(
+    file_letter: &str,
+    file_name: Option<String>,
+    source: CsvLoadSource,
+) -> Result<LoadedCsv, CsvAlignError> {
+    let file_side = parse_file_side(file_letter)?;
+
+    let mut csv_data = match source {
+        CsvLoadSource::FilePath(file_path) => {
+            let mut file = std::fs::File::open(&file_path).map_err(|error| {
+                CsvAlignError::Io(std::io::Error::new(
+                    error.kind(),
+                    format!("Failed to load CSV: {error}"),
+                ))
+            })?;
+            let mut bytes = Vec::new();
+            file.read_to_end(&mut bytes).map_err(|error| {
+                CsvAlignError::Io(std::io::Error::new(
+                    error.kind(),
+                    format!("Failed to load CSV: {error}"),
+                ))
+            })?;
+            csv_loader::load_csv_from_bytes(&bytes)
+                .map_err(|error| CsvAlignError::Parse(format!("Failed to load CSV: {error}")))?
+        }
+        CsvLoadSource::Bytes(bytes) => csv_loader::load_csv_from_bytes(&bytes)
+            .map_err(|error| CsvAlignError::Parse(format!("Failed to parse CSV bytes: {error}")))?,
+    };
+
+    if let Some(file_name) = file_name.filter(|value| !value.trim().is_empty()) {
+        csv_data.file_path = Some(file_name);
+    }
+
+    let headers = csv_data.headers.clone();
+    let columns = csv_loader::detect_columns(&csv_data);
+    let row_count = csv_data.rows.len();
+    let response = file_load_response(file_side, headers, &columns, row_count);
+
+    Ok(LoadedCsv { csv_data, response })
 }
 
 pub fn apply_csv_to_session(
