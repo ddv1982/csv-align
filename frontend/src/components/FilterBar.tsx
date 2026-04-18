@@ -1,5 +1,6 @@
 import { ResultFilter, ResultResponse } from '../types/api';
 import { getResultFilterCounts, RESULT_FILTER_OPTIONS } from '../features/results/presentation';
+import { SectionCard } from './ui/SectionCard';
 
 interface FilterBarProps {
   filter: ResultFilter;
@@ -12,21 +13,17 @@ export function FilterBar({ filter, results, onFilterChange, onExport }: FilterB
   const counts = getResultFilterCounts(results);
 
   return (
-    <div className="card overflow-hidden border-gray-200/90 bg-white shadow-sm dark:border-gray-700/90 dark:bg-gray-900/85">
-      <div className="flex flex-col gap-4 border-b border-gray-200/80 bg-gray-50/80 px-5 py-4 dark:border-gray-700/80 dark:bg-gray-950/40 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-3">
-          <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-100 text-primary-700 ring-1 ring-inset ring-primary-200/80 shadow-sm shadow-white/40 dark:bg-primary-500/15 dark:text-primary-200 dark:ring-primary-500/30">
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h18M6 8h12M9 12h6M11 16h2" />
-            </svg>
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-primary-600 dark:text-primary-300">Results filter</p>
-            <h3 className="mt-0.5 text-sm font-semibold text-gray-900 dark:text-gray-100">Focus on the rows you care about</h3>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">Switch between result buckets or export the full comparison as CSV.</p>
-          </div>
-        </div>
-
+    <SectionCard
+      eyebrow="Results filter"
+      title="Focus on the rows you care about"
+      description="Switch between result buckets or export the full comparison as CSV."
+      className="card overflow-hidden border-gray-200/90 bg-white shadow-sm dark:border-gray-700/90 dark:bg-gray-900/85"
+      icon={
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h18M6 8h12M9 12h6M11 16h2" />
+        </svg>
+      }
+      action={
         <button onClick={onExport} className="btn btn-primary shadow-sm shadow-primary-200/70 dark:shadow-none shrink-0">
           <svg
             className="h-4 w-4"
@@ -44,9 +41,9 @@ export function FilterBar({ filter, results, onFilterChange, onExport }: FilterB
           </svg>
           Export CSV
         </button>
-      </div>
-
-      <div className="px-5 py-4">
+      }
+    >
+      <div>
         <div className="flex flex-wrap gap-2">
           {RESULT_FILTER_OPTIONS.map((f) => {
             const isActive = filter === f.value;
@@ -80,6 +77,6 @@ export function FilterBar({ filter, results, onFilterChange, onExport }: FilterB
           })}
         </div>
       </div>
-    </div>
+    </SectionCard>
   );
 }

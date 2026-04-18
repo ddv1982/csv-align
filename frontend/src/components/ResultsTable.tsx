@@ -1,6 +1,7 @@
 import { Fragment, useMemo, useState } from 'react';
 import { ResultResponse } from '../types/api';
 import { getResultBadge, getResultDescription } from '../features/results/presentation';
+import { SectionCard } from './ui/SectionCard';
 
 interface ResultsTableProps {
   results: ResultResponse[];
@@ -218,22 +219,17 @@ export function ResultsTable({ results }: ResultsTableProps) {
   }
 
   return (
-    <div className="card overflow-hidden border-gray-200/90 bg-white shadow-xl shadow-gray-200/70 dark:border-gray-700/90 dark:bg-gray-900/85 dark:shadow-black/30">
-      <div className="flex flex-col gap-3 border-b border-gray-200/90 bg-gray-50/90 px-5 py-4 dark:border-gray-700 dark:bg-gray-950/45 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-3">
-          <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-100 text-primary-700 ring-1 ring-inset ring-primary-200/80 shadow-sm shadow-white/40 dark:bg-primary-500/15 dark:text-primary-200 dark:ring-primary-500/30">
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h10" />
-            </svg>
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-primary-600 dark:text-primary-300">Detailed results</p>
-            <p className="mt-0.5 text-sm font-semibold text-gray-900 dark:text-gray-100">Comparison results</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {visibleResults.length} of {results.length} rows shown
-            </p>
-          </div>
-        </div>
+    <SectionCard
+      eyebrow="Detailed results"
+      title="Comparison results"
+      description={`${visibleResults.length} of ${results.length} rows shown`}
+      className="card overflow-hidden border-gray-200/90 bg-white shadow-xl shadow-gray-200/70 dark:border-gray-700/90 dark:bg-gray-900/85 dark:shadow-black/30"
+      icon={
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h10" />
+        </svg>
+      }
+      action={
         <label className="relative block w-full sm:max-w-xs">
           <span className="sr-only">Search result values</span>
           <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -247,7 +243,9 @@ export function ResultsTable({ results }: ResultsTableProps) {
             className="input pl-9 pr-3 text-sm"
           />
         </label>
-      </div>
+      }
+    >
+      <div>
 
       {visibleResults.length === 0 ? (
         <div className="p-12 text-center">
@@ -362,6 +360,7 @@ export function ResultsTable({ results }: ResultsTableProps) {
           <p className="text-sm text-gray-500 dark:text-gray-400">Showing {visibleResults.length} results. Use filters, search, or sorting to narrow down.</p>
         </div>
       )}
-    </div>
+      </div>
+    </SectionCard>
   );
 }

@@ -1,8 +1,9 @@
-import type { ChangeEvent, ReactNode } from 'react';
+import type { ChangeEvent } from 'react';
 import { useRef } from 'react';
 import type { ComparisonNormalizationConfig, FileLetter, MappingDto } from '../types/api';
 import { isTauri } from '../services/tauri';
 import type { AppFile, MappingSelectionState } from '../types/ui';
+import { SectionCard } from './ui/SectionCard';
 import { ColumnChipSelector } from './mapping-config/ColumnChipSelector';
 import { NormalizationPanel } from './mapping-config/NormalizationPanel';
 import { PairPreview } from './mapping-config/PairPreview';
@@ -31,40 +32,6 @@ function toggleColumnSelection(selectedColumns: string[], column: string) {
   return selectedColumns.includes(column)
     ? selectedColumns.filter((selectedColumn) => selectedColumn !== column)
     : [...selectedColumns, column];
-}
-
-interface SectionCardProps {
-  eyebrow: string;
-  title: ReactNode;
-  description?: ReactNode;
-  icon: ReactNode;
-  headingLevel?: 'h3' | 'h4';
-  children: ReactNode;
-  action?: ReactNode;
-}
-
-function SectionCard({ eyebrow, title, description, icon, headingLevel = 'h3', children, action }: SectionCardProps) {
-  const HeadingTag = headingLevel;
-  return (
-    <section className="rounded-2xl border border-gray-200/90 bg-white/95 p-6 shadow-sm shadow-gray-200/70 dark:border-gray-700/90 dark:bg-gray-900/85 dark:shadow-none">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-3">
-          <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-100 text-primary-700 ring-1 ring-inset ring-primary-200/80 shadow-sm shadow-white/40 dark:bg-primary-500/15 dark:text-primary-200 dark:ring-primary-500/30">
-            {icon}
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-primary-600 dark:text-primary-300">{eyebrow}</p>
-            <HeadingTag className="mt-0.5 text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</HeadingTag>
-            {description && (
-              <p className="mt-1 text-sm leading-6 text-gray-600 dark:text-gray-300">{description}</p>
-            )}
-          </div>
-        </div>
-        {action && <div className="shrink-0">{action}</div>}
-      </div>
-      <div className="mt-5">{children}</div>
-    </section>
-  );
 }
 
 export function MappingConfig({
@@ -151,6 +118,8 @@ export function MappingConfig({
         eyebrow="Step 2 · Configure"
         title="Manual column pairing"
         description="Select key columns first, then choose comparison columns manually or auto-pair confident matches using File A or File B as the leading order."
+        headingLevel="h3"
+        className="p-6"
         icon={
           <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12M8 12h12M8 17h12M4 7h.01M4 12h.01M4 17h.01" />

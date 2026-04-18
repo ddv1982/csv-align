@@ -1,5 +1,6 @@
 import { getResultLabel } from '../features/results/presentation';
 import { SummaryResponse } from '../types/api';
+import { SectionCard } from './ui/SectionCard';
 
 interface SummaryStatsProps {
   summary: SummaryResponse;
@@ -127,43 +128,48 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
   ];
 
   return (
-    <div className="card overflow-hidden border-gray-200/90 bg-white shadow-xl shadow-gray-200/70 dark:border-gray-700/90 dark:bg-gray-900/85 dark:shadow-black/30">
-      <div className="border-b border-gray-200/80 bg-gray-50/80 px-6 py-5 dark:border-gray-700/80 dark:bg-gray-950/40">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-primary-600 dark:text-primary-300">Step 3 · Results</p>
-            <h3 className="mt-1 flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
-              <svg className="w-5 h-5 text-primary-600 dark:text-primary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-              Comparison Summary
-            </h3>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">Review the overall match quality before drilling into filtered result rows.</p>
+    <SectionCard
+      eyebrow="Step 3 · Results"
+      title={
+        <span className="flex items-center gap-2 text-lg">
+          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+          Comparison Summary
+        </span>
+      }
+      headingLevel="h3"
+      description="Review the overall match quality before drilling into filtered result rows."
+      className="card overflow-hidden border-gray-200/90 bg-white shadow-xl shadow-gray-200/70 dark:border-gray-700/90 dark:bg-gray-900/85 dark:shadow-black/30"
+      icon={
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+      }
+      action={
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-xl border border-gray-200/90 bg-white/90 px-4 py-3 shadow-sm shadow-gray-200/70 dark:border-gray-700 dark:bg-gray-900/70 dark:shadow-none">
+            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">File A</div>
+            <div className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+              <span className="font-semibold text-gray-900 dark:text-gray-100">{summary.total_rows_a}</span> rows
+            </div>
+            <div className="mt-1 max-w-[280px] truncate text-xs text-gray-500 dark:text-gray-400" title={fileAName}>
+              {fileAName}
+            </div>
           </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-             <div className="rounded-xl border border-gray-200/90 bg-white/90 px-4 py-3 shadow-sm shadow-gray-200/70 dark:border-gray-700 dark:bg-gray-900/70 dark:shadow-none">
-               <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">File A</div>
-               <div className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                 <span className="font-semibold text-gray-900 dark:text-gray-100">{summary.total_rows_a}</span> rows
-               </div>
-               <div className="mt-1 max-w-[280px] truncate text-xs text-gray-500 dark:text-gray-400" title={fileAName}>
-                 {fileAName}
-               </div>
-             </div>
-             <div className="rounded-xl border border-gray-200/90 bg-white/90 px-4 py-3 shadow-sm shadow-gray-200/70 dark:border-gray-700 dark:bg-gray-900/70 dark:shadow-none">
-               <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">File B</div>
-               <div className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                 <span className="font-semibold text-gray-900 dark:text-gray-100">{summary.total_rows_b}</span> rows
-              </div>
-              <div className="mt-1 max-w-[280px] truncate text-xs text-gray-500 dark:text-gray-400" title={fileBName}>
-                {fileBName}
-              </div>
+          <div className="rounded-xl border border-gray-200/90 bg-white/90 px-4 py-3 shadow-sm shadow-gray-200/70 dark:border-gray-700 dark:bg-gray-900/70 dark:shadow-none">
+            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">File B</div>
+            <div className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+              <span className="font-semibold text-gray-900 dark:text-gray-100">{summary.total_rows_b}</span> rows
+            </div>
+            <div className="mt-1 max-w-[280px] truncate text-xs text-gray-500 dark:text-gray-400" title={fileBName}>
+              {fileBName}
             </div>
           </div>
         </div>
-      </div>
-
-      <div className="space-y-6 px-6 py-6">
+      }
+    >
+      <div className="space-y-6">
         <div className="rounded-2xl border border-gray-200/90 bg-gray-50/90 p-5 shadow-sm shadow-gray-200/70 dark:border-gray-700/80 dark:bg-gray-950/40 dark:shadow-none">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
             <div>
@@ -232,6 +238,6 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
           </div>
         )}
       </div>
-    </div>
+    </SectionCard>
   );
 }
