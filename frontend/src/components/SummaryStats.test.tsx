@@ -36,7 +36,7 @@ test('separates ignored rows from comparable summary stats', () => {
   expect(screen.queryByText('Unkeyed Right')).not.toBeInTheDocument();
 });
 
-test('keeps summary icon chips vivid in both light and dark mode styles', () => {
+test('keeps summary chips on kinetic bordered surfaces', () => {
   render(
     <SummaryStats
       summary={SUMMARY}
@@ -45,19 +45,16 @@ test('keeps summary icon chips vivid in both light and dark mode styles', () => 
     />,
   );
 
-  const matchesCard = screen.getByText('Matches').closest('div.rounded-xl');
-  const ignoredBanner = screen.getByText('Ignored rows').closest('div.rounded-2xl');
+  const matchesCard = screen.getByText('Matches').closest('div.kinetic-panel');
+  const ignoredBanner = screen.getByText('Ignored rows').closest('div.kinetic-panel');
 
   expect(matchesCard).toBeTruthy();
   expect(ignoredBanner).toBeTruthy();
-  expect(matchesCard?.innerHTML).toContain('bg-emerald-100');
-  expect(matchesCard?.innerHTML).toContain('text-emerald-700');
-  expect(matchesCard?.innerHTML).toContain('ring-emerald-200/80');
-  expect(ignoredBanner?.innerHTML).toContain('bg-sky-100');
-  expect(ignoredBanner?.innerHTML).toContain('ring-sky-200/80');
+  expect(matchesCard).toHaveClass('kinetic-tone-success');
+  expect(ignoredBanner).toHaveClass('kinetic-tone-accent');
 });
 
-test('renders the comparison summary glyph exactly once', () => {
+test('renders the comparison summary with text glyph treatments and no svg icons', () => {
   const { container } = render(
     <SummaryStats
       summary={SUMMARY}
@@ -71,7 +68,6 @@ test('renders the comparison summary glyph exactly once', () => {
 
   expect(heading).toBeInTheDocument();
   expect(heading.querySelector('svg')).toBeNull();
-  expect(resultsSection?.querySelectorAll('div.bg-primary-100 svg')).toHaveLength(1);
-  expect(resultsSection?.querySelectorAll('div.bg-primary-100 svg path').length).toBeGreaterThan(0);
-  expect(container.querySelectorAll('svg').length).toBeGreaterThan(1);
+  expect(resultsSection).toHaveTextContent('ST');
+  expect(container.querySelectorAll('svg')).toHaveLength(0);
 });

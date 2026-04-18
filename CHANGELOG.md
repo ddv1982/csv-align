@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.0 - 2026-04-19
+
+- Rebuilt the frontend around the KINETIC design system with a fixed dark broadcast-HUD presentation, bundled local fonts, and redesigned shell, workflow, filter, summary, and results surfaces so the app ships a distinct new visual identity without changing the shared comparison engine or saved-data contracts.
+- Prepared the v2.1.0 release by updating version metadata across the Rust crates, desktop bundle config, frontend package manifests, and lockfiles, then rerunning the documented broad validation workflow including targeted frontend tests for the redesigned surfaces.
+
 ## v2.0.2 - 2026-04-18
 
 - Improved the Results table Value Differences cards so long column-name headers render in larger wrapped chips, making mismatched fields easier to scan without changing the underlying comparison data.

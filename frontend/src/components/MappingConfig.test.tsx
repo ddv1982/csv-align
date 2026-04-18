@@ -99,7 +99,7 @@ test('copies the current pair order in the same displayed text format and shows 
 
   await waitFor(() => {
     expect(writeText).toHaveBeenCalledWith('1 id → value\n2 name → id');
-    expect(screen.getByRole('button', { name: 'Copied current pair order' })).toHaveClass('text-green-600');
+    expect(screen.getByRole('button', { name: 'Copied current pair order' })).toHaveClass('text-[color:var(--color-kinetic-success)]');
     expect(screen.getByRole('button', { name: 'Copied current pair order' })).toHaveAttribute('title', 'Copied current pair order');
   });
 

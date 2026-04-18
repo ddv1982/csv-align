@@ -12,18 +12,16 @@ interface ToneClasses {
 
 const TONE_CLASSES: Record<SectionCardTone, ToneClasses> = {
   primary: {
-    eyebrow: 'text-primary-600 dark:text-primary-300',
-    iconWrap:
-      'bg-primary-100 text-primary-700 ring-primary-200/80 shadow-white/40 dark:bg-primary-500/15 dark:text-primary-200 dark:ring-primary-500/30 dark:shadow-none',
-    title: 'text-gray-900 dark:text-gray-100',
-    description: 'text-gray-600 dark:text-gray-300',
+    eyebrow: 'text-[color:var(--color-kinetic-accent)]',
+    iconWrap: 'border-[rgba(110,231,255,0.38)] bg-[rgba(110,231,255,0.08)] text-[color:var(--color-kinetic-accent)]',
+    title: 'text-[color:var(--color-kinetic-copy)]',
+    description: 'text-[color:var(--color-kinetic-muted)]',
   },
   info: {
-    eyebrow: 'text-sky-700 dark:text-sky-200',
-    iconWrap:
-      'bg-sky-100 text-sky-700 ring-sky-200/80 shadow-white/40 dark:bg-sky-500/15 dark:text-sky-200 dark:ring-sky-500/30 dark:shadow-none',
-    title: 'text-sky-950 dark:text-sky-100',
-    description: 'text-sky-700 dark:text-sky-300',
+    eyebrow: 'text-[color:var(--color-kinetic-accent-2)]',
+    iconWrap: 'border-[rgba(255,211,110,0.38)] bg-[rgba(255,211,110,0.08)] text-[color:var(--color-kinetic-accent-2)]',
+    title: 'text-[color:var(--color-kinetic-copy)]',
+    description: 'text-[color:var(--color-kinetic-muted)]',
   },
 };
 
@@ -65,18 +63,18 @@ export function SectionCard({
 
   return (
     <section
-      className={`rounded-2xl border border-gray-200/90 bg-white/95 p-5 shadow-sm shadow-gray-200/70 dark:border-gray-700/90 dark:bg-gray-900/85 dark:shadow-none ${className ?? ''}`.trim()}
+      className={`card p-5 ${className ?? ''}`.trim()}
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
           <div
-            className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset shadow-sm ${toneClasses.iconWrap}`}
+            className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center border font-mono text-sm uppercase tracking-[0.18em] ${toneClasses.iconWrap}`}
           >
             {icon}
           </div>
           <div>
-            <p className={`text-xs font-semibold uppercase tracking-wide ${toneClasses.eyebrow}`}>{eyebrow}</p>
-            <HeadingTag className={`mt-0.5 text-sm font-semibold ${toneClasses.title}`}>{title}</HeadingTag>
+            <p className={`hud-label ${toneClasses.eyebrow}`}>{eyebrow}</p>
+            <HeadingTag className={`mt-1 text-sm font-semibold uppercase tracking-[0.14em] ${toneClasses.title}`}>{title}</HeadingTag>
             {description && <p className={`mt-1 text-sm leading-6 ${toneClasses.description}`}>{description}</p>}
           </div>
         </div>

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { ClipboardDocumentCheckIcon, ClipboardDocumentIcon } from '../icons';
 
 interface PairPreviewProps {
   comparisonColumnsA: string[];
@@ -51,29 +50,25 @@ export function PairPreview({ comparisonColumnsA, comparisonColumnsB }: PairPrev
   const hasMismatchedCounts = comparisonColumnsA.length !== comparisonColumnsB.length;
 
   return (
-    <div className="mt-6 rounded-xl border border-gray-200/90 bg-gray-50/70 p-4 shadow-sm shadow-gray-200/50 dark:border-gray-700/80 dark:bg-gray-950/40 dark:shadow-none">
+    <div className="kinetic-panel mt-6 p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Preview</p>
-          <h4 className="mt-0.5 text-sm font-semibold text-gray-800 dark:text-gray-100">Current pair order</h4>
+          <p className="hud-label">Preview</p>
+          <h4 className="mt-0.5 text-sm font-semibold uppercase tracking-[0.14em] text-[color:var(--color-kinetic-copy)]">Current pair order</h4>
         </div>
         <button
           aria-label={buttonLabel}
-          className={`btn btn-secondary px-2 py-1 text-xs ${copySucceeded ? 'text-green-600 dark:text-green-400' : ''}`}
+          className={`btn btn-ghost px-2 py-1 text-xs ${copySucceeded ? 'text-[color:var(--color-kinetic-success)]' : ''}`}
           onClick={handleCopy}
           title={buttonLabel}
           type="button"
         >
           <span className="sr-only">{buttonLabel}</span>
-          {copySucceeded ? (
-            <ClipboardDocumentCheckIcon className="h-4 w-4" />
-          ) : (
-            <ClipboardDocumentIcon className="h-4 w-4" />
-          )}
+          <span aria-hidden="true">{copySucceeded ? 'OK' : 'CP'}</span>
         </button>
       </div>
       {pairs.length > 0 ? (
-        <div className="space-y-1 text-sm text-gray-700 dark:text-gray-200">
+        <div className="space-y-1 font-mono text-sm text-[color:var(--color-kinetic-copy)]">
           {pairs.map((pair, index) => (
             <div key={`${pair.columnA}-${pair.columnB}-${index}`} className="truncate" title={pair.displayText}>
               {pair.displayText}
@@ -81,10 +76,10 @@ export function PairPreview({ comparisonColumnsA, comparisonColumnsB }: PairPrev
           ))}
         </div>
       ) : (
-        <p className="text-sm text-gray-500 dark:text-gray-400">No pairs selected yet.</p>
+        <p className="text-sm text-[color:var(--color-kinetic-muted)]">No pairs selected yet.</p>
       )}
       {hasMismatchedCounts && (
-        <p className="mt-3 text-sm text-amber-700 dark:text-amber-300">
+        <p className="mt-3 text-sm text-[color:var(--color-kinetic-warning)]">
           Select the same number of comparison columns in both files to run comparison.
         </p>
       )}

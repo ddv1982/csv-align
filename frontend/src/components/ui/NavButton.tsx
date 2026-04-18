@@ -1,5 +1,4 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
-import { ChevronLeftIcon, ChevronRightIcon } from '../icons';
 
 interface NavButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {
   direction: 'back' | 'forward';
@@ -7,19 +6,17 @@ interface NavButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, '
 }
 
 export function NavButton({ direction, children, className, type = 'button', ...buttonProps }: NavButtonProps) {
-  const icon = (
-    direction === 'back' ? <ChevronLeftIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />
-  );
+  const glyph = direction === 'back' ? '<<' : '>>';
 
   return (
     <button
       type={type}
-      className={`btn btn-secondary flex items-center gap-2 ${className ?? ''}`.trim()}
+      className={`btn btn-ghost flex items-center gap-2 ${className ?? ''}`.trim()}
       {...buttonProps}
     >
-      {direction === 'back' ? icon : null}
+      {direction === 'back' ? <span aria-hidden="true">{glyph}</span> : null}
       {children}
-      {direction === 'forward' ? icon : null}
+      {direction === 'forward' ? <span aria-hidden="true">{glyph}</span> : null}
     </button>
   );
 }

@@ -4,7 +4,6 @@ import { SummaryStats } from '../SummaryStats';
 import type { ResultFilter, ResultResponse, SummaryResponse } from '../../types/api';
 import { NavButton } from '../ui/NavButton';
 import { SectionCard } from '../ui/SectionCard';
-import { ArrowPathIcon, CheckDocumentIcon, InformationCircleIcon, PencilSquareIcon } from '../icons';
 
 interface ResultsStepProps {
   summary: SummaryResponse;
@@ -45,16 +44,14 @@ export function ResultsStep({
           title="Snapshot loaded in read-only mode"
           description="Loaded snapshots are read-only results. Start a new comparison to edit mappings or load different files."
           tone="info"
-          className="border-sky-200/90 bg-sky-50/95 px-5 py-4 shadow-sm shadow-sky-100/70 dark:border-sky-500/40 dark:bg-sky-950/35"
-          icon={
-            <InformationCircleIcon className="h-5 w-5" />
-          }
+          className="border-[rgba(255,211,110,0.4)] bg-[rgba(255,211,110,0.05)] px-5 py-4"
+          icon={<span aria-hidden="true">!!</span>}
           action={
             <button
               onClick={onStartNewComparison}
-              className="btn btn-primary flex items-center gap-2 shadow-sm shadow-primary-200/70 dark:shadow-none"
+              className="btn btn-primary flex items-center gap-2"
             >
-              <ArrowPathIcon className="h-4 w-4" />
+              <span aria-hidden="true">++</span>
               Start new comparison
             </button>
           }
@@ -65,16 +62,14 @@ export function ResultsStep({
           eyebrow="Next step"
           title="Save this result for later review"
           description="Save a snapshot of this comparison to reopen the same results later in read-only mode."
-          icon={
-            <PencilSquareIcon className="h-5 w-5" />
-          }
+          icon={<span aria-hidden="true">[]</span>}
           action={
             <div className="flex flex-wrap justify-end gap-3 lg:shrink-0">
-              <NavButton direction="back" onClick={onBack} className="shadow-sm shadow-gray-200/70 dark:shadow-none">
+              <NavButton direction="back" onClick={onBack}>
                 Back to configuration
               </NavButton>
-              <button onClick={onSaveResult} className="btn btn-primary flex items-center gap-2 shadow-sm shadow-primary-200/70 dark:shadow-none">
-                <CheckDocumentIcon className="h-4 w-4" />
+              <button onClick={onSaveResult} className="btn btn-primary flex items-center gap-2">
+                <span aria-hidden="true">##</span>
                 Save result
               </button>
             </div>

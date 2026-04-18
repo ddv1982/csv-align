@@ -4,7 +4,6 @@ import type { ComparisonNormalizationConfig, FileLetter, MappingDto } from '../t
 import { isTauri } from '../services/tauri';
 import type { AppFile, MappingSelectionState } from '../types/ui';
 import { SectionCard } from './ui/SectionCard';
-import { CheckDocumentIcon, KeyIcon, PencilSquareIcon, TableCellsIcon } from './icons';
 import { ColumnChipSelector } from './mapping-config/ColumnChipSelector';
 import { NormalizationPanel } from './mapping-config/NormalizationPanel';
 import { PairPreview } from './mapping-config/PairPreview';
@@ -121,21 +120,19 @@ export function MappingConfig({
         description="Select key columns first, then choose comparison columns manually or auto-pair confident matches using File A or File B as the leading order."
         headingLevel="h3"
         className="p-6"
-        icon={
-          <TableCellsIcon className="h-5 w-5" />
-        }
+        icon={<span aria-hidden="true">==</span>}
       >
         <div className="flex flex-wrap gap-3">
-          <button onClick={onSavePairOrder} className="btn btn-secondary" type="button">
+          <button onClick={onSavePairOrder} className="btn btn-ghost" type="button">
             Save pair order
           </button>
-          <button onClick={handleLoadButtonClick} className="btn btn-secondary" type="button">
+          <button onClick={handleLoadButtonClick} className="btn btn-ghost" type="button">
             Load pair order
           </button>
           <button
             onClick={() => onAutoPairComparisonColumns('a')}
             disabled={!hasValidAutoPairKeySelection}
-            className={`btn btn-secondary ${!hasValidAutoPairKeySelection ? 'cursor-not-allowed opacity-50' : ''}`}
+            className={`btn btn-ghost ${!hasValidAutoPairKeySelection ? 'cursor-not-allowed opacity-50' : ''}`}
             type="button"
           >
             Auto-pair from File A
@@ -143,7 +140,7 @@ export function MappingConfig({
           <button
             onClick={() => onAutoPairComparisonColumns('b')}
             disabled={!hasValidAutoPairKeySelection}
-            className={`btn btn-secondary ${!hasValidAutoPairKeySelection ? 'cursor-not-allowed opacity-50' : ''}`}
+            className={`btn btn-ghost ${!hasValidAutoPairKeySelection ? 'cursor-not-allowed opacity-50' : ''}`}
             type="button"
           >
             Auto-pair from File B
@@ -156,7 +153,7 @@ export function MappingConfig({
             type="file"
           />
         </div>
-        <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+        <p className="mt-4 text-sm text-[color:var(--color-kinetic-muted)]">
           {hasValidAutoPairKeySelection
             ? 'When confident comparison matches are found, auto-pair starts with the selected key pair(s) and then adds the remaining one-to-one matches.'
             : 'Select the same number of key columns in File A and File B to enable auto-pair. Those key pairs are used as the starting point for any generated comparison order.'}
@@ -169,9 +166,7 @@ export function MappingConfig({
         eyebrow="Keys"
         title="Key Columns (for row matching)"
         description="Selected keys align rows between File A and File B."
-        icon={
-          <KeyIcon className="h-5 w-5" />
-        }
+        icon={<span aria-hidden="true">K</span>}
       >
         <div className="grid gap-6 md:grid-cols-2">
           <ColumnChipSelector
@@ -195,9 +190,7 @@ export function MappingConfig({
         eyebrow="Comparison"
         title="Comparison Columns"
         description="Pick the columns whose values should actually be compared between the two files."
-        icon={
-          <PencilSquareIcon className="h-5 w-5" />
-        }
+        icon={<span aria-hidden="true">C</span>}
       >
         <div className="grid gap-6 md:grid-cols-2">
           <ColumnChipSelector
@@ -221,9 +214,9 @@ export function MappingConfig({
         <button
           onClick={handleCompare}
           disabled={!hasManualPairSelection}
-          className={`btn btn-success flex items-center gap-2 px-8 py-3 text-lg shadow-sm shadow-emerald-300/40 dark:shadow-none ${!hasManualPairSelection ? 'cursor-not-allowed opacity-50' : ''}`}
+          className={`btn btn-success flex items-center gap-2 px-8 py-3 text-sm ${!hasManualPairSelection ? 'cursor-not-allowed opacity-50' : ''}`}
         >
-          <CheckDocumentIcon className="h-6 w-6" />
+          <span aria-hidden="true">GO</span>
           Run Comparison
         </button>
       </div>

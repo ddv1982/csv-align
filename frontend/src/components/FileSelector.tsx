@@ -1,6 +1,5 @@
 import { useCallback, useId, useState } from 'react';
 import { ColumnInfo } from '../types/api';
-import { CheckBadgeIcon, DocumentArrowUpIcon, DocumentTextIcon } from './icons';
 
 function hasCsvExtension(fileName: string): boolean {
   return fileName.toLowerCase().endsWith('.csv');
@@ -78,12 +77,12 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
 
   return (
     <div className="card p-6">
-      <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
-        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
-          label === 'File A'
-            ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-200'
-            : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-200'
-        }`}>
+      <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold uppercase tracking-[0.14em] text-[color:var(--color-kinetic-copy)]">
+        <span className={`flex h-7 w-7 items-center justify-center border font-mono text-sm font-bold ${
+           label === 'File A'
+            ? 'border-[rgba(110,231,255,0.4)] bg-[rgba(110,231,255,0.08)] text-[color:var(--color-kinetic-accent)]'
+            : 'border-[rgba(108,255,190,0.4)] bg-[rgba(108,255,190,0.08)] text-[color:var(--color-kinetic-success)]'
+         }`}>
           {label === 'File A' ? 'A' : 'B'}
         </span>
         {label}
@@ -91,29 +90,31 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
 
       {file ? (
         <div className="animate-slide-up">
-          <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm shadow-gray-950/5 dark:border-gray-600 dark:bg-gray-700/50 dark:shadow-none">
-            <DocumentTextIcon className="w-10 h-10 text-primary-600" />
+          <div className="kinetic-panel flex items-center gap-3 p-4">
+            <div className="flex h-10 w-10 items-center justify-center border border-[color:var(--color-kinetic-line-strong)] font-mono text-xs uppercase tracking-[0.18em] text-[color:var(--color-kinetic-accent)]">
+              CSV
+            </div>
             <div className="flex-1 min-w-0">
-              <p className="truncate font-medium text-gray-900 dark:text-gray-100">{file.name}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="truncate font-medium text-[color:var(--color-kinetic-copy)]">{file.name}</p>
+              <p className="text-sm text-[color:var(--color-kinetic-muted)]">
                 {file.rowCount} rows • {file.headers.length} columns
               </p>
             </div>
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200">
-              <CheckBadgeIcon className="h-5 w-5" />
+            <div className="flex h-8 w-8 items-center justify-center border border-[rgba(108,255,190,0.4)] bg-[rgba(108,255,190,0.08)] font-mono text-xs uppercase text-[color:var(--color-kinetic-success)]">
+              OK
             </div>
           </div>
 
           <div className="mt-4">
-            <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Columns:</p>
+            <p className="hud-label mb-2">Columns</p>
             <div className="flex flex-wrap gap-2">
               {file.columns.map((col) => (
                 <span
                   key={col.name}
-                  className="rounded-full border border-gray-200 bg-white px-3 py-1 text-sm text-gray-700 shadow-sm shadow-gray-950/5 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:shadow-none"
+                  className="table-chip"
                 >
                   {col.name}
-                  <span className="ml-1 text-xs text-gray-400 dark:text-gray-500">({col.data_type})</span>
+                  <span className="ml-2 text-[color:var(--color-kinetic-muted)]">[{col.data_type}]</span>
                 </span>
               ))}
             </div>
@@ -140,28 +141,26 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
           tabIndex={0}
           aria-label={`${label} file selector`}
           title={`Choose a local CSV for ${label}`}
-          className={`rounded-xl border-2 border-dashed p-8 text-center transition-all duration-200 ${
-            isDragging
-              ? 'border-primary-400 bg-primary-50 shadow-sm shadow-primary-500/10 dark:bg-primary-900/20 dark:shadow-none'
-              : 'border-gray-300 bg-white/80 hover:border-primary-400 hover:bg-white dark:border-gray-600 dark:bg-gray-800/40 dark:hover:bg-gray-800/60'
-           }`}
-         >
-          <div className="flex flex-col items-center">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
-              isDragging ? 'bg-primary-100 dark:bg-primary-900/40' : 'bg-gray-100 dark:bg-gray-700'
-            }`}>
-              <DocumentArrowUpIcon
-                className={`w-8 h-8 ${isDragging ? 'text-primary-600 dark:text-primary-300' : 'text-gray-400 dark:text-gray-500'}`}
-              />
-            </div>
+          className={`border p-8 text-center transition-all duration-200 ${
+             isDragging
+              ? 'border-[color:var(--color-kinetic-accent)] bg-[rgba(110,231,255,0.08)]'
+              : 'border-[color:var(--color-kinetic-line)] bg-[rgba(255,255,255,0.02)] hover:border-[color:var(--color-kinetic-line-strong)] hover:bg-[rgba(255,255,255,0.04)]'
+            }`}
+          >
+           <div className="flex flex-col items-center">
+             <div className={`mb-4 flex h-16 w-16 items-center justify-center border font-mono text-lg uppercase tracking-[0.24em] ${
+               isDragging ? 'border-[color:var(--color-kinetic-accent)] text-[color:var(--color-kinetic-accent)]' : 'border-[color:var(--color-kinetic-line)] text-[color:var(--color-kinetic-muted)]'
+             }`}>
+               IN
+             </div>
 
-            <p className="mb-1 text-lg font-medium text-gray-900 dark:text-gray-100">
-              {isDragging ? 'Drop the local CSV file here' : 'Drag & drop a local CSV file to choose it'}
-            </p>
-             <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">or</p>
+             <p className="mb-1 text-lg font-medium uppercase tracking-[0.14em] text-[color:var(--color-kinetic-copy)]">
+               {isDragging ? 'Drop the local CSV file here' : 'Drag & drop a local CSV file to choose it'}
+             </p>
+              <p className="mb-4 text-sm text-[color:var(--color-kinetic-muted)]">or</p>
 
-            <label className="btn btn-primary cursor-pointer">
-              <input
+             <label className="btn btn-primary cursor-pointer">
+               <input
                 id={inputId}
                 type="file"
                 accept=".csv"
@@ -176,7 +175,7 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
       )}
 
       {selectionError && (
-        <p className="mt-3 text-sm font-medium text-rose-700 dark:text-rose-300">{selectionError}</p>
+        <p className="mt-3 border border-[rgba(255,122,122,0.45)] bg-[rgba(255,122,122,0.08)] px-3 py-2 text-sm font-medium text-[color:var(--color-kinetic-danger)]">{selectionError}</p>
       )}
     </div>
   );

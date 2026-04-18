@@ -1,11 +1,9 @@
-import { ExclamationCircleIcon } from '../icons';
-
 export function ErrorBanner({ error }: { error: string }) {
   return (
-    <div className="mb-6 animate-fade-in rounded-lg border border-danger bg-danger-light p-4 dark:border-red-400/40 dark:bg-red-950/50">
+    <div className="animate-fade-in mb-6 border border-[rgba(255,122,122,0.45)] bg-[rgba(255,122,122,0.08)] p-4">
       <div className="flex items-center">
-        <ExclamationCircleIcon className="mr-2 h-5 w-5 text-danger" />
-        <span className="text-danger-dark dark:text-red-200">{error}</span>
+        <span aria-hidden="true" className="mr-2 border border-[rgba(255,122,122,0.45)] px-2 py-1 font-mono text-[11px] uppercase tracking-[0.18em] text-[color:var(--color-kinetic-danger)]">ER</span>
+        <span className="text-[color:var(--color-kinetic-danger)]">{error}</span>
       </div>
     </div>
   );

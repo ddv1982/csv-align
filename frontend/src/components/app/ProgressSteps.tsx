@@ -16,34 +16,37 @@ export function ProgressSteps({ step, unlockedSteps, onStepChange }: ProgressSte
   const activeIndex = STEPS.findIndex((s) => s.id === step);
 
   return (
-    <nav className="mb-8 flex items-center justify-center" aria-label="Progress">
-      <ol className="flex flex-wrap items-center justify-center gap-y-3">
+    <nav className="mb-8" aria-label="Progress">
+      <ol className="card flex flex-wrap items-center gap-3 px-4 py-4 sm:px-5">
         {STEPS.map((currentStep, index) => {
           const isActive = step === currentStep.id;
           const isComplete = index < activeIndex;
           const isUnlocked = unlockedSteps.includes(currentStep.id);
           const canNavigate = isUnlocked && !isActive;
 
-          const badgeClasses = `flex h-7 w-7 items-center justify-center rounded-full border text-xs font-semibold transition-colors ${
+          const badgeClasses = `flex h-8 min-w-8 items-center justify-center border font-mono text-[11px] uppercase tracking-[0.18em] transition-colors ${
             isActive
-              ? 'border-primary-600 bg-primary-600 text-white'
+              ? 'border-[color:var(--color-kinetic-accent)] bg-[rgba(110,231,255,0.12)] text-[color:var(--color-kinetic-accent)]'
               : isComplete
-                ? 'border-primary-600/30 bg-primary-50 text-primary-700 dark:border-primary-500/40 dark:bg-primary-500/10 dark:text-primary-300'
+                ? 'border-[rgba(108,255,190,0.45)] bg-[rgba(108,255,190,0.08)] text-[color:var(--color-kinetic-success)]'
                 : isUnlocked
-                  ? 'border-gray-300 bg-white text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300'
-                  : 'border-gray-300 bg-white text-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-500'
+                  ? 'border-[color:var(--color-kinetic-line)] bg-[rgba(255,255,255,0.03)] text-[color:var(--color-kinetic-copy)]'
+                  : 'border-[color:var(--color-kinetic-line)] bg-transparent text-[color:var(--color-kinetic-muted)]'
           }`;
 
           const textClasses = isActive
-            ? 'text-gray-900 dark:text-gray-50'
+            ? 'text-[color:var(--color-kinetic-copy)]'
             : isUnlocked
-              ? 'text-gray-600 dark:text-gray-300'
-              : 'text-gray-400 dark:text-gray-500';
+              ? 'text-[color:var(--color-kinetic-muted)]'
+              : 'text-[rgba(149,162,179,0.55)]';
 
           const commonContent = (
             <>
               <span className={badgeClasses}>{currentStep.number}</span>
-              <span className="ml-2 text-sm font-medium">{currentStep.label}</span>
+              <span className="ml-3">
+                <span className="hud-label block">Stage {currentStep.number}</span>
+                <span className="block text-sm font-medium uppercase tracking-[0.14em]">{currentStep.label}</span>
+              </span>
             </>
           );
 
@@ -55,7 +58,7 @@ export function ProgressSteps({ step, unlockedSteps, onStepChange }: ProgressSte
                   onClick={() => onStepChange(currentStep.id)}
                   aria-label={`Go to step ${currentStep.number}: ${currentStep.label}`}
                   aria-current={isActive ? 'step' : undefined}
-                  className={`group flex items-center rounded-full px-1.5 py-1 -mx-1.5 -my-1 transition-colors hover:bg-gray-100/80 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:hover:bg-gray-800/60 dark:focus-visible:ring-offset-gray-950 ${textClasses}`}
+                  className={`group flex items-center px-2 py-1 transition-colors hover:bg-[rgba(255,255,255,0.04)] ${textClasses}`}
                 >
                   {commonContent}
                 </button>
@@ -70,7 +73,7 @@ export function ProgressSteps({ step, unlockedSteps, onStepChange }: ProgressSte
               )}
               {index < STEPS.length - 1 && (
                 <span
-                  className="mx-3 h-px w-8 bg-gray-300 sm:mx-4 sm:w-12 dark:bg-gray-700"
+                  className="mx-3 h-px w-8 bg-[color:var(--color-kinetic-line)] sm:mx-4 sm:w-12"
                   aria-hidden="true"
                 />
               )}

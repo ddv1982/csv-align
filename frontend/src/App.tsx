@@ -6,10 +6,8 @@ import { LoadingState } from './components/app/LoadingState';
 import { ProgressSteps } from './components/app/ProgressSteps';
 import { ResultsStep } from './components/app/ResultsStep';
 import { useComparisonWorkflow } from './hooks/useComparisonWorkflow';
-import { useThemePreference } from './hooks/useThemePreference';
 
 function App() {
-  const { theme, toggleTheme } = useThemePreference();
   const {
     state,
     step,
@@ -37,10 +35,35 @@ function App() {
   } = useComparisonWorkflow();
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-gray-900 transition-colors dark:bg-gray-950 dark:text-gray-100">
-      <AppHeader theme={theme} onThemeToggle={toggleTheme} onReset={handleReset} />
+    <div className="kinetic-shell flex min-h-screen flex-col bg-[color:var(--color-kinetic-bg)] text-[color:var(--color-kinetic-copy)]">
+      <AppHeader onReset={handleReset} />
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8">
+        <section className="card mb-6 overflow-hidden px-4 py-5 sm:px-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl">
+              <p className="hud-label">KINETIC Broadcast Alignment Console</p>
+              <h2 className="display-title mt-2 text-5xl text-[color:var(--color-kinetic-copy)] sm:text-6xl">
+                <span className="kinetic-stroke">CSV</span> ALIGN
+              </h2>
+              <p className="serif-accent mt-3 max-w-2xl text-base text-[color:var(--color-kinetic-muted)]">
+                Stage local files, register comparison columns, and audit row drift through a dark broadcast-HUD workflow.
+              </p>
+            </div>
+
+            <div className="flex flex-col items-start gap-3 lg:items-end">
+              <span className="kinetic-badge -rotate-3">Live Alignment Feed</span>
+              <div className="flex flex-wrap items-center gap-3 text-right">
+                <div>
+                  <div className="hud-label">Engine</div>
+                  <div className="font-mono text-sm uppercase tracking-[0.22em] text-[color:var(--color-kinetic-copy)]">Kinetic / Fixed Dark</div>
+                </div>
+                <div className="kinetic-register">[REG-01]</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <ProgressSteps step={step} unlockedSteps={unlockedSteps} onStepChange={handleStepNavigation} />
 
         {state.error && <ErrorBanner error={state.error} />}
@@ -90,8 +113,11 @@ function App() {
         )}
       </main>
 
-      <footer className="mt-auto border-t border-gray-200/80 py-6 text-center text-xs text-gray-500 dark:border-gray-800 dark:text-gray-500">
-        <p>CSV Align — Compare CSV files with visual difference highlighting</p>
+      <footer className="status-strip mt-auto">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+          <p>Broadcast HUD active | Local files only | Web and Tauri transport preserved</p>
+          <p className="kinetic-register">CSV Align / Registry Mark / v2 Interface Sweep</p>
+        </div>
       </footer>
     </div>
   );

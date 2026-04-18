@@ -41,3 +41,9 @@ test('triggers loading directly in tauri mode without rendering a file input', a
   fireEvent.click(screen.getByRole('button', { name: 'Load result' }));
   expect(onLoadResult).toHaveBeenCalledWith();
 });
+
+test('renders text glyph content instead of an svg icon', async () => {
+  await renderButton(false);
+
+  expect(screen.getByText('[[')).toBeInTheDocument();
+});

@@ -2,15 +2,6 @@ import { Fragment, useDeferredValue, useMemo, useState, useTransition } from 're
 import { ResultResponse } from '../types/api';
 import { getResultBadge, getResultDescription } from '../features/results/presentation';
 import { SectionCard } from './ui/SectionCard';
-import {
-  ArrowRightIcon,
-  Bars3BottomLeftIcon,
-  ChevronDownIcon,
-  MagnifyingGlassIcon,
-  NoSymbolSearchIcon,
-  PlusIcon,
-  XCircleIcon,
-} from './icons';
 
 interface ResultsTableProps {
   results: ResultResponse[];
@@ -34,18 +25,18 @@ interface DiffRowProps {
 
 function DiffRow({ columnA, columnB, valueA, valueB }: DiffRowProps) {
   const sameColumn = columnA === columnB;
-  const headerChipClass = 'inline-flex max-w-full items-center rounded-lg border border-gray-200/90 bg-gray-50/90 px-2.5 py-1.5 font-mono text-sm leading-5 font-semibold text-gray-800 break-all dark:border-gray-700/90 dark:bg-gray-800/70 dark:text-gray-100';
+  const headerChipClass = 'table-chip kinetic-copy max-w-full break-all';
 
   return (
-    <div className="rounded-xl border border-gray-200/90 bg-white/95 p-3.5 shadow-sm shadow-gray-200/60 transition-colors hover:border-gray-300/90 dark:border-gray-700/90 dark:bg-gray-900/70 dark:shadow-none dark:hover:border-gray-600/90">
-      <div className="mb-2.5 flex flex-wrap items-start gap-2 text-xs font-medium text-gray-500 dark:text-gray-400">
+    <div className="kinetic-panel p-3.5">
+      <div className="kinetic-muted mb-2.5 flex flex-wrap items-start gap-2 text-xs font-medium">
         <span className={headerChipClass}>
           {columnA}
         </span>
         {!sameColumn && (
           <>
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200/90 bg-white/90 text-gray-400 dark:border-gray-700/90 dark:bg-gray-900/80 dark:text-gray-500">
-              <ArrowRightIcon className="h-3.5 w-3.5" />
+            <span className="kinetic-glyph-box kinetic-muted h-8 w-8 shrink-0 text-[11px]">
+              {'->'}
             </span>
             <span className={headerChipClass}>
               {columnB}
@@ -55,17 +46,17 @@ function DiffRow({ columnA, columnB, valueA, valueB }: DiffRowProps) {
       </div>
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
         <div className="min-w-0">
-          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-rose-600/90 dark:text-rose-300/90">File A</p>
-          <span className="block truncate rounded-md border border-rose-200/80 bg-rose-50/70 px-2.5 py-1.5 font-mono text-sm text-rose-800 dark:border-rose-500/40 dark:bg-rose-950/40 dark:text-rose-100" title={valueA}>
+          <p className="kinetic-mono-label mb-1 text-[10px] text-[color:var(--color-kinetic-danger)]">File A</p>
+          <span className="kinetic-copy block truncate border border-[rgba(255,122,122,0.35)] bg-[rgba(255,122,122,0.06)] px-2.5 py-1.5 font-mono text-sm" title={valueA}>
             {valueA}
           </span>
         </div>
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-gray-200/90 bg-gray-50 text-gray-500 dark:border-gray-700/80 dark:bg-gray-800/60 dark:text-gray-400">
-          <ArrowRightIcon className="h-3.5 w-3.5" />
+        <div className="kinetic-glyph-box kinetic-muted h-7 w-7 shrink-0 text-[11px]">
+          {'->'}
         </div>
         <div className="min-w-0">
-          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-600/90 dark:text-emerald-300/90">File B</p>
-          <span className="block truncate rounded-md border border-emerald-200/80 bg-emerald-50/70 px-2.5 py-1.5 font-mono text-sm text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-950/40 dark:text-emerald-100" title={valueB}>
+          <p className="kinetic-mono-label mb-1 text-[10px] text-[color:var(--color-kinetic-success)]">File B</p>
+          <span className="kinetic-copy block truncate border border-[rgba(108,255,190,0.35)] bg-[rgba(108,255,190,0.06)] px-2.5 py-1.5 font-mono text-sm" title={valueB}>
             {valueB}
           </span>
         </div>
@@ -76,8 +67,8 @@ function DiffRow({ columnA, columnB, valueA, valueB }: DiffRowProps) {
 
 function SortGlyph({ state }: { state: 'asc' | 'desc' | 'inactive' }) {
   const baseClass = 'block leading-none text-[8px]';
-  const upClass = state === 'asc' ? 'text-primary-600 dark:text-primary-300' : 'text-gray-400 dark:text-gray-500';
-  const downClass = state === 'desc' ? 'text-primary-600 dark:text-primary-300' : 'text-gray-400 dark:text-gray-500';
+  const upClass = state === 'asc' ? 'text-[color:var(--color-kinetic-accent)]' : 'text-[color:var(--color-kinetic-muted)]';
+  const downClass = state === 'desc' ? 'text-[color:var(--color-kinetic-accent)]' : 'text-[color:var(--color-kinetic-muted)]';
 
   return (
     <span className="ml-1 flex flex-col items-center" aria-hidden="true">
@@ -186,11 +177,11 @@ export function ResultsTable({ results, totalResultsCount = results.length }: Re
         <button
           type="button"
           onClick={() => handleSort(column)}
-          className={`group inline-flex items-center rounded-md text-left transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-50 dark:focus-visible:ring-offset-gray-950 ${
+          className={`group inline-flex items-center text-left transition-colors ${
             isActive
-              ? 'text-gray-900 dark:text-gray-50'
-              : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100'
-          }`}
+              ? 'kinetic-copy'
+              : 'kinetic-muted hover:text-[color:var(--color-kinetic-copy)]'
+            }`}
         >
           {label}
           <SortGlyph state={glyphState} />
@@ -203,15 +194,15 @@ export function ResultsTable({ results, totalResultsCount = results.length }: Re
     const displayRows = rows.length > 0 ? rows : fallback.length > 0 ? [fallback] : [];
 
     if (displayRows.length === 0) {
-      return <span className="italic text-gray-400 dark:text-gray-500">—</span>;
+      return <span className="kinetic-muted italic">—</span>;
     }
 
     return (
-      <div className="space-y-1 text-sm text-gray-700 dark:text-gray-200">
+      <div className="kinetic-value-stack kinetic-copy">
         {displayRows.map((row, rowIndex) => (
           <div
             key={rowIndex}
-            className="rounded-md border border-gray-200/80 bg-gray-50/80 px-2.5 py-1.5 font-mono text-[13px] leading-5 dark:border-gray-700/80 dark:bg-gray-900/60"
+            className="kinetic-value-row text-[13px]"
           >
             {row.length > 0 ? row.join(', ') : '—'}
           </div>
@@ -222,9 +213,9 @@ export function ResultsTable({ results, totalResultsCount = results.length }: Re
 
   if (totalResultsCount === 0) {
     return (
-      <div className="card border-gray-200/90 bg-white p-12 text-center shadow-lg shadow-gray-200/60 dark:border-gray-700/90 dark:bg-gray-900/85 dark:shadow-black/25">
-        <XCircleIcon className="mx-auto mb-4 h-16 w-16 text-gray-300 dark:text-gray-600" />
-        <p className="text-gray-500 dark:text-gray-400">No results match the selected filter</p>
+      <div className="card p-12 text-center">
+        <div className="kinetic-empty-glyph kinetic-muted">0X</div>
+        <p className="kinetic-muted">No results match the selected filter</p>
       </div>
     );
   }
@@ -234,14 +225,12 @@ export function ResultsTable({ results, totalResultsCount = results.length }: Re
       eyebrow="Detailed results"
       title="Comparison results"
       description={`${visibleResults.length} of ${results.length} rows shown`}
-      className="card overflow-hidden border-gray-200/90 bg-white shadow-xl shadow-gray-200/70 dark:border-gray-700/90 dark:bg-gray-900/85 dark:shadow-black/30"
-      icon={
-        <Bars3BottomLeftIcon className="h-5 w-5" />
-      }
+      className="overflow-hidden"
+      icon={<span aria-hidden="true">TB</span>}
       action={
         <label className="relative block w-full sm:max-w-xs">
           <span className="sr-only">Search result values</span>
-          <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+          <span className="kinetic-mono-label kinetic-muted pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[11px]">SR</span>
           <input
             type="search"
             value={query}
@@ -256,22 +245,22 @@ export function ResultsTable({ results, totalResultsCount = results.length }: Re
 
       {visibleResults.length === 0 ? (
         <div className="p-12 text-center">
-          <NoSymbolSearchIcon className="mx-auto mb-4 h-16 w-16 text-gray-300 dark:text-gray-600" />
-          <p className="text-gray-500 dark:text-gray-400">No results match the current filter and search.</p>
+          <div className="kinetic-empty-glyph kinetic-muted">NS</div>
+          <p className="kinetic-muted">No results match the current filter and search.</p>
         </div>
       ) : (
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="border-b border-gray-200/90 bg-gray-50/90 dark:border-gray-700 dark:bg-gray-950/45">
+          <thead className="border-b border-[color:var(--color-kinetic-line)] bg-[rgba(255,255,255,0.03)]">
             <tr>
-              {renderSortHeader('Type', 'type', 'w-40 min-w-[11rem] px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300')}
-              {renderSortHeader('Key', 'key', 'px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300')}
-              {renderSortHeader('File A Values', 'fileA', 'px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300')}
-              {renderSortHeader('File B Values', 'fileB', 'px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300')}
-              {renderSortHeader('Details', 'details', 'w-32 px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300')}
+              {renderSortHeader('Type', 'type', 'kinetic-table-head w-40 min-w-[11rem] px-4 py-3 text-left')}
+              {renderSortHeader('Key', 'key', 'kinetic-table-head px-4 py-3 text-left')}
+              {renderSortHeader('File A Values', 'fileA', 'kinetic-table-head px-4 py-3 text-left')}
+              {renderSortHeader('File B Values', 'fileB', 'kinetic-table-head px-4 py-3 text-left')}
+              {renderSortHeader('Details', 'details', 'kinetic-table-head w-32 px-4 py-3 text-left')}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200/80 dark:divide-gray-700/80">
+          <tbody className="divide-y divide-[color:var(--color-kinetic-line)]">
             {visibleResults.map(({ id, result }) => {
               const badge = getResultBadge(result.result_type);
               const resultDescription = getResultDescription(result.result_type);
@@ -279,15 +268,15 @@ export function ResultsTable({ results, totalResultsCount = results.length }: Re
 
               return (
                 <Fragment key={id}>
-                  <tr className={`transition-colors ${isExpanded ? 'bg-gray-50/80 dark:bg-gray-950/35' : 'bg-white hover:bg-gray-50/70 dark:bg-gray-900/70 dark:hover:bg-gray-800/60'}`}>
+                  <tr className={`transition-colors ${isExpanded ? 'bg-[rgba(110,231,255,0.05)]' : 'bg-transparent hover:bg-[rgba(255,255,255,0.03)]'}`}>
                     <td className="px-4 py-3.5 align-top">
-                      <span className={`inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ${badge.bg} ${badge.text}`}>
-                        <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${badge.dot}`} aria-hidden="true" />
+                      <span className={`inline-flex w-fit items-center gap-1.5 whitespace-nowrap border px-2.5 py-1 text-xs font-medium uppercase tracking-[0.12em] ${badge.bg} ${badge.text}`}>
+                        <span className={`h-1.5 w-1.5 shrink-0 ${badge.dot}`} aria-hidden="true" />
                         {badge.label}
                       </span>
                     </td>
                     <td className="px-4 py-3.5 align-top">
-                      <span className="inline-block max-w-full truncate rounded-md bg-gray-100/80 px-2.5 py-1 font-mono text-sm font-semibold text-gray-900 dark:bg-gray-800/80 dark:text-gray-100" title={result.key.join(', ')}>
+                      <span className="kinetic-copy inline-block max-w-full truncate border border-[color:var(--color-kinetic-line)] bg-[rgba(255,255,255,0.04)] px-2.5 py-1 font-mono text-sm font-semibold" title={result.key.join(', ')}>
                         {result.key.join(', ')}
                       </span>
                     </td>
@@ -297,18 +286,18 @@ export function ResultsTable({ results, totalResultsCount = results.length }: Re
                       {result.differences.length > 0 ? (
                         <button
                           onClick={() => setExpandedRow(isExpanded ? null : id)}
-                          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900 ${
+                          className={`inline-flex items-center gap-1.5 border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] transition-colors ${
                             isExpanded
-                              ? 'border-primary-300 bg-primary-50 text-primary-700 dark:border-primary-500/40 dark:bg-primary-500/15 dark:text-primary-200'
-                              : 'border-gray-200 bg-gray-50/70 text-gray-700 hover:border-gray-300 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800/60 dark:text-gray-200 dark:hover:border-gray-600 dark:hover:bg-gray-800'
-                          }`}
+                              ? 'border-[color:var(--color-kinetic-accent)] bg-[rgba(110,231,255,0.1)] text-[color:var(--color-kinetic-copy)]'
+                              : 'border-[color:var(--color-kinetic-line)] bg-[rgba(255,255,255,0.03)] text-[color:var(--color-kinetic-muted)] hover:border-[color:var(--color-kinetic-line-strong)] hover:text-[color:var(--color-kinetic-copy)]'
+                           }`}
                           aria-expanded={isExpanded}
                         >
                           {result.differences.length} diff{result.differences.length > 1 ? 's' : ''}
-                          <ChevronDownIcon className={`h-3.5 w-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                          <span aria-hidden="true" className={`font-mono text-[11px] transition-transform ${isExpanded ? 'rotate-180' : ''}`}>v</span>
                         </button>
                       ) : (
-                        <span className={`text-sm ${resultDescription ? 'text-gray-600 dark:text-gray-300' : 'text-gray-400 dark:text-gray-500'}`}>
+                        <span className={`text-sm ${resultDescription ? 'kinetic-copy' : 'kinetic-muted'}`}>
                           {resultDescription ?? '—'}
                         </span>
                       )}
@@ -316,15 +305,15 @@ export function ResultsTable({ results, totalResultsCount = results.length }: Re
                   </tr>
 
                   {isExpanded && result.differences.length > 0 && (
-                    <tr className="bg-gray-50/60 dark:bg-gray-950/35">
+                    <tr className="bg-[rgba(255,255,255,0.02)]">
                       <td colSpan={5} className="px-4 py-4">
-                        <div className="rounded-2xl border border-gray-200/80 bg-white/80 p-4 shadow-sm shadow-gray-200/50 dark:border-gray-700/80 dark:bg-gray-900/60 dark:shadow-none">
+                        <div className="kinetic-panel p-4">
                           <div className="mb-3 flex items-center gap-2">
-                            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary-100 text-primary-700 ring-1 ring-inset ring-primary-200/80 dark:bg-primary-500/15 dark:text-primary-200 dark:ring-primary-500/30">
-                              <PlusIcon className="h-3.5 w-3.5" />
+                            <span className="flex h-6 w-6 items-center justify-center border border-[rgba(110,231,255,0.38)] bg-[rgba(110,231,255,0.08)] font-mono text-[11px] uppercase text-[color:var(--color-kinetic-accent)]">
+                              +
                             </span>
-                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Value Differences:</p>
-                            <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">
+                            <p className="kinetic-mono-label kinetic-copy text-xs font-semibold">Value Differences</p>
+                            <span className="kinetic-muted ml-auto text-xs">
                               {result.differences.length} field{result.differences.length > 1 ? 's' : ''}
                             </span>
                           </div>
@@ -351,15 +340,15 @@ export function ResultsTable({ results, totalResultsCount = results.length }: Re
       </div>
       )}
       {isPending && (
-        <div className="border-t border-gray-200/90 bg-gray-50/90 px-4 py-2 text-right text-xs text-gray-500 dark:border-gray-700 dark:bg-gray-950/45 dark:text-gray-400">
+        <div className="kinetic-muted border-t border-[color:var(--color-kinetic-line)] bg-[rgba(255,255,255,0.03)] px-4 py-2 text-right text-xs">
           Updating results…
         </div>
       )}
 
 
       {visibleResults.length > 50 && (
-        <div className="border-t border-gray-200/90 bg-gray-50/90 px-4 py-3 text-center dark:border-gray-700 dark:bg-gray-950/45">
-          <p className="text-sm text-gray-500 dark:text-gray-400">Showing {visibleResults.length} results. Use filters, search, or sorting to narrow down.</p>
+        <div className="border-t border-[color:var(--color-kinetic-line)] bg-[rgba(255,255,255,0.03)] px-4 py-3 text-center">
+          <p className="kinetic-muted text-sm">Showing {visibleResults.length} results. Use filters, search, or sorting to narrow down.</p>
         </div>
       )}
       </div>

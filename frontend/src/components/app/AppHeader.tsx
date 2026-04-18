@@ -1,15 +1,11 @@
 import { useState } from 'react';
-import appLogo from '../../assets/icon.svg';
 import { openNewAppWindow } from '../../services/appWindows';
-import { ArrowPathIcon, MoonIcon, SunIcon } from '../icons';
 
 interface AppHeaderProps {
-  theme: 'dark' | 'light';
-  onThemeToggle: () => void;
   onReset: () => void;
 }
 
-export function AppHeader({ theme, onThemeToggle, onReset }: AppHeaderProps) {
+export function AppHeader({ onReset }: AppHeaderProps) {
   const [openWindowError, setOpenWindowError] = useState<string | null>(null);
 
   async function handleOpenNewWindow() {
@@ -21,64 +17,50 @@ export function AppHeader({ theme, onThemeToggle, onReset }: AppHeaderProps) {
     }
   }
 
-  const nextThemeLabel = theme === 'dark' ? 'light mode' : 'dark mode';
-
   return (
-    <header className="sticky top-0 z-10 border-b border-gray-200/80 bg-white/80 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-950/80">
+    <header className="sticky top-0 z-10 border-b border-[color:var(--color-kinetic-line)] bg-[rgba(5,5,5,0.92)] backdrop-blur-sm">
       <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg ring-1 ring-black/5 dark:ring-white/10">
-              <img src={appLogo} alt="" className="h-full w-full object-cover" />
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center border border-[color:var(--color-kinetic-line-strong)] font-mono text-sm uppercase tracking-[0.28em] text-[color:var(--color-kinetic-accent)]">
+              CA
             </div>
             <div className="min-w-0">
-              <h1 className="truncate text-base font-semibold tracking-tight text-gray-900 dark:text-gray-50">
+              <p className="hud-label">Alignment Console</p>
+              <h1 className="display-title truncate text-3xl text-[color:var(--color-kinetic-copy)] sm:text-4xl">
                 CSV Align
               </h1>
-              <p className="truncate text-xs text-gray-500 dark:text-gray-400">
-                Compare CSV files with ease
+              <p className="truncate font-mono text-[11px] uppercase tracking-[0.18em] text-[color:var(--color-kinetic-muted)]">
+                Compare local CSV feeds with deterministic pairing controls
               </p>
             </div>
           </div>
 
-          <div className="ml-auto flex items-center gap-2 border-r border-gray-200/80 pr-3 dark:border-gray-800">
+          <div className="ml-auto flex flex-wrap items-center gap-2 md:justify-end">
             <button
               onClick={() => void handleOpenNewWindow()}
-              className="btn btn-secondary"
+              className="btn btn-ghost"
               type="button"
               title="Open CSV Align in a new window"
             >
-              <ArrowPathIcon
-                className="h-4 w-4"
-                style={{ transform: 'rotate(-45deg)' }}
-              />
+              <span aria-hidden="true">//</span>
               New window
             </button>
 
-            <button onClick={onReset} className="btn btn-secondary" type="button">
-              <ArrowPathIcon className="h-4 w-4" />
+            <button onClick={onReset} className="btn btn-ghost" type="button">
+              <span aria-hidden="true">++</span>
               Reset
             </button>
-          </div>
 
-          <button
-            onClick={onThemeToggle}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-700 shadow-sm shadow-gray-950/5 transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:shadow-none dark:hover:border-gray-600 dark:hover:bg-gray-800 dark:focus-visible:ring-offset-gray-950"
-            type="button"
-            aria-label={`Switch to ${nextThemeLabel}`}
-            title={`Switch to ${nextThemeLabel}`}
-          >
-            {theme === 'dark' ? (
-              <SunIcon className="h-4 w-4" />
-            ) : (
-              <MoonIcon className="h-4 w-4" />
-            )}
-            <span className="sr-only">Toggle theme</span>
-          </button>
+            <div className="border border-[color:var(--color-kinetic-line)] px-3 py-2 text-right font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-kinetic-muted)]">
+              <div>Theme locked</div>
+              <div className="mt-1 text-[color:var(--color-kinetic-accent)]">Dark / Kinetic</div>
+            </div>
+          </div>
         </div>
 
         {openWindowError && (
-          <p className="mt-2 text-sm text-red-600 dark:text-red-400" role="alert">
+          <p className="mt-3 border border-[rgba(255,122,122,0.45)] bg-[rgba(255,122,122,0.08)] px-3 py-2 text-sm text-[color:var(--color-kinetic-danger)]" role="alert">
             {openWindowError}
           </p>
         )}

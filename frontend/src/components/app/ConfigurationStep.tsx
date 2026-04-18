@@ -1,7 +1,6 @@
 import { MappingConfig } from '../MappingConfig';
 import type { ComparisonNormalizationConfig, FileLetter, MappingDto } from '../../types/api';
 import type { AppFile, MappingSelectionState } from '../../types/ui';
-import { Cog6ToothIcon } from '../icons';
 import { NavButton } from '../ui/NavButton';
 import { SectionCard } from '../ui/SectionCard';
 
@@ -46,11 +45,9 @@ export function ConfigurationStep({
         title="Pair up columns and tune cleanup rules"
         headingLevel="h2"
         description="Set the key columns for row matching and pick which comparison columns should be compared between both files."
-        icon={
-          <Cog6ToothIcon className="h-5 w-5" />
-        }
+        icon={<span aria-hidden="true">::</span>}
         action={
-          <NavButton direction="back" onClick={onBack} className="shadow-sm shadow-gray-200/70 dark:shadow-none">
+          <NavButton direction="back" onClick={onBack}>
             Back to file selection
           </NavButton>
         }

@@ -56,13 +56,14 @@ test('accepts dropped files with an uppercase .CSV extension', () => {
   expect(onSelect.mock.calls[0][0].name).toBe('UPPERCASE.CSV');
 });
 
-test('renders a dark-mode idle background for the empty dropzone', () => {
+test('renders the kinetic idle styling for the empty dropzone', () => {
   const onSelect = vi.fn();
   render(<FileSelector label="File A" file={null} onSelect={onSelect} />);
 
   const dropzone = screen.getByText('Drag & drop a local CSV file to choose it').closest('div')?.parentElement;
 
-  expect(dropzone).toHaveClass('dark:bg-gray-800/40');
+  expect(dropzone).toHaveClass('border-[color:var(--color-kinetic-line)]');
+  expect(dropzone).toHaveClass('bg-[rgba(255,255,255,0.02)]');
 });
 
 test('supports keyboard activation on the dropzone', () => {
@@ -112,11 +113,11 @@ test('drag-leave-resets-hover styling without calling onSelect', () => {
   const dropzone = screen.getByRole('button', { name: 'File A file selector' });
 
   fireEvent.dragOver(dropzone);
-  expect(dropzone).toHaveClass('border-primary-400', 'bg-primary-50');
-  expect(dropzone).not.toHaveClass('border-gray-300', 'bg-white/80');
+  expect(dropzone).toHaveClass('border-[color:var(--color-kinetic-accent)]', 'bg-[rgba(110,231,255,0.08)]');
+  expect(dropzone).not.toHaveClass('border-[color:var(--color-kinetic-line)]', 'bg-[rgba(255,255,255,0.02)]');
 
   fireEvent.dragLeave(dropzone);
-  expect(dropzone).toHaveClass('border-gray-300', 'bg-white/80');
-  expect(dropzone).not.toHaveClass('border-primary-400', 'bg-primary-50');
+  expect(dropzone).toHaveClass('border-[color:var(--color-kinetic-line)]', 'bg-[rgba(255,255,255,0.02)]');
+  expect(dropzone).not.toHaveClass('border-[color:var(--color-kinetic-accent)]', 'bg-[rgba(110,231,255,0.08)]');
   expect(onSelect).not.toHaveBeenCalled();
 });

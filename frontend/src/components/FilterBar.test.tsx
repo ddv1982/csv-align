@@ -42,17 +42,13 @@ test('uses a minimal solid active style and subtle hover-ready styling for resul
   expect(activeFilter).toBeTruthy();
   expect(inactiveFilter).toBeTruthy();
 
-  // Active pill is a solid primary-colored, pressed, rounded-full button.
+  // Active pill uses the extracted KINETIC filter-chip variant.
   expect(activeFilter).toHaveAttribute('aria-pressed', 'true');
-  expect(activeFilter).toHaveClass('bg-primary-600');
-  expect(activeFilter).toHaveClass('text-white');
-  expect(activeFilter).toHaveClass('rounded-full');
+  expect(activeFilter).toHaveClass('kinetic-filter-chip-active');
 
-  // Inactive pill uses neutral surfaces with subtle hover states in both modes.
+  // Inactive pill uses the extracted neutral filter-chip variant.
   expect(inactiveFilter).toHaveAttribute('aria-pressed', 'false');
-  expect(inactiveFilter).toHaveClass('rounded-full');
-  expect(inactiveFilter).toHaveClass('dark:hover:bg-gray-800');
-  expect(inactiveFilter).toHaveClass('dark:hover:border-gray-600');
+  expect(inactiveFilter).toHaveClass('kinetic-filter-chip');
 
   fireEvent.click(inactiveFilter!);
   expect(onFilterChange).toHaveBeenCalledWith('missing_left');

@@ -8,7 +8,7 @@ test('renders eyebrow, title, description, action, and children', () => {
       eyebrow="Step 2 · Configure"
       title="Manual column pairing"
       description="Select key and comparison columns."
-      icon={<svg aria-hidden="true" data-testid="section-card-icon" />}
+      icon={<span aria-hidden="true" data-testid="section-card-icon">::</span>}
       action={<button type="button">Save pair order</button>}
     >
       <div>Card body</div>
@@ -24,21 +24,21 @@ test('renders eyebrow, title, description, action, and children', () => {
 });
 
 test('supports alternate heading levels and the info tone', () => {
-  const { container } = render(
+  render(
     <SectionCard
       eyebrow="Read-only snapshot"
       title="Snapshot loaded in read-only mode"
       headingLevel="h2"
       tone="info"
-      icon={<svg aria-hidden="true" />}
+      icon={<span aria-hidden="true">!!</span>}
     >
       <div>Snapshot body</div>
     </SectionCard>,
   );
 
   expect(screen.getByRole('heading', { level: 2, name: 'Snapshot loaded in read-only mode' })).toBeInTheDocument();
-  expect(container.querySelector('p.text-sky-700')).toBeTruthy();
-  expect(container.querySelector('div.bg-sky-100')).toBeTruthy();
+  expect(screen.getByText('Read-only snapshot')).toHaveClass('text-[color:var(--color-kinetic-accent-2)]');
+  expect(screen.getByText('!!')).toBeInTheDocument();
 });
 
 test('applies tone-aware title and description classes for primary and info variants', () => {
@@ -48,14 +48,14 @@ test('applies tone-aware title and description classes for primary and info vari
       title="Primary card"
       description="Primary description"
       tone="primary"
-      icon={<svg aria-hidden="true" />}
+      icon={<span aria-hidden="true">ST</span>}
     >
       <div>Primary body</div>
     </SectionCard>,
   );
 
-  expect(screen.getByRole('heading', { level: 3, name: 'Primary card' })).toHaveClass('text-gray-900', 'dark:text-gray-100');
-  expect(screen.getByText('Primary description')).toHaveClass('text-gray-600', 'dark:text-gray-300');
+  expect(screen.getByRole('heading', { level: 3, name: 'Primary card' })).toHaveClass('text-[color:var(--color-kinetic-copy)]');
+  expect(screen.getByText('Primary description')).toHaveClass('text-[color:var(--color-kinetic-muted)]');
 
   rerender(
     <SectionCard
@@ -63,14 +63,14 @@ test('applies tone-aware title and description classes for primary and info vari
       title="Info card"
       description="Info description"
       tone="info"
-      icon={<svg aria-hidden="true" />}
+      icon={<span aria-hidden="true">IN</span>}
     >
       <div>Info body</div>
     </SectionCard>,
   );
 
-  expect(screen.getByRole('heading', { level: 3, name: 'Info card' })).toHaveClass('text-sky-950', 'dark:text-sky-100');
-  expect(screen.getByText('Info description')).toHaveClass('text-sky-700', 'dark:text-sky-300');
+  expect(screen.getByRole('heading', { level: 3, name: 'Info card' })).toHaveClass('text-[color:var(--color-kinetic-copy)]');
+  expect(screen.getByText('Info description')).toHaveClass('text-[color:var(--color-kinetic-muted)]');
 });
 
 test('applies custom root classes', () => {
@@ -79,7 +79,7 @@ test('applies custom root classes', () => {
       eyebrow="Results filter"
       title="Focus on the rows you care about"
       className="border-sky-200 bg-sky-50"
-      icon={<svg aria-hidden="true" />}
+      icon={<span aria-hidden="true">FL</span>}
     >
       <div>Filters</div>
     </SectionCard>,
@@ -91,7 +91,7 @@ test('applies custom root classes', () => {
 
 test('omits the body spacer when children is null', () => {
   const { container } = render(
-    <SectionCard eyebrow="Read-only snapshot" title="Header only" icon={<svg aria-hidden="true" />}>
+    <SectionCard eyebrow="Read-only snapshot" title="Header only" icon={<span aria-hidden="true">HD</span>}>
       {null}
     </SectionCard>,
   );
@@ -102,7 +102,7 @@ test('omits the body spacer when children is null', () => {
 
 test('omits the body spacer when children is omitted', () => {
   const { container } = render(
-    <SectionCard eyebrow="Read-only snapshot" title="Header only" icon={<svg aria-hidden="true" />} />,
+    <SectionCard eyebrow="Read-only snapshot" title="Header only" icon={<span aria-hidden="true">HD</span>} />,
   );
 
   expect(screen.queryByText('Header only')).toBeInTheDocument();
