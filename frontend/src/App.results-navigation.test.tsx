@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, expect, test, vi } from 'vitest';
 import type { ComparisonNormalizationConfig, MappingDto } from './types/api';
+import { getAppTauriMocks } from './test/fixtures.tsx';
 
 const {
   createSessionMock,
@@ -11,45 +12,7 @@ const {
   downloadBlobMock,
   savePairOrderMock,
   suggestMappingsMock,
-} = vi.hoisted(() => ({
-  createSessionMock: vi.fn(),
-  loadFileMock: vi.fn(),
-  compareFilesMock: vi.fn(),
-  exportResultsMock: vi.fn(),
-  loadPairOrderMock: vi.fn(),
-  downloadBlobMock: vi.fn(),
-  savePairOrderMock: vi.fn(),
-  suggestMappingsMock: vi.fn(),
-}));
-
-vi.mock('./services/tauri', () => ({
-  isTauri: false,
-  createSession: createSessionMock,
-  loadFile: loadFileMock,
-  compareFiles: compareFilesMock,
-  exportResults: exportResultsMock,
-  loadPairOrder: loadPairOrderMock,
-  downloadBlob: downloadBlobMock,
-  savePairOrder: savePairOrderMock,
-  suggestMappings: suggestMappingsMock,
-}));
-
-vi.mock('./components/FileSelector', () => ({
-  FileSelector: ({
-    label,
-    onSelect,
-  }: {
-    label: string;
-    onSelect: (file: File) => void;
-  }) => (
-    <section>
-      <h2>{label}</h2>
-      <button onClick={() => onSelect(new File(['id,name'], `${label}.csv`, { type: 'text/csv' }))}>
-        Select {label}
-      </button>
-    </section>
-  ),
-}));
+} = getAppTauriMocks();
 
 vi.mock('./components/MappingConfig', () => ({
   MappingConfig: ({
