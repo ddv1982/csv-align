@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, expect, test, vi } from 'vitest';
-import type { ComparisonNormalizationConfig, MappingDto } from './types/api';
+import { getAppTauriMocks } from './test/fixtures.tsx';
 
 const {
   compareFilesMock,
@@ -13,93 +13,7 @@ const {
   saveComparisonSnapshotMock,
   savePairOrderMock,
   suggestMappingsMock,
-} = vi.hoisted(() => ({
-  compareFilesMock: vi.fn(),
-  createSessionMock: vi.fn(),
-  downloadBlobMock: vi.fn(),
-  exportResultsMock: vi.fn(),
-  loadComparisonSnapshotMock: vi.fn(),
-  loadFileMock: vi.fn(),
-  loadPairOrderMock: vi.fn(),
-  saveComparisonSnapshotMock: vi.fn(),
-  savePairOrderMock: vi.fn(),
-  suggestMappingsMock: vi.fn(),
-}));
-
-vi.mock('./services/tauri', () => ({
-  isTauri: false,
-  compareFiles: compareFilesMock,
-  createSession: createSessionMock,
-  exportResults: exportResultsMock,
-  loadComparisonSnapshot: loadComparisonSnapshotMock,
-  loadFile: loadFileMock,
-  loadPairOrder: loadPairOrderMock,
-  saveComparisonSnapshot: saveComparisonSnapshotMock,
-  savePairOrder: savePairOrderMock,
-  suggestMappings: suggestMappingsMock,
-}));
-
-vi.mock('./services/browserDownload', () => ({
-  downloadBlob: downloadBlobMock,
-}));
-
-vi.mock('./components/FileSelector', () => ({
-  FileSelector: ({
-    label,
-    onSelect,
-  }: {
-    label: string;
-    onSelect: (file: File) => void;
-  }) => (
-    <section>
-      <h2>{label}</h2>
-      <button onClick={() => onSelect(new File(['id,name'], `${label}.csv`, { type: 'text/csv' }))}>
-        Select {label}
-      </button>
-    </section>
-  ),
-}));
-
-vi.mock('./components/MappingConfig', () => ({
-  MappingConfig: ({
-    normalization,
-    onCompare,
-  }: {
-    normalization: ComparisonNormalizationConfig;
-    onCompare: (
-      keyColumnsA: string[],
-      keyColumnsB: string[],
-      comparisonColumnsA: string[],
-      comparisonColumnsB: string[],
-      columnMappings: MappingDto[],
-      normalization: ComparisonNormalizationConfig,
-    ) => void;
-  }) => (
-    <section>
-      <h2>Mock Configure</h2>
-      <button
-        onClick={() =>
-          onCompare(
-            ['id'],
-            ['id'],
-            ['name'],
-            ['name'],
-            [
-              {
-                file_a_column: 'name',
-                file_b_column: 'name',
-                mapping_type: 'manual',
-              },
-            ],
-            normalization,
-          )
-        }
-      >
-        Run compare
-      </button>
-    </section>
-  ),
-}));
+} = getAppTauriMocks();
 
 vi.mock('./components/SummaryStats', () => ({
   SummaryStats: () => <div>Mock Summary</div>,
