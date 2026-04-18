@@ -88,3 +88,35 @@ test('activates the picker from Enter and Space key presses', () => {
 
   expect(clickSpy).toHaveBeenCalledTimes(2);
 });
+
+test('picker-cancel does not call onSelect when the file input is cleared', () => {
+  const onSelect = vi.fn();
+  render(<FileSelector label="File A" file={null} onSelect={onSelect} />);
+
+  const input = screen.getByLabelText('Choose Local CSV', { selector: 'input' });
+
+  fireEvent.change(input, {
+    target: {
+      files: [],
+    },
+  });
+
+  expect(onSelect).not.toHaveBeenCalled();
+  expect(screen.queryByText('Please choose a file with a .csv extension.')).not.toBeInTheDocument();
+});
+
+test('drag-leave-resets-hover styling without calling onSelect', () => {
+  const onSelect = vi.fn();
+  render(<FileSelector label="File A" file={null} onSelect={onSelect} />);
+
+  const dropzone = screen.getByRole('button', { name: 'File A file selector' });
+
+  fireEvent.dragOver(dropzone);
+  expect(dropzone).toHaveClass('border-primary-400', 'bg-primary-50');
+  expect(dropzone).not.toHaveClass('border-gray-300', 'bg-white/80');
+
+  fireEvent.dragLeave(dropzone);
+  expect(dropzone).toHaveClass('border-gray-300', 'bg-white/80');
+  expect(dropzone).not.toHaveClass('border-primary-400', 'bg-primary-50');
+  expect(onSelect).not.toHaveBeenCalled();
+});
