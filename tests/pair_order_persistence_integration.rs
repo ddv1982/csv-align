@@ -44,12 +44,12 @@ async fn response_json(response: axum::response::Response) -> Value {
 #[tokio::test]
 async fn pair_order_persistence_round_trips_saved_selection_through_http_handlers() {
     let state = AppState::new();
-    let session_id = state.create_session().await;
+    let session_id = state.create_session();
 
     let mut session = SessionData::new();
     session.csv_a = Some(csv_data(&["id", "name", "value"]).into());
     session.csv_b = Some(csv_data(&["id", "full_name", "amount"]).into());
-    assert!(state.update_session(&session_id, session).await);
+    assert!(state.update_session(&session_id, session));
 
     let save_response = handlers::save_pair_order(
         State(state.clone()),
@@ -95,12 +95,12 @@ async fn pair_order_persistence_round_trips_saved_selection_through_http_handler
 #[tokio::test]
 async fn pair_order_persistence_rejects_saved_data_for_different_loaded_files() {
     let state = AppState::new();
-    let session_id = state.create_session().await;
+    let session_id = state.create_session();
 
     let mut session = SessionData::new();
     session.csv_a = Some(csv_data(&["id", "name", "value"]).into());
     session.csv_b = Some(csv_data(&["id", "full_name", "amount"]).into());
-    assert!(state.update_session(&session_id, session).await);
+    assert!(state.update_session(&session_id, session));
 
     let contents = serde_json::json!({
         "version": 1,
@@ -128,12 +128,12 @@ async fn pair_order_persistence_rejects_saved_data_for_different_loaded_files() 
 #[tokio::test]
 async fn pair_order_persistence_loads_when_matching_headers_are_reordered() {
     let state = AppState::new();
-    let session_id = state.create_session().await;
+    let session_id = state.create_session();
 
     let mut session = SessionData::new();
     session.csv_a = Some(csv_data(&["value", "id", "name"]).into());
     session.csv_b = Some(csv_data(&["amount", "full_name", "id"]).into());
-    assert!(state.update_session(&session_id, session).await);
+    assert!(state.update_session(&session_id, session));
 
     let contents = serde_json::json!({
         "version": 1,

@@ -87,7 +87,7 @@ pub async fn health_check() -> impl IntoResponse {
 /// Create a new session
 #[tracing::instrument(skip(state))]
 pub async fn create_session(State(state): State<AppState>) -> impl IntoResponse {
-    let session_id = state.create_session().await;
+    let session_id = state.create_session();
     Json(SessionResponse { session_id })
 }
 
@@ -97,7 +97,7 @@ pub async fn delete_session(
     State(state): State<AppState>,
     Path(session_id): Path<String>,
 ) -> Response {
-    if state.delete_session(&session_id).await {
+    if state.delete_session(&session_id) {
         StatusCode::NO_CONTENT.into_response()
     } else {
         session_not_found_response()
@@ -115,7 +115,7 @@ pub async fn load_csv_file(
         return error.into_response();
     }
 
-    if state.with_session(&session_id, |_| ()).await.is_none() {
+    if state.with_session(&session_id, |_| ()).is_none() {
         return session_not_found_response();
     }
 
@@ -146,14 +146,11 @@ pub async fn load_csv_file(
         csv_data.file_path = Some(file_name);
     }
 
-    let response = match state
-        .with_session_mut(&session_id, |session_data| {
-            let file_side = parse_file_side(&file_letter)
-                .expect("validated file letter should parse into a file side");
-            apply_csv_to_session(session_data, file_side, csv_data)
-        })
-        .await
-    {
+    let response = match state.with_session_mut(&session_id, |session_data| {
+        let file_side = parse_file_side(&file_letter)
+            .expect("validated file letter should parse into a file side");
+        apply_csv_to_session(session_data, file_side, csv_data)
+    }) {
         Some(response) => response,
         None => return session_not_found_response(),
     };
@@ -172,7 +169,6 @@ pub async fn suggest_mappings(
         .with_session_mut(&session_id, |session_data| {
             suggest_mappings_workflow(Some(session_data), &request)
         })
-        .await
         .unwrap_or_else(|| suggest_mappings_workflow(None, &request));
 
     Json(response).into_response()
@@ -185,7 +181,7 @@ pub async fn compare(
     Path(session_id): Path<String>,
     Json(request): Json<CompareRequest>,
 ) -> Response {
-    let comparison_input = match state.with_session(&session_id, comparison_inputs).await {
+    let comparison_input = match state.with_session(&session_id, comparison_inputs) {
         Some(Ok(input)) => input,
         Some(Err(error)) => return error.into_response(),
         None => return session_not_found_response(),
@@ -197,12 +193,10 @@ pub async fn compare(
         Err(error) => return error.into_response(),
     };
 
-    let _ = state
-        .with_session_mut(&session_id, |session_data| {
-            session_data.comparison_results = execution.results.clone();
-            session_data.comparison_config = Some(execution.config.clone());
-        })
-        .await;
+    let _ = state.with_session_mut(&session_id, |session_data| {
+        session_data.comparison_results = execution.results.clone();
+        session_data.comparison_config = Some(execution.config.clone());
+    });
 
     Json(execution.response).into_response()
 }
@@ -210,10 +204,7 @@ pub async fn compare(
 /// Export comparison results as CSV
 #[tracing::instrument(skip(state), fields(session_id = %session_id))]
 pub async fn export_csv(State(state): State<AppState>, Path(session_id): Path<String>) -> Response {
-    let snapshot = match state
-        .with_session(&session_id, export_session_results_snapshot)
-        .await
-    {
+    let snapshot = match state.with_session(&session_id, export_session_results_snapshot) {
         Some(Ok(snapshot)) => snapshot,
         Some(Err(error)) => return error.into_response(),
         None => return session_not_found_response(),
@@ -234,12 +225,9 @@ pub async fn save_pair_order(
     Path(session_id): Path<String>,
     Json(request): Json<SavePairOrderRequest>,
 ) -> Response {
-    let contents = match state
-        .with_session(&session_id, |session_data| {
-            save_pair_order_workflow(session_data, request.selection)
-        })
-        .await
-    {
+    let contents = match state.with_session(&session_id, |session_data| {
+        save_pair_order_workflow(session_data, request.selection)
+    }) {
         Some(Ok(contents)) => contents,
         Some(Err(error)) => return error.into_response(),
         None => return session_not_found_response(),
@@ -254,12 +242,9 @@ pub async fn load_pair_order(
     Path(session_id): Path<String>,
     Json(request): Json<LoadPairOrderRequest>,
 ) -> Response {
-    let response = match state
-        .with_session(&session_id, |session_data| {
-            load_pair_order_workflow(session_data, &request.contents)
-        })
-        .await
-    {
+    let response = match state.with_session(&session_id, |session_data| {
+        load_pair_order_workflow(session_data, &request.contents)
+    }) {
         Some(Ok(response)) => response,
         Some(Err(error)) => return error.into_response(),
         None => return session_not_found_response(),
@@ -273,10 +258,7 @@ pub async fn save_comparison_snapshot(
     State(state): State<AppState>,
     Path(session_id): Path<String>,
 ) -> Response {
-    let contents = match state
-        .with_session(&session_id, save_comparison_snapshot_workflow)
-        .await
-    {
+    let contents = match state.with_session(&session_id, save_comparison_snapshot_workflow) {
         Some(Ok(contents)) => contents,
         Some(Err(error)) => return error.into_response(),
         None => return session_not_found_response(),
@@ -295,12 +277,9 @@ pub async fn load_comparison_snapshot(
     Path(session_id): Path<String>,
     Json(request): Json<LoadComparisonSnapshotRequest>,
 ) -> Response {
-    let response = match state
-        .with_session_mut(&session_id, |session_data| {
-            load_comparison_snapshot_workflow(session_data, &request.contents)
-        })
-        .await
-    {
+    let response = match state.with_session_mut(&session_id, |session_data| {
+        load_comparison_snapshot_workflow(session_data, &request.contents)
+    }) {
         Some(Ok(response)) => response,
         Some(Err(error)) => return error.into_response(),
         None => return session_not_found_response(),

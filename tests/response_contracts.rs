@@ -76,12 +76,12 @@ fn build_csv_b() -> CsvData {
 
 async fn session_with_loaded_csvs() -> (AppState, String) {
     let state = AppState::new();
-    let session_id = state.create_session().await;
+    let session_id = state.create_session();
 
     let mut session = SessionData::new();
     session.csv_a = Some(build_csv_a().into());
     session.csv_b = Some(build_csv_b().into());
-    assert!(state.update_session(&session_id, session).await);
+    assert!(state.update_session(&session_id, session));
 
     (state, session_id)
 }
@@ -179,7 +179,7 @@ async fn csv_align_error_variants_map_to_documented_http_status() {
 #[tokio::test]
 async fn response_contracts_suggest_mappings_serializes_exact_and_fuzzy_mappings() {
     let state = AppState::new();
-    let session_id = state.create_session().await;
+    let session_id = state.create_session();
 
     let response = handlers::suggest_mappings(
         State(state),
@@ -261,12 +261,12 @@ async fn response_contracts_create_and_delete_session_keep_stable_status_and_err
 #[tokio::test]
 async fn response_contracts_compare_serializes_each_result_variant_and_summary_shape() {
     let state = AppState::new();
-    let session_id = state.create_session().await;
+    let session_id = state.create_session();
 
     let mut session = SessionData::new();
     session.csv_a = Some(build_csv_a().into());
     session.csv_b = Some(build_csv_b().into());
-    assert!(state.update_session(&session_id, session).await);
+    assert!(state.update_session(&session_id, session));
 
     let response = handlers::compare(
         State(state),
@@ -380,12 +380,12 @@ async fn response_contracts_compare_serializes_each_result_variant_and_summary_s
 #[tokio::test]
 async fn response_contracts_export_uses_stored_comparison_labels_for_csv_headers() {
     let state = AppState::new();
-    let session_id = state.create_session().await;
+    let session_id = state.create_session();
 
     let mut session = SessionData::new();
     session.csv_a = Some(build_csv_a().into());
     session.csv_b = Some(build_csv_b().into());
-    assert!(state.update_session(&session_id, session).await);
+    assert!(state.update_session(&session_id, session));
 
     let compare_response = handlers::compare(
         State(state.clone()),
@@ -409,12 +409,12 @@ async fn response_contracts_export_uses_stored_comparison_labels_for_csv_headers
 #[tokio::test]
 async fn response_contracts_compare_rejects_unknown_mapping_types() {
     let state = AppState::new();
-    let session_id = state.create_session().await;
+    let session_id = state.create_session();
 
     let mut session = SessionData::new();
     session.csv_a = Some(build_csv_a().into());
     session.csv_b = Some(build_csv_b().into());
-    assert!(state.update_session(&session_id, session).await);
+    assert!(state.update_session(&session_id, session));
 
     let mut request = build_compare_request();
     request.column_mappings[0].mapping_type = "mystery".to_string();
@@ -536,7 +536,7 @@ async fn response_contracts_compare_rejects_incomplete_mapping_coverage() {
 #[tokio::test]
 async fn response_contracts_snapshot_load_rejects_missing_mapping_columns_as_bad_input() {
     let state = AppState::new();
-    let session_id = state.create_session().await;
+    let session_id = state.create_session();
 
     let contents = serde_json::json!({
         "version": 2,

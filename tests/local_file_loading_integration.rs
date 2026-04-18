@@ -52,7 +52,7 @@ async fn response_json(response: axum::response::Response) -> Value {
 #[tokio::test]
 async fn local_file_loading_rejects_invalid_file_letters() {
     let state = AppState::new();
-    let session_id = state.create_session().await;
+    let session_id = state.create_session();
     let boundary = "csv-align-boundary";
     let request = multipart_request(
         &format!("/api/sessions/{session_id}/files/c"),
@@ -70,7 +70,7 @@ async fn local_file_loading_rejects_invalid_file_letters() {
 #[tokio::test]
 async fn local_file_loading_rejects_missing_multipart_files() {
     let state = AppState::new();
-    let session_id = state.create_session().await;
+    let session_id = state.create_session();
     let boundary = "csv-align-boundary";
     let request = multipart_request(
         &format!("/api/sessions/{session_id}/files/a"),
@@ -88,7 +88,7 @@ async fn local_file_loading_rejects_missing_multipart_files() {
 #[tokio::test]
 async fn local_file_loading_rejects_malformed_multipart_payloads() {
     let state = AppState::new();
-    let session_id = state.create_session().await;
+    let session_id = state.create_session();
     let boundary = "csv-align-boundary";
     let request = multipart_request(
         &format!("/api/sessions/{session_id}/files/a"),
@@ -112,7 +112,7 @@ async fn local_file_loading_rejects_malformed_multipart_payloads() {
 #[tokio::test]
 async fn local_file_loading_persists_file_names_on_the_session() {
     let state = AppState::new();
-    let session_id = state.create_session().await;
+    let session_id = state.create_session();
     let boundary = "csv-align-boundary";
 
     let left_request = multipart_request(
@@ -139,7 +139,6 @@ async fn local_file_loading_persists_file_names_on_the_session() {
 
     let session = state
         .get_session(&session_id)
-        .await
         .expect("session should still exist");
     assert_eq!(
         session
@@ -160,7 +159,7 @@ async fn local_file_loading_persists_file_names_on_the_session() {
 #[tokio::test]
 async fn loading_the_second_local_file_populates_auto_suggested_mappings() {
     let state = AppState::new();
-    let session_id = state.create_session().await;
+    let session_id = state.create_session();
     let boundary = "csv-align-boundary";
 
     let left_request = multipart_request(
@@ -176,7 +175,6 @@ async fn loading_the_second_local_file_populates_auto_suggested_mappings() {
 
     let after_first = state
         .get_session(&session_id)
-        .await
         .expect("session should exist after the first local file load");
     assert!(after_first.column_mappings.is_empty());
 
@@ -193,7 +191,6 @@ async fn loading_the_second_local_file_populates_auto_suggested_mappings() {
 
     let after_second = state
         .get_session(&session_id)
-        .await
         .expect("session should exist after the second local file load");
     assert!(
         after_second

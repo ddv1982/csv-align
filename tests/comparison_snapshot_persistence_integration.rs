@@ -42,7 +42,7 @@ async fn response_json(response: axum::response::Response) -> serde_json::Value 
 #[tokio::test]
 async fn comparison_snapshot_persistence_round_trips_through_http_handlers() {
     let state = AppState::new();
-    let session_id = state.create_session().await;
+    let session_id = state.create_session();
 
     let mut session = SessionData::new();
     session.csv_a = Some(
@@ -61,7 +61,7 @@ async fn comparison_snapshot_persistence_round_trips_through_http_handlers() {
         )
         .into(),
     );
-    assert!(state.update_session(&session_id, session).await);
+    assert!(state.update_session(&session_id, session));
 
     let compare_response = handlers::compare(
         State(state.clone()),
@@ -94,7 +94,7 @@ async fn comparison_snapshot_persistence_round_trips_through_http_handlers() {
     assert_eq!(saved["file_a"]["name"], "left.csv");
     assert_eq!(saved["summary"]["mismatches"], 1);
 
-    let loaded_session_id = state.create_session().await;
+    let loaded_session_id = state.create_session();
     let load_response = handlers::load_comparison_snapshot(
         State(state.clone()),
         Path(loaded_session_id.clone()),
@@ -116,7 +116,7 @@ async fn comparison_snapshot_persistence_round_trips_through_http_handlers() {
 #[tokio::test]
 async fn comparison_snapshot_persistence_rejects_legacy_version() {
     let state = AppState::new();
-    let session_id = state.create_session().await;
+    let session_id = state.create_session();
 
     let contents = serde_json::json!({
         "version": 1,
@@ -181,7 +181,7 @@ async fn comparison_snapshot_persistence_rejects_legacy_version() {
 #[tokio::test]
 async fn comparison_snapshot_persistence_rejects_tampered_results() {
     let state = AppState::new();
-    let session_id = state.create_session().await;
+    let session_id = state.create_session();
 
     let contents = serde_json::json!({
         "version": 2,

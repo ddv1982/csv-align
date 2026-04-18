@@ -35,12 +35,12 @@ async fn response_json(response: axum::response::Response) -> serde_json::Value 
 #[tokio::test]
 async fn comparison_snapshot_persistence_round_trips_zero_result_comparisons() {
     let state = AppState::new();
-    let session_id = state.create_session().await;
+    let session_id = state.create_session();
 
     let mut session = SessionData::new();
     session.csv_a = Some(csv_data(&["id", "full_name"], "left.csv").into());
     session.csv_b = Some(csv_data(&["record_id", "display_name"], "right.csv").into());
-    assert!(state.update_session(&session_id, session).await);
+    assert!(state.update_session(&session_id, session));
 
     let compare_response = handlers::compare(
         State(state.clone()),
@@ -75,7 +75,7 @@ async fn comparison_snapshot_persistence_round_trips_zero_result_comparisons() {
     assert_eq!(saved["summary"]["matches"], 0);
     assert_eq!(saved["summary"]["mismatches"], 0);
 
-    let loaded_session_id = state.create_session().await;
+    let loaded_session_id = state.create_session();
     let load_response = handlers::load_comparison_snapshot(
         State(state.clone()),
         Path(loaded_session_id.clone()),
@@ -93,7 +93,6 @@ async fn comparison_snapshot_persistence_round_trips_zero_result_comparisons() {
 
     let restored_session = state
         .get_session(&loaded_session_id)
-        .await
         .expect("loaded session should still exist");
     assert!(restored_session.comparison_results.is_empty());
     let comparison_config = restored_session
