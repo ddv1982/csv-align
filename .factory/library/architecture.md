@@ -83,7 +83,7 @@ How the system is organized after the v2 refactor. Written as the target state; 
 
 ### Compare request (web)
 
-1. Frontend `handleCompare` → `services/tauri.ts::compareFiles` → `POST /api/sessions/:sid/compare` with `{ key_columns_a, key_columns_b, comparison_columns_a, comparison_columns_b, column_mappings: MappingDto[], normalization }`.
+1. Frontend `handleCompare` → `services/tauri.ts::compareFiles` → `POST /api/sessions/{session_id}/compare` with `{ key_columns_a, key_columns_b, comparison_columns_a, comparison_columns_b, column_mappings: MappingDto[], normalization }`.
 2. Axum handler `compare` → `SessionStore.with_session(sid, ...)` → `backend::run_comparison(arc_csv_a, arc_csv_b, request)`.
 3. `run_comparison` → `comparison::engine::compare_csv_data(arc_a, arc_b, config)` returns `Vec<ComparisonRow> + ComparisonSummary`.
 4. Handler writes results back to session (via `with_session_mut`) and returns `CompareResponse` (From<_> conversion on domain types).

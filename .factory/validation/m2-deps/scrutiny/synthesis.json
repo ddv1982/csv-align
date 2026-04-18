@@ -1,0 +1,79 @@
+{
+  "milestone": "m2-deps",
+  "round": 1,
+  "status": "pass",
+  "validatorsRun": {
+    "test": {
+      "passed": true,
+      "command": "cargo test -j 4 && (cd src-tauri && cargo test -j 4) && (cd frontend && npm test -- --run)",
+      "exitCode": 0
+    },
+    "typecheck": {
+      "passed": true,
+      "command": "cd frontend && npx tsc --noEmit",
+      "exitCode": 0
+    },
+    "lint": {
+      "passed": true,
+      "command": "cd frontend && npm run lint",
+      "exitCode": 0
+    }
+  },
+  "reviewsSummary": {
+    "total": 6,
+    "passed": 6,
+    "failed": 0,
+    "failedFeatures": []
+  },
+  "blockingIssues": [],
+  "appliedUpdates": [
+    {
+      "target": "library",
+      "description": "Updated .factory/library/architecture.md compare-flow route placeholder from /api/sessions/:sid/compare to /api/sessions/{session_id}/compare to match Axum 0.8 route conventions.",
+      "sourceFeature": "m2-axum-0.8-upgrade"
+    }
+  ],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Align mission-level commit message guidance with repository guidance for dependency-only work (allow chore/chore(deps) where applicable).",
+      "evidence": "Repeated reviewer observations across m2-rust-edition-2024-bump, m2-rust-deps-patch-and-minor-bumps, and m2-react-19-migration noted conflict between mission AGENTS feat/fix/refactor-only guidance and repo AGENTS allowing chore(deps).",
+      "isSystemic": true
+    },
+    {
+      "target": "rust-worker skill",
+      "suggestion": "Add an explicit exception path for dependency/edition migration features where red-first test creation is not meaningful; require compatibility-focused validation instead.",
+      "evidence": "Reviewer observations from m2-rust-edition-2024-bump, m2-rust-deps-patch-and-minor-bumps, and m2-tauri-patch-bump all reported friction with strict mandatory failing-test-first wording for dependency-only scope.",
+      "isSystemic": true
+    },
+    {
+      "target": "frontend-worker skill",
+      "suggestion": "Add a dependency-migration/codemod exception to strict red-first requirements while keeping full validation requirements intact.",
+      "evidence": "Reviewer observations for m2-react-19-migration and m2-typescript-5.8-bump flagged ambiguity/rigidity around failing-test-first for dependency-only frontend upgrades.",
+      "isSystemic": true
+    },
+    {
+      "target": "rust-worker skill",
+      "suggestion": "Clarify precedence when a feature explicitly requires agent-browser validation so workers do not interpret the current prohibition as absolute.",
+      "evidence": "m2-axum-0.8-upgrade reviewer identified conflict between rust-worker instruction to avoid agent-browser and milestone/feature-specific requirements that included browser smoke checks.",
+      "isSystemic": true
+    },
+    {
+      "target": "Mission AGENTS.md",
+      "suggestion": "Clarify off-limits guidance for ~/.cargo in cases where a feature explicitly requests a global tool upgrade (e.g., tauri-cli) to avoid policy contradiction.",
+      "evidence": "m2-tauri-patch-bump reviewer flagged conflict between mission off-limits guidance and feature instruction to run `cargo install tauri-cli --force`.",
+      "isSystemic": false
+    }
+  ],
+  "rejectedObservations": [
+    {
+      "observation": "Additional repeated commit-guidance mismatch reports from individual reviews.",
+      "reason": "duplicate"
+    },
+    {
+      "observation": "Additional repeated red→green rigidity comments with identical dependency-only context.",
+      "reason": "duplicate"
+    }
+  ],
+  "previousRound": null
+}
