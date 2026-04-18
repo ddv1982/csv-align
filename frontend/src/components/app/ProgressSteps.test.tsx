@@ -1,0 +1,37 @@
+import { fireEvent, render, screen } from '@testing-library/react';
+import { expect, test, vi } from 'vitest';
+import { ProgressSteps } from './ProgressSteps';
+
+test('uses shared theme surface classes for active, complete, and unlocked steps', () => {
+  render(
+    <ProgressSteps
+      step="configure"
+      unlockedSteps={['select', 'configure', 'results']}
+      onStepChange={vi.fn()}
+    />,
+  );
+
+  expect(screen.getByText('2')).toHaveClass('kinetic-surface-accent');
+  expect(screen.getByText('1')).toHaveClass('kinetic-surface-success');
+  expect(screen.getByText('3')).toHaveClass('kinetic-surface-subtle');
+
+  const stepOneButton = screen.getByRole('button', { name: 'Go to step 1: Choose Local Files' });
+  expect(stepOneButton).toHaveClass('kinetic-surface-hover');
+});
+
+test('navigates only for unlocked non-active steps', () => {
+  const onStepChange = vi.fn();
+
+  render(
+    <ProgressSteps
+      step="select"
+      unlockedSteps={['select', 'configure']}
+      onStepChange={onStepChange}
+    />,
+  );
+
+  fireEvent.click(screen.getByRole('button', { name: 'Go to step 2: Configure' }));
+
+  expect(onStepChange).toHaveBeenCalledWith('configure');
+  expect(screen.queryByRole('button', { name: 'Go to step 3: Results' })).not.toBeInTheDocument();
+});

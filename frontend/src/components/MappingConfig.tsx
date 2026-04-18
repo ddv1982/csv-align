@@ -7,6 +7,7 @@ import { SectionCard } from './ui/SectionCard';
 import { ColumnChipSelector } from './mapping-config/ColumnChipSelector';
 import { NormalizationPanel } from './mapping-config/NormalizationPanel';
 import { PairPreview } from './mapping-config/PairPreview';
+import { ArrowsRightLeftIcon, KeyIcon, TableCellsIcon } from './icons';
 
 interface MappingConfigProps {
   fileA: AppFile;
@@ -123,7 +124,7 @@ export function MappingConfig({
         description="Set row keys first, then build the comparison pairs manually or from either file as the lead order."
         headingLevel="h3"
         className="p-6"
-        icon={<span aria-hidden="true">==</span>}
+        icon={<ArrowsRightLeftIcon className="h-5 w-5" />}
       >
         <div className="space-y-4">
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
@@ -176,7 +177,7 @@ export function MappingConfig({
         eyebrow="Keys"
         title="Row keys"
         description="Use matching key sets to line up rows before comparing values."
-        icon={<span aria-hidden="true">K</span>}
+        icon={<KeyIcon className="h-5 w-5" />}
       >
         <div className="grid gap-6 md:grid-cols-2">
           <ColumnChipSelector
@@ -200,7 +201,7 @@ export function MappingConfig({
         eyebrow="Comparison"
         title="Comparison Columns"
         description="Choose the value columns to compare, in the exact left-to-right order you want reviewed."
-        icon={<span aria-hidden="true">C</span>}
+        icon={<TableCellsIcon className="h-5 w-5" />}
       >
         <div className="grid gap-6 md:grid-cols-2">
           <ColumnChipSelector

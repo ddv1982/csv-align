@@ -1,5 +1,6 @@
 import { getResultLabel } from '../features/results/presentation';
 import { SummaryResponse } from '../types/api';
+import { ChartBarSquareIcon, CheckBadgeIcon, ExclamationCircleIcon, ExclamationTriangleIcon, InformationCircleIcon } from './icons';
 import { SectionCard } from './ui/SectionCard';
 
 interface SummaryStatsProps {
@@ -28,7 +29,7 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
           titleClassName: 'kinetic-copy',
           summaryClassName: 'kinetic-copy',
           detailClassName: 'kinetic-muted',
-          icon: 'IG',
+          icon: <InformationCircleIcon className="h-5 w-5" />,
         }
       : null,
     summary.duplicates_a > 0 || summary.duplicates_b > 0
@@ -42,7 +43,7 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
           titleClassName: 'kinetic-copy',
           summaryClassName: 'kinetic-copy',
           detailClassName: 'kinetic-muted',
-          icon: 'DP',
+          icon: <ExclamationTriangleIcon className="h-5 w-5" />,
         }
       : null,
   ].filter((banner): banner is NonNullable<typeof banner> => banner !== null);
@@ -63,7 +64,7 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
       valueText: 'kinetic-copy',
       labelText: 'kinetic-copy',
       descriptionText: 'kinetic-muted',
-      icon: 'MT',
+      icon: <CheckBadgeIcon className="h-5 w-5" />,
     },
     {
       label: 'Mismatches',
@@ -75,7 +76,7 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
       valueText: 'kinetic-copy',
       labelText: 'kinetic-copy',
       descriptionText: 'kinetic-muted',
-      icon: 'MM',
+      icon: <ExclamationCircleIcon className="h-5 w-5" />,
     },
     {
       label: getResultLabel('missing_left'),
@@ -87,7 +88,7 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
       valueText: 'kinetic-copy',
       labelText: 'kinetic-copy',
       descriptionText: 'kinetic-muted',
-      icon: '<A',
+      icon: 'A',
     },
     {
       label: getResultLabel('missing_right'),
@@ -99,7 +100,7 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
       valueText: 'kinetic-copy',
       labelText: 'kinetic-copy',
       descriptionText: 'kinetic-muted',
-      icon: 'B>',
+      icon: 'B',
     },
   ];
 
@@ -110,7 +111,7 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
       headingLevel="h3"
       description="Review the overall match quality before drilling into filtered result rows."
       className="overflow-hidden"
-      icon={<span aria-hidden="true">ST</span>}
+      icon={<ChartBarSquareIcon className="h-5 w-5" />}
       action={
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="kinetic-panel px-4 py-3">

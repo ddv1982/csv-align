@@ -2,6 +2,7 @@ import { FilterBar } from '../FilterBar';
 import { ResultsTable } from '../ResultsTable';
 import { SummaryStats } from '../SummaryStats';
 import type { ResultFilter, ResultResponse, SummaryResponse } from '../../types/api';
+import { CheckDocumentIcon, ExclamationTriangleIcon } from '../icons';
 import { NavButton } from '../ui/NavButton';
 import { SectionCard } from '../ui/SectionCard';
 
@@ -45,7 +46,7 @@ export function ResultsStep({
           description="Loaded snapshots are read-only results. Start a new comparison to edit mappings or load different files."
           tone="info"
           className="border-[rgba(255,211,110,0.4)] bg-[rgba(255,211,110,0.05)] px-5 py-4"
-          icon={<span aria-hidden="true">!!</span>}
+          icon={<ExclamationTriangleIcon className="h-5 w-5" />}
           action={
             <button
               onClick={onStartNewComparison}
@@ -62,7 +63,7 @@ export function ResultsStep({
           eyebrow="Next step"
           title="Save this result for later review"
           description="Save a snapshot of this comparison to reopen the same results later in read-only mode."
-          icon={<span aria-hidden="true">[]</span>}
+          icon={<CheckDocumentIcon className="h-5 w-5" />}
           action={
             <div className="flex flex-wrap justify-end gap-3 lg:shrink-0">
               <NavButton direction="back" onClick={onBack}>

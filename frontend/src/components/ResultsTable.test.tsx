@@ -64,6 +64,19 @@ test('shows clearer labels and explanations for one-sided and ignored rows', () 
   expect(fileAOnlyBadge).toHaveClass('w-fit');
 });
 
+test('uses shared theme surface classes for table states instead of hardcoded dark overlays', () => {
+  render(<ResultsTable results={RESULTS} />);
+
+  expect(screen.getByText('A-1')).toHaveClass('kinetic-surface-subtle');
+
+  const diffToggle = screen.getByRole('button', { name: /1 diff/i });
+  expect(diffToggle).toHaveClass('kinetic-surface-subtle');
+
+  fireEvent.click(diffToggle);
+
+  expect(screen.getByText('Value Differences').previousElementSibling).toHaveClass('kinetic-surface-accent');
+});
+
 test('filters visible rows by search query across keys and values', () => {
   render(<ResultsTable results={RESULTS} />);
 

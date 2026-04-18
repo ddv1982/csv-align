@@ -17,7 +17,7 @@ export function ProgressSteps({ step, unlockedSteps, onStepChange }: ProgressSte
 
   return (
     <nav className="mb-8" aria-label="Progress">
-      <ol className="card flex flex-wrap items-center gap-3 px-4 py-4 sm:px-5">
+      <ol className="card mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-3 px-4 py-4 sm:px-5">
         {STEPS.map((currentStep, index) => {
           const isActive = step === currentStep.id;
           const isComplete = index < activeIndex;
@@ -26,11 +26,11 @@ export function ProgressSteps({ step, unlockedSteps, onStepChange }: ProgressSte
 
           const badgeClasses = `flex h-8 min-w-8 items-center justify-center border font-mono text-[11px] uppercase tracking-[0.18em] transition-colors ${
             isActive
-              ? 'border-[color:var(--color-kinetic-accent)] bg-[rgba(110,231,255,0.12)] text-[color:var(--color-kinetic-accent)]'
+              ? 'kinetic-surface-accent'
               : isComplete
-                ? 'border-[rgba(108,255,190,0.45)] bg-[rgba(108,255,190,0.08)] text-[color:var(--color-kinetic-success)]'
+                ? 'kinetic-surface-success'
                 : isUnlocked
-                  ? 'border-[color:var(--color-kinetic-line)] bg-[rgba(255,255,255,0.03)] text-[color:var(--color-kinetic-copy)]'
+                  ? 'border-[color:var(--color-kinetic-line)] kinetic-surface-subtle text-[color:var(--color-kinetic-copy)]'
                   : 'border-[color:var(--color-kinetic-line)] bg-transparent text-[color:var(--color-kinetic-muted)]'
           }`;
 
@@ -58,7 +58,7 @@ export function ProgressSteps({ step, unlockedSteps, onStepChange }: ProgressSte
                   onClick={() => onStepChange(currentStep.id)}
                   aria-label={`Go to step ${currentStep.number}: ${currentStep.label}`}
                   aria-current={isActive ? 'step' : undefined}
-                  className={`group flex items-center px-2 py-1 transition-colors hover:bg-[rgba(255,255,255,0.04)] ${textClasses}`}
+                  className={`group kinetic-surface-hover flex items-center px-2 py-1 transition-colors ${textClasses}`}
                 >
                   {commonContent}
                 </button>

@@ -54,7 +54,7 @@ test('keeps summary chips on kinetic bordered surfaces', () => {
   expect(ignoredBanner).toHaveClass('kinetic-tone-accent');
 });
 
-test('renders the comparison summary with text glyph treatments and no svg icons', () => {
+test('renders icon-based section markers while keeping A/B identifiers for file-specific outcomes', () => {
   const { container } = render(
     <SummaryStats
       summary={SUMMARY}
@@ -65,9 +65,12 @@ test('renders the comparison summary with text glyph treatments and no svg icons
 
   const heading = screen.getByRole('heading', { level: 3, name: 'Comparison Summary' });
   const resultsSection = heading.closest('section');
+  const fileAOnlyCard = screen.getByText('Only in File A').closest('div.kinetic-panel');
+  const fileBOnlyCard = screen.getByText('Only in File B').closest('div.kinetic-panel');
 
   expect(heading).toBeInTheDocument();
-  expect(heading.querySelector('svg')).toBeNull();
-  expect(resultsSection).toHaveTextContent('ST');
-  expect(container.querySelectorAll('svg')).toHaveLength(0);
+  expect(resultsSection?.querySelector('svg')).not.toBeNull();
+  expect(fileAOnlyCard).toHaveTextContent('A');
+  expect(fileBOnlyCard).toHaveTextContent('B');
+  expect(container.querySelectorAll('svg').length).toBeGreaterThan(0);
 });

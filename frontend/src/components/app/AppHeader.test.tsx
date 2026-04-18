@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, expect, test, vi } from 'vitest';
 
 async function renderHeader(options?: {
@@ -26,6 +26,10 @@ async function renderHeader(options?: {
 }
 
 afterEach(() => {
+  cleanup();
+  window.localStorage?.removeItem?.('csv-align-theme');
+  document.documentElement.classList.remove('dark');
+  document.documentElement.style.colorScheme = '';
   vi.resetModules();
   vi.doUnmock('../../services/appWindows');
 });
@@ -60,10 +64,13 @@ test('adds a descriptive tooltip to the new window action', async () => {
   expect(screen.getByRole('button', { name: 'New window' })).toHaveAttribute('title', 'Open CSV Align in a new window');
 });
 
-test('shows the fixed dark-theme status instead of a theme toggle', async () => {
+test('toggles between dark and light theme labels', async () => {
   await renderHeader();
 
-  expect(screen.queryByRole('button', { name: /switch to .* mode/i })).not.toBeInTheDocument();
-  expect(screen.getByText('Theme locked')).toBeInTheDocument();
-  expect(screen.getByText('Dark / Kinetic')).toBeInTheDocument();
+  const themeButton = screen.getByRole('button', { name: 'Switch to light mode' });
+  expect(themeButton).toHaveTextContent('Dark');
+
+  fireEvent.click(themeButton);
+
+  expect(screen.getByRole('button', { name: 'Switch to dark mode' })).toHaveTextContent('Light');
 });

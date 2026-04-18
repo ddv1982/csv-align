@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.2 - 2026-04-19
+
+- Tightened the KINETIC follow-up polish with lighter theme copy, cleaner results and configure card treatment, and a more direct stepper so the workflow reads faster without changing the comparison engine or saved-data contracts.
+- Prepared the v2.1.2 follow-up release by updating version metadata across the Rust crates, desktop bundle config, frontend package manifests, and lockfiles, then rerunning the documented broad validation workflow.
+
 ## v2.1.1 - 2026-04-19
 
 - Trimmed the broadcast-HUD shell so the primary workflow steps stay in focus, moving secondary file inventory details behind expandable panels and keeping the intake, configure, and header controls tighter without changing comparison behavior.

@@ -1,5 +1,6 @@
 import { ResultFilter, ResultResponse } from '../types/api';
 import { getResultFilterCounts, RESULT_FILTER_OPTIONS } from '../features/results/presentation';
+import { ArrowDownTrayIcon, FunnelIcon } from './icons';
 import { SectionCard } from './ui/SectionCard';
 
 interface FilterBarProps {
@@ -18,14 +19,14 @@ export function FilterBar({ filter, results, onFilterChange, onExport }: FilterB
       title="Focus on the rows you care about"
       description="Switch between result buckets or export the full comparison as CSV."
       className="overflow-hidden"
-      icon={<span aria-hidden="true">FL</span>}
+      icon={<FunnelIcon className="h-5 w-5" />}
       action={
         <button
           onClick={onExport}
           className="btn btn-primary shrink-0"
           aria-label="Export comparison results as CSV"
         >
-          <span aria-hidden="true">EX</span>
+          <ArrowDownTrayIcon className="h-4 w-4" />
           Export CSV
         </button>
       }

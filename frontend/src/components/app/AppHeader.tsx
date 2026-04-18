@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { ArrowRightIcon, MoonIcon, SunIcon } from '../icons';
+import { useThemePreference } from '../../hooks/useThemePreference';
 import { openNewAppWindow } from '../../services/appWindows';
 
 interface AppHeaderProps {
@@ -7,6 +9,7 @@ interface AppHeaderProps {
 
 export function AppHeader({ onReset }: AppHeaderProps) {
   const [openWindowError, setOpenWindowError] = useState<string | null>(null);
+  const { theme, toggleTheme } = useThemePreference();
 
   async function handleOpenNewWindow() {
     try {
@@ -18,33 +21,35 @@ export function AppHeader({ onReset }: AppHeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-10 border-b border-[color:var(--color-kinetic-line)] bg-[rgba(5,5,5,0.92)] backdrop-blur-sm">
+    <header className="sticky top-0 z-10 border-b border-[color:var(--color-kinetic-line)] bg-[color:var(--color-kinetic-header)] backdrop-blur-sm">
       <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center border border-[color:var(--color-kinetic-line-strong)] font-mono text-sm uppercase tracking-[0.28em] text-[color:var(--color-kinetic-accent)]">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[color:var(--color-kinetic-line-strong)] bg-[color:var(--color-kinetic-panel)] font-mono text-sm uppercase tracking-[0.18em] text-[color:var(--color-kinetic-accent)] shadow-sm">
               CA
             </div>
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <p className="hud-label">KINETIC Alignment Console</p>
-                <span className="kinetic-register">[REG-01]</span>
-              </div>
               <h1 className="display-title truncate text-3xl text-[color:var(--color-kinetic-copy)] sm:text-[2.2rem]">
                 <span className="kinetic-stroke">CSV</span> ALIGN
               </h1>
-              <p className="truncate font-mono text-[11px] uppercase tracking-[0.18em] text-[color:var(--color-kinetic-muted)]">
-                Local intake, deliberate pairing, drift review
+              <p className="mt-1 truncate text-sm text-[color:var(--color-kinetic-muted)]">
+                Compare two local CSV files, tune cleanup, and review row-level drift.
               </p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 lg:justify-end">
             <div className="kinetic-utility-cluster">
-              <div className="border border-[color:var(--color-kinetic-line)] px-3 py-2 text-right font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-kinetic-muted)]">
-                <div>Theme locked</div>
-                <div className="mt-1 text-[color:var(--color-kinetic-accent)]">Dark / Kinetic</div>
-              </div>
+              <button
+                onClick={toggleTheme}
+                className="btn btn-ghost min-w-[6.5rem]"
+                type="button"
+                aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+                title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+              >
+                {theme === 'dark' ? <MoonIcon className="h-4 w-4" /> : <SunIcon className="h-4 w-4" />}
+                {theme === 'dark' ? 'Dark' : 'Light'}
+              </button>
 
               <button
                 onClick={() => void handleOpenNewWindow()}
@@ -52,12 +57,11 @@ export function AppHeader({ onReset }: AppHeaderProps) {
                 type="button"
                 title="Open CSV Align in a new window"
               >
-                <span aria-hidden="true">//</span>
+                <ArrowRightIcon className="h-4 w-4" />
                 New window
               </button>
 
               <button onClick={onReset} className="btn btn-ghost" type="button">
-                <span aria-hidden="true">++</span>
                 Reset
               </button>
             </div>

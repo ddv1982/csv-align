@@ -1,6 +1,7 @@
 import { Fragment, useDeferredValue, useMemo, useState, useTransition } from 'react';
 import { ResultResponse } from '../types/api';
 import { getResultBadge, getResultDescription } from '../features/results/presentation';
+import { ChevronRightIcon, MagnifyingGlassIcon, RectangleStackIcon } from './icons';
 import { SectionCard } from './ui/SectionCard';
 
 interface ResultsTableProps {
@@ -47,7 +48,7 @@ function DiffRow({ columnA, columnB, valueA, valueB }: DiffRowProps) {
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
         <div className="min-w-0">
           <p className="kinetic-mono-label mb-1 text-[10px] text-[color:var(--color-kinetic-danger)]">File A</p>
-          <span className="kinetic-copy block truncate border border-[rgba(255,122,122,0.35)] bg-[rgba(255,122,122,0.06)] px-2.5 py-1.5 font-mono text-sm" title={valueA}>
+          <span className="kinetic-copy kinetic-surface-danger block truncate border px-2.5 py-1.5 font-mono text-sm" title={valueA}>
             {valueA}
           </span>
         </div>
@@ -56,7 +57,7 @@ function DiffRow({ columnA, columnB, valueA, valueB }: DiffRowProps) {
         </div>
         <div className="min-w-0">
           <p className="kinetic-mono-label mb-1 text-[10px] text-[color:var(--color-kinetic-success)]">File B</p>
-          <span className="kinetic-copy block truncate border border-[rgba(108,255,190,0.35)] bg-[rgba(108,255,190,0.06)] px-2.5 py-1.5 font-mono text-sm" title={valueB}>
+          <span className="kinetic-copy kinetic-surface-success-muted block truncate border px-2.5 py-1.5 font-mono text-sm" title={valueB}>
             {valueB}
           </span>
         </div>
@@ -226,11 +227,11 @@ export function ResultsTable({ results, totalResultsCount = results.length }: Re
       title="Comparison results"
       description={`${visibleResults.length} of ${results.length} rows shown`}
       className="overflow-hidden"
-      icon={<span aria-hidden="true">TB</span>}
+      icon={<RectangleStackIcon className="h-5 w-5" />}
       action={
         <label className="relative block w-full sm:max-w-xs">
           <span className="sr-only">Search result values</span>
-          <span className="kinetic-mono-label kinetic-muted pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[11px]">SR</span>
+          <MagnifyingGlassIcon className="kinetic-muted pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
           <input
             type="search"
             value={query}
@@ -251,7 +252,7 @@ export function ResultsTable({ results, totalResultsCount = results.length }: Re
       ) : (
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="border-b border-[color:var(--color-kinetic-line)] bg-[rgba(255,255,255,0.03)]">
+          <thead className="kinetic-surface-subtle border-b border-[color:var(--color-kinetic-line)]">
             <tr>
               {renderSortHeader('Type', 'type', 'kinetic-table-head w-40 min-w-[11rem] px-4 py-3 text-left')}
               {renderSortHeader('Key', 'key', 'kinetic-table-head px-4 py-3 text-left')}
@@ -268,7 +269,7 @@ export function ResultsTable({ results, totalResultsCount = results.length }: Re
 
               return (
                 <Fragment key={id}>
-                  <tr className={`transition-colors ${isExpanded ? 'bg-[rgba(110,231,255,0.05)]' : 'bg-transparent hover:bg-[rgba(255,255,255,0.03)]'}`}>
+                  <tr className={`transition-colors ${isExpanded ? 'kinetic-surface-accent-strong' : 'bg-transparent kinetic-surface-hover'}`}>
                     <td className="px-4 py-3.5 align-top">
                       <span className={`inline-flex w-fit items-center gap-1.5 whitespace-nowrap border px-2.5 py-1 text-xs font-medium uppercase tracking-[0.12em] ${badge.bg} ${badge.text}`}>
                         <span className={`h-1.5 w-1.5 shrink-0 ${badge.dot}`} aria-hidden="true" />
@@ -276,7 +277,7 @@ export function ResultsTable({ results, totalResultsCount = results.length }: Re
                       </span>
                     </td>
                     <td className="px-4 py-3.5 align-top">
-                      <span className="kinetic-copy inline-block max-w-full truncate border border-[color:var(--color-kinetic-line)] bg-[rgba(255,255,255,0.04)] px-2.5 py-1 font-mono text-sm font-semibold" title={result.key.join(', ')}>
+                      <span className="kinetic-copy kinetic-surface-subtle inline-block max-w-full truncate border border-[color:var(--color-kinetic-line)] px-2.5 py-1 font-mono text-sm font-semibold" title={result.key.join(', ')}>
                         {result.key.join(', ')}
                       </span>
                     </td>
@@ -288,13 +289,13 @@ export function ResultsTable({ results, totalResultsCount = results.length }: Re
                           onClick={() => setExpandedRow(isExpanded ? null : id)}
                           className={`inline-flex items-center gap-1.5 border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] transition-colors ${
                             isExpanded
-                              ? 'border-[color:var(--color-kinetic-accent)] bg-[rgba(110,231,255,0.1)] text-[color:var(--color-kinetic-copy)]'
-                              : 'border-[color:var(--color-kinetic-line)] bg-[rgba(255,255,255,0.03)] text-[color:var(--color-kinetic-muted)] hover:border-[color:var(--color-kinetic-line-strong)] hover:text-[color:var(--color-kinetic-copy)]'
-                           }`}
+                              ? 'border-[color:var(--color-kinetic-accent)] kinetic-surface-accent-strong text-[color:var(--color-kinetic-copy)]'
+                              : 'kinetic-surface-subtle border-[color:var(--color-kinetic-line)] text-[color:var(--color-kinetic-muted)] hover:border-[color:var(--color-kinetic-line-strong)] hover:text-[color:var(--color-kinetic-copy)]'
+                            }`}
                           aria-expanded={isExpanded}
                         >
                           {result.differences.length} diff{result.differences.length > 1 ? 's' : ''}
-                          <span aria-hidden="true" className={`font-mono text-[11px] transition-transform ${isExpanded ? 'rotate-180' : ''}`}>v</span>
+                          <ChevronRightIcon className={`h-3.5 w-3.5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                         </button>
                       ) : (
                         <span className={`text-sm ${resultDescription ? 'kinetic-copy' : 'kinetic-muted'}`}>
@@ -305,11 +306,11 @@ export function ResultsTable({ results, totalResultsCount = results.length }: Re
                   </tr>
 
                   {isExpanded && result.differences.length > 0 && (
-                    <tr className="bg-[rgba(255,255,255,0.02)]">
+                    <tr className="kinetic-surface-subtle">
                       <td colSpan={5} className="px-4 py-4">
                         <div className="kinetic-panel p-4">
                           <div className="mb-3 flex items-center gap-2">
-                            <span className="flex h-6 w-6 items-center justify-center border border-[rgba(110,231,255,0.38)] bg-[rgba(110,231,255,0.08)] font-mono text-[11px] uppercase text-[color:var(--color-kinetic-accent)]">
+                            <span className="kinetic-surface-accent flex h-6 w-6 items-center justify-center border font-mono text-[11px] uppercase">
                               +
                             </span>
                             <p className="kinetic-mono-label kinetic-copy text-xs font-semibold">Value Differences</p>
@@ -339,15 +340,15 @@ export function ResultsTable({ results, totalResultsCount = results.length }: Re
         </table>
       </div>
       )}
-      {isPending && (
-        <div className="kinetic-muted border-t border-[color:var(--color-kinetic-line)] bg-[rgba(255,255,255,0.03)] px-4 py-2 text-right text-xs">
-          Updating results…
-        </div>
-      )}
+        {isPending && (
+          <div className="kinetic-muted kinetic-surface-subtle border-t border-[color:var(--color-kinetic-line)] px-4 py-2 text-right text-xs">
+            Updating results…
+          </div>
+        )}
 
 
       {visibleResults.length > 50 && (
-        <div className="border-t border-[color:var(--color-kinetic-line)] bg-[rgba(255,255,255,0.03)] px-4 py-3 text-center">
+        <div className="kinetic-surface-subtle border-t border-[color:var(--color-kinetic-line)] px-4 py-3 text-center">
           <p className="kinetic-muted text-sm">Showing {visibleResults.length} results. Use filters, search, or sorting to narrow down.</p>
         </div>
       )}

@@ -1,4 +1,5 @@
 import type { ComparisonNormalizationConfig } from '../../types/api';
+import { PencilSquareIcon } from '../icons';
 import { SectionCard } from '../ui/SectionCard';
 
 interface NormalizationPanelProps {
@@ -13,7 +14,7 @@ export function NormalizationPanel({ normalization, onChange, onDateChange }: No
       eyebrow="Cleanup"
       title="Cleanup before compare"
       description="Choose a few optional cleanup rules to avoid false mismatches."
-      icon={<span aria-hidden="true">FX</span>}
+      icon={<PencilSquareIcon className="h-5 w-5" />}
       className="p-6"
     >
       <div className="space-y-4">
