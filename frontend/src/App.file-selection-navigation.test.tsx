@@ -114,8 +114,8 @@ test('returns to file selection with files intact and resumes configure without 
     expect(createSessionMock).toHaveBeenCalledTimes(1);
   });
 
-  expect(screen.getByRole('heading', { name: 'Select two local CSV files' })).toBeInTheDocument();
-  expect(screen.getByText('Choose the files you want to compare. You can reselect either file before running the comparison.')).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Stage the two CSV feeds' })).toBeInTheDocument();
+  expect(screen.getByText('Choose the two local files you want to compare. Full column inventories stay tucked away until you need them.')).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole('button', { name: 'Select File A' }));
   await screen.findByRole('button', { name: 'Select File B' });

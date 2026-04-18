@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.1 - 2026-04-19
+
+- Trimmed the broadcast-HUD shell so the primary workflow steps stay in focus, moving secondary file inventory details behind expandable panels and keeping the intake, configure, and header controls tighter without changing comparison behavior.
+- Prepared the v2.1.1 follow-up release by updating version metadata across the Rust crates, desktop bundle config, frontend package manifests, and lockfiles, then rerunning the documented broad validation workflow.
+
 ## v2.1.0 - 2026-04-19
 
 - Rebuilt the frontend around the KINETIC design system with a fixed dark broadcast-HUD presentation, bundled local fonts, and redesigned shell, workflow, filter, summary, and results surfaces so the app ships a distinct new visual identity without changing the shared comparison engine or saved-data contracts.

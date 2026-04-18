@@ -148,7 +148,7 @@ test('loads a saved result from step 1 through the app workflow', async () => {
     expect(createSessionMock).toHaveBeenCalledTimes(1);
   });
 
-  expect(screen.getByText('Already have a saved result?')).toBeInTheDocument();
+  expect(screen.getByText('Load a saved result to reopen its findings in read-only mode.')).toBeInTheDocument();
 
   fireEvent.change(screen.getByTestId('load-result-input'), {
     target: {

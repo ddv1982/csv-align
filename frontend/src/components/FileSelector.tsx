@@ -105,20 +105,40 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
             </div>
           </div>
 
-          <div className="mt-4">
-            <p className="hud-label mb-2">Columns</p>
-            <div className="flex flex-wrap gap-2">
-              {file.columns.map((col) => (
-                <span
-                  key={col.name}
-                  className="table-chip"
-                >
-                  {col.name}
-                  <span className="ml-2 text-[color:var(--color-kinetic-muted)]">[{col.data_type}]</span>
-                </span>
-              ))}
+          <details className="kinetic-panel mt-4 px-4 py-3 group">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 marker:hidden">
+              <div>
+                <p className="hud-label">Inventory</p>
+                <p className="mt-1 text-sm font-medium uppercase tracking-[0.14em] text-[color:var(--color-kinetic-copy)]">View file metadata and columns</p>
+              </div>
+              <span aria-hidden="true" className="font-mono text-sm text-[color:var(--color-kinetic-muted)] transition-transform group-open:rotate-90">▸</span>
+            </summary>
+
+            <div className="mt-4 space-y-4">
+              <dl className="grid gap-3 sm:grid-cols-2">
+                <div className="kinetic-frame px-3 py-2">
+                  <dt className="hud-label">Rows</dt>
+                  <dd className="mt-1 font-mono text-sm text-[color:var(--color-kinetic-copy)]">{file.rowCount}</dd>
+                </div>
+                <div className="kinetic-frame px-3 py-2">
+                  <dt className="hud-label">Columns</dt>
+                  <dd className="mt-1 font-mono text-sm text-[color:var(--color-kinetic-copy)]">{file.headers.length}</dd>
+                </div>
+              </dl>
+
+              <div>
+                <p className="hud-label mb-2">Columns</p>
+                <div className="flex flex-wrap gap-2">
+                  {file.columns.map((col) => (
+                    <span key={col.name} className="table-chip">
+                      {col.name}
+                      <span className="ml-2 text-[color:var(--color-kinetic-muted)]">[{col.data_type}]</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
+          </details>
 
           <label className="mt-4 btn btn-secondary w-full text-center cursor-pointer block">
             <input
@@ -147,31 +167,30 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
               : 'border-[color:var(--color-kinetic-line)] bg-[rgba(255,255,255,0.02)] hover:border-[color:var(--color-kinetic-line-strong)] hover:bg-[rgba(255,255,255,0.04)]'
             }`}
           >
-           <div className="flex flex-col items-center">
-             <div className={`mb-4 flex h-16 w-16 items-center justify-center border font-mono text-lg uppercase tracking-[0.24em] ${
-               isDragging ? 'border-[color:var(--color-kinetic-accent)] text-[color:var(--color-kinetic-accent)]' : 'border-[color:var(--color-kinetic-line)] text-[color:var(--color-kinetic-muted)]'
-             }`}>
-               IN
-             </div>
+            <div className="flex flex-col items-center">
+              <div className={`kinetic-empty-glyph ${
+                isDragging ? 'border-[color:var(--color-kinetic-accent)] text-[color:var(--color-kinetic-accent)]' : 'border-[color:var(--color-kinetic-line)] text-[color:var(--color-kinetic-muted)]'
+              }`}>
+                IN
+              </div>
 
-             <p className="mb-1 text-lg font-medium uppercase tracking-[0.14em] text-[color:var(--color-kinetic-copy)]">
-               {isDragging ? 'Drop the local CSV file here' : 'Drag & drop a local CSV file to choose it'}
-             </p>
-              <p className="mb-4 text-sm text-[color:var(--color-kinetic-muted)]">or</p>
+              <p className="mb-1 text-lg font-medium uppercase tracking-[0.14em] text-[color:var(--color-kinetic-copy)]">
+                {isDragging ? 'Drop CSV here' : 'Drag in a CSV feed'}
+              </p>
+              <p className="mb-4 text-sm text-[color:var(--color-kinetic-muted)]">or choose it from this device</p>
 
-             <label className="btn btn-primary cursor-pointer">
-               <input
-                id={inputId}
-                type="file"
-                accept=".csv"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-              Choose Local CSV
-            </label>
-
+              <label className="btn btn-primary cursor-pointer">
+                <input
+                  id={inputId}
+                  type="file"
+                  accept=".csv"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                Choose local CSV
+              </label>
+            </div>
           </div>
-        </div>
       )}
 
       {selectionError && (

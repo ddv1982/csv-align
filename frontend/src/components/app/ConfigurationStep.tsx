@@ -2,7 +2,35 @@ import { MappingConfig } from '../MappingConfig';
 import type { ComparisonNormalizationConfig, FileLetter, MappingDto } from '../../types/api';
 import type { AppFile, MappingSelectionState } from '../../types/ui';
 import { NavButton } from '../ui/NavButton';
-import { SectionCard } from '../ui/SectionCard';
+
+function FileOverview({ label, name, rowCount, columnCount, headers }: { label: string; name: string; rowCount: number; columnCount: number; headers: string[] }) {
+  return (
+    <section className="kinetic-panel p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="hud-label">{label}</p>
+          <h3 className="mt-1 truncate text-sm font-semibold uppercase tracking-[0.14em] text-[color:var(--color-kinetic-copy)]">{name}</h3>
+        </div>
+        <div className="kinetic-register">[{label}]</div>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2 text-xs text-[color:var(--color-kinetic-muted)]">
+        <span className="table-chip">{rowCount} rows</span>
+        <span className="table-chip">{columnCount} columns</span>
+      </div>
+      <details className="mt-3 group">
+        <summary className="cursor-pointer list-none text-sm text-[color:var(--color-kinetic-muted)] marker:hidden">
+          <span aria-hidden="true" className="mr-2 inline-block transition-transform group-open:rotate-90">▸</span>
+          Inspect available columns
+        </summary>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {headers.map((header) => (
+            <span key={header} className="table-chip">{header}</span>
+          ))}
+        </div>
+      </details>
+    </section>
+  );
+}
 
 interface ConfigurationStepProps {
   fileA: AppFile;
@@ -40,20 +68,25 @@ export function ConfigurationStep({
 }: ConfigurationStepProps) {
   return (
     <div className="animate-fade-in space-y-6">
-      <SectionCard
-        eyebrow="Step 2 · Configure"
-        title="Pair up columns and tune cleanup rules"
-        headingLevel="h2"
-        description="Set the key columns for row matching and pick which comparison columns should be compared between both files."
-        icon={<span aria-hidden="true">::</span>}
-        action={
-          <NavButton direction="back" onClick={onBack}>
-            Back to file selection
-          </NavButton>
-        }
-      >
-        <div />
-      </SectionCard>
+      <div className="card p-4 sm:p-5">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="max-w-2xl">
+            <p className="hud-label">Configure</p>
+            <h2 className="mt-1 text-lg font-semibold uppercase tracking-[0.14em] text-[color:var(--color-kinetic-copy)]">Pair columns and tune cleanup</h2>
+            <p className="mt-2 text-sm text-[color:var(--color-kinetic-muted)]">Keep the selected file inventories nearby while you set row keys, comparison pairs, and any cleanup rules.</p>
+          </div>
+          <div className="shrink-0">
+            <NavButton direction="back" onClick={onBack}>
+              Back to file selection
+            </NavButton>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          <FileOverview label="File A" name={fileA.name} rowCount={fileA.rowCount} columnCount={fileA.headers.length} headers={fileA.headers} />
+          <FileOverview label="File B" name={fileB.name} rowCount={fileB.rowCount} columnCount={fileB.headers.length} headers={fileB.headers} />
+        </div>
+      </div>
 
       <MappingConfig
         fileA={fileA}

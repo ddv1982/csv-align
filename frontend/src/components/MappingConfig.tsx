@@ -75,6 +75,9 @@ export function MappingConfig({
     keyColumnsA.length > 0 &&
     keyColumnsB.length > 0 &&
     keyColumnsA.length === keyColumnsB.length;
+  const autoPairMessage = hasValidAutoPairKeySelection
+    ? 'Auto-pair uses the selected key columns as its anchor, then fills in confident one-to-one matches.'
+    : 'Select the same number of key columns in both files to unlock auto-pair.';
 
   const manualMappings: MappingDto[] = comparisonColumnsA.map((fileAColumn, index) => ({
     file_a_column: fileAColumn,
@@ -115,36 +118,48 @@ export function MappingConfig({
   return (
     <div className="space-y-6">
       <SectionCard
-        eyebrow="Step 2 · Configure"
-        title="Manual column pairing"
-        description="Select key columns first, then choose comparison columns manually or auto-pair confident matches using File A or File B as the leading order."
+        eyebrow="Pairing"
+        title="Column pairing"
+        description="Set row keys first, then build the comparison pairs manually or from either file as the lead order."
         headingLevel="h3"
         className="p-6"
         icon={<span aria-hidden="true">==</span>}
       >
-        <div className="flex flex-wrap gap-3">
-          <button onClick={onSavePairOrder} className="btn btn-ghost" type="button">
-            Save pair order
-          </button>
-          <button onClick={handleLoadButtonClick} className="btn btn-ghost" type="button">
-            Load pair order
-          </button>
-          <button
-            onClick={() => onAutoPairComparisonColumns('a')}
-            disabled={!hasValidAutoPairKeySelection}
-            className={`btn btn-ghost ${!hasValidAutoPairKeySelection ? 'cursor-not-allowed opacity-50' : ''}`}
-            type="button"
-          >
-            Auto-pair from File A
-          </button>
-          <button
-            onClick={() => onAutoPairComparisonColumns('b')}
-            disabled={!hasValidAutoPairKeySelection}
-            className={`btn btn-ghost ${!hasValidAutoPairKeySelection ? 'cursor-not-allowed opacity-50' : ''}`}
-            type="button"
-          >
-            Auto-pair from File B
-          </button>
+        <div className="space-y-4">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
+            <div className="kinetic-panel p-4">
+              <p className="hud-label">Auto-pair</p>
+              <p className="mt-1 text-sm text-[color:var(--color-kinetic-muted)]">{autoPairMessage}</p>
+              <div className="mt-3 flex flex-wrap gap-3">
+                <button
+                  onClick={() => onAutoPairComparisonColumns('a')}
+                  disabled={!hasValidAutoPairKeySelection}
+                  className="btn btn-ghost"
+                  type="button"
+                >
+                  From File A
+                </button>
+                <button
+                  onClick={() => onAutoPairComparisonColumns('b')}
+                  disabled={!hasValidAutoPairKeySelection}
+                  className="btn btn-ghost"
+                  type="button"
+                >
+                  From File B
+                </button>
+              </div>
+            </div>
+
+            <div className="kinetic-utility-cluster">
+              <button onClick={onSavePairOrder} className="btn btn-ghost" type="button">
+                Save pair order
+              </button>
+              <button onClick={handleLoadButtonClick} className="btn btn-ghost" type="button">
+                Load pair order
+              </button>
+            </div>
+          </div>
+
           <input
             ref={fileInputRef}
             accept=".txt,text/plain,application/json"
@@ -153,19 +168,14 @@ export function MappingConfig({
             type="file"
           />
         </div>
-        <p className="mt-4 text-sm text-[color:var(--color-kinetic-muted)]">
-          {hasValidAutoPairKeySelection
-            ? 'When confident comparison matches are found, auto-pair starts with the selected key pair(s) and then adds the remaining one-to-one matches.'
-            : 'Select the same number of key columns in File A and File B to enable auto-pair. Those key pairs are used as the starting point for any generated comparison order.'}
-        </p>
       </SectionCard>
 
       <NormalizationPanel normalization={normalization} onChange={updateNormalization} onDateChange={updateDateNormalization} />
 
       <SectionCard
         eyebrow="Keys"
-        title="Key Columns (for row matching)"
-        description="Selected keys align rows between File A and File B."
+        title="Row keys"
+        description="Use matching key sets to line up rows before comparing values."
         icon={<span aria-hidden="true">K</span>}
       >
         <div className="grid gap-6 md:grid-cols-2">
@@ -189,7 +199,7 @@ export function MappingConfig({
       <SectionCard
         eyebrow="Comparison"
         title="Comparison Columns"
-        description="Pick the columns whose values should actually be compared between the two files."
+        description="Choose the value columns to compare, in the exact left-to-right order you want reviewed."
         icon={<span aria-hidden="true">C</span>}
       >
         <div className="grid gap-6 md:grid-cols-2">

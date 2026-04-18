@@ -38,9 +38,9 @@ test('keeps auto-pair disabled until matching key selections are present', () =>
     />,
   );
 
-  expect(screen.getByRole('button', { name: 'Auto-pair from File A' })).toBeDisabled();
-  expect(screen.getByRole('button', { name: 'Auto-pair from File B' })).toBeDisabled();
-  expect(screen.getByText('Select the same number of key columns in File A and File B to enable auto-pair. Those key pairs are used as the starting point for any generated comparison order.')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'From File A' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'From File B' })).toBeDisabled();
+  expect(screen.getByText('Select the same number of key columns in both files to unlock auto-pair.')).toBeInTheDocument();
 });
 
 test('enables auto-pair beside the pair-order actions after matching key selections and forwards the leading side', () => {
@@ -66,12 +66,12 @@ test('enables auto-pair beside the pair-order actions after matching key selecti
     />,
   );
 
-  expect(screen.getByRole('button', { name: 'Auto-pair from File A' })).toBeEnabled();
-  expect(screen.getByRole('button', { name: 'Auto-pair from File B' })).toBeEnabled();
-  fireEvent.click(screen.getByRole('button', { name: 'Auto-pair from File A' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Auto-pair from File B' }));
+  expect(screen.getByRole('button', { name: 'From File A' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'From File B' })).toBeEnabled();
+  fireEvent.click(screen.getByRole('button', { name: 'From File A' }));
+  fireEvent.click(screen.getByRole('button', { name: 'From File B' }));
 
-  expect(screen.getByText('When confident comparison matches are found, auto-pair starts with the selected key pair(s) and then adds the remaining one-to-one matches.')).toBeInTheDocument();
+  expect(screen.getByText('Auto-pair uses the selected key columns as its anchor, then fills in confident one-to-one matches.')).toBeInTheDocument();
   expect(onAutoPairComparisonColumns).toHaveBeenNthCalledWith(1, 'a');
   expect(onAutoPairComparisonColumns).toHaveBeenNthCalledWith(2, 'b');
 });
