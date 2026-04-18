@@ -4,10 +4,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::backend::error::CsvAlignError;
 use crate::backend::requests::{
-    ComparisonSnapshotFile, LoadComparisonSnapshotResponse, PairOrderSelection,
+    CompareValidationError, ComparisonSnapshotFile, LoadComparisonSnapshotResponse,
+    PairOrderSelection,
 };
 use crate::backend::session::SessionData;
-use crate::backend::validation::audit_selected_columns;
+use crate::backend::validation::validate_selected_columns;
 use crate::comparison::engine;
 use crate::data::types::{
     ColumnInfo, ColumnMapping, ComparisonConfig, ComparisonNormalizationConfig, CsvData,
@@ -223,22 +224,22 @@ fn validate_selection(
     headers_b: &[String],
     selection: &PairOrderSelection,
 ) -> Result<(), CsvAlignError> {
-    validate_selected_columns(
+    validate_saved_selected_columns(
         "Saved snapshot key columns for File A",
         headers_a,
         &selection.key_columns_a,
     )?;
-    validate_selected_columns(
+    validate_saved_selected_columns(
         "Saved snapshot key columns for File B",
         headers_b,
         &selection.key_columns_b,
     )?;
-    validate_selected_columns(
+    validate_saved_selected_columns(
         "Saved snapshot comparison columns for File A",
         headers_a,
         &selection.comparison_columns_a,
     )?;
-    validate_selected_columns(
+    validate_saved_selected_columns(
         "Saved snapshot comparison columns for File B",
         headers_b,
         &selection.comparison_columns_b,
@@ -260,26 +261,13 @@ fn validate_selection(
     Ok(())
 }
 
-fn validate_selected_columns(
+fn validate_saved_selected_columns(
     label: &'static str,
     headers: &[String],
     selected_columns: &[String],
 ) -> Result<(), CsvAlignError> {
-    let audit = audit_selected_columns(headers, selected_columns);
-
-    if let Some(column) = audit.missing.first() {
-        return Err(CsvAlignError::BadInput(format!(
-            "{label} reference missing columns: {column}"
-        )));
-    }
-
-    if let Some(column) = audit.duplicates.first() {
-        return Err(CsvAlignError::BadInput(format!(
-            "{label} contain duplicate columns: {column}"
-        )));
-    }
-
-    Ok(())
+    validate_selected_columns(label, headers, selected_columns)
+        .map_err(saved_selection_validation_error)
 }
 
 fn validate_mappings(
@@ -473,5 +461,23 @@ fn difference_response(difference: &ValueDifference) -> DifferenceResponse {
         column_b: difference.column_b.clone(),
         value_a: difference.value_a.clone(),
         value_b: difference.value_b.clone(),
+    }
+}
+
+fn saved_selection_validation_error(error: CompareValidationError) -> CsvAlignError {
+    match error {
+        CompareValidationError::MissingColumns { selection, columns } => {
+            CsvAlignError::BadInput(format!(
+                "{selection} reference missing columns: {}",
+                columns.join(", ")
+            ))
+        }
+        CompareValidationError::DuplicateColumns { selection, columns } => {
+            CsvAlignError::BadInput(format!(
+                "{selection} contain duplicate columns: {}",
+                columns.join(", ")
+            ))
+        }
+        other => CsvAlignError::Validation(other),
     }
 }

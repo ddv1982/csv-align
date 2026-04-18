@@ -178,7 +178,7 @@ fn parse_mapping_request(mapping: MappingRequest) -> Result<ColumnMapping, Compa
     })
 }
 
-fn validate_selected_columns(
+pub(crate) fn validate_selected_columns(
     selection: &'static str,
     headers: &[String],
     selected: &[String],
