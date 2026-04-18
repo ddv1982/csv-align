@@ -38,6 +38,7 @@ Validators must never start Axum on a port outside the 3000-3001 range. All buil
 - Vite dev server (`npm run dev`) is NOT part of validation — the built `frontend/dist/` served by Axum is the tested surface.
 - The port change from 3000 → 3001 happens inside M1; pre-M1 milestones validate against 3000, post-M1 against 3001. Validators should consult AGENTS.md / services.yaml for the current port.
 - `handleReset` in the pre-refactor code does not issue `DELETE /api/sessions/{id}` — VAL-SHELL-005 requires M6 to wire it.
+- `agent-browser` download path is fixed at daemon/session startup; if deterministic artifact names are needed, copy the downloaded file into the evidence directory after download.
 
 ## Flow Validator Guidance: web
 

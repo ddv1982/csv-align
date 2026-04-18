@@ -1,0 +1,138 @@
+{
+  "groupId": "web-wire-persist",
+  "testedAt": "2026-04-18T01:55:24.915816+00:00",
+  "isolation": {
+    "appUrl": "http://127.0.0.1:3001",
+    "sharedInstance": true,
+    "fixtures": {
+      "fileA": "/Users/vriesd/projects/csv-align/samples/file_a.csv",
+      "fileB": "/Users/vriesd/projects/csv-align/samples/file_b.csv",
+      "legacySnapshot": "m4-data-model-and-wire/web-wire-persist/VAL-PERSIST-011-legacy-v1-snapshot.json"
+    }
+  },
+  "toolsUsed": [
+    "agent-browser",
+    "python3"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-MAP-025",
+      "title": "Run Comparison emits collapsed MappingDto (v2 wire)",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Load file_a.csv and file_b.csv, select key id on both sides, select two manual comparison pairs, and click Run Comparison",
+          "expected": "Compare request body contains collapsed MappingDto entries only",
+          "observed": "POST /compare body contained column_mappings with two entries using keys file_a_column, file_b_column, mapping_type only (no MappingRequest/MappingResponse wrapper keys)."
+        },
+        {
+          "action": "Inspect captured compare request payload schema",
+          "expected": "Each mapping has exactly required v2 fields (+ optional similarity)",
+          "observed": "Captured mapping keys: [['file_a_column', 'file_b_column', 'mapping_type'], ['file_a_column', 'file_b_column', 'mapping_type']]"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m4-data-model-and-wire/web-wire-persist/VAL-MAP-025-results.png"
+        ],
+        "consoleErrors": "m4-data-model-and-wire/web-wire-persist/VAL-MAP-025-console-errors.txt (empty)",
+        "network": "m4-data-model-and-wire/web-wire-persist/VAL-MAP-025-network-capture.json (POST /api/sessions/70047702-34c0-4203-9271-24deff1d93e0/compare)"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PERSIST-007",
+      "title": "Save comparison snapshot produces v2 JSON download",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "From results step, click Save result",
+          "expected": "POST /comparison-snapshot/save returns 200 and browser downloads snapshot JSON",
+          "observed": "Captured snapshot save response status 200 from /api/sessions/e781613e-1231-41af-bf5b-2a0e2674f5e5/comparison-snapshot/save"
+        },
+        {
+          "action": "Inspect downloaded snapshot file schema",
+          "expected": "Top-level includes version:2 and required sections",
+          "observed": "Downloaded JSON has version 2 and keys ['file_a', 'file_b', 'mappings', 'normalization', 'results', 'selection', 'summary', 'version']"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m4-data-model-and-wire/web-wire-persist/VAL-PERSIST-007-save-result.png"
+        ],
+        "downloads": [
+          "m4-data-model-and-wire/web-wire-persist/VAL-PERSIST-007-comparison-snapshot.json"
+        ],
+        "consoleErrors": "m4-data-model-and-wire/web-wire-persist/VAL-PERSIST-007-console-errors.txt (empty)",
+        "network": "m4-data-model-and-wire/web-wire-persist/VAL-PERSIST-007-network-capture.json"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PERSIST-011",
+      "title": "Load v1.x snapshot shows explicit incompatibility (v2 behavior)",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Reset to step 1 and upload a legacy v1 snapshot fixture via Load result",
+          "expected": "Load fails with explicit version incompatibility message (not generic parse error)",
+          "observed": "UI showed: \"Unsupported comparison snapshot version 1 \u2014 this file was produced by an older csv-align release. Re-run the comparison in v2.\""
+        },
+        {
+          "action": "Inspect load response body and status",
+          "expected": "4xx with version-specific incompatibility wording",
+          "observed": "Status 400 with body {\"code\":\"bad_input\",\"error\":\"Unsupported comparison snapshot version 1 \u2014 this file was produced by an older csv-align release. Re-run the comparison in v2.\"}"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m4-data-model-and-wire/web-wire-persist/VAL-PERSIST-011-load-v1-error.png"
+        ],
+        "fixtures": [
+          "m4-data-model-and-wire/web-wire-persist/VAL-PERSIST-011-legacy-v1-snapshot.json"
+        ],
+        "consoleErrors": "m4-data-model-and-wire/web-wire-persist/VAL-PERSIST-011-console-errors.txt (empty)",
+        "network": "m4-data-model-and-wire/web-wire-persist/VAL-PERSIST-011-network-capture.json"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RESULTS-025",
+      "title": "No legacy duplicate identifiers in wire or DOM",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run comparison and inspect captured compare response payload",
+          "expected": "No duplicate_filea/duplicate_fileb tokens; result types conform to v2 names",
+          "observed": "Compare status 200; observed result_type values ['match', 'mismatch', 'missing_left', 'missing_right'] (subset of allowed v2 values)."
+        },
+        {
+          "action": "Search rendered DOM text for legacy duplicate identifiers",
+          "expected": "DOM contains no duplicate_filea or duplicate_fileb",
+          "observed": "No legacy duplicate identifiers found in captured DOM text."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m4-data-model-and-wire/web-wire-persist/VAL-RESULTS-025-results.png"
+        ],
+        "consoleErrors": "m4-data-model-and-wire/web-wire-persist/VAL-RESULTS-025-console-errors.txt (empty)",
+        "network": "m4-data-model-and-wire/web-wire-persist/VAL-RESULTS-025-network-capture.json",
+        "domCapture": "m4-data-model-and-wire/web-wire-persist/VAL-RESULTS-025-dom.txt"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "agent-browser warned that --download-path was ignored after daemon startup; downloads still succeeded to the original session download path.",
+      "resolved": true,
+      "resolution": "Started the session with the correct download path and copied the latest downloaded artifact to a deterministic evidence filename.",
+      "affectedAssertions": [
+        "VAL-PERSIST-007"
+      ]
+    }
+  ],
+  "blockers": [],
+  "summary": "Tested 4 assertions: 4 passed, 0 failed, 0 blocked."
+}

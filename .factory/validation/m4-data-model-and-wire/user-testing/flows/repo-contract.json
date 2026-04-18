@@ -1,0 +1,86 @@
+{
+  "groupId": "repo-contract",
+  "testedAt": "2026-04-18T01:51:49Z",
+  "isolation": {
+    "repo": "/Users/vriesd/projects/csv-align",
+    "mode": "read-only validation",
+    "constraints": [
+      "no source edits",
+      "no dependency-mutating commands"
+    ]
+  },
+  "toolsUsed": [
+    "rg",
+    "cargo"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-LIB-010",
+      "title": "No legacy duplicate_filea/duplicate_fileb in src/src-tauri/tests/frontend/src",
+      "status": "pass",
+      "commandsRun": [
+        "rg -n \"duplicate_filea\\b|duplicate_fileb\\b\" /Users/vriesd/projects/csv-align/src /Users/vriesd/projects/csv-align/src-tauri /Users/vriesd/projects/csv-align/tests /Users/vriesd/projects/csv-align/frontend/src",
+        "cargo test response_contracts_compare_serializes_each_result_variant_and_summary_shape --manifest-path /Users/vriesd/projects/csv-align/Cargo.toml -- --exact"
+      ],
+      "steps": [
+        {
+          "action": "Scan target source/test/frontend paths for legacy duplicate identifiers",
+          "expected": "Zero matches for duplicate_filea/duplicate_fileb",
+          "observed": "No matches returned; rg exit_code:1 (no matches)."
+        },
+        {
+          "action": "Run targeted response contract test covering duplicate result-type serialization",
+          "expected": "Test passes and confirms current duplicate naming contract",
+          "observed": "response_contracts_compare_serializes_each_result_variant_and_summary_shape passed (1 passed, 0 failed)."
+        }
+      ],
+      "evidence": {
+        "artifacts": [
+          "m4-data-model-and-wire/repo-contract/VAL-LIB-010-legacy-duplicate-scan.log",
+          "m4-data-model-and-wire/repo-contract/VAL-LIB-010-targeted-cargo-test.log"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-LIB-011",
+      "title": "persistence::v1 snapshot round-trip test exists and is green (version 2 behavior)",
+      "status": "pass",
+      "commandsRun": [
+        "cargo test snapshot_v1_round_trip --manifest-path /Users/vriesd/projects/csv-align/Cargo.toml -- --list",
+        "cargo test snapshot_v1_round_trip --manifest-path /Users/vriesd/projects/csv-align/Cargo.toml -- --exact",
+        "cargo test comparison_snapshot_round_trips_saved_results_and_hydrates_session --manifest-path /Users/vriesd/projects/csv-align/Cargo.toml -- --exact",
+        "rg -n \"fn snapshot_v1_round_trip|fn comparison_snapshot_round_trips_saved_results_and_hydrates_session|save_comparison_snapshot_workflow\\(|load_comparison_snapshot_workflow\\(|saved\\[\\\"version\\\"\\], 2\" /Users/vriesd/projects/csv-align/tests/backend_workflow_integration.rs"
+      ],
+      "steps": [
+        {
+          "action": "List tests matching snapshot_v1_round_trip",
+          "expected": "A snapshot_v1_round_trip test is discoverable by cargo",
+          "observed": "cargo test -- --list includes snapshot_v1_round_trip: test."
+        },
+        {
+          "action": "Run snapshot_v1_round_trip exactly",
+          "expected": "Round-trip test passes",
+          "observed": "snapshot_v1_round_trip passed (1 passed, 0 failed)."
+        },
+        {
+          "action": "Verify version-2 snapshot behavior assertion and green execution",
+          "expected": "Version 2 assertion is present and green in snapshot round-trip surface",
+          "observed": "comparison_snapshot_round_trips_saved_results_and_hydrates_session passed; source scan shows assert_eq!(saved[\"version\"], 2) alongside snapshot_v1_round_trip in backend_workflow_integration.rs."
+        }
+      ],
+      "evidence": {
+        "artifacts": [
+          "m4-data-model-and-wire/repo-contract/VAL-LIB-011-test-list.log",
+          "m4-data-model-and-wire/repo-contract/VAL-LIB-011-round-trip-test.log",
+          "m4-data-model-and-wire/repo-contract/VAL-LIB-011-version2-behavior-test.log",
+          "m4-data-model-and-wire/repo-contract/VAL-LIB-011-source-presence.log"
+        ]
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Validated 2 assertions: VAL-LIB-010 pass, VAL-LIB-011 pass. Legacy duplicate identifiers are absent in scoped paths, and snapshot v1-named round-trip plus companion version-2 behavior tests are present and green."
+}
