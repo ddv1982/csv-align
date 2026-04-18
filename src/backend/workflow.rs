@@ -138,7 +138,7 @@ pub fn export_results_to_bytes(
     results: &[RowComparisonResult],
     comparison_config: Option<&ComparisonConfig>,
 ) -> Result<Vec<u8>, CsvAlignError> {
-    csv_export::export_results_to_bytes_with_config(results, comparison_config)
+    csv_export::export_results_to_bytes(results, comparison_config)
         .map_err(|error| CsvAlignError::Internal(format!("Failed to build CSV export: {error}")))
 }
 
@@ -147,6 +147,6 @@ pub fn write_export_results(
     comparison_config: Option<&ComparisonConfig>,
     output_path: impl AsRef<Path>,
 ) -> Result<(), CsvAlignError> {
-    csv_export::export_results_with_config(results, comparison_config, output_path)
+    csv_export::write_export_results(results, comparison_config, output_path)
         .map_err(|error| CsvAlignError::Internal(format!("Failed to export results: {error}")))
 }

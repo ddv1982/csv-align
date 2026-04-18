@@ -1,9 +1,6 @@
 use csv::Reader;
 use csv_align::data::{
-    export::{
-        export_results, export_results_to_bytes, export_results_to_bytes_with_config,
-        export_results_with_config,
-    },
+    export::{export_results_to_bytes, write_export_results},
     types::{
         ComparisonConfig, ComparisonNormalizationConfig, RowComparisonResult, ValueDifference,
     },
@@ -37,7 +34,7 @@ fn test_export_results() {
     let temp_file = NamedTempFile::new().unwrap();
     let path = temp_file.path();
 
-    export_results_with_config(&results, Some(&config), path).unwrap();
+    write_export_results(&results, Some(&config), path).unwrap();
 
     let content = std::fs::read_to_string(path).unwrap();
     assert!(content.contains("Match"));
@@ -48,14 +45,14 @@ fn test_export_results() {
 }
 
 #[test]
-fn test_export_results_public_api_remains_backward_compatible() {
+fn test_export_results_public_api_uses_optional_config() {
     let results = vec![RowComparisonResult::Match {
         key: vec!["1".to_string()],
         values_a: vec!["Alice".to_string()],
         values_b: vec!["Alice".to_string()],
     }];
 
-    let bytes = export_results_to_bytes(&results).unwrap();
+    let bytes = export_results_to_bytes(&results, None).unwrap();
     let mut reader = Reader::from_reader(bytes.as_slice());
     let headers = reader.headers().unwrap().clone();
     assert_eq!(
@@ -73,7 +70,7 @@ fn test_export_results_public_api_remains_backward_compatible() {
     );
 
     let temp_file = NamedTempFile::new().unwrap();
-    export_results(&results, temp_file.path()).unwrap();
+    write_export_results(&results, None, temp_file.path()).unwrap();
     let content = std::fs::read_to_string(temp_file.path()).unwrap();
     assert!(content.contains("File A Value 1"));
 }
@@ -123,7 +120,7 @@ fn test_export_results_to_bytes_uses_selected_column_labels_and_summary_columns(
         },
     ];
 
-    let bytes = export_results_to_bytes_with_config(&results, Some(&config)).unwrap();
+    let bytes = export_results_to_bytes(&results, Some(&config)).unwrap();
     let mut reader = Reader::from_reader(bytes.as_slice());
 
     let headers = reader.headers().unwrap().clone();
@@ -190,7 +187,7 @@ fn test_export_results_to_bytes_duplicate_rows_do_not_widen_file_columns() {
         values_b: Vec::new(),
     }];
 
-    let bytes = export_results_to_bytes_with_config(&results, Some(&config)).unwrap();
+    let bytes = export_results_to_bytes(&results, Some(&config)).unwrap();
     let mut reader = Reader::from_reader(bytes.as_slice());
 
     let headers = reader.headers().unwrap().clone();
@@ -240,7 +237,7 @@ fn test_export_results_to_bytes_duplicate_rows_include_stable_side_specific_colu
         values_b: vec![vec!["Caro".to_string()], vec!["Carrie".to_string()]],
     }];
 
-    let bytes = export_results_to_bytes_with_config(&results, Some(&config)).unwrap();
+    let bytes = export_results_to_bytes(&results, Some(&config)).unwrap();
     let mut reader = Reader::from_reader(bytes.as_slice());
     let headers = reader.headers().unwrap().clone();
     let duplicate_file_a_idx = headers
@@ -293,7 +290,7 @@ fn test_export_results_uses_clearer_labels_for_one_sided_and_ignored_rows() {
         },
     ];
 
-    let bytes = export_results_to_bytes(&results).unwrap();
+    let bytes = export_results_to_bytes(&results, None).unwrap();
     let mut reader = Reader::from_reader(bytes.as_slice());
     let records: Vec<csv::StringRecord> = reader.records().map(Result::unwrap).collect();
 

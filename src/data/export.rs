@@ -1,7 +1,7 @@
 use super::types::{ComparisonConfig, DuplicateSource, RowComparisonResult};
+use crate::backend::CsvAlignError;
 use csv::Writer;
 use serde_json::to_string;
-use std::error::Error;
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::path::Path;
@@ -286,49 +286,42 @@ fn write_results_to_writer<W: Write>(
     results: &[RowComparisonResult],
     config: Option<&ComparisonConfig>,
     writer: W,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<(), CsvAlignError> {
     let layout = compute_layout(results, config);
     let mut csv_writer = Writer::from_writer(writer);
 
-    csv_writer.write_record(build_header(&layout, config))?;
+    csv_writer
+        .write_record(build_header(&layout, config))
+        .map_err(|error| CsvAlignError::Internal(format!("Failed to write CSV header: {error}")))?;
 
     for result in results {
-        csv_writer.write_record(build_record(result, &layout))?;
+        csv_writer
+            .write_record(build_record(result, &layout))
+            .map_err(|error| {
+                CsvAlignError::Internal(format!("Failed to write CSV record: {error}"))
+            })?;
     }
 
     csv_writer.flush()?;
     Ok(())
 }
 
-/// Export comparison results to in-memory CSV bytes using default labels.
-pub fn export_results_to_bytes(results: &[RowComparisonResult]) -> Result<Vec<u8>, Box<dyn Error>> {
-    export_results_to_bytes_with_config(results, None)
-}
-
 /// Export comparison results to in-memory CSV bytes with optional config-aware labels.
-pub fn export_results_to_bytes_with_config(
+pub fn export_results_to_bytes(
     results: &[RowComparisonResult],
     config: Option<&ComparisonConfig>,
-) -> Result<Vec<u8>, Box<dyn Error>> {
+) -> Result<Vec<u8>, CsvAlignError> {
     let mut buffer = Vec::new();
     write_results_to_writer(results, config, &mut buffer)?;
     Ok(buffer)
 }
 
-/// Export comparison results to a CSV file using default labels.
-pub fn export_results(
-    results: &[RowComparisonResult],
-    file_path: impl AsRef<Path>,
-) -> Result<(), Box<dyn Error>> {
-    export_results_with_config(results, None, file_path)
-}
-
 /// Export comparison results to a CSV file with optional config-aware labels.
-pub fn export_results_with_config(
+pub fn write_export_results(
     results: &[RowComparisonResult],
     config: Option<&ComparisonConfig>,
     file_path: impl AsRef<Path>,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<(), CsvAlignError> {
     let file = File::create(file_path.as_ref())?;
     write_results_to_writer(results, config, BufWriter::new(file))
 }
