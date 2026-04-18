@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::backend::error::CsvAlignError;
 use crate::backend::requests::{LoadPairOrderResponse, PairOrderSelection};
 use crate::backend::session::SessionData;
 use crate::backend::validation::audit_selected_columns;
@@ -19,7 +20,7 @@ struct PersistedPairOrder {
 pub fn save_pair_order_workflow(
     session_data: &SessionData,
     selection: PairOrderSelection,
-) -> Result<String, String> {
+) -> Result<String, CsvAlignError> {
     let (headers_a, headers_b) = session_headers(session_data)?;
     validate_selection(headers_a, headers_b, &selection)?;
 
@@ -29,35 +30,36 @@ pub fn save_pair_order_workflow(
         headers_b: headers_b.to_vec(),
         selection,
     })
-    .map_err(|error| format!("Failed to serialize pair order: {error}"))
+    .map_err(|error| CsvAlignError::Internal(format!("Failed to serialize pair order: {error}")))
 }
 
 pub fn load_pair_order_workflow(
     session_data: &SessionData,
     contents: &str,
-) -> Result<LoadPairOrderResponse, String> {
-    let persisted: PersistedPairOrder = serde_json::from_str(contents)
-        .map_err(|error| format!("Failed to parse pair-order file: {error}"))?;
+) -> Result<LoadPairOrderResponse, CsvAlignError> {
+    let persisted: PersistedPairOrder = serde_json::from_str(contents).map_err(|error| {
+        CsvAlignError::Parse(format!("Failed to parse pair-order file: {error}"))
+    })?;
 
     if persisted.version != PAIR_ORDER_FILE_VERSION {
-        return Err(format!(
+        return Err(CsvAlignError::BadInput(format!(
             "Unsupported pair-order file version {}",
             persisted.version
-        ));
+        )));
     }
 
     let (headers_a, headers_b) = session_headers(session_data)?;
 
     if !same_header_names(&persisted.headers_a, headers_a) {
-        return Err(
+        return Err(CsvAlignError::BadInput(
             "Saved pair order does not match the currently loaded File A columns".to_string(),
-        );
+        ));
     }
 
     if !same_header_names(&persisted.headers_b, headers_b) {
-        return Err(
+        return Err(CsvAlignError::BadInput(
             "Saved pair order does not match the currently loaded File B columns".to_string(),
-        );
+        ));
     }
 
     validate_selection(headers_a, headers_b, &persisted.selection)?;
@@ -67,15 +69,15 @@ pub fn load_pair_order_workflow(
     })
 }
 
-fn session_headers(session_data: &SessionData) -> Result<(&[String], &[String]), String> {
+fn session_headers(session_data: &SessionData) -> Result<(&[String], &[String]), CsvAlignError> {
     let csv_a = session_data
         .csv_a
         .as_ref()
-        .ok_or_else(|| "File A not selected or loaded".to_string())?;
+        .ok_or_else(|| CsvAlignError::BadInput("File A not selected or loaded".to_string()))?;
     let csv_b = session_data
         .csv_b
         .as_ref()
-        .ok_or_else(|| "File B not selected or loaded".to_string())?;
+        .ok_or_else(|| CsvAlignError::BadInput("File B not selected or loaded".to_string()))?;
 
     Ok((&csv_a.headers, &csv_b.headers))
 }
@@ -84,7 +86,7 @@ fn validate_selection(
     headers_a: &[String],
     headers_b: &[String],
     selection: &PairOrderSelection,
-) -> Result<(), String> {
+) -> Result<(), CsvAlignError> {
     validate_selected_columns(
         "Saved key columns for File A",
         headers_a,
@@ -113,15 +115,19 @@ fn validate_selected_columns(
     label: &'static str,
     headers: &[String],
     selected_columns: &[String],
-) -> Result<(), String> {
+) -> Result<(), CsvAlignError> {
     let audit = audit_selected_columns(headers, selected_columns);
 
     if let Some(column) = audit.missing.first() {
-        return Err(format!("{label} reference missing columns: {column}"));
+        return Err(CsvAlignError::BadInput(format!(
+            "{label} reference missing columns: {column}"
+        )));
     }
 
     if let Some(column) = audit.duplicates.first() {
-        return Err(format!("{label} contain duplicate columns: {column}"));
+        return Err(CsvAlignError::BadInput(format!(
+            "{label} contain duplicate columns: {column}"
+        )));
     }
 
     Ok(())

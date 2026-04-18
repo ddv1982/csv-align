@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use crate::backend::error::CsvAlignError;
 use crate::backend::requests::{CompareExecution, CompareRequest, SuggestMappingsRequest};
 use crate::backend::session::SessionData;
 use crate::backend::validation::build_comparison_config;
@@ -13,15 +14,17 @@ use crate::presentation::responses::{
     suggest_mappings_response,
 };
 
-pub fn validate_file_letter(file_letter: &str) -> Result<(), String> {
+pub fn validate_file_letter(file_letter: &str) -> Result<(), CsvAlignError> {
     parse_file_side(file_letter).map(|_| ())
 }
 
-pub fn parse_file_side(file_letter: &str) -> Result<FileSide, String> {
+pub fn parse_file_side(file_letter: &str) -> Result<FileSide, CsvAlignError> {
     match file_letter {
         "a" => Ok(FileSide::A),
         "b" => Ok(FileSide::B),
-        _ => Err("File letter must be 'a' or 'b'".to_string()),
+        _ => Err(CsvAlignError::BadInput(
+            "File letter must be 'a' or 'b'".to_string(),
+        )),
     }
 }
 
@@ -87,15 +90,15 @@ pub fn suggest_mappings_workflow(
     response
 }
 
-pub fn comparison_inputs(session_data: &SessionData) -> Result<(CsvData, CsvData), String> {
+pub fn comparison_inputs(session_data: &SessionData) -> Result<(CsvData, CsvData), CsvAlignError> {
     let csv_a = session_data
         .csv_a
         .as_ref()
-        .ok_or_else(|| "File A not selected or loaded".to_string())?;
+        .ok_or_else(|| CsvAlignError::BadInput("File A not selected or loaded".to_string()))?;
     let csv_b = session_data
         .csv_b
         .as_ref()
-        .ok_or_else(|| "File B not selected or loaded".to_string())?;
+        .ok_or_else(|| CsvAlignError::BadInput("File B not selected or loaded".to_string()))?;
 
     Ok((csv_a.clone(), csv_b.clone()))
 }
@@ -104,9 +107,8 @@ pub fn run_comparison(
     csv_a: &CsvData,
     csv_b: &CsvData,
     request: CompareRequest,
-) -> Result<CompareExecution, String> {
-    let config =
-        build_comparison_config(csv_a, csv_b, request).map_err(|error| error.to_string())?;
+) -> Result<CompareExecution, CsvAlignError> {
+    let config = build_comparison_config(csv_a, csv_b, request)?;
     let results = engine::compare_csv_data(csv_a, csv_b, &config);
     let summary = engine::generate_summary(&results, csv_a.rows.len(), csv_b.rows.len());
 
@@ -119,9 +121,11 @@ pub fn run_comparison(
 
 pub fn export_session_results_snapshot(
     session_data: &SessionData,
-) -> Result<(Vec<RowComparisonResult>, Option<ComparisonConfig>), String> {
+) -> Result<(Vec<RowComparisonResult>, Option<ComparisonConfig>), CsvAlignError> {
     if session_data.comparison_results.is_empty() {
-        return Err("No comparison results to export. Run a comparison first.".to_string());
+        return Err(CsvAlignError::BadInput(
+            "No comparison results to export. Run a comparison first.".to_string(),
+        ));
     }
 
     Ok((
@@ -133,16 +137,16 @@ pub fn export_session_results_snapshot(
 pub fn export_results_to_bytes(
     results: &[RowComparisonResult],
     comparison_config: Option<&ComparisonConfig>,
-) -> Result<Vec<u8>, String> {
+) -> Result<Vec<u8>, CsvAlignError> {
     csv_export::export_results_to_bytes_with_config(results, comparison_config)
-        .map_err(|e| format!("Failed to build CSV export: {e}"))
+        .map_err(|error| CsvAlignError::Internal(format!("Failed to build CSV export: {error}")))
 }
 
 pub fn write_export_results(
     results: &[RowComparisonResult],
     comparison_config: Option<&ComparisonConfig>,
     output_path: impl AsRef<Path>,
-) -> Result<(), String> {
+) -> Result<(), CsvAlignError> {
     csv_export::export_results_with_config(results, comparison_config, output_path)
-        .map_err(|e| format!("Failed to export results: {e}"))
+        .map_err(|error| CsvAlignError::Internal(format!("Failed to export results: {error}")))
 }

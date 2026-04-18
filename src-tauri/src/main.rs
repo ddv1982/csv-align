@@ -3,11 +3,12 @@ use std::fs;
 use std::sync::Mutex;
 
 use csv_align::backend::{
-    CompareRequest, LoadComparisonSnapshotResponse, LoadPairOrderResponse, PairOrderSelection,
-    SessionData, SessionResponse, SuggestMappingsRequest, apply_csv_to_session, comparison_inputs,
-    export_session_results_snapshot, load_comparison_snapshot_workflow, load_pair_order_workflow,
-    parse_file_side, run_comparison, save_comparison_snapshot_workflow, save_pair_order_workflow,
-    suggest_mappings_workflow, validate_file_letter, write_export_results,
+    CompareRequest, CsvAlignError, LoadComparisonSnapshotResponse, LoadPairOrderResponse,
+    PairOrderSelection, SessionData, SessionResponse, SuggestMappingsRequest, apply_csv_to_session,
+    comparison_inputs, export_session_results_snapshot, load_comparison_snapshot_workflow,
+    load_pair_order_workflow, parse_file_side, run_comparison, save_comparison_snapshot_workflow,
+    save_pair_order_workflow, suggest_mappings_workflow, validate_file_letter,
+    write_export_results,
 };
 use csv_align::data::csv_loader;
 use csv_align::presentation::responses::{
@@ -51,17 +52,19 @@ fn load_csv(
     session_id: String,
     file_letter: String,
     file_path: String,
-) -> Result<FileLoadResponse, String> {
+) -> Result<FileLoadResponse, CsvAlignError> {
     validate_file_letter(&file_letter)?;
     let file_side = parse_file_side(&file_letter)?;
 
-    let csv_data =
-        csv_loader::load_csv(&file_path).map_err(|e| format!("Failed to load CSV: {}", e))?;
+    let csv_data = csv_loader::load_csv(&file_path)
+        .map_err(|error| CsvAlignError::Parse(format!("Failed to load CSV: {error}")))?;
 
     let mut sessions = state.sessions.lock().unwrap();
     let session_data = sessions
         .get_mut(&session_id)
-        .ok_or_else(|| "Session not found".to_string())?;
+        .ok_or_else(|| CsvAlignError::NotFound {
+            resource: "Session".to_string(),
+        })?;
 
     Ok(apply_csv_to_session(session_data, file_side, csv_data))
 }
@@ -74,12 +77,12 @@ fn load_csv_bytes(
     file_letter: String,
     file_name: String,
     file_bytes: Vec<u8>,
-) -> Result<FileLoadResponse, String> {
+) -> Result<FileLoadResponse, CsvAlignError> {
     validate_file_letter(&file_letter)?;
     let file_side = parse_file_side(&file_letter)?;
 
     let mut csv_data = csv_loader::load_csv_from_bytes(&file_bytes)
-        .map_err(|e| format!("Failed to parse CSV bytes: {}", e))?;
+        .map_err(|error| CsvAlignError::Parse(format!("Failed to parse CSV bytes: {error}")))?;
 
     if !file_name.trim().is_empty() {
         csv_data.file_path = Some(file_name);
@@ -88,7 +91,9 @@ fn load_csv_bytes(
     let mut sessions = state.sessions.lock().unwrap();
     let session_data = sessions
         .get_mut(&session_id)
-        .ok_or_else(|| "Session not found".to_string())?;
+        .ok_or_else(|| CsvAlignError::NotFound {
+            resource: "Session".to_string(),
+        })?;
 
     Ok(apply_csv_to_session(session_data, file_side, csv_data))
 }
@@ -99,7 +104,7 @@ fn suggest_mappings(
     state: tauri::State<AppState>,
     session_id: String,
     request: SuggestMappingsRequest,
-) -> Result<SuggestMappingsResponse, String> {
+) -> Result<SuggestMappingsResponse, CsvAlignError> {
     Ok(state
         .with_session_mut(&session_id, |session_data| {
             suggest_mappings_workflow(Some(session_data), &request)
@@ -113,10 +118,12 @@ fn compare(
     state: tauri::State<AppState>,
     session_id: String,
     request: CompareRequest,
-) -> Result<CompareResponse, String> {
+) -> Result<CompareResponse, CsvAlignError> {
     let (csv_a, csv_b) = state
         .with_session(&session_id, comparison_inputs)
-        .ok_or_else(|| "Session not found".to_string())??;
+        .ok_or_else(|| CsvAlignError::NotFound {
+            resource: "Session".to_string(),
+        })??;
 
     let execution = run_comparison(&csv_a, &csv_b, request)?;
 
@@ -126,7 +133,9 @@ fn compare(
             session_data.comparison_results = execution.results;
             session_data.comparison_config = Some(execution.config);
         })
-        .ok_or_else(|| "Session not found".to_string())?;
+        .ok_or_else(|| CsvAlignError::NotFound {
+            resource: "Session".to_string(),
+        })?;
 
     Ok(response)
 }
@@ -137,10 +146,12 @@ fn export_results(
     state: tauri::State<AppState>,
     session_id: String,
     output_path: String,
-) -> Result<(), String> {
+) -> Result<(), CsvAlignError> {
     let (results, comparison_config) = state
         .with_session(&session_id, export_session_results_snapshot)
-        .ok_or_else(|| "Session not found".to_string())??;
+        .ok_or_else(|| CsvAlignError::NotFound {
+            resource: "Session".to_string(),
+        })??;
 
     write_export_results(&results, comparison_config.as_ref(), &output_path)
 }
@@ -151,15 +162,21 @@ fn save_pair_order(
     session_id: String,
     selection: PairOrderSelection,
     output_path: String,
-) -> Result<(), String> {
+) -> Result<(), CsvAlignError> {
     let contents = state
         .with_session(&session_id, |session_data| {
             save_pair_order_workflow(session_data, selection)
         })
-        .ok_or_else(|| "Session not found".to_string())??;
+        .ok_or_else(|| CsvAlignError::NotFound {
+            resource: "Session".to_string(),
+        })??;
 
-    fs::write(&output_path, contents)
-        .map_err(|error| format!("Failed to save pair-order file: {error}"))
+    fs::write(&output_path, contents).map_err(|error| {
+        CsvAlignError::Io(std::io::Error::new(
+            error.kind(),
+            format!("Failed to save pair-order file: {error}"),
+        ))
+    })
 }
 
 #[tauri::command]
@@ -167,15 +184,21 @@ fn load_pair_order(
     state: tauri::State<AppState>,
     session_id: String,
     file_path: String,
-) -> Result<LoadPairOrderResponse, String> {
-    let contents = fs::read_to_string(&file_path)
-        .map_err(|error| format!("Failed to read pair-order file: {error}"))?;
+) -> Result<LoadPairOrderResponse, CsvAlignError> {
+    let contents = fs::read_to_string(&file_path).map_err(|error| {
+        CsvAlignError::Io(std::io::Error::new(
+            error.kind(),
+            format!("Failed to read pair-order file: {error}"),
+        ))
+    })?;
 
     state
         .with_session(&session_id, |session_data| {
             load_pair_order_workflow(session_data, &contents)
         })
-        .ok_or_else(|| "Session not found".to_string())?
+        .ok_or_else(|| CsvAlignError::NotFound {
+            resource: "Session".to_string(),
+        })?
 }
 
 #[tauri::command]
@@ -183,13 +206,19 @@ fn save_comparison_snapshot(
     state: tauri::State<AppState>,
     session_id: String,
     output_path: String,
-) -> Result<(), String> {
+) -> Result<(), CsvAlignError> {
     let contents = state
         .with_session(&session_id, save_comparison_snapshot_workflow)
-        .ok_or_else(|| "Session not found".to_string())??;
+        .ok_or_else(|| CsvAlignError::NotFound {
+            resource: "Session".to_string(),
+        })??;
 
-    fs::write(&output_path, contents)
-        .map_err(|error| format!("Failed to save comparison snapshot file: {error}"))
+    fs::write(&output_path, contents).map_err(|error| {
+        CsvAlignError::Io(std::io::Error::new(
+            error.kind(),
+            format!("Failed to save comparison snapshot file: {error}"),
+        ))
+    })
 }
 
 #[tauri::command]
@@ -197,15 +226,21 @@ fn load_comparison_snapshot(
     state: tauri::State<AppState>,
     session_id: String,
     file_path: String,
-) -> Result<LoadComparisonSnapshotResponse, String> {
-    let contents = fs::read_to_string(&file_path)
-        .map_err(|error| format!("Failed to read comparison snapshot file: {error}"))?;
+) -> Result<LoadComparisonSnapshotResponse, CsvAlignError> {
+    let contents = fs::read_to_string(&file_path).map_err(|error| {
+        CsvAlignError::Io(std::io::Error::new(
+            error.kind(),
+            format!("Failed to read comparison snapshot file: {error}"),
+        ))
+    })?;
 
     state
         .with_session_mut(&session_id, |session_data| {
             load_comparison_snapshot_workflow(session_data, &contents)
         })
-        .ok_or_else(|| "Session not found".to_string())?
+        .ok_or_else(|| CsvAlignError::NotFound {
+            resource: "Session".to_string(),
+        })?
 }
 
 #[cfg(test)]

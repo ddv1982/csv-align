@@ -251,7 +251,10 @@ async fn response_contracts_create_and_delete_session_keep_stable_status_and_err
     let missing_json = response_json(missing_response).await;
     assert_eq!(
         missing_json,
-        serde_json::json!({ "error": "Session not found" })
+        serde_json::json!({
+            "code": "not_found",
+            "error": "Session not found"
+        })
     );
 }
 

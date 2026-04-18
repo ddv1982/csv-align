@@ -1,8 +1,8 @@
 use csv_align::backend::{
-    CompareRequest, MappingRequest, PairOrderSelection, SessionData, apply_csv_to_session,
-    comparison_inputs, export_results_to_bytes, export_session_results_snapshot,
-    load_comparison_snapshot_workflow, run_comparison, save_comparison_snapshot_workflow,
-    save_pair_order_workflow,
+    CompareRequest, CsvAlignError, MappingRequest, PairOrderSelection, SessionData,
+    apply_csv_to_session, comparison_inputs, export_results_to_bytes,
+    export_session_results_snapshot, load_comparison_snapshot_workflow, run_comparison,
+    save_comparison_snapshot_workflow, save_pair_order_workflow,
 };
 use csv_align::data::csv_loader;
 use csv_align::data::types::{ComparisonNormalizationConfig, FileSide};
@@ -134,7 +134,11 @@ fn run_comparison_rejects_unknown_mapping_type() {
     )
     .unwrap_err();
 
-    assert!(error.contains("Unknown mapping type 'mystery'"));
+    assert!(matches!(error, CsvAlignError::Validation(_)));
+    assert_eq!(
+        error.to_string(),
+        "Unknown mapping type 'mystery'. Expected one of: exact, manual, fuzzy"
+    );
 }
 
 #[test]
@@ -156,7 +160,11 @@ fn run_comparison_rejects_missing_comparison_columns() {
     )
     .unwrap_err();
 
-    assert!(error.contains("Comparison columns for File A reference missing columns: missing"));
+    assert!(matches!(error, CsvAlignError::Validation(_)));
+    assert_eq!(
+        error.to_string(),
+        "Comparison columns for File A reference missing columns: missing"
+    );
 }
 
 #[test]
@@ -178,7 +186,8 @@ fn run_comparison_rejects_mismatched_key_column_counts() {
     )
     .unwrap_err();
 
-    assert!(error.contains(
+    assert!(matches!(error, CsvAlignError::Validation(_)));
+    assert!(error.to_string().contains(
         "Key columns for File A and Key columns for File B must contain the same number of columns"
     ));
 }
@@ -235,8 +244,9 @@ fn save_pair_order_rejects_missing_columns_with_stable_message() {
     )
     .unwrap_err();
 
+    assert!(matches!(error, CsvAlignError::BadInput(_)));
     assert_eq!(
-        error,
+        error.to_string(),
         "Saved key columns for File A reference missing columns: missing"
     );
 }
@@ -260,8 +270,9 @@ fn save_pair_order_rejects_duplicate_columns_with_stable_message() {
     )
     .unwrap_err();
 
+    assert!(matches!(error, CsvAlignError::BadInput(_)));
     assert_eq!(
-        error,
+        error.to_string(),
         "Saved key columns for File A contain duplicate columns: id"
     );
 }
@@ -303,8 +314,9 @@ fn comparison_snapshot_load_rejects_summary_mismatches() {
     let error =
         load_comparison_snapshot_workflow(&mut SessionData::new(), &saved.to_string()).unwrap_err();
 
+    assert!(matches!(error, CsvAlignError::BadInput(_)));
     assert_eq!(
-        error,
+        error.to_string(),
         "Saved comparison snapshot summary does not match the persisted results"
     );
 }

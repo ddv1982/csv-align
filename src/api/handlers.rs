@@ -9,7 +9,7 @@ use serde::Serialize;
 use super::state::AppState;
 pub use crate::backend::{CompareRequest, MappingRequest, SessionResponse, SuggestMappingsRequest};
 use crate::backend::{
-    LoadComparisonSnapshotRequest, LoadPairOrderRequest, SavePairOrderRequest,
+    CsvAlignError, LoadComparisonSnapshotRequest, LoadPairOrderRequest, SavePairOrderRequest,
     load_comparison_snapshot_workflow, load_pair_order_workflow, save_comparison_snapshot_workflow,
     save_pair_order_workflow,
 };
@@ -48,7 +48,10 @@ fn bad_request_response(error: impl Into<String>) -> Response {
 }
 
 fn session_not_found_response() -> Response {
-    error_response(StatusCode::NOT_FOUND, "Session not found")
+    CsvAlignError::NotFound {
+        resource: "Session".to_string(),
+    }
+    .into_response()
 }
 
 /// Health check endpoint
@@ -84,7 +87,7 @@ pub async fn load_csv_file(
     mut multipart: Multipart,
 ) -> Response {
     if let Err(error) = validate_file_letter(&file_letter) {
-        return bad_request_response(error);
+        return error.into_response();
     }
 
     if state.with_session(&session_id, |_| ()).await.is_none() {
@@ -94,19 +97,24 @@ pub async fn load_csv_file(
     let field = match multipart.next_field().await {
         Ok(Some(field)) => field,
         Ok(None) => return bad_request_response("No file provided"),
-        Err(e) => return bad_request_response(format!("Failed to read multipart: {e}")),
+        Err(e) => {
+            return CsvAlignError::BadInput(format!("Failed to read multipart: {e}"))
+                .into_response();
+        }
     };
 
     let file_name = field.file_name().map(str::to_string);
 
     let bytes = match field.bytes().await {
         Ok(bytes) => bytes,
-        Err(e) => return bad_request_response(format!("Failed to read file: {e}")),
+        Err(e) => {
+            return CsvAlignError::BadInput(format!("Failed to read file: {e}")).into_response();
+        }
     };
 
     let mut csv_data = match csv_loader::load_csv_from_bytes(&bytes) {
         Ok(data) => data,
-        Err(e) => return bad_request_response(format!("Failed to parse CSV: {e}")),
+        Err(e) => return CsvAlignError::Parse(format!("Failed to parse CSV: {e}")).into_response(),
     };
 
     if let Some(file_name) = file_name {
@@ -152,14 +160,14 @@ pub async fn compare(
 ) -> Response {
     let comparison_input = match state.with_session(&session_id, comparison_inputs).await {
         Some(Ok(input)) => input,
-        Some(Err(error)) => return bad_request_response(error),
+        Some(Err(error)) => return error.into_response(),
         None => return session_not_found_response(),
     };
 
     let (csv_a, csv_b) = comparison_input;
     let execution = match run_comparison(&csv_a, &csv_b, request) {
         Ok(execution) => execution,
-        Err(error) => return bad_request_response(error),
+        Err(error) => return error.into_response(),
     };
 
     let _ = state
@@ -179,19 +187,14 @@ pub async fn export_csv(State(state): State<AppState>, Path(session_id): Path<St
         .await
     {
         Some(Ok(snapshot)) => snapshot,
-        Some(Err(error)) => return bad_request_response(error),
+        Some(Err(error)) => return error.into_response(),
         None => return session_not_found_response(),
     };
 
     let (results, comparison_config) = snapshot;
     let csv_content = match export_results_to_bytes(&results, comparison_config.as_ref()) {
         Ok(bytes) => bytes,
-        Err(e) => {
-            return error_response(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Failed to build CSV export: {e}"),
-            );
-        }
+        Err(error) => return error.into_response(),
     };
 
     // Return CSV as download
@@ -218,7 +221,7 @@ pub async fn save_pair_order(
         .await
     {
         Some(Ok(contents)) => contents,
-        Some(Err(error)) => return bad_request_response(error),
+        Some(Err(error)) => return error.into_response(),
         None => return session_not_found_response(),
     };
 
@@ -245,7 +248,7 @@ pub async fn load_pair_order(
         .await
     {
         Some(Ok(response)) => response,
-        Some(Err(error)) => return bad_request_response(error),
+        Some(Err(error)) => return error.into_response(),
         None => return session_not_found_response(),
     };
 
@@ -261,7 +264,7 @@ pub async fn save_comparison_snapshot(
         .await
     {
         Some(Ok(contents)) => contents,
-        Some(Err(error)) => return bad_request_response(error),
+        Some(Err(error)) => return error.into_response(),
         None => return session_not_found_response(),
     };
 
@@ -288,7 +291,7 @@ pub async fn load_comparison_snapshot(
         .await
     {
         Some(Ok(response)) => response,
-        Some(Err(error)) => return bad_request_response(error),
+        Some(Err(error)) => return error.into_response(),
         None => return session_not_found_response(),
     };
 

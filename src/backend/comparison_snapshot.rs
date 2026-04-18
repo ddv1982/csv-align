@@ -2,10 +2,12 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
+use crate::backend::error::CsvAlignError;
 use crate::backend::requests::{
     ComparisonSnapshotFile, LoadComparisonSnapshotResponse, PairOrderSelection,
 };
 use crate::backend::session::SessionData;
+use crate::backend::validation::audit_selected_columns;
 use crate::comparison::engine;
 use crate::data::types::{
     ColumnInfo, ColumnMapping, ComparisonConfig, ComparisonNormalizationConfig, CsvData,
@@ -29,25 +31,30 @@ struct PersistedComparisonSnapshot {
     summary: SummaryResponse,
 }
 
-pub fn save_comparison_snapshot_workflow(session_data: &SessionData) -> Result<String, String> {
+pub fn save_comparison_snapshot_workflow(
+    session_data: &SessionData,
+) -> Result<String, CsvAlignError> {
     let persisted = build_persisted_snapshot(session_data)?;
 
-    serde_json::to_string_pretty(&persisted)
-        .map_err(|error| format!("Failed to serialize comparison snapshot: {error}"))
+    serde_json::to_string_pretty(&persisted).map_err(|error| {
+        CsvAlignError::Internal(format!("Failed to serialize comparison snapshot: {error}"))
+    })
 }
 
 pub fn load_comparison_snapshot_workflow(
     session_data: &mut SessionData,
     contents: &str,
-) -> Result<LoadComparisonSnapshotResponse, String> {
-    let persisted: PersistedComparisonSnapshot = serde_json::from_str(contents)
-        .map_err(|error| format!("Failed to parse comparison snapshot file: {error}"))?;
+) -> Result<LoadComparisonSnapshotResponse, CsvAlignError> {
+    let persisted: PersistedComparisonSnapshot =
+        serde_json::from_str(contents).map_err(|error| {
+            CsvAlignError::Parse(format!("Failed to parse comparison snapshot file: {error}"))
+        })?;
 
     if persisted.version != COMPARISON_SNAPSHOT_FILE_VERSION {
-        return Err(format!(
+        return Err(CsvAlignError::BadInput(format!(
             "Unsupported comparison snapshot file version {}",
             persisted.version
-        ));
+        )));
     }
 
     validate_snapshot(&persisted)?;
@@ -90,19 +97,20 @@ pub fn load_comparison_snapshot_workflow(
 
 fn build_persisted_snapshot(
     session_data: &SessionData,
-) -> Result<PersistedComparisonSnapshot, String> {
+) -> Result<PersistedComparisonSnapshot, CsvAlignError> {
     let csv_a = session_data
         .csv_a
         .as_ref()
-        .ok_or_else(|| "File A not selected or loaded".to_string())?;
+        .ok_or_else(|| CsvAlignError::BadInput("File A not selected or loaded".to_string()))?;
     let csv_b = session_data
         .csv_b
         .as_ref()
-        .ok_or_else(|| "File B not selected or loaded".to_string())?;
-    let comparison_config = session_data
-        .comparison_config
-        .as_ref()
-        .ok_or_else(|| "No comparison results to save. Run a comparison first.".to_string())?;
+        .ok_or_else(|| CsvAlignError::BadInput("File B not selected or loaded".to_string()))?;
+    let comparison_config = session_data.comparison_config.as_ref().ok_or_else(|| {
+        CsvAlignError::BadInput(
+            "No comparison results to save. Run a comparison first.".to_string(),
+        )
+    })?;
 
     let summary = engine::generate_summary(
         &session_data.comparison_results,
@@ -146,7 +154,7 @@ fn build_persisted_snapshot(
     })
 }
 
-fn validate_snapshot(snapshot: &PersistedComparisonSnapshot) -> Result<(), String> {
+fn validate_snapshot(snapshot: &PersistedComparisonSnapshot) -> Result<(), CsvAlignError> {
     validate_selection(
         &snapshot.file_a.headers,
         &snapshot.file_b.headers,
@@ -181,9 +189,9 @@ fn validate_snapshot(snapshot: &PersistedComparisonSnapshot) -> Result<(), Strin
         || generated_summary.duplicates_a != expected_summary.duplicates_a
         || generated_summary.duplicates_b != expected_summary.duplicates_b
     {
-        return Err(
+        return Err(CsvAlignError::BadInput(
             "Saved comparison snapshot summary does not match the persisted results".to_string(),
-        );
+        ));
     }
 
     Ok(())
@@ -214,7 +222,7 @@ fn validate_selection(
     headers_a: &[String],
     headers_b: &[String],
     selection: &PairOrderSelection,
-) -> Result<(), String> {
+) -> Result<(), CsvAlignError> {
     validate_selected_columns(
         "Saved snapshot key columns for File A",
         headers_a,
@@ -238,13 +246,15 @@ fn validate_selection(
 
     if selection.key_columns_a.len() != selection.key_columns_b.len() {
         return Err(
-            "Saved snapshot key columns for File A and File B must contain the same number of columns"
-                .to_string(),
+            CsvAlignError::BadInput(
+                "Saved snapshot key columns for File A and File B must contain the same number of columns"
+                    .to_string(),
+            ),
         );
     }
 
     if selection.comparison_columns_a.len() != selection.comparison_columns_b.len() {
-        return Err("Saved snapshot comparison columns for File A and File B must contain the same number of columns".to_string());
+        return Err(CsvAlignError::BadInput("Saved snapshot comparison columns for File A and File B must contain the same number of columns".to_string()));
     }
 
     Ok(())
@@ -254,20 +264,19 @@ fn validate_selected_columns(
     label: &'static str,
     headers: &[String],
     selected_columns: &[String],
-) -> Result<(), String> {
-    for column in selected_columns {
-        if !headers.iter().any(|header| header == column) {
-            return Err(format!("{label} reference missing columns: {column}"));
-        }
+) -> Result<(), CsvAlignError> {
+    let audit = audit_selected_columns(headers, selected_columns);
+
+    if let Some(column) = audit.missing.first() {
+        return Err(CsvAlignError::BadInput(format!(
+            "{label} reference missing columns: {column}"
+        )));
     }
 
-    for (index, column) in selected_columns.iter().enumerate() {
-        if selected_columns[index + 1..]
-            .iter()
-            .any(|other| other == column)
-        {
-            return Err(format!("{label} contain duplicate columns: {column}"));
-        }
+    if let Some(column) = audit.duplicates.first() {
+        return Err(CsvAlignError::BadInput(format!(
+            "{label} contain duplicate columns: {column}"
+        )));
     }
 
     Ok(())
@@ -277,7 +286,7 @@ fn validate_mappings(
     headers_a: &[String],
     headers_b: &[String],
     mappings: &[MappingResponse],
-) -> Result<(), String> {
+) -> Result<(), CsvAlignError> {
     for mapping in mappings {
         if !headers_a
             .iter()
@@ -286,7 +295,8 @@ fn validate_mappings(
             return Err(format!(
                 "Saved snapshot mappings reference missing File A column: {}",
                 mapping.file_a_column
-            ));
+            )
+            .into());
         }
 
         if !headers_b
@@ -296,7 +306,8 @@ fn validate_mappings(
             return Err(format!(
                 "Saved snapshot mappings reference missing File B column: {}",
                 mapping.file_b_column
-            ));
+            )
+            .into());
         }
 
         if matches!(mapping.mapping_type, crate::data::types::MappingKind::Fuzzy)
@@ -305,7 +316,8 @@ fn validate_mappings(
             return Err(format!(
                 "Saved snapshot fuzzy mapping {} -> {} is missing a similarity score",
                 mapping.file_a_column, mapping.file_b_column
-            ));
+            )
+            .into());
         }
     }
 
@@ -314,7 +326,7 @@ fn validate_mappings(
 
 fn comparison_config_from_snapshot(
     snapshot: &PersistedComparisonSnapshot,
-) -> Result<ComparisonConfig, String> {
+) -> Result<ComparisonConfig, CsvAlignError> {
     Ok(ComparisonConfig {
         key_columns_a: snapshot.selection.key_columns_a.clone(),
         key_columns_b: snapshot.selection.key_columns_b.clone(),
@@ -329,16 +341,18 @@ fn comparison_config_from_snapshot(
     })
 }
 
-fn mapping_response_to_column_mapping(mapping: &MappingResponse) -> Result<ColumnMapping, String> {
+fn mapping_response_to_column_mapping(
+    mapping: &MappingResponse,
+) -> Result<ColumnMapping, CsvAlignError> {
     let mapping_type = match mapping.mapping_type {
         crate::data::types::MappingKind::Exact => MappingType::ExactMatch,
         crate::data::types::MappingKind::Manual => MappingType::ManualMatch,
         crate::data::types::MappingKind::Fuzzy => {
             MappingType::FuzzyMatch(mapping.similarity.ok_or_else(|| {
-                format!(
+                CsvAlignError::BadInput(format!(
                     "Saved snapshot fuzzy mapping {} -> {} is missing a similarity score",
                     mapping.file_a_column, mapping.file_b_column
-                )
+                ))
             })?)
         }
     };
@@ -352,7 +366,7 @@ fn mapping_response_to_column_mapping(mapping: &MappingResponse) -> Result<Colum
 
 fn result_response_to_row_comparison_result(
     result: &ResultResponse,
-) -> Result<RowComparisonResult, String> {
+) -> Result<RowComparisonResult, CsvAlignError> {
     let differences = result
         .differences
         .iter()
