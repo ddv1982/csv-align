@@ -49,6 +49,18 @@ None specific. If a feature requires UI verification, return to orchestrator —
     - `cd src-tauri && cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test` (always — wrapper compilation matters even for non-Tauri features).
     - If any frontend type or service changed: `cd frontend && npm run build`.
 
+11. **COMMIT THE WORK (HARD REQUIREMENT for success handoff).**
+    - After all validators are green, stage your changes and create a Conventional Commit with co-author trailer.
+    - Use types: `feat`, `fix`, `refactor`, `chore`, `perf`, `docs`, `test`, `build`, `ci`. `chore(deps)` for dep bumps; `refactor` for dedup / migration; `feat` for new modules/APIs.
+    - Commit message body should briefly explain what and why (1-2 sentences).
+    - ALWAYS include:
+      ```
+      Co-authored-by: factory-droid[bot] <138933559+factory-droid[bot]@users.noreply.github.com>
+      ```
+    - Verify `git status --short` is empty after the commit and record the commit SHA in your handoff.
+    - **A feature without a commit cannot be reported as `successState: "success"`.** If you cannot commit for some reason, return to orchestrator explaining why — do not leave the tree dirty and claim success.
+    - If the working tree at session start already contains unexpected modified files, return to orchestrator immediately rather than committing or attempting to distinguish scope.
+
 ## Example Handoff
 
 ```json

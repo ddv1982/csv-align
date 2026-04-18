@@ -52,6 +52,16 @@ Do NOT use for: backend-only changes (use `rust-worker`), release tagging (use `
     - `cd frontend && npm run build && npm test -- --run && npm run lint` — all exit 0.
     - For user-visible features: ≥1 agent-browser `interactiveChecks` entry per fulfilled assertion.
 
+11. **COMMIT THE WORK (HARD REQUIREMENT for success handoff).**
+    - After validators are green, stage changes and create a Conventional Commit with co-author trailer. Types: `feat`, `fix`, `refactor`, `chore`, `perf`, `docs`, `test`, `style`.
+    - ALWAYS include:
+      ```
+      Co-authored-by: factory-droid[bot] <138933559+factory-droid[bot]@users.noreply.github.com>
+      ```
+    - Verify `git status --short` is empty after commit; record SHA in handoff.
+    - **A feature without a commit cannot be reported as `successState: "success"`.** If you cannot commit, return to orchestrator explaining why.
+    - If the working tree at session start has unexpected pre-existing modifications, return to orchestrator immediately instead of committing mixed scope.
+
 ## Example Handoff
 
 ```json
