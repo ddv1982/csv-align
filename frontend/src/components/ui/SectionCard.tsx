@@ -61,6 +61,7 @@ export function SectionCard({
 }: SectionCardProps) {
   const HeadingTag = headingLevel;
   const toneClasses = TONE_CLASSES[tone];
+  const hasBody = children !== null && children !== undefined && children !== false;
 
   return (
     <section
@@ -81,7 +82,7 @@ export function SectionCard({
         </div>
         {action && <div className="shrink-0">{action}</div>}
       </div>
-      <div className="mt-5">{children}</div>
+      {hasBody && <div className="mt-5">{children}</div>}
     </section>
   );
 }

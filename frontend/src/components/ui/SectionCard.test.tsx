@@ -88,3 +88,14 @@ test('applies custom root classes', () => {
   expect(container.firstElementChild).toHaveClass('border-sky-200');
   expect(container.firstElementChild).toHaveClass('bg-sky-50');
 });
+
+test('omits the body spacer when children is null', () => {
+  const { container } = render(
+    <SectionCard eyebrow="Read-only snapshot" title="Header only" icon={<svg aria-hidden="true" />}>
+      {null}
+    </SectionCard>,
+  );
+
+  expect(screen.queryByText('Header only')).toBeInTheDocument();
+  expect(container.querySelector('.mt-5')).toBeNull();
+});
