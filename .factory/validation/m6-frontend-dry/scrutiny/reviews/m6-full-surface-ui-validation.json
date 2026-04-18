@@ -1,0 +1,38 @@
+{
+  "featureId": "m6-full-surface-ui-validation",
+  "reviewedAt": "2026-04-18T03:58:57Z",
+  "commitId": "missing-in-handoff",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "This feature intentionally made no source edits, so there is no worker commit diff to review. The review therefore focused on handoff evidence quality versus the feature contract; the submitted run is still partial and does not satisfy the per-assertion evidence requirement.",
+    "issues": [
+      {
+        "file": "/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c/handoffs/2026-04-18T03-48-28-385Z__m6-full-surface-ui-validation__0b000979-ad26-4d17-8180-c8db20f80bc7.json",
+        "line": 55,
+        "severity": "blocking",
+        "description": "The feature contract requires one interactiveChecks pass/fail record per fulfilled assertion (`features.json:207`), but this handoff provides grouped checks and explicitly calls out partial evidence (`successState: partial` at line 6; partial-evidence notes at lines 11, 78, 94, and 118). As written, coverage for all fulfilled VAL-* assertions cannot be verified from this feature handoff."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "The frontend-worker success contract conflicts with validation-only features that explicitly forbid source edits.",
+      "evidence": "Skill hard-requires a commit for success (`.factory/skills/frontend-worker/SKILL.md:55-63`), while this feature requires no source changes (`features.json:209`) and the handoff reports no commit because of that conflict (handoff lines 11, 129-132)."
+    },
+    {
+      "area": "conventions",
+      "observation": "Mission state shows a completed feature whose latest worker handoff is still partial, which makes completion semantics ambiguous for downstream reviewers.",
+      "evidence": "Feature is marked `status: completed` in `features.json:317`, but the reviewed handoff is `successState: partial` with `returnToOrchestrator: true` (handoff lines 6-7)."
+    },
+    {
+      "area": "knowledge",
+      "observation": "There is no shared assertion-report template for high-cardinality UI sweeps, which contributed to grouped evidence instead of one record per VAL assertion.",
+      "evidence": "Handoff deviation notes grouped interactive checks instead of per-assertion entries (handoff lines 134-136) and explicitly requests a dedicated validation-report schema (handoff lines 140-141)."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Failing review: no code changes were expected, but the submitted handoff remains partial and does not meet the feature’s required per-assertion interactive evidence contract."
+}

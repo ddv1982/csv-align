@@ -1,0 +1,28 @@
+{
+  "featureId": "m6-use-transition-results-table",
+  "reviewedAt": "2026-04-18T04:02:39Z",
+  "commitId": "07f5ec49622644cd130a118ac1e267844858e6b0",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "The feature implements useTransition for sort/search and memoizes workflow filteredResults, but the search transition is wired directly to the controlled input value, which can delay or revert typed characters under load and introduces behavior risk contrary to the feature's no-behavior-change intent.",
+    "issues": [
+      {
+        "file": "frontend/src/components/ResultsTable.tsx",
+        "line": 243,
+        "severity": "blocking",
+        "description": "The search input is controlled by `searchQuery` (`value={searchQuery}`) while `setSearchQuery` is only called inside `startTransition` in `onChange`. Transition updates are non-urgent and are not safe for the controlling state of text inputs; this can make typing laggy/inconsistent on heavy renders. Use an urgent input state for `value` and transition/defer only the expensive filtering state."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "knowledge",
+      "observation": "Frontend shared guidance does not call out the React caveat that transition updates should not drive controlled text input state, which likely contributed to this implementation pattern.",
+      "evidence": "`.factory/skills/frontend-worker/SKILL.md` has no note about controlled-input transition constraints; this feature applies `startTransition(() => setSearchQuery(...))` to a controlled `<input value={searchQuery}>` in `frontend/src/components/ResultsTable.tsx:242-247`."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed handoff, transcript skeleton, skill, and commit 07f5ec4. Found one blocking correctness/UX issue in ResultsTable: transition-driven controlled search input state. Marking this feature review as fail pending a fix."
+}

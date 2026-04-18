@@ -1,0 +1,34 @@
+{
+  "featureId": "m6-wire-delete-session-on-reset",
+  "reviewedAt": "2026-04-18T04:03:27Z",
+  "commitId": "669e0c8ab9da3905c6c0365bd5329de97177ba4c",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "The feature correctly wires reset to call `deleteSession` before `createSession` in the web path and adds hook coverage, but it introduces a desktop regression: the new Tauri invoke command (`delete_session`) is not implemented or registered in `src-tauri`, so reset will fail in Tauri builds.",
+    "issues": [
+      {
+        "file": "frontend/src/services/tauri.ts",
+        "line": 73,
+        "severity": "blocking",
+        "description": "Tauri mode now calls `invoke('delete_session', { sessionId })`, but there is no matching Tauri command implementation/registration. `src-tauri/src/main.rs` invoke handler list (lines 275-284) includes create/load/compare/export/pair-order/snapshot commands but no `delete_session`; reset will throw an unknown-command error on desktop and cannot complete the intended delete-then-create flow."
+      },
+      {
+        "file": "frontend/src/hooks/useComparisonWorkflow.test.ts",
+        "line": 384,
+        "severity": "non_blocking",
+        "description": "New coverage validates hook behavior but does not cover the new `deleteSession` transport helper itself (browser fetch branch and Tauri invoke branch), which allowed the missing desktop command mismatch to slip through."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "The frontend-worker procedure does not explicitly require confirming that newly added `services/tauri.ts` invoke commands have corresponding Rust `#[tauri::command]` handlers and registrations unless the feature is framed as a wire-contract change.",
+      "evidence": "Skill file `.factory/skills/frontend-worker/SKILL.md` mandates browser UI checks and frontend validators, but this feature added `invoke('delete_session')` in `frontend/src/services/tauri.ts:73` while `src-tauri/src/main.rs` command registry (lines 275-284 in commit 669e0c8) lacks `delete_session`."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed feature `m6-wire-delete-session-on-reset` using its features entry, handoff, transcript skeleton, skill guidance, and commit `669e0c8` diff. Result is FAIL due to a blocking Tauri runtime regression (missing `delete_session` command)."
+}

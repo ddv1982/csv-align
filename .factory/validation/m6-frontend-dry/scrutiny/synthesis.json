@@ -1,0 +1,141 @@
+{
+  "milestone": "m6-frontend-dry",
+  "round": 1,
+  "status": "fail",
+  "validatorsRun": {
+    "test": {
+      "passed": true,
+      "command": "cargo test -j 4 && (cd src-tauri && cargo test -j 4) && (cd frontend && npm test -- --run)",
+      "exitCode": 0
+    },
+    "typecheck": {
+      "passed": true,
+      "command": "cd frontend && npx tsc --noEmit",
+      "exitCode": 0
+    },
+    "lint": {
+      "passed": true,
+      "command": "cd frontend && npm run lint",
+      "exitCode": 0
+    }
+  },
+  "reviewsSummary": {
+    "total": 14,
+    "passed": 9,
+    "failed": 5,
+    "failedFeatures": [
+      "m6-full-surface-ui-validation",
+      "m6-section-card-extraction",
+      "m6-shared-test-fixtures",
+      "m6-use-transition-results-table",
+      "m6-wire-delete-session-on-reset"
+    ]
+  },
+  "blockingIssues": [
+    {
+      "featureId": "m6-full-surface-ui-validation",
+      "severity": "blocking",
+      "description": "The feature contract requires one interactiveChecks pass/fail record per fulfilled assertion (`features.json:207`), but this handoff provides grouped checks and explicitly calls out partial evidence (`successState: partial` at line 6; partial-evidence notes at lines 11, 78, 94, and 118). As written, coverage for all fulfilled VAL-* assertions cannot be verified from this feature handoff.",
+      "file": "/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c/handoffs/2026-04-18T03-48-28-385Z__m6-full-surface-ui-validation__0b000979-ad26-4d17-8180-c8db20f80bc7.json",
+      "line": 55
+    },
+    {
+      "featureId": "m6-section-card-extraction",
+      "severity": "blocking",
+      "description": "SummaryStats now renders the summary glyph twice: once in `title` (lines 134-139) and again via SectionCard `icon` (lines 144-148). The pre-refactor header had a single icon, so this is a visible parity regression.",
+      "file": "frontend/src/components/SummaryStats.tsx",
+      "line": 134
+    },
+    {
+      "featureId": "m6-section-card-extraction",
+      "severity": "blocking",
+      "description": "SectionCard hardcodes neutral title/description colors (`text-gray-*`) regardless of tone (lines 71-72). In ResultsStep read-only mode (`tone=\"info\"`), this drops the previous sky-emphasis typography (previously `text-sky-*`), so the extracted card does not preserve UI parity.",
+      "file": "frontend/src/components/ui/SectionCard.tsx",
+      "line": 71
+    },
+    {
+      "featureId": "m6-shared-test-fixtures",
+      "severity": "blocking",
+      "description": "Feature expectedBehavior requires all three App*.test.tsx suites to import shared scaffolding, but this file still defines its own duplicated vi.hoisted mock block (and local tauri/FileSelector mocks at lines 29 and 46) instead of importing shared fixtures.",
+      "file": "frontend/src/App.saved-result-ux.test.tsx",
+      "line": 16
+    },
+    {
+      "featureId": "m6-shared-test-fixtures",
+      "severity": "blocking",
+      "description": "Feature contract explicitly targets frontend/src/test/fixtures.ts and imports from fixtures.ts, but implementation created fixtures.tsx and consumers import './test/fixtures.tsx' instead (e.g., App.file-selection-navigation.test.tsx:4, App.results-navigation.test.tsx:4).",
+      "file": "frontend/src/test/fixtures.tsx",
+      "line": 1
+    },
+    {
+      "featureId": "m6-use-transition-results-table",
+      "severity": "blocking",
+      "description": "The search input is controlled by `searchQuery` (`value={searchQuery}`) while `setSearchQuery` is only called inside `startTransition` in `onChange`. Transition updates are non-urgent and are not safe for the controlling state of text inputs; this can make typing laggy/inconsistent on heavy renders. Use an urgent input state for `value` and transition/defer only the expensive filtering state.",
+      "file": "frontend/src/components/ResultsTable.tsx",
+      "line": 243
+    },
+    {
+      "featureId": "m6-wire-delete-session-on-reset",
+      "severity": "blocking",
+      "description": "Tauri mode now calls `invoke('delete_session', { sessionId })`, but there is no matching Tauri command implementation/registration. `src-tauri/src/main.rs` invoke handler list (lines 275-284) includes create/load/compare/export/pair-order/snapshot commands but no `delete_session`; reset will throw an unknown-command error on desktop and cannot complete the intended delete-then-create flow.",
+      "file": "frontend/src/services/tauri.ts",
+      "line": 73
+    }
+  ],
+  "appliedUpdates": [],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "frontend-worker skill",
+      "suggestion": "Add explicit checks for frontend\u2194Tauri command parity: whenever services/tauri.ts introduces a new invoke command, require verification that matching #[tauri::command] handler and tauri::generate_handler! registration exist.",
+      "evidence": "Feature m6-wire-delete-session-on-reset passed frontend tests but scrutiny found invoke(\"delete_session\") without a registered Rust command, causing a desktop-runtime blocker.",
+      "isSystemic": true
+    },
+    {
+      "target": "frontend-worker skill",
+      "suggestion": "Document safe useTransition patterns for controlled inputs: keep input value updates urgent and transition only derived/expensive computations.",
+      "evidence": "Feature m6-use-transition-results-table put controlled input state updates inside startTransition, causing a blocking responsiveness/correctness issue.",
+      "isSystemic": true
+    },
+    {
+      "target": "frontend-worker skill",
+      "suggestion": "Add an explicit fallback for UI validation startup when cargo run fails with AddrInUse: verify health on expected port and reuse the healthy server instead of treating it as a procedure deviation.",
+      "evidence": "Feature m6-a11y-and-footer-polish recorded AddrInUse while still validating successfully against an already-running healthy server.",
+      "isSystemic": false
+    },
+    {
+      "target": "AGENTS.md / mission authoring conventions",
+      "suggestion": "Resolve contradiction between validation-only features that forbid source edits and worker success contracts that require a commit; provide a sanctioned no-code success path for such features.",
+      "evidence": "m6-full-surface-ui-validation was marked completed with a partial handoff due to this contract conflict and could not satisfy per-assertion evidence requirements cleanly.",
+      "isSystemic": true
+    },
+    {
+      "target": "mission authoring conventions",
+      "suggestion": "Require mission.md and features.json acceptance criteria to stay in lockstep (single canonical source or automated consistency check) before assigning workers.",
+      "evidence": "Scrutiny observations found conflicting expectations in M6 artifacts (e.g., React compiler cleanup scope; fixture extension/path expectations; reducer helper verification wording).",
+      "isSystemic": true
+    }
+  ],
+  "rejectedObservations": [
+    {
+      "observation": "Icon module placement mismatch between architecture docs and feature contract.",
+      "reason": "already-documented in review set and scoped to mission-document drift; no immediate operational impact on validator flow."
+    },
+    {
+      "observation": "Rust-worker strictness mismatch from a single handoff (missing src-tauri fmt/clippy in final verification command).",
+      "reason": "ambiguous single-sample process observation; not enough evidence of systemic drift within this milestone."
+    },
+    {
+      "observation": "Frontend-worker user-testing.md read step not reflected in one transcript skeleton.",
+      "reason": "ambiguous and potentially instrumentation-related; insufficient evidence to mandate guidance change."
+    },
+    {
+      "observation": "TDD rigidity concern for pure fixture-dedup features.",
+      "reason": "duplicate with existing policy debate and not directly causal for a blocking product defect in this milestone."
+    },
+    {
+      "observation": "Need dedicated assertion-report template for very high-cardinality UI sweeps.",
+      "reason": "duplicate of the broader validation-only feature contract conflict captured in suggested guidance updates."
+    }
+  ],
+  "previousRound": null
+}

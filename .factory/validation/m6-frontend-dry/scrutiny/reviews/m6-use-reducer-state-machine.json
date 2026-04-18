@@ -1,0 +1,34 @@
+{
+  "featureId": "m6-use-reducer-state-machine",
+  "reviewedAt": "2026-04-18T03:58:12Z",
+  "commitId": "7a9a365a8a4620eb3be39a0369f8610428160a61",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The reducer refactor removes the ref/effect auto-advance flow and keeps the hook API surface intact. I found no blocking regressions against the feature scope, but two exported setter wrappers subtly change functional-updater semantics.",
+    "issues": [
+      {
+        "file": "frontend/src/hooks/useComparisonWorkflow.ts",
+        "line": 646,
+        "severity": "non_blocking",
+        "description": "`setMappingSelection` computes functional updates from a closed-over value (`selection(mappingSelection)`) before dispatch. This differs from React's queued functional-setter semantics, so multiple functional updates in one tick can drop earlier updates."
+      },
+      {
+        "file": "frontend/src/hooks/useComparisonWorkflow.ts",
+        "line": 658,
+        "severity": "non_blocking",
+        "description": "`setNormalizationConfig` uses the same closed-over functional-updater pattern (`nextNormalizationConfig(normalizationConfig)`), which can stale-read when functional updates are queued before the next render."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "The feature contract is internally inconsistent about loading/error helper names: expectedBehavior allows dispatcher-collapsed helpers, while verificationSteps requires zero matches for `startLoading|failLoading`.",
+      "evidence": "/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c/features.json:1463-1471 versus frontend/src/hooks/useComparisonWorkflow.ts (commit 7a9a365) lines 295 and 299."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed feature m6-use-reducer-state-machine using the handoff, transcript skeleton, skill file, and commit diff for 7a9a365. Implementation meets the reducer-state-machine and auto-advance-ref removal goals with no blocking defects. Logged two non-blocking setter-semantic risks and one shared-state contract inconsistency."
+}

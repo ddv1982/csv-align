@@ -1,0 +1,26 @@
+{
+  "featureId": "m6-a11y-and-footer-polish",
+  "reviewedAt": "2026-04-18T04:03:01Z",
+  "commitId": "3a631931ab224186ed9f1bf013441895641c2cde",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The reviewed commit implements the scoped shell-a11y/footer polish changes and aligns with the feature expectations: FileSelector remains keyboard-accessible (Enter/Space with focusability), the dropzone now has tooltip text, AppHeader theme toggle moved to dedicated icon-button styling, AppHeader new-window tooltip is present, and App layout uses a flex-growing main region under a min-h-screen flex-column shell so the footer can pin on short pages. The remaining requirements (decorative SVG aria-hidden audit and FilterBar export aria-label) are satisfied in the reviewed frontend state.",
+    "issues": []
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "The frontend-worker procedure for UI verification assumes starting a fresh `cargo run &`, but does not document an explicit fallback when the manifest port is already occupied by a healthy project server, which led to a recorded procedure deviation.",
+      "evidence": "Skill `/Users/vriesd/projects/csv-align/.factory/skills/frontend-worker/SKILL.md` step 5 says to start Axum (`cargo run &`). Handoff `2026-04-18T03-07-36-286Z__m6-a11y-and-footer-polish__92eebb98-fcb5-4839-8117-4a608be769fc.json` `skillFeedback.deviations` notes `AddrInUse` and reuse of an already-healthy server."
+    },
+    {
+      "area": "knowledge",
+      "observation": "Guidance for agent-browser file-upload flows with hidden file inputs is not captured in shared testing docs/skill, which caused ad-hoc DOM-manipulation steps during validation and was explicitly called out by the worker.",
+      "evidence": "The same handoff `skillFeedback.suggestedChanges` requests documenting hidden-input upload handling. Transcript skeleton for worker session `92eebb98-fcb5-4839-8117-4a608be769fc` includes browser Execute steps described as temporarily manipulating DOM styles to expose hidden file inputs before upload."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed feature `m6-a11y-and-footer-polish` at commit `3a63193`; implementation matches the feature scope and expected behavior, so this scrutiny review passes. Two shared-state observations were recorded around frontend-worker/user-testing guidance for service reuse and hidden-file-input browser validation."
+}

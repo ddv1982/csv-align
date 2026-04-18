@@ -1,0 +1,15 @@
+{
+  "featureId": "m6-single-reduce-filter-counts",
+  "reviewedAt": "2026-04-18T03:57:47Z",
+  "commitId": "4d56ec29955cff733abcc0fdc655920e7d51e8fa",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The commit replaces the previous multi-pass counting logic with a single reduce in `getResultFilterCounts`, preserves the expected count object shape, and extends tests to cover all duplicate variants aggregating into the duplicate bucket. No blocking or non-blocking defects were identified in scope.",
+    "issues": []
+  },
+  "sharedStateObservations": [],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed handoff, transcript skeleton, skill expectations, and commit diff for `m6-single-reduce-filter-counts`. Implementation satisfies the feature description and expected behavior with no actionable issues found."
+}

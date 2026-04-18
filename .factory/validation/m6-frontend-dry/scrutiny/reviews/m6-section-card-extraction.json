@@ -1,0 +1,40 @@
+{
+  "featureId": "m6-section-card-extraction",
+  "reviewedAt": "2026-04-18T03:58:46Z",
+  "commitId": "1cf3a05d7a6a3c439c6770fd83e593a1b8d61574",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "The extraction is broadly implemented (new SectionCard + migrated call sites + Vitest coverage), but there are UI-parity regressions in the migrated surfaces that violate the feature’s expected behavior.",
+    "issues": [
+      {
+        "file": "frontend/src/components/SummaryStats.tsx",
+        "line": 134,
+        "severity": "blocking",
+        "description": "SummaryStats now renders the summary glyph twice: once in `title` (lines 134-139) and again via SectionCard `icon` (lines 144-148). The pre-refactor header had a single icon, so this is a visible parity regression."
+      },
+      {
+        "file": "frontend/src/components/ui/SectionCard.tsx",
+        "line": 71,
+        "severity": "blocking",
+        "description": "SectionCard hardcodes neutral title/description colors (`text-gray-*`) regardless of tone (lines 71-72). In ResultsStep read-only mode (`tone=\"info\"`), this drops the previous sky-emphasis typography (previously `text-sky-*`), so the extracted card does not preserve UI parity."
+      },
+      {
+        "file": "frontend/src/components/app/ResultsStep.tsx",
+        "line": 64,
+        "severity": "non_blocking",
+        "description": "Header-only cards now pass an empty `<div />` child (also at line 95) to satisfy `children`, which forces SectionCard’s `mt-5` body wrapper and introduces avoidable empty spacing."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "The frontend-worker procedure and mission AGENTS require explicit Red→Green TDD, but this session’s transcript skeleton shows the new test file being added before any targeted failing test run; the first targeted SectionCard test command appears only after implementation and is green.",
+      "evidence": "Transcript skeleton for workerSessionId be386202-7aa2-4fd4-851c-2dd1ea46dff2 lists ApplyPatch calls creating SectionCard/SectionCard.test.tsx before `cd frontend && npm test -- --run SectionCard` (exitCode 0), while handoff.skillFeedback.followedProcedure is true."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Failing review: the feature lands the extraction and tests, but introduces visible UI-parity regressions (duplicate SummaryStats icon and loss of info-tone title/description styling in read-only snapshot cards)."
+}

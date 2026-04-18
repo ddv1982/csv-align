@@ -1,0 +1,21 @@
+{
+  "featureId": "m6-centralize-icons",
+  "reviewedAt": "2026-04-18T03:59:35Z",
+  "commitId": "ebe1cf271bdbf7027c53c8aa6970600b28e247ed",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The commit delivers the feature intent: it introduces a centralized `frontend/src/components/icons/index.tsx` module, replaces inline SVG usage across the affected components with named icon components, and ensures decorative SVG rendering flows through `IconBase` with `aria-hidden=\"true\"`. The diff also adds focused accessibility assertions (dropzone keyboard role/tabindex, export button label, header tooltip), and no blocking or non-blocking implementation defects were found in this feature scope.",
+    "issues": []
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "Shared architecture docs and milestone feature contract disagree on icon module placement, which can cause worker confusion for future icon work.",
+      "evidence": "Mission feature contract expects `components/icons/index.ts` (`features.json` line 1385), while `.factory/library/architecture.md` still documents icon set under `components/ui/` (line 71). The reviewed commit implements `frontend/src/components/icons/index.tsx`."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed feature `m6-centralize-icons` on commit `ebe1cf2`; implementation satisfies the described icon-centralization and decorative-SVG accessibility goals, so this scrutiny review passes. One shared-state documentation mismatch was recorded."
+}

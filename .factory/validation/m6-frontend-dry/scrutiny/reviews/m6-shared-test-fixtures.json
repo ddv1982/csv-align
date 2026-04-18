@@ -1,0 +1,39 @@
+{
+  "featureId": "m6-shared-test-fixtures",
+  "reviewedAt": "2026-04-18T03:57:56Z",
+  "commitId": "4b36e00ad7fb300279b593918ee48054d2d51240",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "The refactor successfully extracted shared mocks and updated two App navigation test suites, but it does not satisfy the feature contract requiring all three App*.test.tsx files to consume shared scaffolding from fixtures.ts.",
+    "issues": [
+      {
+        "file": "frontend/src/App.saved-result-ux.test.tsx",
+        "line": 16,
+        "severity": "blocking",
+        "description": "Feature expectedBehavior requires all three App*.test.tsx suites to import shared scaffolding, but this file still defines its own duplicated vi.hoisted mock block (and local tauri/FileSelector mocks at lines 29 and 46) instead of importing shared fixtures."
+      },
+      {
+        "file": "frontend/src/test/fixtures.tsx",
+        "line": 1,
+        "severity": "blocking",
+        "description": "Feature contract explicitly targets frontend/src/test/fixtures.ts and imports from fixtures.ts, but implementation created fixtures.tsx and consumers import './test/fixtures.tsx' instead (e.g., App.file-selection-navigation.test.tsx:4, App.results-navigation.test.tsx:4)."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "frontend-worker's TDD procedure is too rigid for pure test-fixture dedup features; worker explicitly deviated from mandatory red-first flow and validated via existing targeted tests.",
+      "evidence": ".factory/skills/frontend-worker/SKILL.md:30-31 mandates failing-test-first; handoff reports skillFeedback.followedProcedure=false with deviation on '3. Red → Green TDD' in mission handoff JSON lines 66-69."
+    },
+    {
+      "area": "conventions",
+      "observation": "Shared-state guidance hardcodes fixtures.ts, but worker produced fixtures.tsx to host JSX mock components, indicating ambiguity in the convention for test fixture extension.",
+      "evidence": "Mission AGENTS.md:39 says shared scaffolding lives in frontend/src/test/fixtures.ts, while implemented file path is frontend/src/test/fixtures.tsx and imports at App.file-selection-navigation.test.tsx:4 and App.results-navigation.test.tsx:4."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Review failed: commit 4b36e00 extracts reusable mocks but leaves App.saved-result-ux.test.tsx unhoisted and does not meet the explicit fixtures.ts path/usage contract."
+}

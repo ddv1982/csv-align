@@ -1,0 +1,28 @@
+{
+  "featureId": "m6-fix-legacy-snapshot-version-message",
+  "reviewedAt": "2026-04-18T04:03:10Z",
+  "commitId": "65901a1",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The feature intent is implemented: both HTTP and Tauri now gate snapshot loads on `version` before full v2 deserialization, legacy v1 returns the explicit unsupported-version bad-input message, and regression coverage was added in response-contract and Tauri command tests.",
+    "issues": [
+      {
+        "file": "src/api/handlers.rs",
+        "line": 80,
+        "severity": "non_blocking",
+        "description": "The version probe is typed as `u8`, so payloads with `version` values above 255 produce a parse error instead of the unsupported-version bad-input path required for any version != 2. The same robustness gap exists in `src-tauri/src/main.rs:239`."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "The rust-worker skill's required final verification steps appear stricter than what workers are actually using, but handoffs can still mark `followedProcedure: true`, indicating procedure drift and possible confusion.",
+      "evidence": "Skill requires `cd src-tauri && cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test` (`.factory/skills/rust-worker/SKILL.md:47-49`), while this handoff's final validation command only ran root clippy plus `cd src-tauri && cargo test` (`.../handoffs/2026-04-18T03-31-46-416Z__m6-fix-legacy-snapshot-version-message__b7b6e2c2-4a0e-490a-ae62-15f5e6b83618.json:36`) and still reports `followedProcedure: true` (line 67)."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed feature metadata, handoff, transcript skeleton, rust-worker skill, and commit 65901a1 diff. The regression fix is present and contract tests were added for both transports, with one non-blocking robustness issue on version probe typing and one shared-state skill/procedure consistency observation."
+}

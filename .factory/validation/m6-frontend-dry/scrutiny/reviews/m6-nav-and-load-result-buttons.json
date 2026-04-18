@@ -1,0 +1,21 @@
+{
+  "featureId": "m6-nav-and-load-result-buttons",
+  "reviewedAt": "2026-04-18T03:57:35Z",
+  "commitId": "ba53b57bc2e6edcc52a470bcc4d582c7ac630ae8",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The commit cleanly extracts shared `NavButton` and `LoadResultButton` components, migrates the three step components to use them, and adds targeted Vitest coverage for both shared components. The implementation matches the feature description and expected behavior, and no blocking or non-blocking code issues were identified in the reviewed diff.",
+    "issues": []
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "The `frontend-worker` procedure says workers should read both `.factory/library/architecture.md` and `.factory/library/user-testing.md` at the start, but this session transcript skeleton shows reads for architecture/services and no read of `user-testing.md`, while handoff `skillFeedback.followedProcedure` is still `true`.",
+      "evidence": "Skill file `/Users/vriesd/projects/csv-align/.factory/skills/frontend-worker/SKILL.md` step 1 vs transcript skeleton for workerSessionId `bfa4f7f4-6d03-4759-80f2-0c373e20ed13` (contains `architecture.md` and `services.yaml`, does not contain `user-testing.md`)."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed feature `m6-nav-and-load-result-buttons` (commit `ba53b57`). The refactor and tests satisfy the stated feature requirements, so this scrutiny review passes; one process-level skill/procedure adherence observation is noted."
+}
