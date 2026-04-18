@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer } from 'react';
 import { INITIAL_NORMALIZATION_CONFIG } from '../config/normalization';
 import { buildAutoPairSelection } from '../features/mapping/autoPair';
 import { filterResults } from '../features/results/presentation';
@@ -17,7 +17,44 @@ import {
 import type { AppState, CompareRequest, ComparisonNormalizationConfig, FileLetter, MappingDto, ResultFilter } from '../types/api';
 import { INITIAL_MAPPING_SELECTION, type AppStep, type MappingSelectionState } from '../types/ui';
 
-const INITIAL_STATE: AppState = {
+type LoadComparisonSnapshotResult = Exclude<Awaited<ReturnType<typeof loadComparisonSnapshot>>, void>;
+
+const SNAPSHOT_READ_ONLY_ERROR = 'Loaded comparison snapshots are read-only. Use Reset to start a new comparison.';
+
+type WorkflowState = {
+  appState: AppState;
+  step: AppStep;
+  mappingSelection: MappingSelectionState;
+  normalizationConfig: ComparisonNormalizationConfig;
+};
+
+type WorkflowAction =
+  | { type: 'sessionCreated'; sessionId: string }
+  | { type: 'workflowError'; error: string }
+  | { type: 'loadingStarted'; clearError: boolean }
+  | { type: 'loadingFailed'; error: string }
+  | { type: 'fileLoaded'; fileLetter: FileLetter; fileData: NonNullable<AppState['fileA']> }
+  | {
+    type: 'compareSucceeded';
+    mappings: MappingDto[];
+    results: AppState['results'];
+    summary: NonNullable<AppState['summary']>;
+  }
+  | { type: 'downloadCompleted' }
+  | {
+    type: 'snapshotLoaded';
+    response: LoadComparisonSnapshotResult;
+  }
+  | { type: 'pairOrderLoaded'; selection: MappingSelectionState }
+  | { type: 'filterChanged'; filter: ResultFilter }
+  | { type: 'autoPairSucceeded'; mappings: MappingDto[]; selection: MappingSelectionState }
+  | { type: 'autoPairUnavailable'; mappings: MappingDto[]; error: string }
+  | { type: 'mappingSelectionChanged'; selection: MappingSelectionState }
+  | { type: 'normalizationConfigChanged'; normalizationConfig: ComparisonNormalizationConfig }
+  | { type: 'stepChanged'; step: AppStep }
+  | { type: 'resetWorkflow' };
+
+const INITIAL_APP_STATE: AppState = {
   sessionId: null,
   fileA: null,
   fileB: null,
@@ -30,7 +67,12 @@ const INITIAL_STATE: AppState = {
   loading: false,
 };
 
-const SNAPSHOT_READ_ONLY_ERROR = 'Loaded comparison snapshots are read-only. Use Reset to start a new comparison.';
+const INITIAL_WORKFLOW_STATE: WorkflowState = {
+  appState: INITIAL_APP_STATE,
+  step: 'select',
+  mappingSelection: INITIAL_MAPPING_SELECTION,
+  normalizationConfig: INITIAL_NORMALIZATION_CONFIG,
+};
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Unexpected error';
@@ -76,54 +118,206 @@ function buildCompareRequestPayload(
 }
 
 export function useComparisonWorkflow() {
-  const [state, setState] = useState<AppState>(INITIAL_STATE);
-  const [step, setStep] = useState<AppStep>('select');
-  const [mappingSelection, setMappingSelection] = useState<MappingSelectionState>(INITIAL_MAPPING_SELECTION);
-  const [normalizationConfig, setNormalizationConfig] = useState<ComparisonNormalizationConfig>(INITIAL_NORMALIZATION_CONFIG);
-  const shouldAutoAdvanceFromSelectionRef = useRef(true);
+  const [workflowState, dispatch] = useReducer((state: WorkflowState, action: WorkflowAction): WorkflowState => {
+    switch (action.type) {
+      case 'sessionCreated':
+        return {
+          ...state,
+          appState: {
+            ...state.appState,
+            sessionId: action.sessionId,
+          },
+        };
+      case 'workflowError':
+        return {
+          ...state,
+          appState: {
+            ...state.appState,
+            error: action.error,
+          },
+        };
+      case 'loadingStarted':
+        return {
+          ...state,
+          appState: {
+            ...state.appState,
+            loading: true,
+            ...(action.clearError ? { error: null } : {}),
+          },
+        };
+      case 'loadingFailed':
+        return {
+          ...state,
+          appState: {
+            ...state.appState,
+            error: action.error,
+            loading: false,
+          },
+        };
+      case 'fileLoaded': {
+        const nextAppState: AppState = {
+          ...state.appState,
+          [action.fileLetter === 'a' ? 'fileA' : 'fileB']: action.fileData,
+          loading: false,
+        };
+        const shouldAdvance = Boolean(
+          nextAppState.fileA
+          && nextAppState.fileB
+          && nextAppState.results.length === 0
+          && nextAppState.summary === null
+          && state.step === 'select',
+        );
+
+        return {
+          appState: {
+            ...nextAppState,
+            ...(shouldAdvance ? { mappings: [] } : {}),
+          },
+          step: shouldAdvance ? 'configure' : state.step,
+          mappingSelection: shouldAdvance ? INITIAL_MAPPING_SELECTION : state.mappingSelection,
+          normalizationConfig: shouldAdvance ? INITIAL_NORMALIZATION_CONFIG : state.normalizationConfig,
+        };
+      }
+      case 'compareSucceeded':
+        return {
+          ...state,
+          step: 'results',
+          appState: {
+            ...state.appState,
+            mappings: action.mappings,
+            results: action.results,
+            summary: action.summary,
+            loading: false,
+          },
+        };
+      case 'downloadCompleted':
+        return {
+          ...state,
+          appState: {
+            ...state.appState,
+            loading: false,
+          },
+        };
+      case 'snapshotLoaded':
+        return {
+          step: 'results',
+          mappingSelection: {
+            keyColumnsA: action.response.selection.key_columns_a,
+            keyColumnsB: action.response.selection.key_columns_b,
+            comparisonColumnsA: action.response.selection.comparison_columns_a,
+            comparisonColumnsB: action.response.selection.comparison_columns_b,
+          },
+          normalizationConfig: action.response.normalization,
+          appState: {
+            ...state.appState,
+            fileA: {
+              name: action.response.file_a.name,
+              headers: action.response.file_a.headers,
+              columns: action.response.file_a.columns,
+              rowCount: action.response.file_a.row_count,
+            },
+            fileB: {
+              name: action.response.file_b.name,
+              headers: action.response.file_b.headers,
+              columns: action.response.file_b.columns,
+              rowCount: action.response.file_b.row_count,
+            },
+            mappings: action.response.mappings,
+            results: action.response.results,
+            summary: action.response.summary,
+            snapshotReadOnly: true,
+            filter: 'all',
+            loading: false,
+          },
+        };
+      case 'pairOrderLoaded':
+        return {
+          ...state,
+          mappingSelection: action.selection,
+          appState: {
+            ...state.appState,
+            loading: false,
+          },
+        };
+      case 'filterChanged':
+        return {
+          ...state,
+          appState: {
+            ...state.appState,
+            filter: action.filter,
+          },
+        };
+      case 'autoPairSucceeded':
+        return {
+          ...state,
+          mappingSelection: {
+            ...action.selection,
+          },
+          appState: {
+            ...state.appState,
+            mappings: action.mappings,
+            loading: false,
+            error: null,
+          },
+        };
+      case 'autoPairUnavailable':
+        return {
+          ...state,
+          appState: {
+            ...state.appState,
+            error: action.error,
+            loading: false,
+            mappings: action.mappings,
+          },
+        };
+      case 'mappingSelectionChanged':
+        return {
+          ...state,
+          mappingSelection: action.selection,
+        };
+      case 'normalizationConfigChanged':
+        return {
+          ...state,
+          normalizationConfig: action.normalizationConfig,
+        };
+      case 'stepChanged':
+        return {
+          ...state,
+          step: action.step,
+        };
+      case 'resetWorkflow':
+        return INITIAL_WORKFLOW_STATE;
+    }
+  }, INITIAL_WORKFLOW_STATE);
+
+  const { appState: state, step, mappingSelection, normalizationConfig } = workflowState;
 
   const startLoading = useCallback((clearError = true) => {
-    setState((previousState) => ({
-      ...previousState,
-      loading: true,
-      ...(clearError ? { error: null } : {}),
-    }));
-  }, []);
-
-  const finishLoading = useCallback((updates: Partial<AppState> = {}) => {
-    setState((previousState) => ({
-      ...previousState,
-      ...updates,
-      loading: false,
-    }));
+    dispatch({ type: 'loadingStarted', clearError });
   }, []);
 
   const failLoading = useCallback((error: unknown) => {
-    setState((previousState) => ({
-      ...previousState,
-      error: getErrorMessage(error),
-      loading: false,
-    }));
+    dispatch({ type: 'loadingFailed', error: getErrorMessage(error) });
   }, []);
 
   const setWorkflowError = useCallback((error: unknown) => {
-    setState((previousState) => ({
-      ...previousState,
-      error: getErrorMessage(error),
-    }));
+    dispatch({ type: 'workflowError', error: getErrorMessage(error) });
   }, []);
 
   const blockSnapshotFollowOnWorkflow = useCallback(() => {
-    setState((previousState) => previousState.snapshotReadOnly
-      ? { ...previousState, error: SNAPSHOT_READ_ONLY_ERROR }
-      : previousState);
-  }, []);
+    if (state.snapshotReadOnly) {
+      dispatch({ type: 'workflowError', error: SNAPSHOT_READ_ONLY_ERROR });
+      return true;
+    }
+
+    return false;
+  }, [state.snapshotReadOnly]);
 
   useEffect(() => {
     async function initSession() {
       try {
         const response = await createSession();
-        setState((previousState) => ({ ...previousState, sessionId: response.session_id }));
+        dispatch({ type: 'sessionCreated', sessionId: response.session_id });
       } catch (error) {
         setWorkflowError(error);
       }
@@ -131,29 +325,11 @@ export function useComparisonWorkflow() {
 
     initSession();
   }, [setWorkflowError]);
-
-  useEffect(() => {
-    if (
-      shouldAutoAdvanceFromSelectionRef.current
-      && state.fileA
-      && state.fileB
-      && state.results.length === 0
-      && state.summary === null
-      && step === 'select'
-    ) {
-      setState((previousState) => ({ ...previousState, mappings: [] }));
-      setMappingSelection(INITIAL_MAPPING_SELECTION);
-      setNormalizationConfig(INITIAL_NORMALIZATION_CONFIG);
-      setStep('configure');
-    }
-  }, [state.fileA, state.fileB, state.results.length, state.summary, step]);
-
   const handleFileSelection = useCallback(async (file: File, fileLetter: 'a' | 'b') => {
     if (!state.sessionId) {
       return;
     }
 
-    shouldAutoAdvanceFromSelectionRef.current = true;
     startLoading();
 
     try {
@@ -165,11 +341,11 @@ export function useComparisonWorkflow() {
         rowCount: response.row_count,
       };
 
-      finishLoading({ [fileLetter === 'a' ? 'fileA' : 'fileB']: fileData } as Partial<AppState>);
+      dispatch({ type: 'fileLoaded', fileLetter, fileData });
     } catch (error) {
       failLoading(error);
     }
-  }, [failLoading, finishLoading, startLoading, state.sessionId]);
+  }, [failLoading, startLoading, state.sessionId]);
 
   const handleCompare = useCallback(async (
     keyColumnsA: string[],
@@ -183,8 +359,7 @@ export function useComparisonWorkflow() {
       return;
     }
 
-    if (state.snapshotReadOnly) {
-      blockSnapshotFollowOnWorkflow();
+    if (blockSnapshotFollowOnWorkflow()) {
       return;
     }
 
@@ -202,16 +377,16 @@ export function useComparisonWorkflow() {
     try {
       const response = await compareFiles(state.sessionId, request);
 
-      finishLoading({
+      dispatch({
+        type: 'compareSucceeded',
         mappings: retainedMappings,
         results: response.results,
         summary: response.summary,
       });
-      setStep('results');
     } catch (error) {
       failLoading(error);
     }
-  }, [blockSnapshotFollowOnWorkflow, failLoading, finishLoading, startLoading, state.sessionId, state.snapshotReadOnly]);
+  }, [blockSnapshotFollowOnWorkflow, failLoading, startLoading, state.sessionId]);
 
   const handleExport = useCallback(async () => {
     if (!state.sessionId) {
@@ -225,11 +400,11 @@ export function useComparisonWorkflow() {
       if (blob) {
         downloadBlob(blob, 'comparison-results.csv');
       }
-      finishLoading();
+      dispatch({ type: 'downloadCompleted' });
     } catch (error) {
       failLoading(error);
     }
-  }, [failLoading, finishLoading, startLoading, state.sessionId]);
+  }, [failLoading, startLoading, state.sessionId]);
 
   const handleSaveComparisonSnapshot = useCallback(async () => {
     if (!state.sessionId) {
@@ -243,11 +418,11 @@ export function useComparisonWorkflow() {
       if (blob) {
         downloadBlob(blob, 'comparison-snapshot.json');
       }
-      finishLoading();
+      dispatch({ type: 'downloadCompleted' });
     } catch (error) {
       failLoading(error);
     }
-  }, [failLoading, finishLoading, startLoading, state.sessionId]);
+  }, [failLoading, startLoading, state.sessionId]);
 
   const handleLoadComparisonSnapshot = useCallback(async (file?: File) => {
     if (!state.sessionId) {
@@ -259,44 +434,18 @@ export function useComparisonWorkflow() {
     try {
       const response = await loadComparisonSnapshot(state.sessionId, file);
       if (response) {
-        setMappingSelection({
-          keyColumnsA: response.selection.key_columns_a,
-          keyColumnsB: response.selection.key_columns_b,
-          comparisonColumnsA: response.selection.comparison_columns_a,
-          comparisonColumnsB: response.selection.comparison_columns_b,
-        });
-        setNormalizationConfig(response.normalization);
-        finishLoading({
-          fileA: {
-            name: response.file_a.name,
-            headers: response.file_a.headers,
-            columns: response.file_a.columns,
-            rowCount: response.file_a.row_count,
-          },
-          fileB: {
-            name: response.file_b.name,
-            headers: response.file_b.headers,
-            columns: response.file_b.columns,
-            rowCount: response.file_b.row_count,
-          },
-          mappings: response.mappings,
-          results: response.results,
-          summary: response.summary,
-          snapshotReadOnly: true,
-          filter: 'all',
-        });
-        setStep('results');
+        dispatch({ type: 'snapshotLoaded', response });
         return;
       }
 
-      finishLoading();
+      dispatch({ type: 'downloadCompleted' });
     } catch (error) {
       failLoading(error);
     }
-  }, [failLoading, finishLoading, startLoading, state.sessionId]);
+  }, [failLoading, startLoading, state.sessionId]);
 
   const handleFilterChange = useCallback((filter: ResultFilter) => {
-    setState((previousState) => ({ ...previousState, filter }));
+    dispatch({ type: 'filterChanged', filter });
   }, []);
 
   const handleSavePairOrder = useCallback(async () => {
@@ -304,8 +453,7 @@ export function useComparisonWorkflow() {
       return;
     }
 
-    if (state.snapshotReadOnly) {
-      blockSnapshotFollowOnWorkflow();
+    if (blockSnapshotFollowOnWorkflow()) {
       return;
     }
 
@@ -323,19 +471,18 @@ export function useComparisonWorkflow() {
         downloadBlob(blob, 'pair-order.txt');
       }
 
-      finishLoading();
+      dispatch({ type: 'downloadCompleted' });
     } catch (error) {
       failLoading(error);
     }
-  }, [blockSnapshotFollowOnWorkflow, failLoading, finishLoading, mappingSelection, startLoading, state.sessionId, state.snapshotReadOnly]);
+  }, [blockSnapshotFollowOnWorkflow, failLoading, mappingSelection, startLoading, state.sessionId]);
 
   const handleLoadPairOrder = useCallback(async (file?: File) => {
     if (!state.sessionId) {
       return;
     }
 
-    if (state.snapshotReadOnly) {
-      blockSnapshotFollowOnWorkflow();
+    if (blockSnapshotFollowOnWorkflow()) {
       return;
     }
 
@@ -344,27 +491,30 @@ export function useComparisonWorkflow() {
     try {
       const response = await loadPairOrder(state.sessionId, file);
       if (response) {
-        setMappingSelection({
-          keyColumnsA: response.selection.key_columns_a,
-          keyColumnsB: response.selection.key_columns_b,
-          comparisonColumnsA: response.selection.comparison_columns_a,
-          comparisonColumnsB: response.selection.comparison_columns_b,
+        dispatch({
+          type: 'pairOrderLoaded',
+          selection: {
+            keyColumnsA: response.selection.key_columns_a,
+            keyColumnsB: response.selection.key_columns_b,
+            comparisonColumnsA: response.selection.comparison_columns_a,
+            comparisonColumnsB: response.selection.comparison_columns_b,
+          },
         });
+        return;
       }
 
-      finishLoading();
+      dispatch({ type: 'downloadCompleted' });
     } catch (error) {
       failLoading(error);
     }
-  }, [blockSnapshotFollowOnWorkflow, failLoading, finishLoading, startLoading, state.sessionId, state.snapshotReadOnly]);
+  }, [blockSnapshotFollowOnWorkflow, failLoading, startLoading, state.sessionId]);
 
   const handleAutoPairComparisonColumns = useCallback(async (leadingSide: FileLetter) => {
     if (!state.sessionId || !state.fileA || !state.fileB) {
       return;
     }
 
-    if (state.snapshotReadOnly) {
-      blockSnapshotFollowOnWorkflow();
+    if (blockSnapshotFollowOnWorkflow()) {
       return;
     }
 
@@ -373,10 +523,10 @@ export function useComparisonWorkflow() {
       && mappingSelection.keyColumnsA.length === mappingSelection.keyColumnsB.length;
 
     if (!hasExplicitKeySelection) {
-      setState((previousState) => ({
-        ...previousState,
+      dispatch({
+        type: 'workflowError',
         error: 'Select the same number of key columns in File A and File B before using auto-pair.',
-      }));
+      });
       return;
     }
 
@@ -387,7 +537,7 @@ export function useComparisonWorkflow() {
         columns_a: state.fileA.headers,
         columns_b: state.fileB.headers,
       });
-      const autoPairSelection = buildAutoPairSelection({
+      const comparisonSelection = buildAutoPairSelection({
         fileAHeaders: state.fileA.headers,
         fileBHeaders: state.fileB.headers,
         mappings: response.mappings,
@@ -399,51 +549,42 @@ export function useComparisonWorkflow() {
       });
 
       const noAdditionalComparisonPairsFound =
-        autoPairSelection.comparisonColumnsA.length === mappingSelection.keyColumnsA.length;
+        comparisonSelection.comparisonColumnsA.length === mappingSelection.keyColumnsA.length;
 
       if (noAdditionalComparisonPairsFound) {
-        setState((previousState) => ({
-          ...previousState,
+        dispatch({
+          type: 'autoPairUnavailable',
           error: `No confident comparison column pairs were found using ${leadingSide === 'a' ? 'File A' : 'File B'} order.`,
-          loading: false,
           mappings: response.mappings,
-        }));
+        });
         return;
       }
 
-      setMappingSelection((previousSelection) => ({
-        ...previousSelection,
-        ...autoPairSelection,
-      }));
-      setState((previousState) => ({
-        ...previousState,
+      dispatch({
+        type: 'autoPairSucceeded',
         mappings: response.mappings,
-        loading: false,
-      }));
+        selection: {
+          ...mappingSelection,
+          ...comparisonSelection,
+        },
+      });
     } catch (error) {
       failLoading(error);
     }
-  }, [blockSnapshotFollowOnWorkflow, failLoading, mappingSelection.keyColumnsA, mappingSelection.keyColumnsB, startLoading, state.fileA, state.fileB, state.sessionId, state.snapshotReadOnly]);
-
-  const resetWorkflowState = useCallback(() => {
-    setState(INITIAL_STATE);
-    setMappingSelection(INITIAL_MAPPING_SELECTION);
-    setNormalizationConfig(INITIAL_NORMALIZATION_CONFIG);
-    setStep('select');
-  }, []);
+  }, [blockSnapshotFollowOnWorkflow, failLoading, mappingSelection.keyColumnsA, mappingSelection.keyColumnsB, startLoading, state.fileA, state.fileB, state.sessionId]);
 
   const handleReset = useCallback(async () => {
-    resetWorkflowState();
+    dispatch({ type: 'resetWorkflow' });
 
     try {
       const response = await createSession();
-      setState((previousState) => ({ ...previousState, sessionId: response.session_id }));
+      dispatch({ type: 'sessionCreated', sessionId: response.session_id });
     } catch (error) {
       setWorkflowError(error);
     }
-  }, [resetWorkflowState, setWorkflowError]);
+  }, [setWorkflowError]);
 
-  const unlockedSteps = (() => {
+  const unlockedSteps = useMemo(() => {
     const steps: AppStep[] = ['select'];
     const hasBothFiles = Boolean(state.fileA && state.fileB);
     const hasSummary = state.summary !== null;
@@ -464,7 +605,7 @@ export function useComparisonWorkflow() {
     }
 
     return steps;
-  })();
+  }, [state.fileA, state.fileB, state.snapshotReadOnly, state.summary]);
 
   const handleStepNavigation = useCallback((target: AppStep) => {
     if (target === step) {
@@ -473,7 +614,7 @@ export function useComparisonWorkflow() {
 
     if (state.snapshotReadOnly) {
       if (target === 'results' && state.summary !== null) {
-        setStep('results');
+        dispatch({ type: 'stepChanged', step: 'results' });
         return;
       }
       blockSnapshotFollowOnWorkflow();
@@ -481,8 +622,7 @@ export function useComparisonWorkflow() {
     }
 
     if (target === 'select') {
-      shouldAutoAdvanceFromSelectionRef.current = false;
-      setStep('select');
+      dispatch({ type: 'stepChanged', step: 'select' });
       return;
     }
 
@@ -490,7 +630,7 @@ export function useComparisonWorkflow() {
       if (!state.fileA || !state.fileB) {
         return;
       }
-      setStep('configure');
+      dispatch({ type: 'stepChanged', step: 'configure' });
       return;
     }
 
@@ -498,9 +638,51 @@ export function useComparisonWorkflow() {
       if (state.summary === null) {
         return;
       }
-      setStep('results');
+      dispatch({ type: 'stepChanged', step: 'results' });
     }
   }, [blockSnapshotFollowOnWorkflow, state.fileA, state.fileB, state.snapshotReadOnly, state.summary, step]);
+
+  const setMappingSelection = useCallback((selection: MappingSelectionState | ((previous: MappingSelectionState) => MappingSelectionState)) => {
+    const nextSelection = typeof selection === 'function' ? selection(mappingSelection) : selection;
+    dispatch({ type: 'mappingSelectionChanged', selection: nextSelection });
+  }, [mappingSelection]);
+
+  const setNormalizationConfig = useCallback((
+    nextNormalizationConfig:
+      | ComparisonNormalizationConfig
+      | ((previous: ComparisonNormalizationConfig) => ComparisonNormalizationConfig),
+  ) => {
+    dispatch({
+      type: 'normalizationConfigChanged',
+      normalizationConfig: typeof nextNormalizationConfig === 'function'
+        ? nextNormalizationConfig(normalizationConfig)
+        : nextNormalizationConfig,
+    });
+  }, [normalizationConfig]);
+
+  const handleBackToConfigure = useCallback(() => {
+    if (blockSnapshotFollowOnWorkflow()) {
+      return;
+    }
+
+    dispatch({ type: 'stepChanged', step: 'configure' });
+  }, [blockSnapshotFollowOnWorkflow]);
+
+  const handleBackToSelection = useCallback(() => {
+    if (blockSnapshotFollowOnWorkflow()) {
+      return;
+    }
+
+    dispatch({ type: 'stepChanged', step: 'select' });
+  }, [blockSnapshotFollowOnWorkflow]);
+
+  const handleContinueToConfigure = useCallback(() => {
+    if (blockSnapshotFollowOnWorkflow()) {
+      return;
+    }
+
+    dispatch({ type: 'stepChanged', step: 'configure' });
+  }, [blockSnapshotFollowOnWorkflow]);
 
   return {
     state,
@@ -523,30 +705,8 @@ export function useComparisonWorkflow() {
     handleFilterChange,
     handleReset,
     handleStepNavigation,
-    handleBackToConfigure: () => {
-      if (state.snapshotReadOnly) {
-        blockSnapshotFollowOnWorkflow();
-        return;
-      }
-
-      setStep('configure');
-    },
-    handleBackToSelection: () => {
-      if (state.snapshotReadOnly) {
-        blockSnapshotFollowOnWorkflow();
-        return;
-      }
-
-      shouldAutoAdvanceFromSelectionRef.current = false;
-      setStep('select');
-    },
-    handleContinueToConfigure: () => {
-      if (state.snapshotReadOnly) {
-        blockSnapshotFollowOnWorkflow();
-        return;
-      }
-
-      setStep('configure');
-    },
+    handleBackToConfigure,
+    handleBackToSelection,
+    handleContinueToConfigure,
   };
 }

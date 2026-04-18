@@ -328,3 +328,49 @@ test('sets an export error and clears loading when export fails', async () => {
   expect(result.current.state.error).toBe('export failed');
   expect(result.current.state.loading).toBe(false);
 });
+
+test('keeps public handlers stable across rerenders when their dependencies do not change', async () => {
+  const { result, rerender } = renderHook(() => useComparisonWorkflow());
+
+  await waitFor(() => {
+    expect(result.current.state.sessionId).toBe('session-1');
+  });
+
+  const initialHandlers = {
+    setMappingSelection: result.current.setMappingSelection,
+    setNormalizationConfig: result.current.setNormalizationConfig,
+    handleFileSelection: result.current.handleFileSelection,
+    handleCompare: result.current.handleCompare,
+    handleExport: result.current.handleExport,
+    handleSaveComparisonSnapshot: result.current.handleSaveComparisonSnapshot,
+    handleLoadComparisonSnapshot: result.current.handleLoadComparisonSnapshot,
+    handleSavePairOrder: result.current.handleSavePairOrder,
+    handleLoadPairOrder: result.current.handleLoadPairOrder,
+    handleAutoPairComparisonColumns: result.current.handleAutoPairComparisonColumns,
+    handleFilterChange: result.current.handleFilterChange,
+    handleReset: result.current.handleReset,
+    handleStepNavigation: result.current.handleStepNavigation,
+    handleBackToConfigure: result.current.handleBackToConfigure,
+    handleBackToSelection: result.current.handleBackToSelection,
+    handleContinueToConfigure: result.current.handleContinueToConfigure,
+  };
+
+  rerender();
+
+  expect(result.current.setMappingSelection).toBe(initialHandlers.setMappingSelection);
+  expect(result.current.setNormalizationConfig).toBe(initialHandlers.setNormalizationConfig);
+  expect(result.current.handleFileSelection).toBe(initialHandlers.handleFileSelection);
+  expect(result.current.handleCompare).toBe(initialHandlers.handleCompare);
+  expect(result.current.handleExport).toBe(initialHandlers.handleExport);
+  expect(result.current.handleSaveComparisonSnapshot).toBe(initialHandlers.handleSaveComparisonSnapshot);
+  expect(result.current.handleLoadComparisonSnapshot).toBe(initialHandlers.handleLoadComparisonSnapshot);
+  expect(result.current.handleSavePairOrder).toBe(initialHandlers.handleSavePairOrder);
+  expect(result.current.handleLoadPairOrder).toBe(initialHandlers.handleLoadPairOrder);
+  expect(result.current.handleAutoPairComparisonColumns).toBe(initialHandlers.handleAutoPairComparisonColumns);
+  expect(result.current.handleFilterChange).toBe(initialHandlers.handleFilterChange);
+  expect(result.current.handleReset).toBe(initialHandlers.handleReset);
+  expect(result.current.handleStepNavigation).toBe(initialHandlers.handleStepNavigation);
+  expect(result.current.handleBackToConfigure).toBe(initialHandlers.handleBackToConfigure);
+  expect(result.current.handleBackToSelection).toBe(initialHandlers.handleBackToSelection);
+  expect(result.current.handleContinueToConfigure).toBe(initialHandlers.handleContinueToConfigure);
+});
