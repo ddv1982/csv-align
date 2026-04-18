@@ -11,6 +11,7 @@ Validation knowledge for the csv-align v2 mission.
   2. `cargo run &` (starts Axum server; health via `/api/health`).
   3. Verify `curl -sf http://127.0.0.1:{3000|3001}/api/health` returns 200 before opening the browser.
 - **Test fixtures:** `/Users/vriesd/projects/csv-align/samples/file_a.csv` and `samples/file_b.csv` (4 rows × 4 columns each). Larger fixtures (≥50k rows) and edge-case files (empty, header-only, UTF-16, malformed) must be generated on-the-fly by validators and written to `/tmp/` or a scratch dir.
+- **Read-only snapshot fixture:** when validating read-only snapshot UI, create a v2 snapshot by running a normal compare and using **Save result** first; then reuse that downloaded JSON as the load fixture. Do not hand-craft partial JSON blobs because missing `selection.columns` and related fields trigger parser errors before read-only rendering.
 - **Explicitly out of scope:** Tauri desktop e2e. Tauri correctness is covered by `cd src-tauri && cargo test`. agent-browser cannot drive Tauri's wkwebview.
 
 ## Library / Wrapper Test Surface (non-UI)

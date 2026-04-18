@@ -77,7 +77,7 @@ How the system is organized after the v2 refactor. Written as the target state; 
   - `services/browserDownload.ts` — `downloadBlob` (moved out of tauri.ts in M6).
   - `services/appWindows.ts` — `openNewAppWindow` (moved out of tauri.ts in M6).
   - `types/api.ts` — mirrors Rust DTOs. `MappingDto` only (collapsed from MappingRequest/Response in M4).
-  - `test/fixtures.ts` — shared `vi.hoisted` mocks.
+  - `test/fixtures.tsx` — shared `vi.hoisted` mocks (TSX is required because fixture mocks render JSX).
 
 ## Data flow
 
