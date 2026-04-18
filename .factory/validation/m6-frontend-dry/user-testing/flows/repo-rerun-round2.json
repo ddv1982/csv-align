@@ -1,0 +1,82 @@
+{
+  "groupId": "repo-rerun-round2",
+  "testedAt": "2026-04-18T05:51:53Z",
+  "isolation": {
+    "milestone": "m6-frontend-dry",
+    "repositoryRoot": "/Users/vriesd/projects/csv-align",
+    "missionDir": "/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c",
+    "surface": "repo-checks",
+    "assignedAssertions": [
+      "VAL-FILE-018",
+      "VAL-FILE-019"
+    ],
+    "constraints": [
+      "Do not edit repository source files",
+      "Use read/execute checks only",
+      "Repo-check/component-test validation only"
+    ]
+  },
+  "toolsUsed": [
+    "Read",
+    "Grep",
+    "npm",
+    "vitest"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-FILE-018",
+      "title": "Cancelling the OS file picker leaves state unchanged",
+      "status": "pass",
+      "reason": "Component-level coverage exists with an explicit picker-cancel test, and the targeted Vitest run passed for that case.",
+      "steps": [
+        {
+          "action": "Inspect frontend/src/components/FileSelector.test.tsx for picker-cancel coverage",
+          "expected": "A test asserts empty file-list change does not trigger selection",
+          "observed": "Found test: 'picker-cancel does not call onSelect when the file input is cleared' asserting onSelect is not called and no validation error text appears"
+        },
+        {
+          "action": "Run targeted Vitest for the picker-cancel case",
+          "expected": "Targeted test passes",
+          "observed": "vitest run src/components/FileSelector.test.tsx -t picker-cancel does not call onSelect when the file input is cleared -> 1 passed, 7 skipped, exit code 0"
+        }
+      ],
+      "evidence": {
+        "files": [
+          "m6-frontend-dry/repo-rerun-round2/VAL-FILE-018-vitest.txt"
+        ],
+        "testFile": "frontend/src/components/FileSelector.test.tsx",
+        "testCase": "picker-cancel does not call onSelect when the file input is cleared"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FILE-019",
+      "title": "Drag-leave resets drop-zone hover styling",
+      "status": "pass",
+      "reason": "Component-level coverage exists with an explicit drag-leave hover reset test, and the targeted Vitest run passed for that case.",
+      "steps": [
+        {
+          "action": "Inspect frontend/src/components/FileSelector.test.tsx for drag-leave coverage",
+          "expected": "A test asserts hover classes are applied on drag enter/over and removed on drag leave without triggering selection",
+          "observed": "Found test: 'drag-leave-resets-hover styling without calling onSelect' asserting hover classes toggle correctly and onSelect is not called"
+        },
+        {
+          "action": "Run targeted Vitest for the drag-leave case",
+          "expected": "Targeted test passes",
+          "observed": "vitest run src/components/FileSelector.test.tsx -t drag-leave-resets-hover styling without calling onSelect -> 1 passed, 7 skipped, exit code 0"
+        }
+      ],
+      "evidence": {
+        "files": [
+          "m6-frontend-dry/repo-rerun-round2/VAL-FILE-019-vitest.txt"
+        ],
+        "testFile": "frontend/src/components/FileSelector.test.tsx",
+        "testCase": "drag-leave-resets-hover styling without calling onSelect"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 2 assertions (VAL-FILE-018, VAL-FILE-019): 2 passed, 0 failed, 0 blocked."
+}

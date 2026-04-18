@@ -1,0 +1,164 @@
+{
+  "groupId": "web-rerun-round2",
+  "testedAt": "2026-04-18T05:57:14Z",
+  "isolation": {
+    "milestone": "m6-frontend-dry",
+    "appUrl": "http://127.0.0.1:3001",
+    "agentBrowserSession": "87d97d0905cd__rerunweb",
+    "missionDir": "/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c",
+    "evidenceDir": "/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c/evidence/m6-frontend-dry/web-rerun-round2"
+  },
+  "toolsUsed": [
+    "agent-browser"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-FILE-002",
+      "title": "Load valid CSV File A via file picker",
+      "status": "pass",
+      "reason": "File A upload succeeded, loaded state rendered correctly, and response body now includes required file_name.",
+      "steps": [
+        {
+          "action": "Upload samples/file_a.csv into File A",
+          "expected": "File A card shows filename, row/column count, and column pills",
+          "observed": "Card showed file_a.csv with 4 rows • 4 columns and typed column pills."
+        },
+        {
+          "action": "Inspect POST /api/sessions/{sid}/files/a response",
+          "expected": "HTTP 200 with headers, row_count, columns, and file_name",
+          "observed": "HTTP 200 with body containing file_name=\"file_a.csv\", headers, columns, and row_count=4."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-rerun-round2/VAL-FILE-002-file-a-loaded.png"
+        ],
+        "consoleErrors": "none (m6-frontend-dry/web-rerun-round2/VAL-FILE-002-console-errors.json)",
+        "network": "POST /api/sessions/828c0353-e290-4c3e-88a4-e32d5c0e44ba/files/a -> 200 {\"file_name\":\"file_a.csv\",\"row_count\":4,...} (m6-frontend-dry/web-rerun-round2/VAL-FILE-002-network.json)"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FILE-011",
+      "title": "Empty file is rejected gracefully",
+      "status": "pass",
+      "reason": "0-byte CSV is now rejected with a clean 400 and user-facing error, with no console exceptions.",
+      "steps": [
+        {
+          "action": "Upload /tmp/val-file-011-empty.csv as replacement for File A",
+          "expected": "Upload rejected gracefully",
+          "observed": "Inline/banner error text displayed: 'CSV file is empty'."
+        },
+        {
+          "action": "Inspect POST /api/sessions/{sid}/files/a response",
+          "expected": "HTTP 4xx JSON error",
+          "observed": "HTTP 400 with {\"code\":\"bad_input\",\"error\":\"CSV file is empty\"}."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-rerun-round2/VAL-FILE-011-empty-file-rejected.png"
+        ],
+        "consoleErrors": "none (m6-frontend-dry/web-rerun-round2/VAL-FILE-011-console-errors.json)",
+        "network": "POST /api/sessions/828c0353-e290-4c3e-88a4-e32d5c0e44ba/files/a -> 400 {\"code\":\"bad_input\",\"error\":\"CSV file is empty\"} (m6-frontend-dry/web-rerun-round2/VAL-FILE-011-network.json)"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-MAP-017",
+      "title": "Load pair order with unknown version fails",
+      "status": "pass",
+      "reason": "Unknown pair-order version now returns the expected unsupported-version semantics.",
+      "steps": [
+        {
+          "action": "Upload /tmp/val-map-017-unknown-version.json (version=3) through Load pair order",
+          "expected": "Request rejected as unsupported version",
+          "observed": "UI error banner displayed 'Unsupported pair-order file version 3'."
+        },
+        {
+          "action": "Inspect POST /api/sessions/{sid}/pair-order/load response",
+          "expected": "HTTP 400 with unsupported-version message",
+          "observed": "HTTP 400 with {\"code\":\"bad_input\",\"error\":\"Unsupported pair-order file version 3\"}."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-rerun-round2/VAL-MAP-017-unknown-version-rejected.png"
+        ],
+        "consoleErrors": "none (m6-frontend-dry/web-rerun-round2/VAL-MAP-017-console-errors.json)",
+        "network": "POST /api/sessions/828c0353-e290-4c3e-88a4-e32d5c0e44ba/pair-order/load -> 400 {\"code\":\"bad_input\",\"error\":\"Unsupported pair-order file version 3\"} (m6-frontend-dry/web-rerun-round2/VAL-MAP-017-network.json)"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RESULTS-017",
+      "title": "Empty-filter vs empty-dataset panels",
+      "status": "pass",
+      "reason": "Both message variants now render correctly for zero-total and non-empty/zero-filter states.",
+      "steps": [
+        {
+          "action": "Run compare on header-only vs header-only files (0 data rows)",
+          "expected": "Zero dataset message is 'No results match the selected filter'",
+          "observed": "Results view showed 'No results match the selected filter'."
+        },
+        {
+          "action": "Run all-matches compare and switch to Mismatches filter",
+          "expected": "Non-empty dataset + zero active-filter rows shows 'No results match the current filter and search.'",
+          "observed": "Results view showed 'No results match the current filter and search.'."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-rerun-round2/VAL-RESULTS-017-empty-dataset.png",
+          "m6-frontend-dry/web-rerun-round2/VAL-RESULTS-017-024-mismatches-empty.png"
+        ],
+        "consoleErrors": "none (m6-frontend-dry/web-rerun-round2/VAL-RESULTS-017-console-errors.json)",
+        "network": "Zero-dataset compare: POST /api/sessions/bd9a75f8-7484-49a8-9e12-f5f857b3dd7e/compare -> 200 summary totals all zero with results=[] (m6-frontend-dry/web-rerun-round2/VAL-RESULTS-017-network-empty-dataset.json)"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RESULTS-024",
+      "title": "All-matches comparison still usable",
+      "status": "pass",
+      "reason": "All-matches run shows 100% match rate with zero non-match buckets and correct empty-filter messaging under Mismatches.",
+      "steps": [
+        {
+          "action": "Compare samples/file_a.csv against itself",
+          "expected": "100% match rate, zero other buckets, no ignored/duplicate banners",
+          "observed": "Summary showed 100% (4/4), Matches=4, all other buckets=0, and no ignored/duplicates info banners."
+        },
+        {
+          "action": "Select Mismatches filter",
+          "expected": "No-match panel says 'No results match the current filter and search.'",
+          "observed": "Panel text exactly matched 'No results match the current filter and search.'."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-rerun-round2/VAL-RESULTS-024-all-matches-summary.png",
+          "m6-frontend-dry/web-rerun-round2/VAL-RESULTS-017-024-mismatches-empty.png"
+        ],
+        "consoleErrors": "none (m6-frontend-dry/web-rerun-round2/VAL-RESULTS-024-console-errors.json)",
+        "network": "POST /api/sessions/6b625c71-fe7b-4851-bcfb-0090c1b9e231/compare -> 200 summary {matches:4,mismatches:0,missing_left:0,missing_right:0,duplicates_a:0,duplicates_b:0} (m6-frontend-dry/web-rerun-round2/VAL-RESULTS-024-network.json)"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "Hidden file inputs are regenerated after uploads/resets, so upload targets must be re-discovered per step in headless automation.",
+      "resolved": true,
+      "resolution": "Re-exposed current input[type=file] elements before each upload and used fresh refs from snapshot output.",
+      "affectedAssertions": [
+        "VAL-FILE-002",
+        "VAL-FILE-011",
+        "VAL-MAP-017",
+        "VAL-RESULTS-017",
+        "VAL-RESULTS-024"
+      ]
+    }
+  ],
+  "blockers": [],
+  "summary": "Tested 5 rerun assertions: 5 passed (VAL-FILE-002, VAL-FILE-011, VAL-MAP-017, VAL-RESULTS-017, VAL-RESULTS-024)."
+}
