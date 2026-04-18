@@ -1,0 +1,365 @@
+{
+  "groupId": "web-results-detail",
+  "testedAt": "2026-04-18T04:59:57Z",
+  "isolation": {
+    "appUrl": "http://127.0.0.1:3001",
+    "agentBrowserSession": "9e32750d3b9e__resultsdetail",
+    "missionDir": "/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c",
+    "evidenceDir": "/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c/evidence/m6-frontend-dry/web-results-detail/"
+  },
+  "toolsUsed": [
+    "agent-browser",
+    "curl",
+    "python3"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-RESULTS-013",
+      "title": "Row expansion reveals per-field differences",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run comparison with mixed fixture dataset and locate mismatch row with diff affordance",
+          "expected": "Mismatch row shows a diff toggle",
+          "observed": "Mismatch rows showed `1 diff` buttons"
+        },
+        {
+          "action": "Expand mismatch row",
+          "expected": "`aria-expanded` becomes true and per-field difference content appears",
+          "observed": "`aria-expanded=true`; expanded detail showed differing field and File A/File B values"
+        },
+        {
+          "action": "Collapse mismatch row",
+          "expected": "Diff panel closes",
+          "observed": "Row collapsed normally"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-results-detail/VAL-RESULTS-013-expanded.png",
+          "m6-frontend-dry/web-results-detail/VAL-RESULTS-013-collapsed.png"
+        ],
+        "consoleErrors": "none",
+        "network": "not required"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RESULTS-014",
+      "title": "Non-mismatch rows have no expand affordance",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Apply Matches filter",
+          "expected": "Only non-mismatch rows remain",
+          "observed": "Matches-only table rendered"
+        },
+        {
+          "action": "Inspect Details cell/controls",
+          "expected": "No expand button; static detail text or em dash",
+          "observed": "No diff-labeled buttons present; details cell showed `—`"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-results-detail/VAL-RESULTS-014-non-mismatch-no-expand.png"
+        ],
+        "consoleErrors": "none",
+        "network": "DOM inspection: hasDiffLabeledButtons=false"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RESULTS-015",
+      "title": "Missing rows render one-sided values",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Apply Only in File B filter",
+          "expected": "File A side shows dash and File B shows values",
+          "observed": "Row rendered `—` for File A and `Eve, 50` for File B; no expand button"
+        },
+        {
+          "action": "Apply Only in File A filter",
+          "expected": "File B side shows dash and File A shows values",
+          "observed": "Row rendered `Dan, 40` for File A and `—` for File B; no expand button"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-results-detail/VAL-RESULTS-015-missing-left.png",
+          "m6-frontend-dry/web-results-detail/VAL-RESULTS-015-missing-right.png"
+        ],
+        "consoleErrors": "none",
+        "network": "not required"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RESULTS-016",
+      "title": "Duplicate rows render all grouped rows with orange badge",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Apply Duplicates filter",
+          "expected": "Duplicate row appears with duplicate grouping and duplicate-specific detail text",
+          "observed": "`Duplicate` row rendered with two grouped rows on each side and detail text `Multiple rows on both sides share this selected key.`"
+        },
+        {
+          "action": "Inspect compare response payload",
+          "expected": "Response contains duplicate variant + grouped duplicate values",
+          "observed": "Captured `duplicate_both` row with `duplicate_values_a` and `duplicate_values_b` arrays"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-results-detail/VAL-RESULTS-016-duplicates.png"
+        ],
+        "consoleErrors": "none",
+        "network": "m6-frontend-dry/web-results-detail/VAL-RESULTS-016-network.json"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RESULTS-017",
+      "title": "Empty-filter vs empty-dataset panels",
+      "status": "fail",
+      "steps": [
+        {
+          "action": "Run compare on zero-row dataset",
+          "expected": "Zero total results shows `No results match the selected filter`",
+          "observed": "Message matched expected text"
+        },
+        {
+          "action": "Run non-empty all-matches compare and select Mismatches filter",
+          "expected": "Non-empty dataset with zero rows for active filter shows `No results match the current filter and search.`",
+          "observed": "UI showed `No results match the selected filter` instead"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-results-detail/VAL-RESULTS-017-empty-dataset.png",
+          "m6-frontend-dry/web-results-detail/VAL-RESULTS-024-mismatch-filter-empty.png",
+          "m6-frontend-dry/web-results-detail/VAL-RESULTS-017-empty-filter-search.png"
+        ],
+        "consoleErrors": "none",
+        "network": "not required"
+      },
+      "issues": "Message variant for non-empty/zero-filter state did not match contract wording."
+    },
+    {
+      "id": "VAL-RESULTS-018",
+      "title": "Large dataset remains responsive",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run compare on 6000-row dataset",
+          "expected": "Large result set renders and remains interactive",
+          "observed": "Summary showed `All 6000`, `Matches 5999`, `Mismatches 1`"
+        },
+        {
+          "action": "Measure filter/search/sort/expand interactions",
+          "expected": "Each interaction <=1000ms, no >500ms frame drops, no console errors",
+          "observed": "Measured 66.4ms (filter), 0.6ms (search), 2.2ms (sort), 1.3ms (expand); max observed frame gap 109.1ms; no console errors"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-results-detail/VAL-RESULTS-018-large-dataset.png"
+        ],
+        "consoleErrors": "none",
+        "timing": "m6-frontend-dry/web-results-detail/VAL-RESULTS-018-timing.json"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RESULTS-019",
+      "title": "Back to configuration navigates without recompare",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "From results step, click Back to configuration",
+          "expected": "Navigate to configuration with intact selections",
+          "observed": "Returned to configuration; selected comparison columns remained selected"
+        },
+        {
+          "action": "Inspect request log during back navigation",
+          "expected": "No new POST /compare",
+          "observed": "Captured 0 compare calls during navigation"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-results-detail/VAL-RESULTS-019-back-to-configuration.png"
+        ],
+        "consoleErrors": "none",
+        "network": "fetch log: totalCalls=0, compareCalls=[]"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RESULTS-020",
+      "title": "Save result persists a snapshot",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Click Save result on results step",
+          "expected": "Snapshot save flow is invoked (download/confirmation)",
+          "observed": "Browser resource entry recorded `.../comparison-snapshot/save` request"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-results-detail/VAL-RESULTS-020-save-result-current.png"
+        ],
+        "consoleErrors": "none",
+        "network": "resource entry: /api/sessions/1b90f778-f07e-4549-b42b-49bf6e118da6/comparison-snapshot/save"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RESULTS-021",
+      "title": "Read-only snapshot disables mutating actions",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Load saved snapshot via Load result",
+          "expected": "Read-only results mode activates",
+          "observed": "Read-only banner visible; `Start new comparison` shown"
+        },
+        {
+          "action": "Inspect mutating controls",
+          "expected": "Back/Save hidden in read-only",
+          "observed": "Back and Save buttons absent; Start new comparison present"
+        },
+        {
+          "action": "Exercise non-mutating table interactions",
+          "expected": "Filter/search/sort/expand remain usable",
+          "observed": "All interactions succeeded in read-only mode"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-results-detail/VAL-RESULTS-021-read-only-state.png",
+          "m6-frontend-dry/web-results-detail/VAL-RESULTS-021-read-only-interactions.png"
+        ],
+        "consoleErrors": "none",
+        "network": "snapshot fixture used: m6-frontend-dry/web-results-detail/VAL-RESULTS-021-snapshot.json"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RESULTS-022",
+      "title": "Start new comparison resets to step 1",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "From read-only results, click Start new comparison",
+          "expected": "Reset to step 1 and clear visible result state",
+          "observed": "Returned to file-selection step with empty file selectors"
+        },
+        {
+          "action": "Inspect network log",
+          "expected": "New session creation request sent",
+          "observed": "POST /api/sessions returned 200"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-results-detail/VAL-RESULTS-022-start-new-comparison.png"
+        ],
+        "consoleErrors": "none",
+        "network": "fetch log contains POST /api/sessions -> 200"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RESULTS-023",
+      "title": "Export CSV triggers CSV download",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Click Export CSV in results step",
+          "expected": "Export request is issued and CSV download starts",
+          "observed": "Resource entry recorded `/api/sessions/1b90f778-f07e-4549-b42b-49bf6e118da6/export`"
+        },
+        {
+          "action": "Verify exported payload headers/body",
+          "expected": "`text/csv` attachment with non-empty payload",
+          "observed": "200 OK, `content-type: text/csv`, `content-disposition: attachment; filename=\"comparison-results.csv\"`, 236-byte CSV"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-results-detail/VAL-RESULTS-023-export-csv-click-current.png"
+        ],
+        "consoleErrors": "none",
+        "downloadedFile": "m6-frontend-dry/web-results-detail/VAL-RESULTS-023-export.csv",
+        "network": "m6-frontend-dry/web-results-detail/VAL-RESULTS-023-export-headers.txt"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RESULTS-024",
+      "title": "All-matches comparison still usable",
+      "status": "fail",
+      "steps": [
+        {
+          "action": "Run compare on identical all-match files",
+          "expected": "100% match rate, zero non-match buckets, no ignored/duplicate banners",
+          "observed": "Summary showed 100% and zero non-match buckets; no ignored/duplicate banners"
+        },
+        {
+          "action": "Select Mismatches filter",
+          "expected": "Show `No results match the current filter and search.`",
+          "observed": "UI showed `No results match the selected filter`"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-results-detail/VAL-RESULTS-024-all-matches.png",
+          "m6-frontend-dry/web-results-detail/VAL-RESULTS-024-mismatch-filter-empty.png"
+        ],
+        "consoleErrors": "none",
+        "network": "not required"
+      },
+      "issues": "Empty-state copy under Mismatches on all-match dataset differs from contract-required message."
+    }
+  ],
+  "frictions": [
+    {
+      "description": "Hidden file inputs for File A/File B/Load result are not directly exposed in interactive snapshots, which blocked native `upload` until DOM-level visibility was temporarily applied.",
+      "resolved": true,
+      "resolution": "Used in-session `eval` to temporarily reveal existing file inputs and then used `agent-browser upload`.",
+      "affectedAssertions": [
+        "VAL-RESULTS-017",
+        "VAL-RESULTS-018",
+        "VAL-RESULTS-021",
+        "VAL-RESULTS-024"
+      ]
+    },
+    {
+      "description": "`agent-browser network requests` returned no captured requests in this session.",
+      "resolved": true,
+      "resolution": "Captured network evidence via in-page fetch instrumentation and `performance` resource entries.",
+      "affectedAssertions": [
+        "VAL-RESULTS-016",
+        "VAL-RESULTS-019",
+        "VAL-RESULTS-020",
+        "VAL-RESULTS-022",
+        "VAL-RESULTS-023"
+      ]
+    },
+    {
+      "description": "`--download-path` cannot be applied after daemon/session startup.",
+      "resolved": true,
+      "resolution": "Used resource-entry evidence for click-triggered download actions and captured endpoint payload artifacts via `curl` to the same session endpoints.",
+      "affectedAssertions": [
+        "VAL-RESULTS-020",
+        "VAL-RESULTS-023"
+      ]
+    }
+  ],
+  "blockers": [],
+  "summary": "Tested 12 assertions (VAL-RESULTS-013..024): 10 passed, 2 failed (VAL-RESULTS-017 and VAL-RESULTS-024 due empty-state message mismatch for non-empty zero-filter state)."
+}

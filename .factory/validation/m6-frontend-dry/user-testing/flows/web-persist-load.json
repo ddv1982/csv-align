@@ -1,0 +1,301 @@
+{
+  "groupId": "web-persist-load",
+  "testedAt": "2026-04-18T04:58:51.888102+00:00",
+  "isolation": {
+    "appUrl": "http://127.0.0.1:3001",
+    "agentBrowserSession": "9e32750d3b9e__persistload",
+    "missionDir": "/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c",
+    "evidenceDir": "m6-frontend-dry/web-persist-load"
+  },
+  "toolsUsed": [
+    "agent-browser"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-PERSIST-009",
+      "title": "Load valid v2 snapshot populates results in read-only mode",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Reset app, clear request/error logs, upload valid v2 snapshot JSON via Load result input",
+          "expected": "Snapshot load succeeds and app opens results in read-only mode",
+          "observed": "Results step rendered summary/filter/table from snapshot; read-only banner and Start new comparison button displayed."
+        },
+        {
+          "action": "Inspect clean network capture after load",
+          "expected": "Snapshot load calls present and no follow-on /compare request",
+          "observed": "Clean log shows only POST /comparison-snapshot/load entries for session 2306b73e-7b90-464e-852e-8c84516b2489; /compare count was 0."
+        },
+        {
+          "action": "Attempt progress-step navigation while read-only",
+          "expected": "Mutating follow-on workflow is blocked with read-only message",
+          "observed": "UI surfaced: 'Loaded comparison snapshots are read-only. Use Reset to start a new comparison.'"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-persist-load/VAL-PERSIST-009-readonly-results-clean.png"
+        ],
+        "fixtures": [
+          "m6-frontend-dry/web-persist-load/VAL-PERSIST-009-valid-v2-snapshot.json"
+        ],
+        "network": "m6-frontend-dry/web-persist-load/VAL-PERSIST-009-network-clean.json",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PERSIST-010",
+      "title": "Load malformed JSON surfaces parse error",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Clear logs and upload malformed snapshot JSON",
+          "expected": "Load fails with parse error; snapshot read-only remains inactive and no results are populated",
+          "observed": "UI displayed parse error: 'Failed to parse comparison snapshot file: EOF while parsing a value at line 1 column 24'; app stayed on file-selection step with empty file cards."
+        },
+        {
+          "action": "Inspect clean network capture",
+          "expected": "Snapshot-load endpoint called for failed upload; no compare call",
+          "observed": "Clean log captured only POST /comparison-snapshot/load for session ae854098-3388-49b4-a5e3-d7b05f3523f9; /compare count was 0."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-persist-load/VAL-PERSIST-010-malformed-load-error-clean.png"
+        ],
+        "fixtures": [
+          "m6-frontend-dry/web-persist-load/VAL-PERSIST-010-malformed-snapshot.json"
+        ],
+        "network": "m6-frontend-dry/web-persist-load/VAL-PERSIST-010-network-clean.json",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PERSIST-011",
+      "title": "Load v1.x snapshot shows explicit incompatibility (v2 behavior)",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Upload v1 snapshot fixture",
+          "expected": "Explicit version/incompatibility error (not generic parse error); no results populated",
+          "observed": "UI displayed: 'Unsupported comparison snapshot version 1 \u2014 this file was produced by an older csv-align release. Re-run the comparison in v2.' while remaining on file-selection step."
+        },
+        {
+          "action": "Inspect clean network capture",
+          "expected": "Snapshot-load call recorded; no compare call",
+          "observed": "Clean log captured POST /comparison-snapshot/load entries only; /compare count was 0."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-persist-load/VAL-PERSIST-011-v1-incompatible-error-clean.png"
+        ],
+        "fixtures": [
+          "m6-frontend-dry/web-persist-load/VAL-PERSIST-011-v1-snapshot.json"
+        ],
+        "network": "m6-frontend-dry/web-persist-load/VAL-PERSIST-011-network-clean.json",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PERSIST-012",
+      "title": "Snapshot with unknown columns shows error",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Upload v2 snapshot fixture referencing missing comparison column",
+          "expected": "4xx-class load failure with missing-column message and no results populated",
+          "observed": "UI displayed: 'Saved snapshot comparison columns for File A reference missing columns: missing_a_col' and remained on file-selection step."
+        },
+        {
+          "action": "Inspect clean network capture",
+          "expected": "Snapshot-load call recorded; no compare call",
+          "observed": "Clean log captured POST /comparison-snapshot/load entries only; /compare count was 0."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-persist-load/VAL-PERSIST-012-missing-columns-error-clean.png"
+        ],
+        "fixtures": [
+          "m6-frontend-dry/web-persist-load/VAL-PERSIST-012-missing-columns-snapshot.json"
+        ],
+        "network": "m6-frontend-dry/web-persist-load/VAL-PERSIST-012-network-clean.json",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PERSIST-013",
+      "title": "Save pair-order triggers download",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Load sample CSVs, configure key+comparison selections, clear logs, click Save pair order",
+          "expected": "Pair-order download triggered from POST /pair-order/save",
+          "observed": "Download artifact created immediately and parsed as JSON with version, headers_a/headers_b, and selection keys/comparison arrays."
+        },
+        {
+          "action": "Inspect clean network capture",
+          "expected": "pair-order/save endpoint called; no compare",
+          "observed": "Clean log captured POST /pair-order/save entries for session 6d9fe949-105f-4a98-97b9-0ae40ac9b948; /compare count was 0."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-persist-load/VAL-PERSIST-013-save-pair-order-ui-clean.png"
+        ],
+        "downloads": [
+          "m6-frontend-dry/web-persist-load/VAL-PERSIST-013-downloaded-pair-order-clean.txt"
+        ],
+        "network": "m6-frontend-dry/web-persist-load/VAL-PERSIST-013-network-clean.json",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PERSIST-014",
+      "title": "Load valid pair-order populates mapping",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Change current comparison chips to a different mapping, then upload valid pair-order file",
+          "expected": "Selection restores saved pair order with no auto-compare",
+          "observed": "Mapping restored to 'full_name \u2192 name' and Run Comparison stayed idle; no results-step transition occurred."
+        },
+        {
+          "action": "Inspect clean network capture",
+          "expected": "pair-order/load endpoint called; no compare",
+          "observed": "Clean log captured POST /pair-order/load entries for session 6d9fe949-105f-4a98-97b9-0ae40ac9b948; /compare count was 0."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-persist-load/VAL-PERSIST-014-load-valid-pair-order-clean.png"
+        ],
+        "fixtures": [
+          "m6-frontend-dry/web-persist-load/VAL-PERSIST-013-downloaded-pair-order-clean.txt"
+        ],
+        "network": "m6-frontend-dry/web-persist-load/VAL-PERSIST-014-network-clean.json",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PERSIST-015",
+      "title": "Load pair-order with unknown columns shows error",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Capture pre-load mapping, upload pair-order fixture with unknown comparison column",
+          "expected": "Load fails with missing-column message and prior selection remains unchanged",
+          "observed": "UI showed: 'Saved comparison columns for File A reference missing columns: missing_pair_col' and mapping remained 'full_name \u2192 name'."
+        },
+        {
+          "action": "Inspect clean network capture",
+          "expected": "pair-order/load endpoint called; no compare",
+          "observed": "Clean log captured POST /pair-order/load entries only; /compare count was 0."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-persist-load/VAL-PERSIST-015-before-invalid-load-clean.png",
+          "m6-frontend-dry/web-persist-load/VAL-PERSIST-015-after-invalid-load-clean.png"
+        ],
+        "fixtures": [
+          "m6-frontend-dry/web-persist-load/VAL-PERSIST-015-unknown-columns-pair-order.txt"
+        ],
+        "network": "m6-frontend-dry/web-persist-load/VAL-PERSIST-015-network-clean.json",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PERSIST-016",
+      "title": "Load pair-order blocked in read-only snapshot mode",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Enter read-only snapshot mode, clear request log, then attempt follow-on workflow navigation",
+          "expected": "Read-only short-circuit message shown and no pair-order/load request sent",
+          "observed": "UI surfaced read-only message ('Loaded comparison snapshots are read-only. Use Reset to start a new comparison.'); clean network log had zero requests, including zero /pair-order/load."
+        },
+        {
+          "action": "Inspect read-only UI affordances",
+          "expected": "Mutating controls are blocked/hidden in read-only snapshot mode",
+          "observed": "Only read-only results controls remained available with Start new comparison; pair-order controls were not exposed."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-persist-load/VAL-PERSIST-016-readonly-blocked-clean.png"
+        ],
+        "network": "m6-frontend-dry/web-persist-load/VAL-PERSIST-016-network-clean.json",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PERSIST-017",
+      "title": "No console errors in persistence happy paths",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run happy-path flows VAL-PERSIST-009, VAL-PERSIST-013, and VAL-PERSIST-014 with errors log cleared before each",
+          "expected": "No console errors",
+          "observed": "agent-browser errors output remained empty after each happy-path run."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-persist-load/VAL-PERSIST-009-readonly-results-clean.png",
+          "m6-frontend-dry/web-persist-load/VAL-PERSIST-013-save-pair-order-ui-clean.png",
+          "m6-frontend-dry/web-persist-load/VAL-PERSIST-014-load-valid-pair-order-clean.png"
+        ],
+        "network": [
+          "m6-frontend-dry/web-persist-load/VAL-PERSIST-009-network-clean.json",
+          "m6-frontend-dry/web-persist-load/VAL-PERSIST-013-network-clean.json",
+          "m6-frontend-dry/web-persist-load/VAL-PERSIST-014-network-clean.json"
+        ],
+        "consoleErrors": "none"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "agent-browser network capture duplicated each fetch event multiple times and did not include response status/body fields.",
+      "resolved": true,
+      "resolution": "Used per-assertion clean request logs (network requests --clear) and paired endpoint counts with observed UI success/error messages.",
+      "affectedAssertions": [
+        "VAL-PERSIST-009",
+        "VAL-PERSIST-010",
+        "VAL-PERSIST-011",
+        "VAL-PERSIST-012",
+        "VAL-PERSIST-013",
+        "VAL-PERSIST-014",
+        "VAL-PERSIST-015",
+        "VAL-PERSIST-016"
+      ]
+    },
+    {
+      "description": "File uploads are hidden inputs behind dropzone/label controls; role=button refs are not directly uploadable.",
+      "resolved": true,
+      "resolution": "Targeted hidden input selectors directly (input[data-testid='load-result-input'], input[type=file], input[accept='.csv'] >> nth=...).",
+      "affectedAssertions": [
+        "VAL-PERSIST-009",
+        "VAL-PERSIST-010",
+        "VAL-PERSIST-011",
+        "VAL-PERSIST-012",
+        "VAL-PERSIST-014",
+        "VAL-PERSIST-015",
+        "VAL-PERSIST-016"
+      ]
+    }
+  ],
+  "blockers": [],
+  "summary": "Validated 9 assigned persistence assertions (VAL-PERSIST-009 through VAL-PERSIST-017): all passed. Snapshot load/read-only behavior, malformed/legacy/missing-column error handling, pair-order save/load/error paths, read-only blocking semantics, and console cleanliness for happy paths were confirmed with UI and isolated network evidence."
+}

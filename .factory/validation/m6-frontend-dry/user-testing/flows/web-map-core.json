@@ -1,0 +1,333 @@
+{
+  "groupId": "web-map-core",
+  "testedAt": "2026-04-18T04:46:16.928783+00:00",
+  "isolation": {
+    "appUrl": "http://127.0.0.1:3001",
+    "agentBrowserSession": "9e32750d3b9e__mapcore",
+    "missionDir": "/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c",
+    "evidenceDir": "m6-frontend-dry/web-map-core"
+  },
+  "toolsUsed": [
+    "agent-browser",
+    "curl"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-MAP-001",
+      "title": "Configuration step renders four ColumnChipSelector groups",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Load File A and File B then enter Step 2",
+          "expected": "Mapping configuration panel appears",
+          "observed": "Step 2 Configure rendered"
+        },
+        {
+          "action": "Inspect accessibility tree",
+          "expected": "Key selectors for A/B and comparison selectors for A/B",
+          "observed": "A11y tree showed File A Key Columns, File B Key Columns, File A Columns, File B Columns"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-map-core/VAL-MAP-001-config-step.png"
+        ],
+        "a11yTree": "Snapshot captured with all four selector groups present",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-MAP-002",
+      "title": "Key-column chip toggles aria-pressed and visual state",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Toggle File A key chip 'id'",
+          "expected": "aria-pressed true then false and selected styling",
+          "observed": "aria-pressed changed false\u2192true\u2192false and selected class applied"
+        },
+        {
+          "action": "Toggle File B key chip independently",
+          "expected": "Independent per side",
+          "observed": "File B chip toggled separately; File A did not force File B"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-map-core/VAL-MAP-002-key-toggle-selected.png",
+          "m6-frontend-dry/web-map-core/VAL-MAP-002-key-toggle-visual.png"
+        ],
+        "dom": "aria-pressed outputs observed: false\u2192true\u2192false (A), false\u2192true (B); selected class included bg-primary styles",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-MAP-003",
+      "title": "Multiple key columns selectable on each side",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Select two keys on File A and two keys on File B",
+          "expected": "Selection accepted",
+          "observed": "Both sides accepted 2 selected keys and auto-pair became available"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-map-core/VAL-MAP-003-multiple-keys-selected.png"
+        ],
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-MAP-004",
+      "title": "Empty-key hint visible until first selection",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Observe key hint with no key selections",
+          "expected": "Hint visible for both sides",
+          "observed": "Hint count was 2"
+        },
+        {
+          "action": "Select first key on File A",
+          "expected": "Hint removed only for File A",
+          "observed": "Hint count dropped to 1 (File B only)"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-map-core/VAL-MAP-004-hint-before.png",
+          "m6-frontend-dry/web-map-core/VAL-MAP-004-hint-after.png"
+        ],
+        "dom": "Hint text: 'Click to select key columns (default: first column)' count 2\u21921",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-MAP-005",
+      "title": "Comparison columns selected/ordered by click sequence",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Click File A comparison chips in order name, email and File B in order full_name, email_address",
+          "expected": "Pair preview follows click order",
+          "observed": "Preview showed '1 name \u2192 full_name' then '2 email \u2192 email_address'"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-map-core/VAL-MAP-005-comparison-order.png"
+        ],
+        "previewText": "1 name \u2192 full_name; 2 email \u2192 email_address",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-MAP-006",
+      "title": "Deselecting a comparison column removes it from preview",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Start with two pairs and deselect one pair",
+          "expected": "Deselected pair removed and remaining pair renumbered",
+          "observed": "Preview changed from two pairs to '1 email \u2192 email_address'"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-map-core/VAL-MAP-005-comparison-order.png",
+          "m6-frontend-dry/web-map-core/VAL-MAP-006-after-deselect.png"
+        ],
+        "previewText": "After deselect: 1 email \u2192 email_address",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-MAP-007",
+      "title": "Run Comparison disabled until equal non-zero pair counts",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Check Run button with equal non-zero pairs",
+          "expected": "Enabled",
+          "observed": "is enabled => true"
+        },
+        {
+          "action": "Clear comparison pairs",
+          "expected": "Disabled",
+          "observed": "is enabled => false"
+        },
+        {
+          "action": "Make mismatched pair counts then match them",
+          "expected": "false then true",
+          "observed": "is enabled => false (mismatch) then true (matched)"
+        }
+      ],
+      "evidence": {
+        "dom": "Run enabled state sequence: true \u2192 false \u2192 false \u2192 true",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-MAP-008",
+      "title": "Mismatched comparison counts show amber warning",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Create mismatched comparison counts",
+          "expected": "Warning message appears",
+          "observed": "Preview showed 'Select the same number of comparison columns in both files to run comparison.'"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-map-core/VAL-MAP-008-mismatch-warning.png"
+        ],
+        "dom": "Exact warning text present in DOM snapshot",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-MAP-009",
+      "title": "Auto-pair buttons disabled until equal key counts",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Mismatch key counts (A only)",
+          "expected": "Auto-pair disabled",
+          "observed": "Auto-pair A/B enabled => false/false"
+        },
+        {
+          "action": "No keys selected",
+          "expected": "Auto-pair disabled",
+          "observed": "Auto-pair A/B enabled => false/false"
+        },
+        {
+          "action": "Equal key counts on both files",
+          "expected": "Auto-pair enabled and helper text switches",
+          "observed": "Auto-pair A/B enabled => true/true and helper text switched to confident-match guidance"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-map-core/VAL-MAP-008-mismatch-warning.png",
+          "m6-frontend-dry/web-map-core/VAL-MAP-009-autopair-zero-keys.png",
+          "m6-frontend-dry/web-map-core/VAL-MAP-009-autopair-equal-keys.png"
+        ],
+        "dom": "Enabled checks: false/false (mismatch), false/false (zero), true/true (equal)",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-MAP-010",
+      "title": "Auto-pair from File A populates in File A header order",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Use dataset with A headers id,name,email,line_count and B headers id,email_address,full_name,line_amount; select key id/id",
+          "expected": "Auto-pair follows File A order with key first",
+          "observed": "Preview after Auto-pair A: 1 id\u2192id, 2 name\u2192full_name, 3 email\u2192email_address"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-map-core/VAL-MAP-010-autopair-from-a-custom.png"
+        ],
+        "network": "performance resource entry: POST /api/sessions/5ed2724c-5343-4661-b4b2-52049ca2a44c/mappings (initiator fetch)",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-MAP-011",
+      "title": "Auto-pair only includes confident mappings (exact or fuzzy \u2265 0.85)",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Inspect suggest-mappings response for custom dataset",
+          "expected": "Response can include low-confidence fuzzy mappings",
+          "observed": "Response included line_count\u2192line_amount with similarity 0.7776666666666667"
+        },
+        {
+          "action": "Run Auto-pair from File A",
+          "expected": "Low-confidence mapping excluded from selected pairs",
+          "observed": "Preview included id/name/email pairs only; line_count\u2192line_amount absent"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-map-core/VAL-MAP-010-autopair-from-a-custom.png"
+        ],
+        "network": "POST /api/sessions/5ed2724c-5343-4661-b4b2-52049ca2a44c/mappings -> 200 with mappings including low-confidence fuzzy 0.7776666666666667",
+        "domDiff": "Response had 4 mappings; preview rendered 3 pairs (excluded low-confidence line_count mapping)",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-MAP-012",
+      "title": "Auto-pair from File B orders by File B header order",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "After same custom dataset/key setup, trigger Auto-pair from File B",
+          "expected": "Pairs sorted by File B header index",
+          "observed": "Preview became 1 id\u2192id, 2 email\u2192email_address, 3 name\u2192full_name"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-map-core/VAL-MAP-010-autopair-from-a-custom.png",
+          "m6-frontend-dry/web-map-core/VAL-MAP-012-autopair-from-b-custom.png"
+        ],
+        "comparison": "Compared with Auto-pair A ordering (id,name,email): Auto-pair B reordered non-key pairs to id,email,name",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "File drop zones are role=button wrappers; direct upload by ref failed until hidden input IDs were targeted.",
+      "resolved": true,
+      "resolution": "Used DOM inspection (input[type=file]) and uploaded via hidden input selectors (#_r_*).",
+      "affectedAssertions": [
+        "VAL-MAP-001",
+        "VAL-MAP-002",
+        "VAL-MAP-003",
+        "VAL-MAP-004",
+        "VAL-MAP-005",
+        "VAL-MAP-006",
+        "VAL-MAP-007",
+        "VAL-MAP-008",
+        "VAL-MAP-009",
+        "VAL-MAP-010",
+        "VAL-MAP-011",
+        "VAL-MAP-012"
+      ]
+    },
+    {
+      "description": "agent-browser eval with heredoc fails when chained with additional commands via && (parser error).",
+      "resolved": true,
+      "resolution": "Ran eval commands in separate Execute calls from other browser commands.",
+      "affectedAssertions": [
+        "VAL-MAP-004",
+        "VAL-MAP-005",
+        "VAL-MAP-010",
+        "VAL-MAP-011"
+      ]
+    }
+  ],
+  "blockers": [],
+  "summary": "Validated 12 mapping-core assertions: 12 passed, 0 failed, 0 blocked. Auto-pair confidence gating and A-vs-B ordering were confirmed with a custom fixture that exposed a low-confidence mapping candidate."
+}

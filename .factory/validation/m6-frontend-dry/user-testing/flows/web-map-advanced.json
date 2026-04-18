@@ -1,0 +1,289 @@
+{
+  "groupId": "web-map-advanced",
+  "testedAt": "2026-04-18T04:45:43Z",
+  "isolation": {
+    "appUrl": "http://127.0.0.1:3001",
+    "agentBrowserSession": "9e32750d3b9e__mapadv",
+    "missionDir": "/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c"
+  },
+  "toolsUsed": [
+    "agent-browser"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-MAP-013",
+      "title": "Auto-pair excludes already-selected and excluded columns",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Select key id on File A and File B, then click Auto-pair from File A",
+          "expected": "Key columns appear once as prefix in comparison selection with no duplicates",
+          "observed": "Preview showed exactly: 1 id → id, 2 name → full_name, 3 email → email_address (no duplicate id pair)"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-map-advanced/VAL-MAP-013-auto-pair-no-duplicates.png"
+        ],
+        "consoleErrors": "none",
+        "network": "Auto-pair action completed in UI; resulting preview order verified"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-MAP-014",
+      "title": "Save pair order triggers a file download",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Click Save pair order",
+          "expected": "Download is triggered and payload parses with version/headers_a/headers_b/selection",
+          "observed": "Download captured (440 bytes), parsed JSON contains version, headers_a, headers_b, selection"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-map-advanced/VAL-MAP-013-auto-pair-no-duplicates.png"
+        ],
+        "downloadedFiles": [
+          "m6-frontend-dry/web-map-advanced/VAL-MAP-014-pair-order-valid.json"
+        ],
+        "consoleErrors": "none",
+        "network": "POST /api/sessions/773e9ee0-1188-42ef-b18a-6e80128edf3a/pair-order/save -> 200"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-MAP-015",
+      "title": "Load pair order populates selection when headers match",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Change comparison selection, then load saved valid pair-order file",
+          "expected": "HTTP 200 and selection updates to saved selection",
+          "observed": "HTTP 200 returned; selection restored to id→id, name→full_name, email→email_address"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-map-advanced/VAL-MAP-015-load-success.png"
+        ],
+        "consoleErrors": "none",
+        "network": "POST /api/sessions/773e9ee0-1188-42ef-b18a-6e80128edf3a/pair-order/load -> 200"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-MAP-016",
+      "title": "Load pair order with mismatched headers shows error",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Load mismatched-header pair-order file",
+          "expected": "HTTP 400 with mismatch message; selection unchanged",
+          "observed": "HTTP 400 with 'Saved pair order does not match the currently loaded File B columns'; preview remained unchanged"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-map-advanced/VAL-MAP-016-load-mismatch-error.png"
+        ],
+        "artifacts": [
+          "m6-frontend-dry/web-map-advanced/VAL-MAP-016-pair-order-mismatched.json"
+        ],
+        "consoleErrors": "none",
+        "network": "POST /api/sessions/773e9ee0-1188-42ef-b18a-6e80128edf3a/pair-order/load -> 400 {\"code\":\"bad_input\",\"error\":\"Saved pair order does not match the currently loaded File B columns\"}"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-MAP-017",
+      "title": "Load pair order with unknown version fails",
+      "status": "fail",
+      "steps": [
+        {
+          "action": "Load unknown-version pair-order file (version=999)",
+          "expected": "HTTP 400 with 'Unsupported pair-order file version'",
+          "observed": "HTTP 400 returned, but message was parse error: 'Failed to parse pair-order file: invalid value: integer `999`, expected u8 at line 2 column 16'"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-map-advanced/VAL-MAP-017-load-unknown-version.png"
+        ],
+        "artifacts": [
+          "m6-frontend-dry/web-map-advanced/VAL-MAP-017-pair-order-unknown-version.json"
+        ],
+        "consoleErrors": "none",
+        "network": "POST /api/sessions/773e9ee0-1188-42ef-b18a-6e80128edf3a/pair-order/load -> 400 {\"code\":\"parse\",\"error\":\"Failed to parse pair-order file: invalid value: integer `999`, expected u8 at line 2 column 16\"}"
+      },
+      "issues": "Error text does not match contract expectation for unknown-version handling."
+    },
+    {
+      "id": "VAL-MAP-018",
+      "title": "Normalization checkboxes reflect and mutate state",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Toggle all normalization checkboxes and run comparison",
+          "expected": "Compare request body reflects exact checkbox states",
+          "observed": "Compare payload showed treat_empty_as_null=false, null_token_case_insensitive=false, case_insensitive=true, trim_whitespace=true, date_normalization.enabled=true"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-map-advanced/VAL-MAP-018-normalization-toggles.png",
+          "m6-frontend-dry/web-map-advanced/VAL-MAP-018-after-compare.png"
+        ],
+        "consoleErrors": "none",
+        "network": "POST /api/sessions/773e9ee0-1188-42ef-b18a-6e80128edf3a/compare -> 200 (captured request normalization object)"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-MAP-019",
+      "title": "Null-token comma-separated input parses correctly",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Set null token input to 'null, NA, unknown' and run comparison",
+          "expected": "normalization.null_tokens parsed as [\"null\",\"NA\",\"unknown\"]",
+          "observed": "Compare payload contained normalization.null_tokens exactly [\"null\",\"NA\",\"unknown\"]"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-map-advanced/VAL-MAP-018-normalization-toggles.png"
+        ],
+        "consoleErrors": "none",
+        "network": "POST /api/sessions/773e9ee0-1188-42ef-b18a-6e80128edf3a/compare -> 200 (request body contains parsed null_tokens array)"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-MAP-020",
+      "title": "Custom date-format textarea preserved line-by-line",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Set advanced date formats to two lines and run comparison",
+          "expected": "normalization.date_normalization.formats equals [\"%Y/%m/%d\",\"%Y.%m.%d\"]",
+          "observed": "Compare payload contained date_normalization.formats exactly [\"%Y/%m/%d\",\"%Y.%m.%d\"]"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-map-advanced/VAL-MAP-018-normalization-toggles.png"
+        ],
+        "consoleErrors": "none",
+        "network": "POST /api/sessions/773e9ee0-1188-42ef-b18a-6e80128edf3a/compare -> 200 (request body contains two-line date formats)"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-MAP-021",
+      "title": "Compare with mismatched key counts returns 400",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Select key_columns_a=[id,name], key_columns_b=[id], then Run Comparison",
+          "expected": "400 citing both File A and File B labels and UI banner shows message",
+          "observed": "400 returned with 'Key columns for File A and Key columns for File B must contain the same number of columns (got 2 and 1)' and banner displayed same text"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-map-advanced/VAL-MAP-021-mismatched-key-error.png"
+        ],
+        "consoleErrors": "none",
+        "network": "POST /api/sessions/773e9ee0-1188-42ef-b18a-6e80128edf3a/compare -> 400 {\"code\":\"validation\",\"error\":\"Key columns for File A and Key columns for File B must contain the same number of columns (got 2 and 1)\"}"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-MAP-022",
+      "title": "Compare with non-existent key column returns 400 (MissingColumns)",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Scripted compare request with key_columns_a including does_not_exist",
+          "expected": "400 naming missing column and selection label",
+          "observed": "400 returned: 'Key columns for File A reference missing columns: does_not_exist'"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-map-advanced/VAL-MAP-022-missing-column-scripted.png"
+        ],
+        "consoleErrors": "none",
+        "network": "POST /api/sessions/773e9ee0-1188-42ef-b18a-6e80128edf3a/compare -> 400 {\"code\":\"validation\",\"error\":\"Key columns for File A reference missing columns: does_not_exist\"}"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-MAP-023",
+      "title": "Compare with duplicate key columns returns 400 (DuplicateColumns)",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Scripted compare request with key_columns_a=[id,id]",
+          "expected": "400 identifying duplicate column",
+          "observed": "400 returned: 'Key columns for File A contain duplicate columns: id'"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-map-advanced/VAL-MAP-023-duplicate-column-scripted.png"
+        ],
+        "consoleErrors": "none",
+        "network": "POST /api/sessions/773e9ee0-1188-42ef-b18a-6e80128edf3a/compare -> 400 {\"code\":\"validation\",\"error\":\"Key columns for File A contain duplicate columns: id\"}"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-MAP-024",
+      "title": "Back to file selection preserves selection and normalization",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "With custom selections and normalization set, click Back to file selection then Continue to configuration",
+          "expected": "Pair order, checkbox states, null token input, and date formats remain unchanged",
+          "observed": "Before and after values matched: pairs (id→id, name→full_name, email→email_address), checkboxes [false,false,true,true,true], null tokens 'null, NA, unknown', date formats '%Y/%m/%d\\n%Y.%m.%d'"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-map-advanced/VAL-MAP-024-back-custom.png",
+          "m6-frontend-dry/web-map-advanced/VAL-MAP-024-return-custom.png"
+        ],
+        "consoleErrors": "none",
+        "network": "No additional compare request required; DOM state diff before/after navigation matched"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "Drop-zone buttons are div role=button elements; agent-browser upload works only on underlying file input selectors, which have dynamic ids.",
+      "resolved": true,
+      "resolution": "Targeted input[type=file] / discovered ids via DOM inspection and uploaded fixtures directly.",
+      "affectedAssertions": [
+        "VAL-MAP-014",
+        "VAL-MAP-015",
+        "VAL-MAP-016",
+        "VAL-MAP-017"
+      ]
+    },
+    {
+      "description": "Advanced date patterns require true multiline input; simple key-press sequence did not insert newline in this environment.",
+      "resolved": true,
+      "resolution": "Used multiline fill payload via command substitution to provide exact two-line textarea content.",
+      "affectedAssertions": [
+        "VAL-MAP-020",
+        "VAL-MAP-024"
+      ]
+    }
+  ],
+  "blockers": [],
+  "summary": "Tested 12 assertions (VAL-MAP-013..024): 11 passed, 1 failed. Failure: VAL-MAP-017 returned a parse error string instead of the expected 'Unsupported pair-order file version' message."
+}

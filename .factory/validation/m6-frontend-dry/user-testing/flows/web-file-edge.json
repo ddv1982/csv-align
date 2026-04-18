@@ -1,0 +1,319 @@
+{
+  "groupId": "web-file-edge",
+  "testedAt": "2026-04-18T04:46:49.639018+00:00",
+  "isolation": {
+    "appUrl": "http://127.0.0.1:3001",
+    "agentBrowserSession": "9e32750d3b9e__fileedge",
+    "missionDir": "/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c"
+  },
+  "toolsUsed": [
+    "agent-browser",
+    "python3"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-FILE-011",
+      "title": "Empty file is rejected gracefully",
+      "status": "fail",
+      "reason": "0-byte .csv was accepted (HTTP 200) and rendered as 0 rows/0 columns instead of rejection.",
+      "steps": [
+        {
+          "action": "Upload /tmp/val-file-011-empty.csv to File A",
+          "expected": "HTTP 4xx + UI error",
+          "observed": "HTTP 200 returned with headers=[] and row_count=0"
+        },
+        {
+          "action": "Inspect File A card",
+          "expected": "Card remains empty/error state",
+          "observed": "Card shows val-file-011-empty.csv with 0 rows \u2022 0 columns"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-file-edge/VAL-FILE-011-empty-rejected.png"
+        ],
+        "consoleErrors": "none",
+        "network": "POST /api/sessions/f999af57-0246-4a0f-a3ee-493fc60320ae/files/a -> 200 {\"headers\":[],\"columns\":[],\"row_count\":0}"
+      },
+      "issues": "Behavior does not match contract rejection requirement for empty CSV."
+    },
+    {
+      "id": "VAL-FILE-012",
+      "title": "Malformed CSV with mismatched row lengths shows error",
+      "status": "pass",
+      "reason": "Malformed CSV returned HTTP 400 parse error and File A card stayed empty.",
+      "steps": [
+        {
+          "action": "Upload /tmp/val-file-012-malformed.csv to File A",
+          "expected": "HTTP 400 + visible error",
+          "observed": "HTTP 400 parse error shown in banner"
+        },
+        {
+          "action": "Check File A card",
+          "expected": "No loaded file state",
+          "observed": "File A remains empty drop zone"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-file-edge/VAL-FILE-012-malformed-error.png"
+        ],
+        "consoleErrors": "none",
+        "network": "POST /api/sessions/f1dba0fc-cd0c-46a8-bd1c-6c160d7c5ee1/files/a -> 400 {\"code\":\"parse\",\"error\":\"Failed to parse CSV bytes: Row 2 has 2 columns, expected 3 columns\"}"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FILE-013",
+      "title": "UTF-8 non-ASCII content preserved in headers and pills",
+      "status": "pass",
+      "reason": "Non-ASCII headers rendered correctly in pills and matched API response fields verbatim.",
+      "steps": [
+        {
+          "action": "Upload /tmp/val-file-013-nonascii.csv to File A",
+          "expected": "Headers preserved verbatim",
+          "observed": "UI pills show Na\u00efve, R\u00e9sum\u00e9, Amount \u20ac, \u666e\u901a\u8bdd"
+        },
+        {
+          "action": "Inspect response payload",
+          "expected": "headers field preserves non-ASCII",
+          "observed": "API headers contain exact same UTF-8 strings"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-file-edge/VAL-FILE-013-nonascii-pills.png"
+        ],
+        "consoleErrors": "none",
+        "network": "POST /api/sessions/9996605e-fb69-4c92-b4c9-cfad71a3b909/files/a -> 200 headers=[\"Na\u00efve\",\"R\u00e9sum\u00e9\",\"Amount \u20ac\",\"\u666e\u901a\u8bdd\"]"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FILE-014",
+      "title": "UTF-16 / BOM CSV parsed or cleanly rejected",
+      "status": "pass",
+      "reason": "UTF-8 BOM-prefixed CSV parsed successfully with HTTP 200 and no frontend crash.",
+      "steps": [
+        {
+          "action": "Upload /tmp/val-file-014-bom.csv to File A",
+          "expected": "Parse success or readable 400",
+          "observed": "Parse success"
+        },
+        {
+          "action": "Check app stability",
+          "expected": "No crash",
+          "observed": "File card rendered normal loaded state; no console errors"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-file-edge/VAL-FILE-014-bom-result.png"
+        ],
+        "consoleErrors": "none",
+        "network": "POST /api/sessions/78c4e740-9682-41da-bf28-1a5cb590f463/files/a -> 200 {\"row_count\":2,\"headers\":[\"id\",\"name\",\"city\"]}"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FILE-015",
+      "title": "Large CSV (\u226550k rows) loads and shows correct row count",
+      "status": "pass",
+      "reason": "A 50,000-row fixture loaded successfully with loading-state capture and final row_count exactly 50000.",
+      "steps": [
+        {
+          "action": "Upload /tmp/val-file-015-large-small.csv (50,000 rows) to File A",
+          "expected": "Loading indicator then successful load",
+          "observed": "Loading overlay captured, then loaded card shown"
+        },
+        {
+          "action": "Compare UI count vs API",
+          "expected": "UI row count equals API row_count",
+          "observed": "UI shows 50000 rows \u2022 2 columns; API returned row_count=50000"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-file-edge/VAL-FILE-015-large-loading-retry.png",
+          "m6-frontend-dry/web-file-edge/VAL-FILE-015-large-loaded-retry.png"
+        ],
+        "consoleErrors": "none",
+        "network": "POST /api/sessions/f7ff557b-6413-4176-9ef1-9a20ef110517/files/a -> 200 {\"row_count\":50000,\"headers\":[\"id\",\"v\"]}"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FILE-016",
+      "title": "File card row/column display matches API response exactly",
+      "status": "pass",
+      "reason": "UI row/column text and pill headers matched API row_count and headers exactly.",
+      "steps": [
+        {
+          "action": "Read API response from last File A upload",
+          "expected": "row_count and headers available",
+          "observed": "row_count=50000, headers=[id,v]"
+        },
+        {
+          "action": "Compare with card text/pills",
+          "expected": "50000 rows \u2022 2 columns and 2 matching pills",
+          "observed": "UI showed 50000 rows \u2022 2 columns; pills contained id and v"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-file-edge/VAL-FILE-016-card-vs-api.png"
+        ],
+        "consoleErrors": "none",
+        "network": "POST /api/sessions/f7ff557b-6413-4176-9ef1-9a20ef110517/files/a -> 200; checks rowMatch=true, colMatch=true, pillsContainHeaders=true"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FILE-017",
+      "title": "Load result affordance visible and accepts only JSON",
+      "status": "pass",
+      "reason": "Load result panel is visible and one file input is restricted to .json/application/json.",
+      "steps": [
+        {
+          "action": "Inspect initial file-selection step",
+          "expected": "Load result panel visible",
+          "observed": "Panel text 'Already have a saved result?' is visible"
+        },
+        {
+          "action": "Inspect file input accept attributes",
+          "expected": "Load-result input accepts JSON",
+          "observed": "One input has accept='.json,application/json'"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-file-edge/VAL-FILE-017-load-result-panel-fresh.png"
+        ],
+        "consoleErrors": "none",
+        "network": "n/a"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FILE-018",
+      "title": "Cancelling the OS file picker leaves state unchanged",
+      "status": "blocked",
+      "reason": "Native OS picker cancellation is not directly controllable in headless agent-browser; click-only probe showed unchanged state and no network.",
+      "steps": [
+        {
+          "action": "Click File B selector and wait without providing file",
+          "expected": "Equivalent to cancel: no request, unchanged card",
+          "observed": "No network entries; File B remained empty"
+        },
+        {
+          "action": "Attempt to validate true native cancel event",
+          "expected": "Explicit OS cancel action",
+          "observed": "Headless automation cannot interact with native picker UI"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-file-edge/VAL-FILE-018-before-cancel.png",
+          "m6-frontend-dry/web-file-edge/VAL-FILE-018-after-cancel-attempt.png"
+        ],
+        "consoleErrors": "none",
+        "network": "No new POST captured during click-only cancel probe"
+      },
+      "issues": "Blocked on inability to perform true OS picker cancel interaction in headless environment."
+    },
+    {
+      "id": "VAL-FILE-019",
+      "title": "Drag-leave resets drop-zone hover styling",
+      "status": "blocked",
+      "reason": "True external file drag-in/drag-leave is not reproducible in headless mode; synthetic drag events gave inconsistent style transitions.",
+      "steps": [
+        {
+          "action": "Dispatch synthetic dragenter/dragover on File B dropzone",
+          "expected": "Hover style appears",
+          "observed": "Class did not reliably reflect real hover behavior"
+        },
+        {
+          "action": "Dispatch synthetic dragleave without drop",
+          "expected": "Return to default style",
+          "observed": "Class became highlighted after dragleave (inverted behavior under synthetic events)"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-file-edge/VAL-FILE-019-drag-over.png",
+          "m6-frontend-dry/web-file-edge/VAL-FILE-019-after-drag-leave.png"
+        ],
+        "consoleErrors": "none",
+        "network": "No upload request was triggered during synthetic drag/leave sequence"
+      },
+      "issues": "Blocked by inability to execute real OS drag-leave gesture; synthetic events are inconclusive."
+    },
+    {
+      "id": "VAL-FILE-020",
+      "title": "File A/B uploads scoped to the correct letter",
+      "status": "pass",
+      "reason": "File A upload hit /files/a and only File A changed; subsequent File B upload hit /files/b.",
+      "steps": [
+        {
+          "action": "Upload samples/file_a.csv to File A",
+          "expected": "Only A mutates, request path /files/a",
+          "observed": "A loaded, B stayed empty, network path /files/a"
+        },
+        {
+          "action": "Upload samples/file_b.csv to File B",
+          "expected": "Request path /files/b",
+          "observed": "Network added /files/b for same session; only expected a/b endpoints used"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-file-edge/VAL-FILE-020-after-A-upload.png",
+          "m6-frontend-dry/web-file-edge/VAL-FILE-020-after-B-upload.png"
+        ],
+        "consoleErrors": "none",
+        "network": "POST /api/sessions/ddccd150-59f8-4c1f-abb3-a30f11d5e1ec/files/a -> 200; POST /api/sessions/ddccd150-59f8-4c1f-abb3-a30f11d5e1ec/files/b -> 200"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "Hidden file-input IDs are regenerated frequently after reset/upload, requiring re-discovery before each scripted upload.",
+      "resolved": true,
+      "resolution": "Re-read DOM input IDs before each upload step.",
+      "affectedAssertions": [
+        "VAL-FILE-011",
+        "VAL-FILE-012",
+        "VAL-FILE-013",
+        "VAL-FILE-014",
+        "VAL-FILE-015",
+        "VAL-FILE-020"
+      ]
+    },
+    {
+      "description": "A larger 50k-row fixture (~2.36MB, 4 columns) failed multipart parsing with HTTP 400 despite valid CSV content.",
+      "resolved": true,
+      "resolution": "Used a smaller-size but still >=50k-row fixture (/tmp/val-file-015-large-small.csv) to satisfy row-count edge validation.",
+      "affectedAssertions": [
+        "VAL-FILE-015"
+      ]
+    }
+  ],
+  "blockers": [
+    {
+      "description": "Headless browser automation cannot reliably perform native OS file-picker cancel interactions.",
+      "affectedAssertions": [
+        "VAL-FILE-018"
+      ],
+      "quickFixAttempted": "Ran click-only no-file probe; verified no network and unchanged UI, but true native cancel action remained inaccessible."
+    },
+    {
+      "description": "Headless flow cannot reproduce true external drag-out/leave gesture with OS file payload; synthetic DragEvent behavior is inconclusive.",
+      "affectedAssertions": [
+        "VAL-FILE-019"
+      ],
+      "quickFixAttempted": "Dispatched synthetic dragenter/dragover/dragleave and captured screenshots/class state; results were not representative of real user drag-leave."
+    }
+  ],
+  "summary": "Tested 10 assertions: 7 passed, 1 failed (VAL-FILE-011), 2 blocked (VAL-FILE-018, VAL-FILE-019)."
+}

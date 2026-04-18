@@ -1,0 +1,209 @@
+{
+  "groupId": "web-shell-a11y",
+  "testedAt": "2026-04-18T04:55:56.342977+00:00",
+  "isolation": {
+    "appUrl": "http://127.0.0.1:3001",
+    "agentBrowserSession": "9e32750d3b9e__shella11y",
+    "missionDir": "/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c",
+    "evidenceDir": "m6-frontend-dry/web-shell-a11y"
+  },
+  "toolsUsed": [
+    "agent-browser",
+    "python3"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-SHELL-012",
+      "title": "Footer pinned to viewport bottom on short pages",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Open app at 1280x800 on initial short page",
+          "expected": "Footer sits at viewport bottom with no large gap",
+          "observed": "Footer bottom aligned with viewport bottom"
+        },
+        {
+          "action": "Measure footer and viewport geometry",
+          "expected": "Footer bottom edge within 4px of viewport bottom",
+          "observed": "footerBottom=800, viewportHeight=800, offset=0"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-shell-a11y/VAL-SHELL-012-short-page.png"
+        ],
+        "boundingBox": "m6-frontend-dry/web-shell-a11y/VAL-SHELL-018-root-theme-assertion.json"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SHELL-014",
+      "title": "Decorative SVGs carry aria-hidden=\"true\"",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Inspect header decorative SVGs (New window, Reset, theme icon)",
+          "expected": "Each decorative SVG has aria-hidden=\"true\"",
+          "observed": "All inspected header SVGs reported aria-hidden=\"true\""
+        },
+        {
+          "action": "Trigger workflow error and inspect ErrorBanner icon",
+          "expected": "ErrorBanner alert icon has aria-hidden=\"true\"",
+          "observed": "Error banner rendered with text 'Failed to fetch' and icon aria-hidden=\"true\""
+        }
+      ],
+      "evidence": {
+        "a11yTree": [
+          "m6-frontend-dry/web-shell-a11y/VAL-SHELL-014-a11y-with-error.txt"
+        ],
+        "domSweep": [
+          "m6-frontend-dry/web-shell-a11y/VAL-SHELL-014-decorative-svg-sweep.json"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SHELL-015",
+      "title": "Interactive buttons expose accessible names",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Check header controls and progress step button names",
+          "expected": "Reset/theme/unlocked step buttons expose accessible names",
+          "observed": "Reset named 'Reset'; theme has aria-label+title; unlocked steps include 'Go to step 1: Choose Local Files' and 'Go to step 2: Configure'"
+        },
+        {
+          "action": "Check export control naming on results",
+          "expected": "FilterBar export button has accessible name",
+          "observed": "Export button aria-label='Export comparison results as CSV'"
+        },
+        {
+          "action": "Check file selector keyboard accessibility",
+          "expected": "Dropzone is role=button, tabIndex=0, keyboard activatable",
+          "observed": "Both selectors are role=button/tabIndex=0; Enter on focused File A selector triggered click count increment"
+        }
+      ],
+      "evidence": {
+        "a11yTree": [
+          "m6-frontend-dry/web-shell-a11y/VAL-SHELL-015-a11y-interactive-initial.txt",
+          "m6-frontend-dry/web-shell-a11y/VAL-SHELL-015-a11y-interactive-results.txt"
+        ],
+        "dom": [
+          "m6-frontend-dry/web-shell-a11y/VAL-SHELL-015-initial-controls.json",
+          "m6-frontend-dry/web-shell-a11y/VAL-SHELL-015-016-nav-and-names-results.json",
+          "m6-frontend-dry/web-shell-a11y/VAL-SHELL-015-file-selector-keyboard.json"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SHELL-016",
+      "title": "Progress nav is a landmark with a single current step",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Inspect progress navigation semantics",
+          "expected": "nav[aria-label='Progress'] contains ol with 3 items",
+          "observed": "navAriaLabel='Progress', ordered list present, navItemCount=3"
+        },
+        {
+          "action": "Count current step markers",
+          "expected": "Exactly one aria-current='step'",
+          "observed": "currentStepCount=1"
+        }
+      ],
+      "evidence": {
+        "a11yTree": [
+          "m6-frontend-dry/web-shell-a11y/VAL-SHELL-016-a11y-tree.txt",
+          "m6-frontend-dry/web-shell-a11y/VAL-SHELL-015-016-a11y-results.txt"
+        ],
+        "dom": [
+          "m6-frontend-dry/web-shell-a11y/VAL-SHELL-018-root-theme-assertion.json",
+          "m6-frontend-dry/web-shell-a11y/VAL-SHELL-015-016-nav-and-names-results.json"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SHELL-017",
+      "title": "No console errors on initial load",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Clear browser errors, reload, wait for networkidle + 1s",
+          "expected": "No error-level console entries or uncaught exceptions",
+          "observed": "Error buffer file is empty"
+        }
+      ],
+      "evidence": {
+        "consoleErrors": "m6-frontend-dry/web-shell-a11y/VAL-SHELL-017-console-errors.txt"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SHELL-018",
+      "title": "Root container carries theme classes",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Inspect root and html theme attributes",
+          "expected": "Root has min-h-screen/flex/flex-col/light+dark classes; html dark class and matching colorScheme",
+          "observed": "Root includes min-h-screen flex flex-col bg-slate-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100; htmlClass='dark'; colorScheme='dark'"
+        }
+      ],
+      "evidence": {
+        "domAssertion": "m6-frontend-dry/web-shell-a11y/VAL-SHELL-018-root-theme-assertion.json",
+        "screenshots": [
+          "m6-frontend-dry/web-shell-a11y/VAL-SHELL-018-root-theme.png"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SHELL-019",
+      "title": "Header stays sticky on scroll",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Prepare long results page (2500 rows) and capture header geometry before scroll",
+          "expected": "Header initially at top with sticky class",
+          "observed": "headerTop=0, headerClass includes 'sticky top-0'"
+        },
+        {
+          "action": "Scroll down 900px and re-check geometry",
+          "expected": "Header remains pinned at top while content scrolls",
+          "observed": "scrollY=900 with headerTop still 0"
+        },
+        {
+          "action": "Click header theme control after scroll",
+          "expected": "Header controls remain clickable",
+          "observed": "Theme button click succeeded; aria-label changed to 'Switch to light mode'"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-shell-a11y/VAL-SHELL-019-before-scroll.png",
+          "m6-frontend-dry/web-shell-a11y/VAL-SHELL-019-after-scroll.png"
+        ],
+        "boundingBox": [
+          "m6-frontend-dry/web-shell-a11y/VAL-SHELL-019-header-box-before.json",
+          "m6-frontend-dry/web-shell-a11y/VAL-SHELL-019-header-box-after.json"
+        ]
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "agent-browser upload on file-selector refs fails because the dropzone is a DIV role=button, not an input element.",
+      "resolved": true,
+      "resolution": "Used hidden input[type=file] IDs for uploads and re-read IDs after each rerender because React generated IDs change.",
+      "affectedAssertions": [
+        "VAL-SHELL-015",
+        "VAL-SHELL-019"
+      ]
+    }
+  ],
+  "blockers": [],
+  "summary": "Tested 7 assertions: 7 passed, 0 failed, 0 blocked, 0 skipped."
+}

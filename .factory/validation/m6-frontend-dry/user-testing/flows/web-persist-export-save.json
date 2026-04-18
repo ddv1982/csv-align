@@ -1,0 +1,242 @@
+{
+  "groupId": "web-persist-export-save",
+  "testedAt": "2026-04-18T04:52:53.439156+00:00",
+  "isolation": {
+    "appUrl": "http://127.0.0.1:3001",
+    "agentBrowserSession": "9e32750d3b9e__persistsave",
+    "missionDir": "/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c",
+    "evidenceDir": "m6-frontend-dry/web-persist-export-save"
+  },
+  "toolsUsed": [
+    "agent-browser",
+    "curl"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-PERSIST-001",
+      "title": "Export CSV triggers browser download",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run comparison and navigate to Results; click Export CSV",
+          "expected": "Browser triggers export download",
+          "observed": "Download artifact created immediately after export click."
+        },
+        {
+          "action": "Probe export endpoint headers",
+          "expected": "GET /api/sessions/{id}/export returns 200 text/csv with attachment filename comparison-results.csv",
+          "observed": "curl confirmed 200, content-type text/csv, content-disposition attachment; filename=\"comparison-results.csv\"."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-persist-export-save/VAL-PERSIST-001-004-results-before-export.png"
+        ],
+        "downloads": [
+          "m6-frontend-dry/web-persist-export-save/VAL-PERSIST-001-export.csv",
+          "m6-frontend-dry/web-persist-export-save/2ede702b-095a-4cf3-aef3-764a059f92f9"
+        ],
+        "network": "GET /api/sessions/52ac9d7b-6645-4cb5-8c95-fc8165f2a6e0/export (fetch) + curl 200",
+        "responseHeaders": "m6-frontend-dry/web-persist-export-save/VAL-PERSIST-001-export-response-headers.txt",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PERSIST-002",
+      "title": "Exported CSV contains all comparison rows (filter-independent)",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Activate Mismatches filter (1 row visible) then export",
+          "expected": "Export should include all classified rows, not only filtered subset",
+          "observed": "Export CSV contained 5 data rows while active filter showed only mismatches subset."
+        },
+        {
+          "action": "Compare exported row count to summary totals",
+          "expected": "row_count(CSV)-1 equals summary.total_rows_classified",
+          "observed": "CSV data rows=5; summary buckets in UI also total 5."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-persist-export-save/VAL-PERSIST-002-active-filter-before-export.png",
+          "m6-frontend-dry/web-persist-export-save/VAL-PERSIST-001-004-results-before-export.png"
+        ],
+        "downloads": [
+          "m6-frontend-dry/web-persist-export-save/VAL-PERSIST-001-export.csv"
+        ],
+        "network": "GET /api/sessions/52ac9d7b-6645-4cb5-8c95-fc8165f2a6e0/export (fetch)",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PERSIST-003",
+      "title": "Exported CSV header matches comparison setup",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Parse exported CSV header row",
+          "expected": "Header starts with Result and key/paired columns then trailing fixed columns",
+          "observed": "Header was Result, Key: id, File A: name, File A: email, File B: full_name, File B: email_address, Difference Summary, Duplicate Rows File A, Duplicate Rows File B, Duplicate Summary."
+        }
+      ],
+      "evidence": {
+        "downloads": [
+          "m6-frontend-dry/web-persist-export-save/VAL-PERSIST-001-export.csv"
+        ],
+        "screenshots": [
+          "m6-frontend-dry/web-persist-export-save/VAL-PERSIST-001-004-results-before-export.png"
+        ],
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PERSIST-004",
+      "title": "Exported CSV row count matches summary",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Count exported CSV rows excluding header",
+          "expected": "Count equals sum of summary buckets",
+          "observed": "Exported CSV data rows = 5."
+        },
+        {
+          "action": "Sum summary buckets",
+          "expected": "matches+mismatches+missing_left+missing_right+unkeyed+duplicates equals exported rows",
+          "observed": "2+1+1+1+0+0+0=5, matching CSV data rows."
+        }
+      ],
+      "evidence": {
+        "downloads": [
+          "m6-frontend-dry/web-persist-export-save/VAL-PERSIST-001-export.csv"
+        ],
+        "screenshots": [
+          "m6-frontend-dry/web-persist-export-save/VAL-PERSIST-001-004-results-before-export.png"
+        ],
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PERSIST-005",
+      "title": "Export disabled/inert in empty state",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Open app in initial state",
+          "expected": "Export control not reachable before results step",
+          "observed": "Initial screen exposed only file selectors; no export action present."
+        },
+        {
+          "action": "Directly call export on fresh session with no comparison",
+          "expected": "Non-2xx with meaningful error and no download",
+          "observed": "GET /api/sessions/64252e56-c7f4-4c79-9e91-91577bb400b3/export returned 400 with 'No comparison results to export. Run a comparison first.'"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-persist-export-save/VAL-PERSIST-005-empty-state.png"
+        ],
+        "network": "curl GET /api/sessions/64252e56-c7f4-4c79-9e91-91577bb400b3/export -> 400 bad_input",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PERSIST-006",
+      "title": "Loading indicator visible during export",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Apply temporary in-page delay to /export fetch and click Export CSV",
+          "expected": "Loading state visible while export request is in-flight",
+          "observed": "In-flight screenshot showed loading UI (content panel hidden, only top controls visible)."
+        },
+        {
+          "action": "Wait for response completion",
+          "expected": "Loading clears after export completes",
+          "observed": "Results controls returned after completion; no console errors."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-persist-export-save/VAL-PERSIST-006-export-loading-inflight.png",
+          "m6-frontend-dry/web-persist-export-save/VAL-PERSIST-006-export-after-complete.png"
+        ],
+        "network": "GET /api/sessions/52ac9d7b-6645-4cb5-8c95-fc8165f2a6e0/export observed during delayed fetch",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PERSIST-008",
+      "title": "Save snapshot after zero-results works",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run comparison using header-only CSV files",
+          "expected": "Zero-results state with all summary buckets at 0",
+          "observed": "Results step showed All 0 and all bucket counts 0."
+        },
+        {
+          "action": "Click Save result and parse downloaded snapshot",
+          "expected": "Saved JSON has results=[] and all summary buckets zero",
+          "observed": "Downloaded snapshot had version=2, results_len=0, and every summary bucket equal to 0."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-persist-export-save/VAL-PERSIST-008-zero-results-before-save.png"
+        ],
+        "downloads": [
+          "m6-frontend-dry/web-persist-export-save/VAL-PERSIST-008-zero-results-snapshot.json",
+          "m6-frontend-dry/web-persist-export-save/VAL-PERSIST-008-save-response.json"
+        ],
+        "network": "POST /api/sessions/c0adc0cb-40c7-45c5-8ecb-7e071882761d/comparison-snapshot/save (fetch) + curl 200",
+        "responseHeaders": "m6-frontend-dry/web-persist-export-save/VAL-PERSIST-008-save-response-headers.txt",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "File upload controls are role=button dropzones; agent-browser upload requires targeting hidden input[type=file] selectors directly.",
+      "resolved": true,
+      "resolution": "Used selector-based uploads: input[type='file'][accept='.csv'] >> nth=0/1.",
+      "affectedAssertions": [
+        "VAL-PERSIST-001",
+        "VAL-PERSIST-002",
+        "VAL-PERSIST-003",
+        "VAL-PERSIST-004",
+        "VAL-PERSIST-006",
+        "VAL-PERSIST-008"
+      ]
+    },
+    {
+      "description": "agent-browser stored downloaded artifacts with UUID filenames instead of response Content-Disposition names.",
+      "resolved": true,
+      "resolution": "Verified expected filenames via saved curl response headers and copied artifacts to descriptive evidence filenames.",
+      "affectedAssertions": [
+        "VAL-PERSIST-001",
+        "VAL-PERSIST-002",
+        "VAL-PERSIST-003",
+        "VAL-PERSIST-004",
+        "VAL-PERSIST-008"
+      ]
+    },
+    {
+      "description": "Export completed too quickly to reliably capture an in-flight loading frame without delay.",
+      "resolved": true,
+      "resolution": "Temporarily delayed /export fetch in page context by 1500ms to capture loading-state evidence screenshot.",
+      "affectedAssertions": [
+        "VAL-PERSIST-006"
+      ]
+    }
+  ],
+  "blockers": [],
+  "summary": "Validated 7 persistence assertions (VAL-PERSIST-001, 002, 003, 004, 005, 006, 008): all passed. Export endpoint/CSV shape, row counts, empty-state inert behavior, loading-state visibility, and zero-result snapshot save behavior were confirmed with UI/network/download evidence."
+}

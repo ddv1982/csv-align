@@ -40,6 +40,8 @@ Validators must never start Axum on a port outside the 3000-3001 range. All buil
 - The port change from 3000 → 3001 happens inside M1; pre-M1 milestones validate against 3000, post-M1 against 3001. Validators should consult AGENTS.md / services.yaml for the current port.
 - `handleReset` in the pre-refactor code does not issue `DELETE /api/sessions/{id}` — VAL-SHELL-005 requires M6 to wire it.
 - `agent-browser` download path is fixed at daemon/session startup; if deterministic artifact names are needed, copy the downloaded file into the evidence directory after download.
+- `agent-browser upload` cannot target csv dropzone `div[role="button"]` directly; validators must upload via the hidden `input[type="file"]` elements (IDs may change after rerenders).
+- In headless browser automation, true native OS file-picker cancel and external drag-leave gestures are not reliably reproducible. For assertions that explicitly require those OS gestures, prefer manual validation or mark `blocked` with evidence of the nearest observable state.
 
 ## Flow Validator Guidance: web
 

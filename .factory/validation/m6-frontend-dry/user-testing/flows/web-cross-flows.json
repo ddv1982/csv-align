@@ -1,0 +1,328 @@
+{
+  "groupId": "web-cross-flows",
+  "testedAt": "2026-04-18T05:26:00.258736+00:00",
+  "isolation": {
+    "appUrl": "http://127.0.0.1:3001",
+    "agentBrowserSession": "9e32750d3b9e__cross",
+    "missionDir": "/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c"
+  },
+  "toolsUsed": [
+    "agent-browser",
+    "python3"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-CROSS-001",
+      "title": "Full happy path (load \u2192 compare \u2192 filter \u2192 export)",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Load samples/file_a.csv and samples/file_b.csv",
+          "expected": "Flow advances to configuration",
+          "observed": "Configuration step rendered with loaded file metadata."
+        },
+        {
+          "action": "Select key columns + auto-pair and run comparison",
+          "expected": "Results render with non-zero match rate",
+          "observed": "Results step rendered with 40% match rate (2 of 5)."
+        },
+        {
+          "action": "Apply non-All filter (Mismatches)",
+          "expected": "Filtered table subset shown",
+          "observed": "Mismatches filter active with 1 row shown."
+        },
+        {
+          "action": "Export CSV and parse header",
+          "expected": "CSV download works and header matches selected setup",
+          "observed": "CSV downloaded and parsed; header includes Result, Key: id, File A and File B mapped columns."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-001-step2-after-load.png",
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-001-step2-mapped.png",
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-001-step3-results.png",
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-001-step3-filtered-mismatches.png"
+        ],
+        "downloads": [
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-001-export.csv"
+        ],
+        "consoleErrors": "none",
+        "network": "Observed POST /api/sessions/{sid}/files/a, POST /files/b, POST /mappings, POST /compare, GET /export in flow session."
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-002",
+      "title": "Pair-order round-trip (save \u2192 reset \u2192 reload \u2192 restore \u2192 compare)",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Create manual mapping and save pair order",
+          "expected": "Pair-order file downloads",
+          "observed": "pair-order file downloaded and contains saved key/comparison selections."
+        },
+        {
+          "action": "Run baseline compare",
+          "expected": "Baseline summary captured",
+          "observed": "Baseline summary: 40% match rate, totals 5 rows (2 matches, 1 mismatch, 1 only-in-B, 1 only-in-A)."
+        },
+        {
+          "action": "Reset, reload same files, load saved pair-order",
+          "expected": "Mapping restored exactly",
+          "observed": "Restored chips match pre-reset mapping order and selections."
+        },
+        {
+          "action": "Run compare again",
+          "expected": "Match-rate and totals identical to baseline",
+          "observed": "Restored compare produced same 40% and identical totals."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-002-mapping-before-save.png",
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-002-after-reset-step1.png",
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-002-mapping-restored.png",
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-002-baseline-results.png",
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-002-restored-results.png"
+        ],
+        "downloads": [
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-002-pair-order.txt"
+        ],
+        "consoleErrors": "none",
+        "network": "Observed POST /pair-order/save and POST /pair-order/load for the round-trip session."
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-003",
+      "title": "Snapshot round-trip (save \u2192 reset \u2192 load \u2192 read-only)",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Save snapshot from completed results",
+          "expected": "Snapshot file download in v2 format",
+          "observed": "Downloaded snapshot JSON has version: 2 and expected top-level keys."
+        },
+        {
+          "action": "Reset and load saved snapshot",
+          "expected": "Read-only results render and match saved results",
+          "observed": "Read-only banner shown; loaded summary remains 40% and same totals."
+        },
+        {
+          "action": "Interact in read-only mode",
+          "expected": "No compare calls made",
+          "observed": "Compare request count stayed 7 before/after read-only interactions."
+        },
+        {
+          "action": "Start new comparison",
+          "expected": "Return to clean step 1",
+          "observed": "Returned to file-selection step with empty dropzones."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-003-saved-snapshot-source-results.png",
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-003-after-reset-step1.png",
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-003-loaded-readonly-results.png",
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-003-009-after-start-new-step1.png"
+        ],
+        "downloads": [
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-003-snapshot.json"
+        ],
+        "consoleErrors": "none",
+        "network": "Observed comparison-snapshot save/load requests; compare count unchanged during read-only interactions (7 -> 7)."
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-004",
+      "title": "Auto-pair confidence gating",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Load mixed-confidence fixtures (/tmp/val_cross4_a.csv and /tmp/val_cross4_b.csv)",
+          "expected": "Files load into configuration step",
+          "observed": "Configuration step rendered with headers id/name/total/email vs id/full_name/total_amount/email."
+        },
+        {
+          "action": "Select keys and run auto-pair",
+          "expected": "High-confidence pairs pre-populated; lower-confidence remain unmapped",
+          "observed": "Auto-pair selected id, name/full_name, email; total/total_amount remained unselected."
+        },
+        {
+          "action": "Manually map remaining low-confidence pair and run compare",
+          "expected": "Manual completion works",
+          "observed": "After selecting total/total_amount manually, compare executed and results rendered."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-004-before-autopair.png",
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-004-after-autopair.png",
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-004-manual-low-confidence-added.png",
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-004-results-after-manual-low-confidence.png"
+        ],
+        "consoleErrors": "none",
+        "network": "Auto-pair invoked from configuration flow; subsequent compare succeeded after manual completion."
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-005",
+      "title": "Error recovery from malformed CSV",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Upload malformed CSV (/tmp/val_cross5_malformed.csv)",
+          "expected": "Readable error shown without panic/stacktrace",
+          "observed": "Error banner displayed: \"Failed to parse CSV bytes: Row 3 has 2 columns, expected 3 columns\"."
+        },
+        {
+          "action": "Replace with valid CSV",
+          "expected": "Error clears and file loads",
+          "observed": "Error banner cleared; File A card loaded with row/column summary."
+        },
+        {
+          "action": "Complete flow with valid File B and run compare",
+          "expected": "Results table renders",
+          "observed": "Comparison results rendered successfully."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-005-malformed-error.png",
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-005-error-cleared-after-valid-replace.png",
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-005-results-after-recovery.png"
+        ],
+        "consoleErrors": "none",
+        "network": "Malformed upload produced UI error state; subsequent valid uploads and compare requests completed."
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-006",
+      "title": "Theme persistence across full workflow",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Toggle theme light then dark",
+          "expected": "Theme/localStorage and html class update",
+          "observed": "csv-align-theme and <html>.class/style.colorScheme toggled correctly to light then dark."
+        },
+        {
+          "action": "Run load \u2192 compare \u2192 filter \u2192 export in dark mode",
+          "expected": "Dark theme remains active through workflow",
+          "observed": "Workflow completed with dark palette and dark-mode toggle state retained."
+        },
+        {
+          "action": "Reload during workflow checkpoints",
+          "expected": "<html>.dark and localStorage persist",
+          "observed": "After reload checks, localStorage remained \"dark\" and <html> retained dark class/color-scheme."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-006-theme-before-toggle.png",
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-006-theme-light.png",
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-006-theme-dark-toggled.png",
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-006-reload-checkpoint-dark.png",
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-006-reload-from-step3-dark.png"
+        ],
+        "consoleErrors": "none",
+        "network": "Workflow API calls completed in dark mode; reload checks performed while maintaining dark theme state."
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-007",
+      "title": "Mid-workflow reset cleanly discards state",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Build partial step-2 mapping state",
+          "expected": "In-progress mapping exists",
+          "observed": "Step 2 shown with partial key selection."
+        },
+        {
+          "action": "Click Reset mid-workflow",
+          "expected": "Return to step 1 with locked step 2/3 and empty inputs",
+          "observed": "Returned to step 1 with empty File A/B selectors and initial nav state."
+        },
+        {
+          "action": "Trigger subsequent request after reset",
+          "expected": "No previous session ID reused",
+          "observed": "Pre-reset file-upload session ID 8b17008c-ca5f-4646-b117-5e9e3d0f3454; post-reset upload used 26b1c366-292c-4ab1-abf6-8b3e00b9c5d2."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-007-partial-mapping-step2.png",
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-007-after-reset-step1-locked.png"
+        ],
+        "consoleErrors": "none",
+        "network": "Session ID changed after reset on next upload request (old != new)."
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-009",
+      "title": "Step navigation lock integrity after snapshot load",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "In snapshot read-only mode, click step 1/2 headers",
+          "expected": "Navigation blocked",
+          "observed": "Remained on read-only results; step-click attempts did not navigate away."
+        },
+        {
+          "action": "Start new comparison from read-only",
+          "expected": "Return to step 1",
+          "observed": "Returned to step 1 file-selection surface."
+        },
+        {
+          "action": "Re-validate gate invariants",
+          "expected": "Step 2 unlocks on two files; step 3 unlocks only after summary",
+          "observed": "After two files loaded, step 2 active while step 3 remained locked; after compare, step 3 unlocked and active."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-009-readonly-step-click-blocked.png",
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-009-step2-unlocked-after-two-files.png",
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-009-step3-locked-before-summary.png",
+          "m6-frontend-dry/web-cross-flows/VAL-CROSS-009-step3-unlocked-after-compare.png"
+        ],
+        "consoleErrors": "none",
+        "network": "No compare call triggered by read-only step-click attempts; compare resumed only after starting a new comparison and running workflow."
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "Reloading during theme checkpoints returned UI to step 1, so files had to be reloaded to continue end-to-end workflow checks.",
+      "resolved": true,
+      "resolution": "Re-loaded fixtures and resumed flow; theme persistence evidence still captured via localStorage + <html>.dark checks.",
+      "affectedAssertions": [
+        "VAL-CROSS-006"
+      ]
+    },
+    {
+      "description": "File selectors are hidden inputs with dynamic IDs, so direct upload to visible dropzone/button refs fails.",
+      "resolved": true,
+      "resolution": "Targeted underlying file inputs by selector each time and continued validation normally.",
+      "affectedAssertions": [
+        "VAL-CROSS-001",
+        "VAL-CROSS-002",
+        "VAL-CROSS-003",
+        "VAL-CROSS-004",
+        "VAL-CROSS-005",
+        "VAL-CROSS-007",
+        "VAL-CROSS-009"
+      ]
+    }
+  ],
+  "blockers": [],
+  "summary": "Tested 8 assigned cross-area assertions: 8 passed, 0 failed, 0 blocked."
+}

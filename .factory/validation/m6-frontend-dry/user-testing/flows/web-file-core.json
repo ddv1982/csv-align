@@ -1,0 +1,279 @@
+{
+  "groupId": "web-file-core",
+  "testedAt": "2026-04-18T04:44:02.779475+00:00",
+  "isolation": {
+    "appUrl": "http://127.0.0.1:3001",
+    "agentBrowserSession": "9e32750d3b9e__filecore",
+    "missionDir": "/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c",
+    "evidenceDir": "/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c/evidence/m6-frontend-dry/web-file-core"
+  },
+  "toolsUsed": [
+    "agent-browser"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-FILE-001",
+      "title": "Initial empty state renders two labeled drop zones",
+      "status": "pass",
+      "reason": "Initial page shows heading + File A/File B drop zones and no Continue control.",
+      "steps": [
+        {
+          "action": "Open app root",
+          "expected": "Initial file-selection UI shown",
+          "observed": "Heading, both file selectors, and load-result panel rendered."
+        },
+        {
+          "action": "Inspect visible text",
+          "expected": "No Continue button before any uploads",
+          "observed": "No continue text/control present in body text."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-file-core/VAL-FILE-001-initial-state.png"
+        ],
+        "consoleErrors": "m6-frontend-dry/web-file-core/VAL-FILE-001-console-errors.json",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FILE-002",
+      "title": "Load valid CSV File A via file picker",
+      "status": "fail",
+      "reason": "Upload succeeded and UI updated, but API response body omitted required `file_name` field.",
+      "steps": [
+        {
+          "action": "Select file_a.csv for File A",
+          "expected": "File A loads with 4 rows \u2022 4 columns",
+          "observed": "Card shows file_a.csv and 4 rows \u2022 4 columns."
+        },
+        {
+          "action": "Inspect POST /files/a response",
+          "expected": "200 response with headers,row_count,columns,file_name",
+          "observed": "200 response includes headers,row_count,columns but no file_name key."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-file-core/VAL-FILE-002-file-a-loaded.png"
+        ],
+        "consoleErrors": "m6-frontend-dry/web-file-core/VAL-FILE-002-console-errors.json",
+        "network": "m6-frontend-dry/web-file-core/VAL-FILE-002-fetch.json"
+      },
+      "issues": "Contract mismatch: `file_name` missing from POST /api/sessions/{sid}/files/a response body."
+    },
+    {
+      "id": "VAL-FILE-003",
+      "title": "Load valid CSV File B via file picker",
+      "status": "pass",
+      "reason": "File B upload returned 200 and step advanced with File B columns loaded.",
+      "steps": [
+        {
+          "action": "After File A, select file_b.csv for File B",
+          "expected": "File B card loads and upload succeeds",
+          "observed": "POST /files/b returned 200 and app advanced to Configure step with B columns visible."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-file-core/VAL-FILE-003-file-b-loaded.png"
+        ],
+        "consoleErrors": "m6-frontend-dry/web-file-core/VAL-FILE-003-console-errors.json",
+        "network": "m6-frontend-dry/web-file-core/VAL-FILE-003-fetch.json"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FILE-004",
+      "title": "Continue control gated on both files loaded",
+      "status": "pass",
+      "reason": "Single-file state stayed on selection step with no Continue; after both files app auto-advanced to step 2.",
+      "steps": [
+        {
+          "action": "Load only File A",
+          "expected": "Continue absent",
+          "observed": "No Continue control shown in single-file state."
+        },
+        {
+          "action": "Load File B",
+          "expected": "Continue appears or auto-advance occurs",
+          "observed": "Flow auto-advanced directly to Configure step."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-file-core/VAL-FILE-004-single-file-state.png",
+          "m6-frontend-dry/web-file-core/VAL-FILE-004-both-files-state.png"
+        ],
+        "consoleErrors": "m6-frontend-dry/web-file-core/VAL-FILE-004-console-errors.json",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FILE-005",
+      "title": "Load CSV via drag-and-drop",
+      "status": "pass",
+      "reason": "Drag-over state switched to highlighted drop prompt; dropping CSV uploaded File A successfully.",
+      "steps": [
+        {
+          "action": "Drag CSV over File A zone",
+          "expected": "Highlighted drag-over style",
+          "observed": "Class/text switched to drop-state (`Drop the local CSV file here`)."
+        },
+        {
+          "action": "Drop CSV on File A zone",
+          "expected": "Upload and loaded card state",
+          "observed": "POST /files/a returned 200 and File A card showed loaded metadata."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-file-core/VAL-FILE-005-drag-over.png",
+          "m6-frontend-dry/web-file-core/VAL-FILE-005-post-drop.png"
+        ],
+        "consoleErrors": "m6-frontend-dry/web-file-core/VAL-FILE-005-console-errors.json",
+        "network": "m6-frontend-dry/web-file-core/VAL-FILE-005-fetch.json",
+        "dragState": "m6-frontend-dry/web-file-core/VAL-FILE-005-dragover-state.json"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FILE-006",
+      "title": "Reject non-CSV file by extension (picker)",
+      "status": "pass",
+      "reason": "Non-.csv picker selection showed inline extension error and no upload request occurred.",
+      "steps": [
+        {
+          "action": "Select non-csv file for File A",
+          "expected": "Inline extension error and no upload",
+          "observed": "Error text rendered and fetch log remained empty."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-file-core/VAL-FILE-006-non-csv-picker-error.png"
+        ],
+        "consoleErrors": "m6-frontend-dry/web-file-core/VAL-FILE-006-console-errors.json",
+        "network": "m6-frontend-dry/web-file-core/VAL-FILE-006-fetch.json"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FILE-007",
+      "title": "Reject non-CSV file by drag-and-drop",
+      "status": "pass",
+      "reason": "Dropping non-.csv on File B produced extension error and no POST /files/b request.",
+      "steps": [
+        {
+          "action": "Drop non-csv file on File B",
+          "expected": "Inline extension error and no upload",
+          "observed": "Error text rendered for File B and fetch log remained empty."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-file-core/VAL-FILE-007-non-csv-drop-error.png"
+        ],
+        "consoleErrors": "m6-frontend-dry/web-file-core/VAL-FILE-007-console-errors.json",
+        "network": "m6-frontend-dry/web-file-core/VAL-FILE-007-fetch.json"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FILE-008",
+      "title": "Replace an already loaded file",
+      "status": "pass",
+      "reason": "File A initially loaded with file_a.csv, then replacement changed card to file_b.csv with new POST /files/a 200.",
+      "steps": [
+        {
+          "action": "Load File A with file_a.csv",
+          "expected": "Initial loaded state",
+          "observed": "File A card showed file_a.csv."
+        },
+        {
+          "action": "Use Select Another File and choose file_b.csv",
+          "expected": "Card updates and new upload occurs",
+          "observed": "POST /files/a returned 200 and card updated to file_b.csv columns."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-file-core/VAL-FILE-008-before-replace.png",
+          "m6-frontend-dry/web-file-core/VAL-FILE-008-after-replace.png"
+        ],
+        "consoleErrors": "m6-frontend-dry/web-file-core/VAL-FILE-008-console-errors.json",
+        "network": "m6-frontend-dry/web-file-core/VAL-FILE-008-fetch.json"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FILE-009",
+      "title": "Same CSV accepted for both A and B",
+      "status": "pass",
+      "reason": "Uploading file_a.csv to both slots succeeded; no blocking error and both POSTs returned 200.",
+      "steps": [
+        {
+          "action": "Load file_a.csv into File A then File B",
+          "expected": "Both accepted",
+          "observed": "POST /files/a and POST /files/b each returned 200 and app advanced to Configure."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-file-core/VAL-FILE-009-same-file-both-slots.png"
+        ],
+        "consoleErrors": "m6-frontend-dry/web-file-core/VAL-FILE-009-console-errors.json",
+        "network": "m6-frontend-dry/web-file-core/VAL-FILE-009-fetch.json"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FILE-010",
+      "title": "Header-only CSV loads with zero rows",
+      "status": "pass",
+      "reason": "Header-only CSV displayed 0 rows \u2022 3 columns and API response returned row_count: 0 with expected headers.",
+      "steps": [
+        {
+          "action": "Load header_only.csv into File A",
+          "expected": "0 rows with header columns",
+          "observed": "UI showed header_only.csv with 0 rows \u2022 3 columns."
+        },
+        {
+          "action": "Inspect upload response body",
+          "expected": "row_count 0 and correct headers",
+          "observed": "POST /files/a returned 200 with row_count 0 and headers [id,name,amount]."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-file-core/VAL-FILE-010-header-only-loaded.png"
+        ],
+        "consoleErrors": "m6-frontend-dry/web-file-core/VAL-FILE-010-console-errors.json",
+        "network": "m6-frontend-dry/web-file-core/VAL-FILE-010-fetch.json"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "agent-browser upload command cannot target the custom dropzone element directly because it is a div, not an input.",
+      "resolved": true,
+      "resolution": "Used in-page event dispatch on the hidden file input / drop events to execute picker and drag-drop flows while preserving user-surface behavior.",
+      "affectedAssertions": [
+        "VAL-FILE-002",
+        "VAL-FILE-003",
+        "VAL-FILE-004",
+        "VAL-FILE-005",
+        "VAL-FILE-006",
+        "VAL-FILE-007",
+        "VAL-FILE-008",
+        "VAL-FILE-009",
+        "VAL-FILE-010"
+      ]
+    }
+  ],
+  "blockers": [],
+  "summary": "Tested 10 assertions: 9 passed, 1 failed (VAL-FILE-002 missing `file_name` in /files/a response body)."
+}

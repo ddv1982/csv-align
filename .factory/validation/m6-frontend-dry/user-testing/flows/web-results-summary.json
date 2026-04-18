@@ -1,0 +1,345 @@
+{
+  "groupId": "web-results-summary",
+  "testedAt": "2026-04-18T04:43:56.834313+00:00",
+  "isolation": {
+    "appUrl": "http://127.0.0.1:3001",
+    "agentBrowserSession": "9e32750d3b9e__resultssum",
+    "missionDir": "/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c"
+  },
+  "toolsUsed": [
+    "agent-browser"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-RESULTS-001",
+      "title": "Comparison renders results panel",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Load samples/file_a.csv and samples/file_b.csv; configure key/comparison mapping; run compare",
+          "expected": "Step 3 renders Summary card + Filter bar + Detailed results table",
+          "observed": "Step 3 rendered all three sections with 5 result rows"
+        },
+        {
+          "action": "Check compare request",
+          "expected": "POST /compare returns 200",
+          "observed": "POST /api/sessions/9985a0ff-7cd8-42b2-afb1-c283c75ee278/compare -> 200"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-results-summary/VAL-RESULTS-001-results-panel-baseline.png"
+        ],
+        "consoleErrors": "none",
+        "network": "POST /api/sessions/9985a0ff-7cd8-42b2-afb1-c283c75ee278/compare -> 200"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RESULTS-002",
+      "title": "Summary stats match backend counts",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Capture compare response summary",
+          "expected": "Summary object contains totals and bucket counts",
+          "observed": "summary={total_rows_a:4,total_rows_b:4,matches:2,mismatches:1,missing_left:1,missing_right:1}"
+        },
+        {
+          "action": "Read SummaryStats UI values",
+          "expected": "UI totals match response summary",
+          "observed": "UI showed File A 4 rows, File B 4 rows, Matches 2, Mismatches 1, Only in File B 1, Only in File A 1"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-results-summary/VAL-RESULTS-001-results-panel-baseline.png"
+        ],
+        "consoleErrors": "none",
+        "network": "compare summary matched UI exactly (4/4, 2,1,1,1)"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RESULTS-003",
+      "title": "Match-rate percentage correct",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Validate normal comparable case on baseline dataset",
+          "expected": "match rate = round(2/(2+1+1+1)*100)=40%",
+          "observed": "UI displayed 40% and 2 of 5 rows"
+        },
+        {
+          "action": "Run zero-comparable dataset (only unkeyed + duplicates)",
+          "expected": "UI shows 0% and 'No comparable rows'",
+          "observed": "UI displayed 0%, 0 of 0 rows, and 'No comparable rows' helper text"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-results-summary/VAL-RESULTS-001-results-panel-baseline.png",
+          "m6-frontend-dry/web-results-summary/VAL-RESULTS-003-no-comparable-rows.png"
+        ],
+        "consoleErrors": "none",
+        "network": "Zero-comparable compare summary: matches=0,mismatches=0,missing_left=0,missing_right=0"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RESULTS-004",
+      "title": "Ignored-rows banner conditional on unkeyed counts",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Baseline compare with unkeyed_left/right = 0",
+          "expected": "Ignored banner absent",
+          "observed": "No ignored banner rendered"
+        },
+        {
+          "action": "Complex compare with unkeyed_left=1 and unkeyed_right=1",
+          "expected": "Ignored banner visible with count summary",
+          "observed": "Banner rendered: 'Ignored rows' and '1 in File A, 1 in File B'"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-results-summary/VAL-RESULTS-001-results-panel-baseline.png",
+          "m6-frontend-dry/web-results-summary/VAL-RESULTS-004-005-banners-present.png"
+        ],
+        "consoleErrors": "none",
+        "network": "Complex summary unkeyed_left=1, unkeyed_right=1"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RESULTS-005",
+      "title": "Duplicate-keys banner conditional on duplicates counts",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Baseline compare with duplicates_a=0 and duplicates_b=0",
+          "expected": "Duplicate banner absent",
+          "observed": "No duplicate banner rendered"
+        },
+        {
+          "action": "Complex compare with duplicates_a=2 and duplicates_b=2",
+          "expected": "Amber duplicate banner visible",
+          "observed": "Banner rendered: 'Duplicates found: 2 in File A, 2 in File B'"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-results-summary/VAL-RESULTS-001-results-panel-baseline.png",
+          "m6-frontend-dry/web-results-summary/VAL-RESULTS-004-005-banners-present.png"
+        ],
+        "consoleErrors": "none",
+        "network": "Complex summary duplicates_a=2, duplicates_b=2"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RESULTS-006",
+      "title": "Filter bar exposes eight buckets with aria-pressed and counts",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Inspect filter bar controls via agent-browser snapshot -i",
+          "expected": "Buttons in order: All, Matches, Mismatches, Only in File B, Only in File A, Ignored in File B, Ignored in File A, Duplicates",
+          "observed": "Snapshot returned all eight buttons in exact order with count badges"
+        },
+        {
+          "action": "Check active state",
+          "expected": "Exactly one bucket aria-pressed=true",
+          "observed": "Active bucket reflected current selection (All or Duplicates depending on step)"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-results-summary/VAL-RESULTS-006-filter-bar-eight-buckets.png"
+        ],
+        "consoleErrors": "none",
+        "network": "N/A (UI structure assertion)"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RESULTS-007",
+      "title": "Filter counts match actual distribution",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run complex compare and capture result_types",
+          "expected": "Counts derive from result_type distribution and duplicate aggregation",
+          "observed": "resultTypes included unkeyed_right, unkeyed_left, duplicate_file_a, duplicate_file_b, duplicate_both, match, mismatch, missing_left, missing_right"
+        },
+        {
+          "action": "Compare UI badge counts to computed counts",
+          "expected": "Each badge equals computed counts",
+          "observed": "UI counts matched expected exactly: all=11, match=1, mismatch=3, missing_left=1, missing_right=1, unkeyed_left=1, unkeyed_right=1, duplicate=3"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-results-summary/VAL-RESULTS-004-005-banners-present.png"
+        ],
+        "consoleErrors": "none",
+        "network": "Computed-from-compare vs UI counts matched; duplicate bucket aggregated duplicate_file_a + duplicate_file_b + duplicate_both"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RESULTS-008",
+      "title": "Active filter restricts table",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Select 'Mismatches' filter",
+          "expected": "Button aria-pressed=true and table limited to mismatch rows",
+          "observed": "Mismatches button became active and table showed only mismatch row"
+        },
+        {
+          "action": "Check visible counter",
+          "expected": "Counter updates to visible subset",
+          "observed": "Counter showed '1 of 1 rows shown' for mismatch-filtered view"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-results-summary/VAL-RESULTS-008-filter-mismatches.png"
+        ],
+        "consoleErrors": "none",
+        "network": "N/A (filter behavior assertion)"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RESULTS-009",
+      "title": "Duplicate filter aggregates all three v2 duplicate variants",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run complex compare containing duplicate_file_a, duplicate_file_b, duplicate_both",
+          "expected": "All three duplicate variants present in compare response",
+          "observed": "Response contained all three duplicate variants"
+        },
+        {
+          "action": "Select Duplicates filter",
+          "expected": "Badge count equals sum of all duplicate variants and rows from each variant are shown",
+          "observed": "Duplicates badge showed 3 and rows displayed all three variant-specific descriptions"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-results-summary/VAL-RESULTS-009-duplicates-filter.png"
+        ],
+        "consoleErrors": "none",
+        "network": "compare result_types included duplicate_file_a, duplicate_file_b, duplicate_both; Duplicates count=3"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RESULTS-010",
+      "title": "Search narrows on combined text",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Set filter to All and type search query 'robert'",
+          "expected": "Rows whose combined searchable text includes query remain",
+          "observed": "Only mismatch row with File B value 'Robert' remained visible"
+        },
+        {
+          "action": "Check counter",
+          "expected": "Visible/total reflects narrowed result set",
+          "observed": "Counter updated to '1 of 5 rows shown'"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-results-summary/VAL-RESULTS-010-search-robert.png"
+        ],
+        "consoleErrors": "none",
+        "network": "N/A (client-side search behavior)"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RESULTS-011",
+      "title": "Search combines with active filter",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Keep search query 'robert' and switch filter to 'Only in File A'",
+          "expected": "Both predicates must hold",
+          "observed": "No rows matched intersection"
+        },
+        {
+          "action": "Check empty state",
+          "expected": "Show 'No results match the current filter and search.'",
+          "observed": "Exact empty-state message rendered"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-results-summary/VAL-RESULTS-011-filter-search-empty.png"
+        ],
+        "consoleErrors": "none",
+        "network": "N/A (client-side filter + search behavior)"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RESULTS-012",
+      "title": "Column headers sort ascending then descending",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Click Type header twice",
+          "expected": "First click ascending, second click descending",
+          "observed": "aria-sort switched Type: ascending -> descending and row order inverted"
+        },
+        {
+          "action": "Click Key header",
+          "expected": "Type resets; Key becomes ascending",
+          "observed": "Type aria-sort=none, Key aria-sort=ascending, key order 1..5"
+        },
+        {
+          "action": "Click Details header twice",
+          "expected": "Sort numerically by differences.length asc then desc",
+          "observed": "Asc placed 0-diff rows before 1-diff row; desc placed 1-diff row first"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-results-summary/VAL-RESULTS-012-sort-key-ascending.png"
+        ],
+        "consoleErrors": "none",
+        "network": "N/A (table sort behavior)"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "CSV upload targets are hidden input[type=file] elements; role=button dropzones are not directly uploadable by agent-browser upload command.",
+      "resolved": true,
+      "resolution": "Uploaded fixtures by selecting hidden file inputs (input#<id>) discovered via DOM eval.",
+      "affectedAssertions": [
+        "VAL-RESULTS-001",
+        "VAL-RESULTS-002",
+        "VAL-RESULTS-003",
+        "VAL-RESULTS-004",
+        "VAL-RESULTS-005",
+        "VAL-RESULTS-006",
+        "VAL-RESULTS-007",
+        "VAL-RESULTS-008",
+        "VAL-RESULTS-009",
+        "VAL-RESULTS-010",
+        "VAL-RESULTS-011",
+        "VAL-RESULTS-012"
+      ]
+    }
+  ],
+  "blockers": [],
+  "summary": "Tested 12 assertions (VAL-RESULTS-001..012): 12 passed, 0 failed, 0 blocked. Summary/filter behaviors, duplicate aggregation, search/filter interplay, and sort semantics matched contract expectations."
+}

@@ -1,0 +1,304 @@
+{
+  "groupId": "web-shell-core",
+  "testedAt": "2026-04-18T05:11:00.550203+00:00",
+  "isolation": {
+    "appUrl": "http://127.0.0.1:3001",
+    "agentBrowserSession": "9e32750d3b9e__shellcore",
+    "missionDir": "/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c",
+    "evidenceDir": "m6-frontend-dry/web-shell-core"
+  },
+  "toolsUsed": [
+    "agent-browser",
+    "python3"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-SHELL-001",
+      "title": "Initial paint renders all shell regions",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Cold-load app at /",
+          "expected": "Header, progress nav, file selection step, and footer render",
+          "observed": "All shell regions rendered on first paint"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-001-initial-shell.png"
+        ],
+        "a11yTree": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-001-a11y-tree.txt"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SHELL-002",
+      "title": "Default step is \"Select\"",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Inspect progress state at initial render",
+          "expected": "Step 1 current, steps 2/3 disabled",
+          "observed": "Single current step node for step 1; Configure/Results carry aria-disabled=true"
+        }
+      ],
+      "evidence": {
+        "a11yTree": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-001-a11y-tree.txt"
+        ],
+        "dom": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-002-initial-aria-check.json"
+        ],
+        "screenshots": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-001-initial-shell.png"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SHELL-003",
+      "title": "Locked steps are not navigable",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Attempt interaction with locked Configure/Results nodes",
+          "expected": "No navigation; not exposed as buttons",
+          "observed": "Heading unchanged on click attempts and nav contains no step buttons"
+        }
+      ],
+      "evidence": {
+        "a11yTree": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-003-initial-interactive.txt"
+        ],
+        "dom": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-003-locked-step-click-test.json"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SHELL-004",
+      "title": "Cannot jump to Results without compare",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Load File A and File B to unlock Configure",
+          "expected": "Configure available, Results still locked without compare",
+          "observed": "UI advanced to Configure and Results had no button affordance"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-004-single-file-state.png",
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-004-both-files-state.png"
+        ],
+        "a11yTree": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-004-both-files-a11y.txt"
+        ],
+        "dom": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-004-step-attrs-configure-state.json"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SHELL-005",
+      "title": "Reset returns to Select and clears state",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Click Reset after progressing workflow",
+          "expected": "Return to empty step 1 and rotate session",
+          "observed": "Step 1 restored, file cards cleared, DELETE old session + POST new session observed"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-005-after-reset.png"
+        ],
+        "a11yTree": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-005-after-reset-a11y.txt"
+        ],
+        "network": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-005-reset-network-and-state.json"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SHELL-006",
+      "title": "Theme toggle flips dark \u2194 light",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Toggle theme from dark to light",
+          "expected": "html class/color-scheme/label/icon state flips",
+          "observed": "html dark class removed, color-scheme switched to light, aria-label/title switched to dark-mode action"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-006-before-toggle.png",
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-006-after-toggle.png"
+        ],
+        "a11yTree": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-006-before-toggle-interactive.txt",
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-006-after-toggle-interactive.txt"
+        ],
+        "dom": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-006-theme-before.json",
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-006-theme-after.json"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SHELL-007",
+      "title": "Theme persists across reload",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Set theme light and reload",
+          "expected": "localStorage and first paint remain light",
+          "observed": "csv-align-theme=light, html has no dark class, toggle immediately shows 'Switch to dark mode'"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-007-post-reload-first-frame.png"
+        ],
+        "consoleErrors": "m6-frontend-dry/web-shell-core/VAL-SHELL-007-console-errors.txt",
+        "dom": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-007-theme-persistence.json"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SHELL-008",
+      "title": "No FOUC on dark-mode first paint",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Set dark theme and reload",
+          "expected": "First paint already dark with dark color-scheme",
+          "observed": "First captured frame and computed styles are dark; no light flash observed"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-008-first-paint-dark.png"
+        ],
+        "dom": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-008-dark-first-paint-state.json",
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-008-computed-colors.json"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SHELL-009",
+      "title": "Error banner surfaces handler errors",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Abort File A upload request",
+          "expected": "Danger error banner shows server/fetch failure",
+          "observed": "Error banner rendered with 'Failed to fetch' above step content"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-009-error-banner.png"
+        ],
+        "a11yTree": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-009-error-state-a11y.txt"
+        ],
+        "network": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-009-error-banner-and-network.json"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SHELL-010",
+      "title": "Error banner clears on next successful action",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Perform successful upload after prior error",
+          "expected": "Error banner unmounts",
+          "observed": "Banner absent after success; network log shows failed request followed by successful 200 upload"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-010-after-success-banner-cleared.png"
+        ],
+        "a11yTree": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-010-after-success-a11y.txt"
+        ],
+        "network": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-010-banner-clear-and-network.json"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SHELL-011",
+      "title": "Loading state renders during in-flight API calls",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Capture UI during active loading state",
+          "expected": "Spinner visible, step content hidden, header/progress/footer remain",
+          "observed": "Loading spinner displayed with only header/progress/footer visible; step panel unmounted"
+        },
+        {
+          "action": "Wait for request completion",
+          "expected": "Step content reappears after in-flight call",
+          "observed": "File selection panel returned and File A loaded state rendered"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-011-loading-captured-now.png",
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-011-after-loading-captured-now.png"
+        ],
+        "a11yTree": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-011-loading-captured-now-a11y.txt",
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-011-after-loading-captured-now-a11y.txt"
+        ],
+        "timing": [
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-011-loading-reset-events.json",
+          "m6-frontend-dry/web-shell-core/VAL-SHELL-011-loading-captured-now-network.json"
+        ]
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "agent-browser upload requires targeting hidden input[type=file] IDs rather than the visible dropzone role=button nodes.",
+      "resolved": true,
+      "resolution": "Mapped and refreshed current hidden input IDs from DOM before each upload action.",
+      "affectedAssertions": [
+        "VAL-SHELL-004",
+        "VAL-SHELL-009",
+        "VAL-SHELL-010"
+      ]
+    },
+    {
+      "description": "Capturing VAL-SHELL-011 required sampling while request state was already in-flight; direct upload commands typically return after completion.",
+      "resolved": true,
+      "resolution": "Captured screenshot/a11y during a confirmed loading state and paired it with subsequent post-load state and timing/event files.",
+      "affectedAssertions": [
+        "VAL-SHELL-011"
+      ]
+    }
+  ],
+  "blockers": [],
+  "summary": "Tested 11 assertions: 11 passed, 0 failed, 0 blocked, 0 skipped."
+}

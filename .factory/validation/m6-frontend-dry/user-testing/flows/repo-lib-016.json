@@ -1,0 +1,38 @@
+{
+  "groupId": "repo-lib-016",
+  "testedAt": "2026-04-18T05:12:40.098470+00:00",
+  "isolation": {
+    "repositoryRoot": "/Users/vriesd/projects/csv-align",
+    "missionDir": "/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c",
+    "surface": "repo-checks",
+    "constraints": [
+      "Do not modify source files",
+      "Read-only validation commands only",
+      "No npm ci"
+    ]
+  },
+  "toolsUsed": [
+    "npm",
+    "grep"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-LIB-016",
+      "title": "Frontend transport tests cover both HTTP and invoke modes",
+      "status": "pass",
+      "reason": "frontend/src/services/tauri*.test.ts contains explicit browser HTTP/fetch assertions and explicit Tauri invoke assertions, and targeted Vitest suites passed.",
+      "evidence": {
+        "files": [
+          "m6-frontend-dry/repo-lib-016/VAL-LIB-016-contract-snippet.txt",
+          "m6-frontend-dry/repo-lib-016/VAL-LIB-016-test-coverage-rg.txt",
+          "m6-frontend-dry/repo-lib-016/VAL-LIB-016-vitest.log"
+        ],
+        "testSummary": "vitest run src/services/tauri.test.ts src/services/tauri.comparison-snapshot.test.ts -> 2 files passed, 10 tests passed"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 1 assertion (VAL-LIB-016): 1 passed, 0 failed, 0 blocked."
+}
