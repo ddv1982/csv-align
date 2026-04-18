@@ -11,7 +11,7 @@ use csv_align::api::{
     handlers::{self, CompareRequest, MappingRequest, SuggestMappingsRequest},
     state::{AppState, SessionData},
 };
-use csv_align::backend::{CompareValidationError, CsvAlignError};
+use csv_align::backend::{CompareValidationError, CsvAlignError, LoadComparisonSnapshotRequest};
 use csv_align::data::types::{ComparisonNormalizationConfig, CsvData};
 use serde_json::Value;
 
@@ -530,5 +530,90 @@ async fn response_contracts_compare_rejects_incomplete_mapping_coverage() {
     assert_eq!(
         json["error"],
         "Provided column mappings for File A and selected comparison columns must contain the same number of columns (got 1 and 2)"
+    );
+}
+
+#[tokio::test]
+async fn response_contracts_snapshot_load_rejects_missing_mapping_columns_as_bad_input() {
+    let state = AppState::new();
+    let session_id = state.create_session().await;
+
+    let contents = serde_json::json!({
+        "version": 1,
+        "file_a": {
+            "name": "left.csv",
+            "headers": ["id", "name"],
+            "columns": [
+                { "index": 0, "name": "id", "data_type": "string" },
+                { "index": 1, "name": "name", "data_type": "string" }
+            ],
+            "row_count": 1
+        },
+        "file_b": {
+            "name": "right.csv",
+            "headers": ["record_id", "display_name"],
+            "columns": [
+                { "index": 0, "name": "record_id", "data_type": "string" },
+                { "index": 1, "name": "display_name", "data_type": "string" }
+            ],
+            "row_count": 1
+        },
+        "selection": {
+            "key_columns_a": ["id"],
+            "key_columns_b": ["record_id"],
+            "comparison_columns_a": ["name"],
+            "comparison_columns_b": ["display_name"]
+        },
+        "mappings": [{
+            "file_a_column": "missing_name",
+            "file_b_column": "display_name",
+            "mapping_type": "manual",
+            "similarity": null
+        }],
+        "normalization": {
+            "treat_empty_as_null": false,
+            "null_tokens": [],
+            "null_token_case_insensitive": true,
+            "case_insensitive": false,
+            "trim_whitespace": false,
+            "date_normalization": { "enabled": false, "formats": [] }
+        },
+        "results": [{
+            "result_type": "match",
+            "key": ["1"],
+            "values_a": ["Alice"],
+            "values_b": ["Alice"],
+            "duplicate_values_a": [],
+            "duplicate_values_b": [],
+            "differences": []
+        }],
+        "summary": {
+            "total_rows_a": 1,
+            "total_rows_b": 1,
+            "matches": 1,
+            "mismatches": 0,
+            "missing_left": 0,
+            "missing_right": 0,
+            "unkeyed_left": 0,
+            "unkeyed_right": 0,
+            "duplicates_a": 0,
+            "duplicates_b": 0
+        }
+    })
+    .to_string();
+
+    let response = handlers::load_comparison_snapshot(
+        State(state),
+        Path(session_id),
+        Json(LoadComparisonSnapshotRequest { contents }),
+    )
+    .await;
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let json = response_json(response).await;
+    assert_eq!(json["code"], "bad_input");
+    assert_eq!(
+        json["error"],
+        "Saved snapshot mappings reference missing File A column: missing_name"
     );
 }

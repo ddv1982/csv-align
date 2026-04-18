@@ -258,32 +258,29 @@ fn validate_mappings(
             .iter()
             .any(|header| header == &mapping.file_a_column)
         {
-            return Err(format!(
+            return Err(CsvAlignError::BadInput(format!(
                 "Saved snapshot mappings reference missing File A column: {}",
                 mapping.file_a_column
-            )
-            .into());
+            )));
         }
 
         if !headers_b
             .iter()
             .any(|header| header == &mapping.file_b_column)
         {
-            return Err(format!(
+            return Err(CsvAlignError::BadInput(format!(
                 "Saved snapshot mappings reference missing File B column: {}",
                 mapping.file_b_column
-            )
-            .into());
+            )));
         }
 
         if matches!(mapping.mapping_type, crate::data::types::MappingKind::Fuzzy)
             && mapping.similarity.is_none()
         {
-            return Err(format!(
+            return Err(CsvAlignError::BadInput(format!(
                 "Saved snapshot fuzzy mapping {} -> {} is missing a similarity score",
                 mapping.file_a_column, mapping.file_b_column
-            )
-            .into());
+            )));
         }
     }
 

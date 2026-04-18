@@ -55,15 +55,24 @@ fn session_not_found_response() -> Response {
 }
 
 fn attachment(content_type: &str, filename: &str, body: impl Into<Body>) -> Response {
-    Response::builder()
-        .status(StatusCode::OK)
-        .header("Content-Type", content_type)
-        .header(
-            "Content-Disposition",
-            format!("attachment; filename=\"{filename}\""),
-        )
-        .body(body.into())
-        .expect("attachment responses should build")
+    let mut response = Response::new(body.into());
+    *response.status_mut() = StatusCode::OK;
+    let headers = response.headers_mut();
+    headers.insert(
+        axum::http::header::CONTENT_TYPE,
+        axum::http::HeaderValue::from_static("application/octet-stream"),
+    );
+    headers.insert(
+        axum::http::header::CONTENT_TYPE,
+        axum::http::HeaderValue::from_str(content_type)
+            .unwrap_or_else(|_| axum::http::HeaderValue::from_static("application/octet-stream")),
+    );
+    if let Ok(disposition) =
+        axum::http::HeaderValue::from_str(&format!("attachment; filename=\"{filename}\""))
+    {
+        headers.insert(axum::http::header::CONTENT_DISPOSITION, disposition);
+    }
+    response
 }
 
 /// Health check endpoint
