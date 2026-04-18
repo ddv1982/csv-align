@@ -27,6 +27,12 @@ fn create_session(state: tauri::State<Arc<SessionStore>>) -> SessionResponse {
     }
 }
 
+#[tauri::command]
+#[instrument(skip(state), fields(session_id = %session_id))]
+fn delete_session(state: tauri::State<Arc<SessionStore>>, session_id: String) {
+    state.delete(&session_id);
+}
+
 /// Load a CSV file from a local path
 #[tauri::command]
 #[instrument(skip(state), fields(session_id = %session_id))]
@@ -273,6 +279,7 @@ fn main() {
         .manage(Arc::new(SessionStore::default()))
         .invoke_handler(tauri::generate_handler![
             create_session,
+            delete_session,
             load_csv,
             load_csv_bytes,
             suggest_mappings,

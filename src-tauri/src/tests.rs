@@ -121,9 +121,23 @@ fn tauri_commands_share_the_backend_session_store() {
             vec!["id".to_string(), "name".to_string()]
         ))
     );
-    assert!(store.delete(&session_id));
+    delete_session(app.state::<Arc<SessionStore>>(), session_id.clone());
     assert_eq!(
         store.with_session(&session_id, |session| session.columns_a.len()),
         None
     );
+}
+
+#[test]
+fn tauri_delete_session_is_a_no_op_for_unknown_ids() {
+    let app = tauri::test::mock_app();
+    let store = Arc::new(SessionStore::default());
+    app.manage(store.clone());
+
+    let session_id = create_session(app.state::<Arc<SessionStore>>()).session_id;
+    let unknown_id = uuid::Uuid::new_v4().to_string();
+
+    delete_session(app.state::<Arc<SessionStore>>(), unknown_id);
+
+    assert!(store.with_session(&session_id, |_| ()).is_some());
 }
