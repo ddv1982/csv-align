@@ -34,8 +34,8 @@ Linux note: Tauri v2 Linux builds require a distro with **WebKitGTK 4.1**.
 
 ### Prerequisites
 
-- Rust 1.70+
-- Node.js 18+
+- Rust 1.85+ (edition 2024 / MSRV for v2)
+- Node.js 22+
 - npm
 
 ### Run the web app locally
@@ -83,6 +83,15 @@ cargo install tauri-cli --locked --version "^2"
 ```bash
 cargo tauri dev
 ```
+
+## Breaking changes in v2.0.0
+
+- Saved comparison snapshots now use the v2 on-disk format (`persistence::v1` with `version: 2`). Snapshots created by v1.x releases are not backward compatible; re-run the comparison in v2 before saving a new snapshot.
+- Duplicate result types now use the corrected snake_case wire values `duplicate_file_a` and `duplicate_file_b`.
+- The local web app now listens on `127.0.0.1:3001` instead of the previous v1 web port.
+- Column-mapping payloads now use a single `MappingDto` contract instead of separate `MappingRequest` and `MappingResponse` shapes.
+- The release line upgrades the stack to React 19, Axum 0.8, Rust edition 2024 (MSRV 1.85+), Node 22+, and TypeScript 5.8.
+- Internally, v2 also standardizes on a shared `SessionStore`, typed `CsvAlignError` handling, structured `tracing`, unified CSV parsing/validation workflows, and a flatter comparison domain model.
 
 ## How it works
 
