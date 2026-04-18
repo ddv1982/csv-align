@@ -539,7 +539,7 @@ async fn response_contracts_snapshot_load_rejects_missing_mapping_columns_as_bad
     let session_id = state.create_session().await;
 
     let contents = serde_json::json!({
-        "version": 1,
+        "version": 2,
         "file_a": {
             "name": "left.csv",
             "headers": ["id", "name"],

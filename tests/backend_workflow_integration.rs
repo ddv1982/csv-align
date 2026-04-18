@@ -313,7 +313,9 @@ fn comparison_snapshot_round_trips_saved_results_and_hydrates_session() {
     let mut restored_session = SessionData::new();
 
     let response = load_comparison_snapshot_workflow(&mut restored_session, &contents).unwrap();
+    let saved: serde_json::Value = serde_json::from_str(&contents).unwrap();
 
+    assert_eq!(saved["version"], 2);
     assert_eq!(response.file_a.name, "left.csv");
     assert_eq!(response.file_b.name, "right.csv");
     assert_eq!(response.selection.key_columns_a, vec!["id"]);
@@ -329,6 +331,172 @@ fn comparison_snapshot_round_trips_saved_results_and_hydrates_session() {
 
     assert!(exported.contains("Key: id / record_id"));
     assert!(exported.contains("Mismatch,2,Bob,Robert"));
+}
+
+#[test]
+fn snapshot_v1_round_trip() {
+    let session = prepared_snapshot_session();
+
+    let contents = save_comparison_snapshot_workflow(&session).unwrap();
+    let mut restored_session = SessionData::new();
+
+    let response = load_comparison_snapshot_workflow(&mut restored_session, &contents).unwrap();
+
+    assert_eq!(restored_session.columns_a.len(), session.columns_a.len());
+    assert_eq!(restored_session.columns_b.len(), session.columns_b.len());
+    assert_eq!(
+        restored_session
+            .columns_a
+            .iter()
+            .map(|column| (&column.name, column.index, &column.data_type))
+            .collect::<Vec<_>>(),
+        session
+            .columns_a
+            .iter()
+            .map(|column| (&column.name, column.index, &column.data_type))
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(
+        restored_session
+            .columns_b
+            .iter()
+            .map(|column| (&column.name, column.index, &column.data_type))
+            .collect::<Vec<_>>(),
+        session
+            .columns_b
+            .iter()
+            .map(|column| (&column.name, column.index, &column.data_type))
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(
+        restored_session
+            .column_mappings
+            .iter()
+            .map(|mapping| {
+                (
+                    mapping.file_a_column.clone(),
+                    mapping.file_b_column.clone(),
+                    format!("{:?}", mapping.mapping_type),
+                )
+            })
+            .collect::<Vec<_>>(),
+        session
+            .comparison_config
+            .as_ref()
+            .expect("original config")
+            .column_mappings
+            .iter()
+            .map(|mapping| {
+                (
+                    mapping.file_a_column.clone(),
+                    mapping.file_b_column.clone(),
+                    format!("{:?}", mapping.mapping_type),
+                )
+            })
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(
+        restored_session.comparison_results,
+        session.comparison_results
+    );
+    let restored_config = restored_session.comparison_config.expect("restored config");
+    let original_config = session.comparison_config.expect("original config");
+    assert_eq!(restored_config.key_columns_a, original_config.key_columns_a);
+    assert_eq!(restored_config.key_columns_b, original_config.key_columns_b);
+    assert_eq!(
+        restored_config.comparison_columns_a,
+        original_config.comparison_columns_a
+    );
+    assert_eq!(
+        restored_config.comparison_columns_b,
+        original_config.comparison_columns_b
+    );
+    assert_eq!(restored_config.normalization, original_config.normalization);
+    assert_eq!(
+        restored_config
+            .column_mappings
+            .iter()
+            .map(|mapping| {
+                (
+                    mapping.file_a_column.clone(),
+                    mapping.file_b_column.clone(),
+                    format!("{:?}", mapping.mapping_type),
+                )
+            })
+            .collect::<Vec<_>>(),
+        original_config
+            .column_mappings
+            .iter()
+            .map(|mapping| {
+                (
+                    mapping.file_a_column.clone(),
+                    mapping.file_b_column.clone(),
+                    format!("{:?}", mapping.mapping_type),
+                )
+            })
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(
+        response.mappings.len(),
+        restored_config.column_mappings.len()
+    );
+}
+
+#[test]
+fn snapshot_v1_rejects_legacy_version() {
+    let legacy_snapshot = serde_json::json!({
+        "version": 1,
+        "file_a": {
+            "name": "left.csv",
+            "headers": ["id"],
+            "columns": [{ "index": 0, "name": "id", "data_type": "string" }],
+            "row_count": 1
+        },
+        "file_b": {
+            "name": "right.csv",
+            "headers": ["record_id"],
+            "columns": [{ "index": 0, "name": "record_id", "data_type": "string" }],
+            "row_count": 1
+        },
+        "selection": {
+            "key_columns_a": ["id"],
+            "key_columns_b": ["record_id"],
+            "comparison_columns_a": ["id"],
+            "comparison_columns_b": ["record_id"]
+        },
+        "mappings": [],
+        "normalization": {
+            "treat_empty_as_null": false,
+            "null_tokens": [],
+            "null_token_case_insensitive": true,
+            "case_insensitive": false,
+            "trim_whitespace": false,
+            "date_normalization": { "enabled": false, "formats": [] }
+        },
+        "results": [],
+        "summary": {
+            "total_rows_a": 1,
+            "total_rows_b": 1,
+            "matches": 0,
+            "mismatches": 0,
+            "missing_left": 0,
+            "missing_right": 0,
+            "unkeyed_left": 0,
+            "unkeyed_right": 0,
+            "duplicates_a": 0,
+            "duplicates_b": 0
+        }
+    });
+
+    let error =
+        load_comparison_snapshot_workflow(&mut SessionData::new(), &legacy_snapshot.to_string())
+            .unwrap_err();
+
+    assert!(matches!(error, CsvAlignError::BadInput(_)));
+    assert_eq!(
+        error.to_string(),
+        "Unsupported comparison snapshot version 1 — this file was produced by an older csv-align release. Re-run the comparison in v2."
+    );
 }
 
 #[test]

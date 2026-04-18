@@ -90,7 +90,7 @@ async fn comparison_snapshot_persistence_round_trips_through_http_handlers() {
     assert_eq!(save_response.status(), StatusCode::OK);
     let contents = response_text(save_response).await;
     let saved: serde_json::Value = serde_json::from_str(&contents).unwrap();
-    assert_eq!(saved["version"], 1);
+    assert_eq!(saved["version"], 2);
     assert_eq!(saved["file_a"]["name"], "left.csv");
     assert_eq!(saved["summary"]["mismatches"], 1);
 
@@ -114,12 +114,77 @@ async fn comparison_snapshot_persistence_round_trips_through_http_handlers() {
 }
 
 #[tokio::test]
-async fn comparison_snapshot_persistence_rejects_tampered_results() {
+async fn comparison_snapshot_persistence_rejects_legacy_version() {
     let state = AppState::new();
     let session_id = state.create_session().await;
 
     let contents = serde_json::json!({
         "version": 1,
+        "file_a": {
+            "name": "left.csv",
+            "headers": ["id"],
+            "columns": [{ "index": 0, "name": "id", "data_type": "string" }],
+            "row_count": 1
+        },
+        "file_b": {
+            "name": "right.csv",
+            "headers": ["record_id"],
+            "columns": [{ "index": 0, "name": "record_id", "data_type": "string" }],
+            "row_count": 1
+        },
+        "selection": {
+            "key_columns_a": ["id"],
+            "key_columns_b": ["record_id"],
+            "comparison_columns_a": ["id"],
+            "comparison_columns_b": ["record_id"]
+        },
+        "mappings": [],
+        "normalization": {
+            "treat_empty_as_null": false,
+            "null_tokens": [],
+            "null_token_case_insensitive": true,
+            "case_insensitive": false,
+            "trim_whitespace": false,
+            "date_normalization": { "enabled": false, "formats": [] }
+        },
+        "results": [],
+        "summary": {
+            "total_rows_a": 1,
+            "total_rows_b": 1,
+            "matches": 0,
+            "mismatches": 0,
+            "missing_left": 0,
+            "missing_right": 0,
+            "unkeyed_left": 0,
+            "unkeyed_right": 0,
+            "duplicates_a": 0,
+            "duplicates_b": 0
+        }
+    })
+    .to_string();
+
+    let load_response = handlers::load_comparison_snapshot(
+        State(state),
+        Path(session_id),
+        Json(LoadComparisonSnapshotRequest { contents }),
+    )
+    .await;
+
+    assert_eq!(load_response.status(), StatusCode::BAD_REQUEST);
+    let json = response_json(load_response).await;
+    assert_eq!(
+        json["error"],
+        "Unsupported comparison snapshot version 1 — this file was produced by an older csv-align release. Re-run the comparison in v2."
+    );
+}
+
+#[tokio::test]
+async fn comparison_snapshot_persistence_rejects_tampered_results() {
+    let state = AppState::new();
+    let session_id = state.create_session().await;
+
+    let contents = serde_json::json!({
+        "version": 2,
         "file_a": {
             "name": "left.csv",
             "headers": ["id"],

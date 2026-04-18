@@ -1,6 +1,7 @@
 mod comparison_snapshot;
 mod error;
 mod pair_order;
+mod persistence;
 mod requests;
 mod session;
 mod validation;
