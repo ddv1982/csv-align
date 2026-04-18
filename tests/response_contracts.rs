@@ -617,3 +617,38 @@ async fn response_contracts_snapshot_load_rejects_missing_mapping_columns_as_bad
         "Saved snapshot mappings reference missing File A column: missing_name"
     );
 }
+
+#[tokio::test]
+async fn response_contracts_snapshot_load_rejects_legacy_version_before_v2_deserialize() {
+    let state = AppState::new();
+    let session_id = state.create_session();
+
+    let contents = serde_json::json!({
+        "version": 1,
+        "file_a": {},
+        "file_b": {},
+        "selection": {},
+        "mappings": [],
+        "normalization": {},
+        "results": [],
+        "summary": {}
+    })
+    .to_string();
+
+    let response = handlers::load_comparison_snapshot(
+        State(state),
+        Path(session_id),
+        Json(LoadComparisonSnapshotRequest { contents }),
+    )
+    .await;
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let json = response_json(response).await;
+    assert_eq!(json["code"], "bad_input");
+    assert!(
+        json["error"]
+            .as_str()
+            .expect("error should serialize as a string")
+            .contains("Unsupported comparison snapshot version 1")
+    );
+}

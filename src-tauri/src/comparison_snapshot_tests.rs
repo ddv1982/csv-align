@@ -91,3 +91,45 @@ fn tauri_comparison_snapshot_commands_round_trip_saved_results() {
     assert_eq!(loaded.summary.mismatches, 1);
     assert!(exported.contains("Mismatch,2,Bob,Robert"));
 }
+
+#[test]
+fn tauri_comparison_snapshot_command_rejects_legacy_version_before_v2_deserialize() {
+    let app = tauri::test::mock_app();
+    app.manage(Arc::new(SessionStore::default()));
+
+    let session_id = create_session(app.state::<Arc<SessionStore>>()).session_id;
+    let output_path = temp_output_path("tauri-comparison-snapshot-legacy-version");
+
+    std::fs::write(
+        &output_path,
+        serde_json::json!({
+            "version": 1,
+            "file_a": {},
+            "file_b": {},
+            "selection": {},
+            "mappings": [],
+            "normalization": {},
+            "results": [],
+            "summary": {}
+        })
+        .to_string(),
+    )
+    .unwrap();
+
+    let error = load_comparison_snapshot(
+        app.state::<Arc<SessionStore>>(),
+        session_id,
+        output_path.to_string_lossy().into_owned(),
+    )
+    .unwrap_err();
+
+    std::fs::remove_file(output_path).unwrap();
+
+    match error {
+        CsvAlignError::BadInput(message) => assert_eq!(
+            message,
+            "Unsupported comparison snapshot version 1 — this file was produced by an older csv-align release. Re-run the comparison in v2."
+        ),
+        other => panic!("expected bad input error, got {other:?}"),
+    }
+}

@@ -13,6 +13,7 @@ pub use comparison_snapshot::{
 };
 pub use error::CsvAlignError;
 pub use pair_order::{load_pair_order_workflow, save_pair_order_workflow};
+pub use persistence::v1::SNAPSHOT_VERSION;
 pub use requests::{
     CompareExecution, CompareRequest, CompareValidationError, ComparisonSnapshotFile,
     LoadComparisonSnapshotRequest, LoadComparisonSnapshotResponse, LoadPairOrderRequest,

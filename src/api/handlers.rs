@@ -4,7 +4,8 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Json, Response},
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use super::state::AppState;
 pub use crate::backend::{CompareRequest, MappingRequest, SessionResponse, SuggestMappingsRequest};
@@ -72,6 +73,30 @@ fn attachment(content_type: &str, filename: &str, body: impl Into<Body>) -> Resp
         headers.insert(axum::http::header::CONTENT_DISPOSITION, disposition);
     }
     response
+}
+
+#[derive(Deserialize)]
+struct SnapshotVersionProbe {
+    version: u8,
+}
+
+fn validate_snapshot_request_version(contents: &str) -> Result<(), CsvAlignError> {
+    let value: Value = serde_json::from_str(contents).map_err(|error| {
+        CsvAlignError::Parse(format!("Failed to parse comparison snapshot file: {error}"))
+    })?;
+
+    let probe: SnapshotVersionProbe = serde_json::from_value(value).map_err(|error| {
+        CsvAlignError::Parse(format!("Failed to parse comparison snapshot file: {error}"))
+    })?;
+
+    if probe.version != crate::backend::SNAPSHOT_VERSION {
+        return Err(CsvAlignError::BadInput(format!(
+            "Unsupported comparison snapshot version {} — this file was produced by an older csv-align release. Re-run the comparison in v2.",
+            probe.version
+        )));
+    }
+
+    Ok(())
 }
 
 /// Health check endpoint
@@ -277,6 +302,10 @@ pub async fn load_comparison_snapshot(
     Path(session_id): Path<String>,
     Json(request): Json<LoadComparisonSnapshotRequest>,
 ) -> Response {
+    if let Err(error) = validate_snapshot_request_version(&request.contents) {
+        return error.into_response();
+    }
+
     let response = match state.with_session_mut(&session_id, |session_data| {
         load_comparison_snapshot_workflow(session_data, &request.contents)
     }) {
