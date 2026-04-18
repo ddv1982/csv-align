@@ -126,12 +126,7 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
   return (
     <SectionCard
       eyebrow="Step 3 · Results"
-      title={
-        <span className="flex items-center gap-2 text-lg">
-          <ChartBarSquareIcon className="h-5 w-5" />
-          Comparison Summary
-        </span>
-      }
+      title={<span className="text-lg">Comparison Summary</span>}
       headingLevel="h3"
       description="Review the overall match quality before drilling into filtered result rows."
       className="card overflow-hidden border-gray-200/90 bg-white shadow-xl shadow-gray-200/70 dark:border-gray-700/90 dark:bg-gray-900/85 dark:shadow-black/30"

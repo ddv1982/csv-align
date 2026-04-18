@@ -41,6 +41,38 @@ test('supports alternate heading levels and the info tone', () => {
   expect(container.querySelector('div.bg-sky-100')).toBeTruthy();
 });
 
+test('applies tone-aware title and description classes for primary and info variants', () => {
+  const { rerender } = render(
+    <SectionCard
+      eyebrow="Step 2 · Configure"
+      title="Primary card"
+      description="Primary description"
+      tone="primary"
+      icon={<svg aria-hidden="true" />}
+    >
+      <div>Primary body</div>
+    </SectionCard>,
+  );
+
+  expect(screen.getByRole('heading', { level: 3, name: 'Primary card' })).toHaveClass('text-gray-900', 'dark:text-gray-100');
+  expect(screen.getByText('Primary description')).toHaveClass('text-gray-600', 'dark:text-gray-300');
+
+  rerender(
+    <SectionCard
+      eyebrow="Read-only snapshot"
+      title="Info card"
+      description="Info description"
+      tone="info"
+      icon={<svg aria-hidden="true" />}
+    >
+      <div>Info body</div>
+    </SectionCard>,
+  );
+
+  expect(screen.getByRole('heading', { level: 3, name: 'Info card' })).toHaveClass('text-sky-950', 'dark:text-sky-100');
+  expect(screen.getByText('Info description')).toHaveClass('text-sky-700', 'dark:text-sky-300');
+});
+
 test('applies custom root classes', () => {
   const { container } = render(
     <SectionCard

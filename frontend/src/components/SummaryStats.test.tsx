@@ -56,3 +56,22 @@ test('keeps summary icon chips vivid in both light and dark mode styles', () => 
   expect(ignoredBanner?.innerHTML).toContain('bg-sky-100');
   expect(ignoredBanner?.innerHTML).toContain('ring-sky-200/80');
 });
+
+test('renders the comparison summary glyph exactly once', () => {
+  const { container } = render(
+    <SummaryStats
+      summary={SUMMARY}
+      fileAName="file-a.csv"
+      fileBName="file-b.csv"
+    />,
+  );
+
+  const heading = screen.getByRole('heading', { level: 3, name: 'Comparison Summary' });
+  const resultsSection = heading.closest('section');
+
+  expect(heading).toBeInTheDocument();
+  expect(heading.querySelector('svg')).toBeNull();
+  expect(resultsSection?.querySelectorAll('div.bg-primary-100 svg')).toHaveLength(1);
+  expect(resultsSection?.querySelectorAll('div.bg-primary-100 svg path').length).toBeGreaterThan(0);
+  expect(container.querySelectorAll('svg').length).toBeGreaterThan(1);
+});

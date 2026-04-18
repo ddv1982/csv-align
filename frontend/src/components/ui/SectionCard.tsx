@@ -6,6 +6,8 @@ type SectionCardHeadingLevel = 'h2' | 'h3' | 'h4';
 interface ToneClasses {
   eyebrow: string;
   iconWrap: string;
+  title: string;
+  description: string;
 }
 
 const TONE_CLASSES: Record<SectionCardTone, ToneClasses> = {
@@ -13,10 +15,15 @@ const TONE_CLASSES: Record<SectionCardTone, ToneClasses> = {
     eyebrow: 'text-primary-600 dark:text-primary-300',
     iconWrap:
       'bg-primary-100 text-primary-700 ring-primary-200/80 shadow-white/40 dark:bg-primary-500/15 dark:text-primary-200 dark:ring-primary-500/30 dark:shadow-none',
+    title: 'text-gray-900 dark:text-gray-100',
+    description: 'text-gray-600 dark:text-gray-300',
   },
   info: {
     eyebrow: 'text-sky-700 dark:text-sky-200',
-    iconWrap: 'bg-sky-100 text-sky-700 ring-sky-200/80 shadow-white/40',
+    iconWrap:
+      'bg-sky-100 text-sky-700 ring-sky-200/80 shadow-white/40 dark:bg-sky-500/15 dark:text-sky-200 dark:ring-sky-500/30 dark:shadow-none',
+    title: 'text-sky-950 dark:text-sky-100',
+    description: 'text-sky-700 dark:text-sky-300',
   },
 };
 
@@ -68,8 +75,8 @@ export function SectionCard({
           </div>
           <div>
             <p className={`text-xs font-semibold uppercase tracking-wide ${toneClasses.eyebrow}`}>{eyebrow}</p>
-            <HeadingTag className="mt-0.5 text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</HeadingTag>
-            {description && <p className="mt-1 text-sm leading-6 text-gray-600 dark:text-gray-300">{description}</p>}
+            <HeadingTag className={`mt-0.5 text-sm font-semibold ${toneClasses.title}`}>{title}</HeadingTag>
+            {description && <p className={`mt-1 text-sm leading-6 ${toneClasses.description}`}>{description}</p>}
           </div>
         </div>
         {action && <div className="shrink-0">{action}</div>}
