@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.0.2 - 2026-04-18
+
+- Improved the Results table Value Differences cards so long column-name headers render in larger wrapped chips, making mismatched fields easier to scan without changing the underlying comparison data.
+- Refreshed the macOS release workflow for the Apple ID notarization path by supporting optional `APPLE_PROVIDER_SHORT_NAME` and updating the repository `APPLE_TEAM_ID` secret, then prepared the v2.0.2 patch release across the Rust crates, desktop config, frontend package metadata, and lockfiles.
+
 ## v2.0.1 - 2026-04-18
 
 - Aligned the Configure step cleanup panel with the shared section-card styling so its icon chip now matches the neighboring configure cards instead of using the inconsistent bordered shell.

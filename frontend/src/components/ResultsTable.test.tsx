@@ -259,6 +259,17 @@ test('updates sort state from the transition-driven header action', () => {
   expect(keyHeader).toHaveAttribute('aria-sort', 'ascending');
 });
 
+test('renders long diff column names with the larger wrapped header treatment', () => {
+  render(<ResultsTable results={RESULTS} />);
+
+  fireEvent.click(screen.getByRole('button', { name: /1 diff/i }));
+
+  const columnHeader = screen.getByText('name');
+  expect(columnHeader).toHaveClass('text-sm');
+  expect(columnHeader).toHaveClass('break-all');
+  expect(columnHeader).toHaveClass('rounded-lg');
+});
+
 test('shows the selected-filter empty-state copy when there are zero total results', () => {
   render(<ResultsTable results={[]} totalResultsCount={0} />);
 

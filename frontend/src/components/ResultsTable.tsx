@@ -34,17 +34,20 @@ interface DiffRowProps {
 
 function DiffRow({ columnA, columnB, valueA, valueB }: DiffRowProps) {
   const sameColumn = columnA === columnB;
+  const headerChipClass = 'inline-flex max-w-full items-center rounded-lg border border-gray-200/90 bg-gray-50/90 px-2.5 py-1.5 font-mono text-sm leading-5 font-semibold text-gray-800 break-all dark:border-gray-700/90 dark:bg-gray-800/70 dark:text-gray-100';
 
   return (
     <div className="rounded-xl border border-gray-200/90 bg-white/95 p-3.5 shadow-sm shadow-gray-200/60 transition-colors hover:border-gray-300/90 dark:border-gray-700/90 dark:bg-gray-900/70 dark:shadow-none dark:hover:border-gray-600/90">
-      <div className="mb-2.5 flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400">
-        <span className="font-mono text-[11px] font-semibold tracking-tight text-gray-700 dark:text-gray-200">
+      <div className="mb-2.5 flex flex-wrap items-start gap-2 text-xs font-medium text-gray-500 dark:text-gray-400">
+        <span className={headerChipClass}>
           {columnA}
         </span>
         {!sameColumn && (
           <>
-            <ArrowRightIcon className="h-3 w-3 text-gray-400 dark:text-gray-500" />
-            <span className="font-mono text-[11px] font-semibold tracking-tight text-gray-700 dark:text-gray-200">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200/90 bg-white/90 text-gray-400 dark:border-gray-700/90 dark:bg-gray-900/80 dark:text-gray-500">
+              <ArrowRightIcon className="h-3.5 w-3.5" />
+            </span>
+            <span className={headerChipClass}>
               {columnB}
             </span>
           </>

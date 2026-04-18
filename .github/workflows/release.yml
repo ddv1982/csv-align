@@ -158,6 +158,7 @@ jobs:
           APPLE_ID_SECRET: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD_SECRET: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID_SECRET: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_PROVIDER_SHORT_NAME_SECRET: ${{ secrets.APPLE_PROVIDER_SHORT_NAME }}
           KEYCHAIN_PASSWORD_SECRET: ${{ secrets.KEYCHAIN_PASSWORD }}
         run: |
           HAS_CERT=false
@@ -187,6 +188,9 @@ jobs:
               echo "APPLE_PASSWORD=$APPLE_PASSWORD_SECRET"
               echo "APPLE_TEAM_ID=$APPLE_TEAM_ID_SECRET"
             } >> "$GITHUB_ENV"
+            if [ -n "$APPLE_PROVIDER_SHORT_NAME_SECRET" ]; then
+              echo "APPLE_PROVIDER_SHORT_NAME=$APPLE_PROVIDER_SHORT_NAME_SECRET" >> "$GITHUB_ENV"
+            fi
             HAS_NOTARIZATION=true
             AUTH_MODE=apple_id
           fi
