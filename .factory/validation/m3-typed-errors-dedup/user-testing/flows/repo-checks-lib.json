@@ -1,0 +1,105 @@
+{
+  "groupId": "repo-checks-lib",
+  "testedAt": "2026-04-18T01:11:30Z",
+  "isolation": {
+    "surface": "repo-checks",
+    "repoRoot": "/Users/vriesd/projects/csv-align",
+    "missionDir": "/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c",
+    "sourceMutations": "none",
+    "lockfileMutations": "none"
+  },
+  "toolsUsed": [
+    "Read",
+    "rg",
+    "cargo test",
+    "cargo clippy",
+    "python3"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-LIB-012",
+      "title": "CsvAlignError → IntoResponse mapping tested",
+      "status": "pass",
+      "reasoning": "Found a dedicated test (tests/response_contracts.rs:111) that iterates CsvAlignError variants and asserts both HTTP status and JSON body shape, then executed that test successfully.",
+      "steps": [
+        {
+          "action": "Locate test and mapping implementation",
+          "expected": "A test explicitly verifies CsvAlignError variant-to-status and JSON contract",
+          "observed": "Test `csv_align_error_variants_map_to_documented_http_status` found; it asserts `IntoResponse` status and `{code,error}` JSON for NotFound, Validation, BadInput, Parse, Io, Internal"
+        },
+        {
+          "action": "Run targeted cargo test",
+          "expected": "Targeted test passes",
+          "observed": "`cargo test --test response_contracts csv_align_error_variants_map_to_documented_http_status -- --exact` passed (1 passed, 0 failed)"
+        }
+      ],
+      "commands": [
+        {
+          "command": "rg -n \"csv_align_error_variants_map_to_documented_http_status|IntoResponse|status_code|code\" /Users/vriesd/projects/csv-align/tests/response_contracts.rs /Users/vriesd/projects/csv-align/src/backend/error.rs",
+          "exitCode": 0
+        },
+        {
+          "command": "cargo test --manifest-path /Users/vriesd/projects/csv-align/Cargo.toml --test response_contracts csv_align_error_variants_map_to_documented_http_status -- --exact",
+          "exitCode": 0
+        }
+      ],
+      "evidence": {
+        "artifacts": [
+          "m3-typed-errors-dedup/repo-checks-lib/VAL-LIB-012-evidence.txt"
+        ],
+        "keySignals": [
+          "tests/response_contracts.rs:111 contains dedicated assertion",
+          "Targeted test run result: ok"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-LIB-014",
+      "title": "tracing spans present on handler entry points",
+      "status": "pass",
+      "reasoning": "Static coverage check reports 11/11 Axum handlers and 10/10 tauri commands instrumented, and both root and src-tauri clippy runs are clean.",
+      "steps": [
+        {
+          "action": "Verify Axum and tauri entry-point instrumentation coverage",
+          "expected": "Every Axum handler and every #[tauri::command] has tracing instrumentation",
+          "observed": "Coverage script reported axum_handlers_instrumented=11/11 and tauri_commands_instrumented=10/10 with no missing entries"
+        },
+        {
+          "action": "Run clippy confidence checks",
+          "expected": "Clippy passes with -D warnings",
+          "observed": "Both root and src-tauri clippy commands exited 0"
+        }
+      ],
+      "commands": [
+        {
+          "command": "python3 instrumentation coverage script over src/api/handlers.rs and src-tauri/src/main.rs",
+          "exitCode": 0
+        },
+        {
+          "command": "cargo clippy --manifest-path /Users/vriesd/projects/csv-align/Cargo.toml --all-targets -- -D warnings",
+          "exitCode": 0
+        },
+        {
+          "command": "cargo clippy --manifest-path /Users/vriesd/projects/csv-align/src-tauri/Cargo.toml --all-targets -- -D warnings",
+          "exitCode": 0
+        }
+      ],
+      "evidence": {
+        "artifacts": [
+          "m3-typed-errors-dedup/repo-checks-lib/VAL-LIB-014-evidence.txt",
+          "m3-typed-errors-dedup/repo-checks-lib/VAL-LIB-014-instrumentation-coverage.json"
+        ],
+        "keySignals": [
+          "Axum handlers instrumented: 11/11",
+          "Tauri commands instrumented: 10/10",
+          "Clippy root/src-tauri both exit 0"
+        ]
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Validated 2 assertions on repo-checks surface: VAL-LIB-012 pass, VAL-LIB-014 pass."
+}
