@@ -1,7 +1,7 @@
-import { useCallback, useId } from 'react';
 import { FileSelector } from '../FileSelector';
-import { isTauri } from '../../services/tauri';
 import type { AppFile } from '../../types/ui';
+import { LoadResultButton } from '../ui/LoadResultButton';
+import { NavButton } from '../ui/NavButton';
 
 interface FileSelectionStepProps {
   fileA: AppFile | null;
@@ -12,15 +12,6 @@ interface FileSelectionStepProps {
 }
 
 export function FileSelectionStep({ fileA, fileB, onFileSelect, onLoadResult, onContinue }: FileSelectionStepProps) {
-  const loadResultInputId = useId();
-  const handleLoadResultChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = event.target.files?.[0];
-    if (selectedFile) {
-      onLoadResult(selectedFile);
-    }
-    event.target.value = '';
-  }, [onLoadResult]);
-
   return (
     <div className="animate-fade-in">
       <div className="mb-6 rounded-xl border border-gray-200/80 bg-white/90 p-4 shadow-sm shadow-gray-950/5 dark:border-gray-700 dark:bg-gray-900">
@@ -33,31 +24,7 @@ export function FileSelectionStep({ fileA, fileB, onFileSelect, onLoadResult, on
           <div className="rounded-lg border border-gray-200 bg-gray-50/80 p-4 lg:max-w-sm dark:border-gray-700 dark:bg-gray-800/70">
             <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Already have a saved result?</p>
             <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Load a saved comparison snapshot to reopen the results in read-only mode.</p>
-            {isTauri ? (
-              <button type="button" onClick={() => onLoadResult()} className="mt-3 inline-flex items-center gap-2 btn btn-secondary">
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-6l-4-4m0 0L8 10m4-4v12" />
-                </svg>
-                Load result
-              </button>
-            ) : (
-              <>
-                <label htmlFor={loadResultInputId} className="mt-3 inline-flex cursor-pointer items-center gap-2 btn btn-secondary">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-6l-4-4m0 0L8 10m4-4v12" />
-                  </svg>
-                  Load result
-                </label>
-                <input
-                  id={loadResultInputId}
-                  data-testid="load-result-input"
-                  type="file"
-                  accept=".json,application/json"
-                  onChange={handleLoadResultChange}
-                  className="hidden"
-                />
-              </>
-            )}
+            <LoadResultButton onLoadResult={onLoadResult} />
           </div>
         </div>
       </div>
@@ -68,12 +35,9 @@ export function FileSelectionStep({ fileA, fileB, onFileSelect, onLoadResult, on
 
       {fileA && fileB && (
         <div className="mt-6 flex justify-end">
-          <button onClick={onContinue} className="btn btn-secondary flex items-center gap-2">
+          <NavButton direction="forward" onClick={onContinue}>
             Continue to configuration
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
+          </NavButton>
         </div>
       )}
     </div>

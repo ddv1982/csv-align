@@ -1,6 +1,7 @@
 import { MappingConfig } from '../MappingConfig';
 import type { ComparisonNormalizationConfig, FileLetter, MappingDto } from '../../types/api';
 import type { AppFile, MappingSelectionState } from '../../types/ui';
+import { NavButton } from '../ui/NavButton';
 import { SectionCard } from '../ui/SectionCard';
 
 interface ConfigurationStepProps {
@@ -51,12 +52,9 @@ export function ConfigurationStep({
           </svg>
         }
         action={
-          <button onClick={onBack} className="btn btn-secondary flex items-center gap-2 shadow-sm shadow-gray-200/70 dark:shadow-none" type="button">
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
+          <NavButton direction="back" onClick={onBack} className="shadow-sm shadow-gray-200/70 dark:shadow-none">
             Back to file selection
-          </button>
+          </NavButton>
         }
       >
         <div />

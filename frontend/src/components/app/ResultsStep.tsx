@@ -2,6 +2,7 @@ import { FilterBar } from '../FilterBar';
 import { ResultsTable } from '../ResultsTable';
 import { SummaryStats } from '../SummaryStats';
 import type { ResultFilter, ResultResponse, SummaryResponse } from '../../types/api';
+import { NavButton } from '../ui/NavButton';
 import { SectionCard } from '../ui/SectionCard';
 
 interface ResultsStepProps {
@@ -76,12 +77,9 @@ export function ResultsStep({
           }
           action={
             <div className="flex flex-wrap justify-end gap-3 lg:shrink-0">
-              <button onClick={onBack} className="btn btn-secondary flex items-center gap-2 shadow-sm shadow-gray-200/70 dark:shadow-none">
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
+              <NavButton direction="back" onClick={onBack} className="shadow-sm shadow-gray-200/70 dark:shadow-none">
                 Back to configuration
-              </button>
+              </NavButton>
               <button onClick={onSaveResult} className="btn btn-primary flex items-center gap-2 shadow-sm shadow-primary-200/70 dark:shadow-none">
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
