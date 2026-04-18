@@ -100,16 +100,27 @@ export function filterResults(results: ResultResponse[], filter: ResultFilter): 
 }
 
 export function getResultFilterCounts(results: ResultResponse[]): Record<ResultFilter, number> {
-  return {
+  const initialCounts: Record<ResultFilter, number> = {
     all: results.length,
-    match: results.filter((result) => matchesResultFilter(result, 'match')).length,
-    mismatch: results.filter((result) => matchesResultFilter(result, 'mismatch')).length,
-    missing_left: results.filter((result) => matchesResultFilter(result, 'missing_left')).length,
-    missing_right: results.filter((result) => matchesResultFilter(result, 'missing_right')).length,
-    unkeyed_left: results.filter((result) => matchesResultFilter(result, 'unkeyed_left')).length,
-    unkeyed_right: results.filter((result) => matchesResultFilter(result, 'unkeyed_right')).length,
-    duplicate: results.filter((result) => matchesResultFilter(result, 'duplicate')).length,
+    match: 0,
+    mismatch: 0,
+    missing_left: 0,
+    missing_right: 0,
+    unkeyed_left: 0,
+    unkeyed_right: 0,
+    duplicate: 0,
   };
+
+  return results.reduce<Record<ResultFilter, number>>((counts, result) => {
+    if (result.result_type.startsWith('duplicate')) {
+      counts.duplicate += 1;
+      return counts;
+    }
+
+    const filter = result.result_type as Exclude<ResultFilter, 'all' | 'duplicate'>;
+    counts[filter] += 1;
+    return counts;
+  }, initialCounts);
 }
 
 export function getResultBadge(resultType: CompareResultType): ResultBadge {

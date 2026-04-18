@@ -97,6 +97,30 @@ test('filters duplicate-prefixed results together and counts each badge bucket',
   });
 });
 
+test('counts every duplicate variant in the duplicate bucket with a single summary shape', () => {
+  expect(getResultFilterCounts([
+    ...RESULTS,
+    {
+      result_type: 'duplicate_file_b',
+      key: ['7'],
+      values_a: ['Gail'],
+      values_b: ['Gail'],
+      duplicate_values_a: [],
+      duplicate_values_b: [['Gail'], ['Gail']],
+      differences: [],
+    },
+  ])).toEqual({
+    all: 9,
+    match: 1,
+    mismatch: 1,
+    missing_left: 1,
+    missing_right: 1,
+    unkeyed_left: 1,
+    unkeyed_right: 1,
+    duplicate: 3,
+  });
+});
+
 test('returns the expected badges for standard and duplicate result types', () => {
   expect(getResultBadge('match')).toMatchObject({
     label: 'Match',
