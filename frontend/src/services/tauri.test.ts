@@ -24,6 +24,43 @@ async function importTauriModule() {
   return import('./tauri');
 }
 
+describe('transport helpers', () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    openMock.mockReset();
+    saveMock.mockReset();
+    windowOpenMock.mockReset();
+    webviewWindowMock.mockReset();
+    vi.unstubAllGlobals();
+    vi.stubGlobal('fetch', vi.fn());
+    delete (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
+  });
+
+  test('createSession posts to the browser API when not running in Tauri', async () => {
+    const fetchMock = vi.mocked(globalThis.fetch);
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ session_id: 'session-1' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }));
+
+    const { createSession } = await importTauriModule();
+
+    await expect(createSession()).resolves.toEqual({ session_id: 'session-1' });
+    expect(fetchMock).toHaveBeenCalledWith('/api/sessions', { method: 'POST' });
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+
+  test('createSession invokes the Tauri command when running in Tauri', async () => {
+    (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
+    invokeMock.mockResolvedValue({ session_id: 'session-2' });
+
+    const { createSession } = await importTauriModule();
+
+    await expect(createSession()).resolves.toEqual({ session_id: 'session-2' });
+    expect(invokeMock).toHaveBeenCalledWith('create_session');
+  });
+});
+
 describe('openNewAppWindow', () => {
   beforeEach(() => {
     invokeMock.mockReset();
