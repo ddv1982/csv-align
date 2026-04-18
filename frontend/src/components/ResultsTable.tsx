@@ -14,6 +14,7 @@ import {
 
 interface ResultsTableProps {
   results: ResultResponse[];
+  totalResultsCount?: number;
 }
 
 type SortColumn = 'type' | 'key' | 'fileA' | 'fileB' | 'details';
@@ -83,7 +84,7 @@ function SortGlyph({ state }: { state: 'asc' | 'desc' | 'inactive' }) {
   );
 }
 
-export function ResultsTable({ results }: ResultsTableProps) {
+export function ResultsTable({ results, totalResultsCount = results.length }: ResultsTableProps) {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
@@ -216,7 +217,7 @@ export function ResultsTable({ results }: ResultsTableProps) {
     );
   };
 
-  if (results.length === 0) {
+  if (totalResultsCount === 0) {
     return (
       <div className="card border-gray-200/90 bg-white p-12 text-center shadow-lg shadow-gray-200/60 dark:border-gray-700/90 dark:bg-gray-900/85 dark:shadow-black/25">
         <XCircleIcon className="mx-auto mb-4 h-16 w-16 text-gray-300 dark:text-gray-600" />

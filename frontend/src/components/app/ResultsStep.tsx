@@ -86,7 +86,7 @@ export function ResultsStep({
       )}
 
       <FilterBar filter={filter} results={results} onFilterChange={onFilterChange} onExport={onExport} />
-      <ResultsTable results={filteredResults} />
+      <ResultsTable results={filteredResults} totalResultsCount={results.length} />
     </div>
   );
 }

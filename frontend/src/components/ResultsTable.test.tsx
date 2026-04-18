@@ -258,3 +258,17 @@ test('updates sort state from the transition-driven header action', () => {
 
   expect(keyHeader).toHaveAttribute('aria-sort', 'ascending');
 });
+
+test('shows the selected-filter empty-state copy when there are zero total results', () => {
+  render(<ResultsTable results={[]} totalResultsCount={0} />);
+
+  expect(screen.getByText('No results match the selected filter')).toBeInTheDocument();
+  expect(screen.queryByText('No results match the current filter and search.')).not.toBeInTheDocument();
+});
+
+test('shows the current-filter-and-search empty-state copy when rows exist but none survive filtering', () => {
+  render(<ResultsTable results={[]} totalResultsCount={RESULTS.length} />);
+
+  expect(screen.getByText('No results match the current filter and search.')).toBeInTheDocument();
+  expect(screen.queryByText('No results match the selected filter')).not.toBeInTheDocument();
+});
