@@ -1,0 +1,19 @@
+{
+  "groupId": "scope-empty",
+  "testedAt": "2026-04-18T00:18:10.811570+00:00",
+  "isolation": {
+    "mode": "repo-checks",
+    "boundary": "read-only/repo-checks",
+    "missionDir": "/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c",
+    "milestone": "m2-deps"
+  },
+  "toolsUsed": [
+    "python3"
+  ],
+  "overallStatus": "pass",
+  "passReason": "Scope is empty: no completed m2-deps implementation features have non-empty fulfills, so no assertions are mapped for this flow.",
+  "assertions": [],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Scope-empty validation passed: fulfills-derived assertion scope for m2-deps is empty."
+}
