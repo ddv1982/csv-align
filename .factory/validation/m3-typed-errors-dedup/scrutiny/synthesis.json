@@ -1,0 +1,81 @@
+{
+  "milestone": "m3-typed-errors-dedup",
+  "round": 1,
+  "status": "fail",
+  "validatorsRun": {
+    "test": {
+      "passed": true,
+      "command": "cargo test -j 4 && (cd src-tauri && cargo test -j 4) && (cd frontend && npm test -- --run)",
+      "exitCode": 0
+    },
+    "typecheck": {
+      "passed": true,
+      "command": "cd frontend && npx tsc --noEmit",
+      "exitCode": 0
+    },
+    "lint": {
+      "passed": true,
+      "command": "cd frontend && npm run lint",
+      "exitCode": 0
+    }
+  },
+  "reviewsSummary": {
+    "total": 7,
+    "passed": 6,
+    "failed": 1,
+    "failedFeatures": [
+      "m3-migrate-to-csv-align-error"
+    ]
+  },
+  "blockingIssues": [
+    {
+      "featureId": "m3-migrate-to-csv-align-error",
+      "file": "src/backend/comparison_snapshot.rs",
+      "line": 299,
+      "severity": "blocking",
+      "description": "Malformed snapshot mapping errors in validate_mappings use `Err(format!(...).into())`, which maps into `CsvAlignError::Internal` and returns HTTP 500 instead of the expected BadInput/HTTP 400 for user input validation failures."
+    }
+  ],
+  "appliedUpdates": [],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "skills",
+      "suggestion": "Clarify rust-worker TDD policy for behavior-preserving refactor/instrumentation features, and require explicit handoff deviation notes when test-first is intentionally skipped.",
+      "evidence": "Multiple m3 reviews reported TDD-process mismatches (`m3-csv-align-error-introduce`, `m3-unify-validate-selected-columns`, `m3-tracing-instrument-on-handlers`, `m3-handler-attachment-helper`).",
+      "isSystemic": true
+    },
+    {
+      "target": "skills",
+      "suggestion": "Add explicit examples for running single integration tests (`cargo test --test <binary_name>`) and warn that passing a file path acts as a name filter and may run zero tests.",
+      "evidence": "Review for `m3-migrate-to-csv-align-error` captured a verification command that executed zero tests due to incorrect Cargo invocation form.",
+      "isSystemic": true
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Reinforce the request-path no-panic rule with an explicit check for `unwrap/expect` in handlers and add guidance to return typed errors instead.",
+      "evidence": "Review for `m3-handler-attachment-helper` found `expect(...)` in `src/api/handlers.rs` request path; recorded as a non-blocking issue.",
+      "isSystemic": false
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Document that `String`/`&str` conversions into `CsvAlignError` become `Internal` and should be avoided for user-input validation failures (use explicit BadInput/Validation variants).",
+      "evidence": "Blocking issue in `m3-migrate-to-csv-align-error` came from `format!(...).into()` in snapshot validation mapping to `CsvAlignError::Internal`.",
+      "isSystemic": true
+    }
+  ],
+  "rejectedObservations": [
+    {
+      "observation": "Feature verification-step text drift (e.g., stale `rg` match counts or ambiguous regexes) in individual feature metadata entries.",
+      "reason": "Rejected for this synthesis because the findings are feature-definition hygiene issues rather than milestone runtime/system behavior defects."
+    },
+    {
+      "observation": "Per-feature omission of reading `.factory/library/user-testing.md` in rust-worker transcripts.",
+      "reason": "Rejected as ambiguous for this milestone: it did not correlate with the discovered blocking defect and may be an over-broad startup requirement for backend-only work."
+    },
+    {
+      "observation": "Single-feature TDD deviations that duplicate the broader systemic TDD-policy mismatch recommendation.",
+      "reason": "Rejected as duplicates after consolidating into one systemic skill-guidance recommendation."
+    }
+  ],
+  "previousRound": null
+}

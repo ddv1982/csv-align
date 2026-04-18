@@ -1,0 +1,26 @@
+{
+  "featureId": "m3-collapse-export-entry-points",
+  "reviewedAt": "2026-04-18T00:57:43Z",
+  "commitId": "40f02ba35e131eb05e0036c91cff1e0de4053a2e",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The commit cleanly collapses `src/data/export.rs` to the two required public APIs (`export_results_to_bytes` and `write_export_results`), removes legacy `_with_config`/default variants, and updates the backend wrapper plus `tests/export_integration.rs` call sites to the `Option<&ComparisonConfig>` contract. I did not find blocking or non-blocking correctness issues in the reviewed diff for the stated feature scope.",
+    "issues": []
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "The feature metadata verification step appears stale: it says `rg 'fn export_results' src/data/export.rs` should return 2 matches, but with the new API names only one function still begins with `export_results` and the second is `write_export_results`.",
+      "evidence": "Feature record (`features.json` for `m3-collapse-export-entry-points`) lists verification step \"expect 2 matches\"; `src/data/export.rs` currently has `pub fn export_results_to_bytes` (line 310) and `pub fn write_export_results` (line 320)."
+    },
+    {
+      "area": "skills",
+      "observation": "The rust-worker skill procedure requires opening `.factory/library/user-testing.md`, but this backend-only feature transcript does not show that read while handoff feedback still marks procedure adherence as true. This suggests the procedure step may be broader than necessary or not consistently enforced.",
+      "evidence": "`.factory/skills/rust-worker/SKILL.md` Work Procedure step 1 requires reading `architecture.md` and `user-testing.md`; transcript skeleton for worker session `a4089a45-b684-4d92-83c7-ad60df282d40` shows a read of `architecture.md` but no read of `.factory/library/user-testing.md`."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed handoff, transcript skeleton, skill instructions, and commit `40f02ba`. Feature implementation meets the requested API collapse and caller/test updates, with no code-level defects found in scope. Noted two shared-state documentation/procedure consistency observations."
+}

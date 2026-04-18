@@ -1,0 +1,33 @@
+{
+  "featureId": "m3-migrate-to-csv-align-error",
+  "reviewedAt": "2026-04-18T00:58:04Z",
+  "commitId": "0a684c6",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "The migration removed `Result<T, String>` across the targeted backend/workflow, Axum handler, and Tauri command paths, but introduced a behavior regression in snapshot validation error classification.",
+    "issues": [
+      {
+        "file": "src/backend/comparison_snapshot.rs",
+        "line": 299,
+        "severity": "blocking",
+        "description": "In `validate_mappings`, malformed snapshot mapping errors are returned as `Err(format!(...).into())` (lines 299, 310, 320), which now converts to `CsvAlignError::Internal` via `impl From<String> for CsvAlignError` (`src/backend/error.rs:86-88`). These are user-input validation failures and should be `BadInput`/400; with the current code they become internal/500 when bubbled through `error.into_response()` in `src/api/handlers.rs` (e.g. line 294)."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "The worker used `cargo test /Users/vriesd/projects/csv-align/tests/backend_workflow_integration.rs -j 4`, which Cargo treats as a name filter, so no test cases executed. The rust-worker skill could explicitly document the correct form for single integration test binaries (`cargo test --test <name>`) to avoid false confidence.",
+      "evidence": "Handoff verification entry for that command states: \"the command used a path filter so no individual tests ran\"."
+    },
+    {
+      "area": "conventions",
+      "observation": "Current shared docs do not explicitly warn that `String`/`&str` conversions into `CsvAlignError` map to `Internal`, which is risky during migrations where `.into()` may be used on user-input validation paths.",
+      "evidence": "src/backend/error.rs:86-94 maps `From<String>` and `From<&str>` to `CsvAlignError::Internal`; commit 0a684c6 uses `.into()` for snapshot validation failures in src/backend/comparison_snapshot.rs:299/310/320."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed worker session c17a4724-9e8f-43e8-8962-d86ae56248e7 and commit 0a684c6. While the broad `Result<_, String>` migration is present, one blocking regression remains: invalid snapshot mapping input is now classified as internal server error instead of bad input due to `String -> CsvAlignError::Internal` conversion."
+}

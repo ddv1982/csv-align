@@ -1,0 +1,33 @@
+{
+  "featureId": "m3-handler-attachment-helper",
+  "reviewedAt": "2026-04-18T00:56:38Z",
+  "commitId": "27204116a7a9285e0cac4137f009306d473f2b00",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Implementation satisfies the feature intent: a shared attachment response helper was added and all three targeted handlers now use it, removing duplicated response-builder blocks while preserving behavior.",
+    "issues": [
+      {
+        "file": "src/api/handlers.rs",
+        "line": 66,
+        "severity": "non_blocking",
+        "description": "`attachment(...)` ends with `.expect(\"attachment responses should build\")` in the request path, which can panic instead of returning a typed HTTP error. This is low-risk here because current call sites use static header values, but it still leaves a panic path in handlers."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "Mission AGENTS says request-path code should avoid panic helpers (\"Never unwrap() at request path; expect only in tests\"), but this feature introduces `expect` in a handler helper. The convention may need clarification/enforcement because implementation and guidance diverge.",
+      "evidence": "Mission AGENTS: /Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c/AGENTS.md:28; implementation: src/api/handlers.rs:66"
+    },
+    {
+      "area": "skills",
+      "observation": "The rust-worker skill prescribes Red→Green with a failing test first, but this feature was marked as having followed procedure without adding/updating tests. The skill may be too rigid for pure dedup refactors, or compliance criteria should be clarified.",
+      "evidence": "Skill requirement: .factory/skills/rust-worker/SKILL.md:31-32; handoff declares no new tests and still marks followedProcedure true at handoff lines 47 and 51-52 in 2026-04-18T00-51-45-545Z__m3-handler-attachment-helper__347c62f4-0703-4946-8614-a7dd7986f877.json"
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Pass: the helper dedup is correctly implemented and wired into export_csv/save_pair_order/save_comparison_snapshot. One non-blocking panic-path concern and two shared-state alignment observations are recorded."
+}

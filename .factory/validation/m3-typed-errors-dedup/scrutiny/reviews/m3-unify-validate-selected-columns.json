@@ -1,0 +1,21 @@
+{
+  "featureId": "m3-unify-validate-selected-columns",
+  "reviewedAt": "2026-04-18T00:57:23Z",
+  "commitId": "d6a5d8886d0d7f1aff63656c63b16e7477973026",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The commit fully consolidates `validate_selected_columns` into `src/backend/validation.rs`, removes duplicate definitions from pair-order and snapshot workflows, and routes those workflows through the shared typed validator while preserving the stable missing/duplicate message format at those call sites.",
+    "issues": []
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "The rust-worker skill currently mandates strict red→green test-first flow, but this refactor was executed by editing first and then validating with existing regression tests. The skill could be clarified for behavior-preserving dedup/refactor features where existing tests are intentionally reused.",
+      "evidence": "Transcript skeleton order shows ApplyPatch edits before targeted `cargo test ...save_pair_order...comparison_snapshot...` runs; handoff `tests.added` is empty while `skillFeedback.followedProcedure` is true."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Review passed: feature requirements were met, the unified validator is now single-sourced in validation.rs, and the reviewed diff/transcript show no blocking or non-blocking code defects for this feature."
+}
