@@ -16,6 +16,7 @@ serde_json = "1.0"
 uuid = { version = "1.0", features = ["v4"] }
 thiserror = "1.0"
 anyhow = "1.0"
+tracing = "0.1"
 
 # Import our core library for comparison logic
 csv-align = { path = ".." }

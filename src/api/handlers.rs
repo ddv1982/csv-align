@@ -67,6 +67,7 @@ fn attachment(content_type: &str, filename: &str, body: impl Into<Body>) -> Resp
 }
 
 /// Health check endpoint
+#[tracing::instrument]
 pub async fn health_check() -> impl IntoResponse {
     Json(HealthResponse {
         status: "ok".to_string(),
@@ -75,12 +76,14 @@ pub async fn health_check() -> impl IntoResponse {
 }
 
 /// Create a new session
+#[tracing::instrument(skip(state))]
 pub async fn create_session(State(state): State<AppState>) -> impl IntoResponse {
     let session_id = state.create_session().await;
     Json(SessionResponse { session_id })
 }
 
 /// Delete a session
+#[tracing::instrument(skip(state), fields(session_id = %session_id))]
 pub async fn delete_session(
     State(state): State<AppState>,
     Path(session_id): Path<String>,
@@ -93,6 +96,7 @@ pub async fn delete_session(
 }
 
 /// Load a CSV file (file_a or file_b)
+#[tracing::instrument(skip(state, multipart), fields(session_id = %session_id))]
 pub async fn load_csv_file(
     State(state): State<AppState>,
     Path((session_id, file_letter)): Path<(String, String)>,
@@ -149,6 +153,7 @@ pub async fn load_csv_file(
 }
 
 /// Get suggested column mappings
+#[tracing::instrument(skip(state, request), fields(session_id = %session_id))]
 pub async fn suggest_mappings(
     State(state): State<AppState>,
     Path(session_id): Path<String>,
@@ -165,6 +170,7 @@ pub async fn suggest_mappings(
 }
 
 /// Run comparison
+#[tracing::instrument(skip(state, request), fields(session_id = %session_id))]
 pub async fn compare(
     State(state): State<AppState>,
     Path(session_id): Path<String>,
@@ -193,6 +199,7 @@ pub async fn compare(
 }
 
 /// Export comparison results as CSV
+#[tracing::instrument(skip(state), fields(session_id = %session_id))]
 pub async fn export_csv(State(state): State<AppState>, Path(session_id): Path<String>) -> Response {
     let snapshot = match state
         .with_session(&session_id, export_session_results_snapshot)
@@ -212,6 +219,7 @@ pub async fn export_csv(State(state): State<AppState>, Path(session_id): Path<St
     attachment("text/csv", "comparison-results.csv", csv_content)
 }
 
+#[tracing::instrument(skip(state, request), fields(session_id = %session_id))]
 pub async fn save_pair_order(
     State(state): State<AppState>,
     Path(session_id): Path<String>,
@@ -231,6 +239,7 @@ pub async fn save_pair_order(
     attachment("text/plain; charset=utf-8", "pair-order.txt", contents)
 }
 
+#[tracing::instrument(skip(state, request), fields(session_id = %session_id))]
 pub async fn load_pair_order(
     State(state): State<AppState>,
     Path(session_id): Path<String>,
@@ -250,6 +259,7 @@ pub async fn load_pair_order(
     Json(response).into_response()
 }
 
+#[tracing::instrument(skip(state), fields(session_id = %session_id))]
 pub async fn save_comparison_snapshot(
     State(state): State<AppState>,
     Path(session_id): Path<String>,
@@ -270,6 +280,7 @@ pub async fn save_comparison_snapshot(
     )
 }
 
+#[tracing::instrument(skip(state, request), fields(session_id = %session_id))]
 pub async fn load_comparison_snapshot(
     State(state): State<AppState>,
     Path(session_id): Path<String>,

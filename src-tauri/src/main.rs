@@ -2,6 +2,8 @@ use std::collections::HashMap;
 use std::fs;
 use std::sync::Mutex;
 
+use tracing::instrument;
+
 use csv_align::backend::{
     CompareRequest, CsvAlignError, LoadComparisonSnapshotResponse, LoadPairOrderResponse,
     PairOrderSelection, SessionData, SessionResponse, SuggestMappingsRequest, apply_csv_to_session,
@@ -38,6 +40,7 @@ impl AppState {
 
 /// Create a new session
 #[tauri::command]
+#[instrument(skip(state))]
 fn create_session(state: tauri::State<AppState>) -> SessionResponse {
     let session_id = uuid::Uuid::new_v4().to_string();
     let mut sessions = state.sessions.lock().unwrap();
@@ -47,6 +50,7 @@ fn create_session(state: tauri::State<AppState>) -> SessionResponse {
 
 /// Load a CSV file from a local path
 #[tauri::command]
+#[instrument(skip(state), fields(session_id = %session_id))]
 fn load_csv(
     state: tauri::State<AppState>,
     session_id: String,
@@ -71,6 +75,7 @@ fn load_csv(
 
 /// Load a CSV file from raw bytes (desktop/webview file selection)
 #[tauri::command]
+#[instrument(skip(state, file_bytes), fields(session_id = %session_id))]
 fn load_csv_bytes(
     state: tauri::State<AppState>,
     session_id: String,
@@ -100,6 +105,7 @@ fn load_csv_bytes(
 
 /// Get suggested column mappings
 #[tauri::command]
+#[instrument(skip(state, request), fields(session_id = %session_id))]
 fn suggest_mappings(
     state: tauri::State<AppState>,
     session_id: String,
@@ -114,6 +120,7 @@ fn suggest_mappings(
 
 /// Run comparison
 #[tauri::command]
+#[instrument(skip(state, request), fields(session_id = %session_id))]
 fn compare(
     state: tauri::State<AppState>,
     session_id: String,
@@ -142,6 +149,7 @@ fn compare(
 
 /// Export comparison results to a CSV file path
 #[tauri::command]
+#[instrument(skip(state), fields(session_id = %session_id))]
 fn export_results(
     state: tauri::State<AppState>,
     session_id: String,
@@ -157,6 +165,7 @@ fn export_results(
 }
 
 #[tauri::command]
+#[instrument(skip(state, selection), fields(session_id = %session_id))]
 fn save_pair_order(
     state: tauri::State<AppState>,
     session_id: String,
@@ -180,6 +189,7 @@ fn save_pair_order(
 }
 
 #[tauri::command]
+#[instrument(skip(state), fields(session_id = %session_id))]
 fn load_pair_order(
     state: tauri::State<AppState>,
     session_id: String,
@@ -202,6 +212,7 @@ fn load_pair_order(
 }
 
 #[tauri::command]
+#[instrument(skip(state), fields(session_id = %session_id))]
 fn save_comparison_snapshot(
     state: tauri::State<AppState>,
     session_id: String,
@@ -222,6 +233,7 @@ fn save_comparison_snapshot(
 }
 
 #[tauri::command]
+#[instrument(skip(state), fields(session_id = %session_id))]
 fn load_comparison_snapshot(
     state: tauri::State<AppState>,
     session_id: String,
