@@ -1,0 +1,21 @@
+{
+  "featureId": "misc-remove-empty-div-children-in-resultsstep",
+  "reviewedAt": "2026-04-18T06:22:21Z",
+  "commitId": "ef674080b6493b51b1fc8ee5b7e37bc387fd12e7",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The fix commit fully addresses the prior failure: both header-only `ResultsStep` SectionCard callsites no longer pass placeholder `<div />` children, `SectionCard` now allows omitted children, and test coverage now explicitly verifies omitted-children spacer suppression in addition to the null-children case.",
+    "issues": []
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "The frontend-worker skill mandates explicit red→green TDD with a failing targeted test before implementation, but this session's transcript skeleton shows code edits before the first targeted test run while handoff feedback still reports full procedure adherence.",
+      "evidence": "worker-transcripts.jsonl entry for session `bd228c1b-d401-4f9e-a03d-04678b7c4dd4` shows `ApplyPatch` calls before `cd frontend && npm test -- --run src/components/ui/SectionCard.test.tsx`; handoff `skillFeedback.followedProcedure` is `true`."
+    }
+  ],
+  "addressesFailureFrom": ".factory/validation/misc-m6-polish/scrutiny/reviews/misc-sectioncard-skip-empty-body.json",
+  "summary": "Pass: this fix resolves the original spacer regression by removing placeholder children from the actual header-only ResultsStep cards and validating omitted-children behavior directly in SectionCard tests."
+}
