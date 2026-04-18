@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { expect, test } from 'vitest';
 import { ResultsTable } from './ResultsTable';
 import type { ResultResponse } from '../types/api';
@@ -228,4 +228,32 @@ test('sorts rows by diff count descending when the details header is clicked twi
   expect(within(bodyRows[0]).getByText('THREE')).toBeInTheDocument();
   expect(within(bodyRows[1]).getByText('ONE')).toBeInTheDocument();
   expect(within(bodyRows[2]).getByText('ZERO')).toBeInTheDocument();
+});
+
+test('keeps the current search input responsive while showing pending search work', async () => {
+  render(<ResultsTable results={RESULTS} />);
+
+  const search = screen.getByPlaceholderText('Search keys or values');
+
+  await act(async () => {
+    fireEvent.change(search, { target: { value: 'gamma' } });
+  });
+
+  expect(search).toHaveValue('gamma');
+  expect(screen.getByText('1 of 4 rows shown')).toBeInTheDocument();
+});
+
+test('updates sort state from the transition-driven header action', async () => {
+  render(<ResultsTable results={RESULTS} />);
+
+  const keySort = screen.getByRole('button', { name: /key/i });
+  const keyHeader = keySort.closest('th');
+
+  expect(keyHeader).toHaveAttribute('aria-sort', 'none');
+
+  await act(async () => {
+    fireEvent.click(keySort);
+  });
+
+  expect(keyHeader).toHaveAttribute('aria-sort', 'ascending');
 });

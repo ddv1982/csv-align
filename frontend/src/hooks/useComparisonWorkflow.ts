@@ -684,12 +684,14 @@ export function useComparisonWorkflow() {
     dispatch({ type: 'stepChanged', step: 'configure' });
   }, [blockSnapshotFollowOnWorkflow]);
 
+  const filteredResults = useMemo(() => filterResults(state.results, state.filter), [state.filter, state.results]);
+
   return {
     state,
     step,
     mappingSelection,
     normalizationConfig,
-    filteredResults: filterResults(state.results, state.filter),
+    filteredResults,
     isSnapshotReadOnly: state.snapshotReadOnly,
     unlockedSteps,
     setMappingSelection,

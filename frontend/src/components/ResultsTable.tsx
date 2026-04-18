@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useMemo, useState, useTransition } from 'react';
 import { ResultResponse } from '../types/api';
 import { getResultBadge, getResultDescription } from '../features/results/presentation';
 import { SectionCard } from './ui/SectionCard';
@@ -88,6 +88,7 @@ export function ResultsTable({ results }: ResultsTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [isPending, startTransition] = useTransition();
 
   const resultEntries = useMemo<ResultRowEntry[]>(() => {
     return results.map((result, index) => ({
@@ -156,13 +157,15 @@ export function ResultsTable({ results }: ResultsTableProps) {
   }, [normalizedSearch, resultEntries, sortColumn, sortDirection]);
 
   const handleSort = (column: SortColumn) => {
-    if (sortColumn === column) {
-      setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'));
-      return;
-    }
+    startTransition(() => {
+      if (sortColumn === column) {
+        setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'));
+        return;
+      }
 
-    setSortColumn(column);
-    setSortDirection('asc');
+      setSortColumn(column);
+      setSortDirection('asc');
+    });
   };
 
   const renderSortHeader = (label: string, column: SortColumn, className: string) => {
@@ -237,7 +240,12 @@ export function ResultsTable({ results }: ResultsTableProps) {
           <input
             type="search"
             value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
+            onChange={(event) => {
+              const nextValue = event.target.value;
+              startTransition(() => {
+                setSearchQuery(nextValue);
+              });
+            }}
             placeholder="Search keys or values"
             className="input pl-9 pr-3 text-sm"
           />
@@ -342,6 +350,12 @@ export function ResultsTable({ results }: ResultsTableProps) {
         </table>
       </div>
       )}
+      {isPending && (
+        <div className="border-t border-gray-200/90 bg-gray-50/90 px-4 py-2 text-right text-xs text-gray-500 dark:border-gray-700 dark:bg-gray-950/45 dark:text-gray-400">
+          Updating results…
+        </div>
+      )}
+
 
       {visibleResults.length > 50 && (
         <div className="border-t border-gray-200/90 bg-gray-50/90 px-4 py-3 text-center dark:border-gray-700 dark:bg-gray-950/45">
