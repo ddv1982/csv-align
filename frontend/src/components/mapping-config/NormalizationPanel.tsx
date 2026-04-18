@@ -1,5 +1,6 @@
 import type { ComparisonNormalizationConfig } from '../../types/api';
 import { Bars3Icon } from '../icons';
+import { SectionCard } from '../ui/SectionCard';
 
 interface NormalizationPanelProps {
   normalization: ComparisonNormalizationConfig;
@@ -9,19 +10,14 @@ interface NormalizationPanelProps {
 
 export function NormalizationPanel({ normalization, onChange, onDateChange }: NormalizationPanelProps) {
   return (
-    <section className="rounded-2xl border border-gray-200/90 bg-white/95 p-6 shadow-sm shadow-gray-200/70 dark:border-gray-700/90 dark:bg-gray-900/85 dark:shadow-none">
-      <div className="flex items-start gap-3">
-        <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-100 text-primary-700 ring-1 ring-inset ring-primary-200/80 shadow-sm shadow-white/40 dark:bg-primary-500/15 dark:text-primary-200 dark:ring-primary-500/30">
-          <Bars3Icon className="h-5 w-5" />
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-primary-600 dark:text-primary-300">Cleanup</p>
-          <h3 className="mt-0.5 text-lg font-semibold text-gray-900 dark:text-gray-100">Cleanup before compare</h3>
-          <p className="mt-1 text-sm leading-6 text-gray-600 dark:text-gray-300">Choose a few optional cleanup rules to avoid false mismatches.</p>
-        </div>
-      </div>
-
-      <div className="mt-5 space-y-4">
+    <SectionCard
+      eyebrow="Cleanup"
+      title="Cleanup before compare"
+      description="Choose a few optional cleanup rules to avoid false mismatches."
+      icon={<Bars3Icon className="h-5 w-5" />}
+      className="p-6"
+    >
+      <div className="space-y-4">
         <label className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
           <input
             type="checkbox"
@@ -119,6 +115,6 @@ export function NormalizationPanel({ normalization, onChange, onDateChange }: No
           </details>
         </div>
       </div>
-    </section>
+    </SectionCard>
   );
 }
