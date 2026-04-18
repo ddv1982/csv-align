@@ -535,6 +535,7 @@ dependencies = [
  "chrono",
  "csv",
  "encoding_rs_io",
+ "parking_lot",
  "serde",
  "serde_json",
  "strsim",

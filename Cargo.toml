@@ -24,6 +24,7 @@ tokio = { version = "1.52.1", features = ["macros", "rt-multi-thread", "net", "s
 tower = { version = "0.5", features = ["util"] }
 tower-http = { version = "0.6", features = ["cors", "fs"] }
 uuid = { version = "1.23.1", features = ["v4"] }
+parking_lot = "0.12"
 
 [dev-dependencies]
 tempfile = "3.27.0"
