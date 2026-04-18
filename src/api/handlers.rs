@@ -54,6 +54,18 @@ fn session_not_found_response() -> Response {
     .into_response()
 }
 
+fn attachment(content_type: &str, filename: &str, body: impl Into<Body>) -> Response {
+    Response::builder()
+        .status(StatusCode::OK)
+        .header("Content-Type", content_type)
+        .header(
+            "Content-Disposition",
+            format!("attachment; filename=\"{filename}\""),
+        )
+        .body(body.into())
+        .expect("attachment responses should build")
+}
+
 /// Health check endpoint
 pub async fn health_check() -> impl IntoResponse {
     Json(HealthResponse {
@@ -197,16 +209,7 @@ pub async fn export_csv(State(state): State<AppState>, Path(session_id): Path<St
         Err(error) => return error.into_response(),
     };
 
-    // Return CSV as download
-    Response::builder()
-        .status(StatusCode::OK)
-        .header("Content-Type", "text/csv")
-        .header(
-            "Content-Disposition",
-            "attachment; filename=\"comparison-results.csv\"",
-        )
-        .body(Body::from(csv_content))
-        .unwrap()
+    attachment("text/csv", "comparison-results.csv", csv_content)
 }
 
 pub async fn save_pair_order(
@@ -225,15 +228,7 @@ pub async fn save_pair_order(
         None => return session_not_found_response(),
     };
 
-    Response::builder()
-        .status(StatusCode::OK)
-        .header("Content-Type", "text/plain; charset=utf-8")
-        .header(
-            "Content-Disposition",
-            "attachment; filename=\"pair-order.txt\"",
-        )
-        .body(Body::from(contents))
-        .unwrap()
+    attachment("text/plain; charset=utf-8", "pair-order.txt", contents)
 }
 
 pub async fn load_pair_order(
@@ -268,15 +263,11 @@ pub async fn save_comparison_snapshot(
         None => return session_not_found_response(),
     };
 
-    Response::builder()
-        .status(StatusCode::OK)
-        .header("Content-Type", "application/json; charset=utf-8")
-        .header(
-            "Content-Disposition",
-            "attachment; filename=\"comparison-snapshot.json\"",
-        )
-        .body(Body::from(contents))
-        .unwrap()
+    attachment(
+        "application/json; charset=utf-8",
+        "comparison-snapshot.json",
+        contents,
+    )
 }
 
 pub async fn load_comparison_snapshot(
