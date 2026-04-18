@@ -41,7 +41,7 @@ export interface SectionCardProps {
   /** Optional trailing action area aligned to the card header. */
   action?: ReactNode;
   /** Card body content. */
-  children: ReactNode;
+  children?: ReactNode;
   /** Optional root class overrides for spacing or surface tweaks. */
   className?: string;
   /** Visual treatment for eyebrow and icon chip. */

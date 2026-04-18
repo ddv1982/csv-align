@@ -99,3 +99,12 @@ test('omits the body spacer when children is null', () => {
   expect(screen.queryByText('Header only')).toBeInTheDocument();
   expect(container.querySelector('.mt-5')).toBeNull();
 });
+
+test('omits the body spacer when children is omitted', () => {
+  const { container } = render(
+    <SectionCard eyebrow="Read-only snapshot" title="Header only" icon={<svg aria-hidden="true" />} />,
+  );
+
+  expect(screen.queryByText('Header only')).toBeInTheDocument();
+  expect(container.querySelector('.mt-5')).toBeNull();
+});

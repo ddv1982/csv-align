@@ -59,7 +59,6 @@ export function ResultsStep({
             </button>
           }
         >
-          <div />
         </SectionCard>
       ) : (
         <SectionCard
@@ -81,7 +80,6 @@ export function ResultsStep({
             </div>
           }
         >
-          <div />
         </SectionCard>
       )}
 
