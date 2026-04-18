@@ -1,0 +1,102 @@
+{
+  "groupId": "repo-shared-store",
+  "testedAt": "2026-04-18T02:19:48.646890Z",
+  "isolation": {
+    "repoRoot": "/Users/vriesd/projects/csv-align",
+    "missionDir": "/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c",
+    "guidanceSection": "Flow Validator Guidance: repo-checks",
+    "evidenceDir": "/Users/vriesd/.factory/missions/8fa2796a-8b48-4fd7-a205-fbe53ec6442c/evidence/m5-shared-store/lib-shared-store"
+  },
+  "toolsUsed": [
+    "Read",
+    "Grep",
+    "cargo test",
+    "rg"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-LIB-013",
+      "title": "Shared SessionStore exercised by both web and Tauri tests",
+      "status": "pass",
+      "commandsRun": [
+        "rg -n \"SessionStore|session_store_supports_create_read_update_and_delete|with_session\\(|with_session_mut\\(|create\\(|delete\\(\" /Users/vriesd/projects/csv-align/src/backend/store.rs",
+        "rg -n \"SessionStore|create_session\\(|load_csv_bytes\\(|compare\\(|save_pair_order\\(|load_pair_order\\(\" /Users/vriesd/projects/csv-align/src-tauri/src/pair_order_tests.rs",
+        "rg -n \"SessionStore|create_session\\(|load_csv_bytes\\(|compare\\(|save_comparison_snapshot\\(|load_comparison_snapshot\\(\" /Users/vriesd/projects/csv-align/src-tauri/src/comparison_snapshot_tests.rs",
+        "cargo test --manifest-path /Users/vriesd/projects/csv-align/Cargo.toml --lib -- --list",
+        "cargo test --manifest-path /Users/vriesd/projects/csv-align/Cargo.toml session_store_supports_create_read_update_and_delete",
+        "cargo test --manifest-path /Users/vriesd/projects/csv-align/src-tauri/Cargo.toml tauri_commands_share_the_backend_session_store"
+      ],
+      "steps": [
+        {
+          "action": "Inspect root shared-store source test coverage",
+          "expected": "A root-side test references SessionStore CRUD operations",
+          "observed": "Found backend::store::tests::session_store_supports_create_read_update_and_delete using create, with_session, with_session_mut, and delete."
+        },
+        {
+          "action": "Inspect src-tauri tests for shared SessionStore usage",
+          "expected": "At least one src-tauri test references the same SessionStore type/operations",
+          "observed": "Found SessionStore in pair_order_tests.rs and comparison_snapshot_tests.rs, and tauri_commands_share_the_backend_session_store test in src-tauri test list."
+        },
+        {
+          "action": "Run targeted root and src-tauri tests",
+          "expected": "Selected tests pass",
+          "observed": "Root SessionStore CRUD test passed; src-tauri shared-store test passed."
+        }
+      ],
+      "evidence": {
+        "artifacts": [
+          "m5-shared-store/lib-shared-store/val-lib-013-root-sessionstore-reference.log",
+          "m5-shared-store/lib-shared-store/val-lib-013-tauri-pair-order-sessionstore-reference.log",
+          "m5-shared-store/lib-shared-store/val-lib-013-tauri-snapshot-sessionstore-reference.log",
+          "m5-shared-store/lib-shared-store/val-lib-013-root-test-list.log",
+          "m5-shared-store/lib-shared-store/val-lib-013-root-test-run.log",
+          "m5-shared-store/lib-shared-store/val-lib-013-tauri-shared-store-test-run.log",
+          "m5-shared-store/lib-shared-store/val-lib-013-015-tauri-test-list.log"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-LIB-015",
+      "title": "Wrapper tests continue to cover pair-order + snapshot commands",
+      "status": "pass",
+      "commandsRun": [
+        "rg -n \"^\\s*#\\[test\\]|fn\\s+\" /Users/vriesd/projects/csv-align/src-tauri/src/pair_order_tests.rs",
+        "rg -n \"^\\s*#\\[test\\]|fn\\s+\" /Users/vriesd/projects/csv-align/src-tauri/src/comparison_snapshot_tests.rs",
+        "cargo test --manifest-path /Users/vriesd/projects/csv-align/src-tauri/Cargo.toml -- --list",
+        "cargo test --manifest-path /Users/vriesd/projects/csv-align/src-tauri/Cargo.toml tauri_pair_order_commands_round_trip_saved_selection",
+        "cargo test --manifest-path /Users/vriesd/projects/csv-align/src-tauri/Cargo.toml tauri_comparison_snapshot_commands_round_trip_saved_results"
+      ],
+      "steps": [
+        {
+          "action": "Verify test presence in pair_order_tests.rs",
+          "expected": "At least one matching pair-order command test exists",
+          "observed": "Found #[test] fn tauri_pair_order_commands_round_trip_saved_selection()."
+        },
+        {
+          "action": "Verify test presence in comparison_snapshot_tests.rs",
+          "expected": "At least one matching snapshot command test exists",
+          "observed": "Found #[test] fn tauri_comparison_snapshot_commands_round_trip_saved_results()."
+        },
+        {
+          "action": "Run corresponding src-tauri tests",
+          "expected": "Both targeted tests pass",
+          "observed": "pair_order and comparison_snapshot targeted tests passed (1 passed each)."
+        }
+      ],
+      "evidence": {
+        "artifacts": [
+          "m5-shared-store/lib-shared-store/val-lib-015-pair-order-test-presence.log",
+          "m5-shared-store/lib-shared-store/val-lib-015-snapshot-test-presence.log",
+          "m5-shared-store/lib-shared-store/val-lib-013-015-tauri-test-list.log",
+          "m5-shared-store/lib-shared-store/val-lib-015-pair-order-test-run.log",
+          "m5-shared-store/lib-shared-store/val-lib-015-snapshot-test-run.log"
+        ]
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Validated 2 assertions: VAL-LIB-013 passed and VAL-LIB-015 passed. Root SessionStore CRUD and src-tauri shared-store coverage were confirmed, and targeted pair-order/snapshot wrapper tests passed."
+}
