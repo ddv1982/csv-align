@@ -1,6 +1,7 @@
 use super::*;
 use csv_align::backend::MappingRequest;
 use csv_align::data::types::ComparisonNormalizationConfig;
+use std::sync::Arc;
 use tauri::Manager;
 
 fn temp_output_path(test_name: &str) -> std::path::PathBuf {
@@ -13,14 +14,12 @@ fn temp_output_path(test_name: &str) -> std::path::PathBuf {
 #[test]
 fn tauri_command_wrappers_compare_then_export_use_stored_comparison_labels() {
     let app = tauri::test::mock_app();
-    app.manage(AppState {
-        sessions: Mutex::new(HashMap::new()),
-    });
+    app.manage(Arc::new(SessionStore::default()));
 
-    let session_id = create_session(app.state::<AppState>()).session_id;
+    let session_id = create_session(app.state::<Arc<SessionStore>>()).session_id;
 
     load_csv_bytes(
-        app.state::<AppState>(),
+        app.state::<Arc<SessionStore>>(),
         session_id.clone(),
         "a".to_string(),
         "a.csv".to_string(),
@@ -29,7 +28,7 @@ fn tauri_command_wrappers_compare_then_export_use_stored_comparison_labels() {
     .unwrap();
 
     load_csv_bytes(
-        app.state::<AppState>(),
+        app.state::<Arc<SessionStore>>(),
         session_id.clone(),
         "b".to_string(),
         "b.csv".to_string(),
@@ -38,7 +37,7 @@ fn tauri_command_wrappers_compare_then_export_use_stored_comparison_labels() {
     .unwrap();
 
     let response = compare(
-        app.state::<AppState>(),
+        app.state::<Arc<SessionStore>>(),
         session_id.clone(),
         CompareRequest {
             key_columns_a: vec!["id".to_string()],
@@ -62,7 +61,7 @@ fn tauri_command_wrappers_compare_then_export_use_stored_comparison_labels() {
     let output_path = temp_output_path("tauri-export-labels");
 
     export_results(
-        app.state::<AppState>(),
+        app.state::<Arc<SessionStore>>(),
         session_id,
         output_path.to_string_lossy().into_owned(),
     )
@@ -75,4 +74,56 @@ fn tauri_command_wrappers_compare_then_export_use_stored_comparison_labels() {
     assert!(exported.contains("File A: full_name"));
     assert!(exported.contains("File B: display_name"));
     assert!(exported.contains("Mismatch,2,Bob,Robert"));
+}
+
+#[test]
+fn tauri_commands_share_the_backend_session_store() {
+    let app = tauri::test::mock_app();
+    let store = Arc::new(SessionStore::default());
+    app.manage(store.clone());
+
+    let session_id = create_session(app.state::<Arc<SessionStore>>()).session_id;
+
+    let observed = store.with_session(&session_id, |session| {
+        (
+            session.csv_a.is_none(),
+            session.csv_b.is_none(),
+            session.columns_a.len(),
+            session.columns_b.len(),
+        )
+    });
+    assert_eq!(observed, Some((true, true, 0, 0)));
+
+    load_csv_bytes(
+        app.state::<Arc<SessionStore>>(),
+        session_id.clone(),
+        "a".to_string(),
+        "shared.csv".to_string(),
+        b"id,name\n1,Alice\n".to_vec(),
+    )
+    .unwrap();
+
+    let loaded = store.with_session(&session_id, |session| {
+        (
+            session.csv_a.as_ref().and_then(|csv| csv.file_path.clone()),
+            session
+                .columns_a
+                .iter()
+                .map(|column| column.name.clone())
+                .collect::<Vec<_>>(),
+        )
+    });
+
+    assert_eq!(
+        loaded,
+        Some((
+            Some("shared.csv".to_string()),
+            vec!["id".to_string(), "name".to_string()]
+        ))
+    );
+    assert!(store.delete(&session_id));
+    assert_eq!(
+        store.with_session(&session_id, |session| session.columns_a.len()),
+        None
+    );
 }

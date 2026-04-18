@@ -1,6 +1,7 @@
 use super::*;
 use csv_align::backend::{CompareRequest, MappingRequest};
 use csv_align::data::types::ComparisonNormalizationConfig;
+use std::sync::Arc;
 use tauri::Manager;
 
 fn temp_output_path(test_name: &str) -> std::path::PathBuf {
@@ -13,14 +14,12 @@ fn temp_output_path(test_name: &str) -> std::path::PathBuf {
 #[test]
 fn tauri_comparison_snapshot_commands_round_trip_saved_results() {
     let app = tauri::test::mock_app();
-    app.manage(AppState {
-        sessions: Mutex::new(HashMap::new()),
-    });
+    app.manage(Arc::new(SessionStore::default()));
 
-    let session_id = create_session(app.state::<AppState>()).session_id;
+    let session_id = create_session(app.state::<Arc<SessionStore>>()).session_id;
 
     load_csv_bytes(
-        app.state::<AppState>(),
+        app.state::<Arc<SessionStore>>(),
         session_id.clone(),
         "a".to_string(),
         "left.csv".to_string(),
@@ -29,7 +28,7 @@ fn tauri_comparison_snapshot_commands_round_trip_saved_results() {
     .unwrap();
 
     load_csv_bytes(
-        app.state::<AppState>(),
+        app.state::<Arc<SessionStore>>(),
         session_id.clone(),
         "b".to_string(),
         "right.csv".to_string(),
@@ -38,7 +37,7 @@ fn tauri_comparison_snapshot_commands_round_trip_saved_results() {
     .unwrap();
 
     compare(
-        app.state::<AppState>(),
+        app.state::<Arc<SessionStore>>(),
         session_id.clone(),
         CompareRequest {
             key_columns_a: vec!["id".to_string()],
@@ -59,15 +58,15 @@ fn tauri_comparison_snapshot_commands_round_trip_saved_results() {
     let output_path = temp_output_path("tauri-comparison-snapshot");
 
     save_comparison_snapshot(
-        app.state::<AppState>(),
+        app.state::<Arc<SessionStore>>(),
         session_id,
         output_path.to_string_lossy().into_owned(),
     )
     .unwrap();
 
-    let loaded_session_id = create_session(app.state::<AppState>()).session_id;
+    let loaded_session_id = create_session(app.state::<Arc<SessionStore>>()).session_id;
     let loaded = load_comparison_snapshot(
-        app.state::<AppState>(),
+        app.state::<Arc<SessionStore>>(),
         loaded_session_id.clone(),
         output_path.to_string_lossy().into_owned(),
     )
@@ -78,7 +77,7 @@ fn tauri_comparison_snapshot_commands_round_trip_saved_results() {
         uuid::Uuid::new_v4()
     ));
     export_results(
-        app.state::<AppState>(),
+        app.state::<Arc<SessionStore>>(),
         loaded_session_id,
         export_path.to_string_lossy().into_owned(),
     )

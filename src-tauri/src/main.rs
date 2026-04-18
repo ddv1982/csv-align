@@ -1,58 +1,35 @@
-use std::collections::HashMap;
 use std::fs;
-use std::sync::Mutex;
+use std::sync::Arc;
 
 use tracing::instrument;
 
 use csv_align::backend::{
     CompareRequest, CsvAlignError, LoadComparisonSnapshotResponse, LoadPairOrderResponse,
-    PairOrderSelection, SessionData, SessionResponse, SuggestMappingsRequest, apply_csv_to_session,
-    comparison_inputs, export_session_results_snapshot, load_comparison_snapshot_workflow,
-    load_pair_order_workflow, parse_file_side, run_comparison, save_comparison_snapshot_workflow,
-    save_pair_order_workflow, suggest_mappings_workflow, validate_file_letter,
-    write_export_results,
+    PairOrderSelection, SessionResponse, SessionStore, SuggestMappingsRequest,
+    apply_csv_to_session, comparison_inputs, export_session_results_snapshot,
+    load_comparison_snapshot_workflow, load_pair_order_workflow, parse_file_side, run_comparison,
+    save_comparison_snapshot_workflow, save_pair_order_workflow, suggest_mappings_workflow,
+    validate_file_letter, write_export_results,
 };
 use csv_align::data::csv_loader;
 use csv_align::presentation::responses::{
     CompareResponse, FileLoadResponse, SuggestMappingsResponse,
 };
 
-/// Application state to hold session data
-struct AppState {
-    sessions: Mutex<HashMap<String, SessionData>>,
-}
-
-impl AppState {
-    fn with_session<R>(&self, session_id: &str, f: impl FnOnce(&SessionData) -> R) -> Option<R> {
-        let sessions = self.sessions.lock().unwrap();
-        sessions.get(session_id).map(f)
-    }
-
-    fn with_session_mut<R>(
-        &self,
-        session_id: &str,
-        f: impl FnOnce(&mut SessionData) -> R,
-    ) -> Option<R> {
-        let mut sessions = self.sessions.lock().unwrap();
-        sessions.get_mut(session_id).map(f)
-    }
-}
-
 /// Create a new session
 #[tauri::command]
 #[instrument(skip(state))]
-fn create_session(state: tauri::State<AppState>) -> SessionResponse {
-    let session_id = uuid::Uuid::new_v4().to_string();
-    let mut sessions = state.sessions.lock().unwrap();
-    sessions.insert(session_id.clone(), SessionData::new());
-    SessionResponse { session_id }
+fn create_session(state: tauri::State<Arc<SessionStore>>) -> SessionResponse {
+    SessionResponse {
+        session_id: state.create(),
+    }
 }
 
 /// Load a CSV file from a local path
 #[tauri::command]
 #[instrument(skip(state), fields(session_id = %session_id))]
 fn load_csv(
-    state: tauri::State<AppState>,
+    state: tauri::State<Arc<SessionStore>>,
     session_id: String,
     file_letter: String,
     file_path: String,
@@ -63,21 +40,20 @@ fn load_csv(
     let csv_data = csv_loader::load_csv(&file_path)
         .map_err(|error| CsvAlignError::Parse(format!("Failed to load CSV: {error}")))?;
 
-    let mut sessions = state.sessions.lock().unwrap();
-    let session_data = sessions
-        .get_mut(&session_id)
+    state
+        .with_session_mut(&session_id, |session_data| {
+            apply_csv_to_session(session_data, file_side, csv_data)
+        })
         .ok_or_else(|| CsvAlignError::NotFound {
             resource: "Session".to_string(),
-        })?;
-
-    Ok(apply_csv_to_session(session_data, file_side, csv_data))
+        })
 }
 
 /// Load a CSV file from raw bytes (desktop/webview file selection)
 #[tauri::command]
 #[instrument(skip(state, file_bytes), fields(session_id = %session_id))]
 fn load_csv_bytes(
-    state: tauri::State<AppState>,
+    state: tauri::State<Arc<SessionStore>>,
     session_id: String,
     file_letter: String,
     file_name: String,
@@ -93,21 +69,20 @@ fn load_csv_bytes(
         csv_data.file_path = Some(file_name);
     }
 
-    let mut sessions = state.sessions.lock().unwrap();
-    let session_data = sessions
-        .get_mut(&session_id)
+    state
+        .with_session_mut(&session_id, |session_data| {
+            apply_csv_to_session(session_data, file_side, csv_data)
+        })
         .ok_or_else(|| CsvAlignError::NotFound {
             resource: "Session".to_string(),
-        })?;
-
-    Ok(apply_csv_to_session(session_data, file_side, csv_data))
+        })
 }
 
 /// Get suggested column mappings
 #[tauri::command]
 #[instrument(skip(state, request), fields(session_id = %session_id))]
 fn suggest_mappings(
-    state: tauri::State<AppState>,
+    state: tauri::State<Arc<SessionStore>>,
     session_id: String,
     request: SuggestMappingsRequest,
 ) -> Result<SuggestMappingsResponse, CsvAlignError> {
@@ -122,7 +97,7 @@ fn suggest_mappings(
 #[tauri::command]
 #[instrument(skip(state, request), fields(session_id = %session_id))]
 fn compare(
-    state: tauri::State<AppState>,
+    state: tauri::State<Arc<SessionStore>>,
     session_id: String,
     request: CompareRequest,
 ) -> Result<CompareResponse, CsvAlignError> {
@@ -151,7 +126,7 @@ fn compare(
 #[tauri::command]
 #[instrument(skip(state), fields(session_id = %session_id))]
 fn export_results(
-    state: tauri::State<AppState>,
+    state: tauri::State<Arc<SessionStore>>,
     session_id: String,
     output_path: String,
 ) -> Result<(), CsvAlignError> {
@@ -167,7 +142,7 @@ fn export_results(
 #[tauri::command]
 #[instrument(skip(state, selection), fields(session_id = %session_id))]
 fn save_pair_order(
-    state: tauri::State<AppState>,
+    state: tauri::State<Arc<SessionStore>>,
     session_id: String,
     selection: PairOrderSelection,
     output_path: String,
@@ -191,7 +166,7 @@ fn save_pair_order(
 #[tauri::command]
 #[instrument(skip(state), fields(session_id = %session_id))]
 fn load_pair_order(
-    state: tauri::State<AppState>,
+    state: tauri::State<Arc<SessionStore>>,
     session_id: String,
     file_path: String,
 ) -> Result<LoadPairOrderResponse, CsvAlignError> {
@@ -214,7 +189,7 @@ fn load_pair_order(
 #[tauri::command]
 #[instrument(skip(state), fields(session_id = %session_id))]
 fn save_comparison_snapshot(
-    state: tauri::State<AppState>,
+    state: tauri::State<Arc<SessionStore>>,
     session_id: String,
     output_path: String,
 ) -> Result<(), CsvAlignError> {
@@ -235,7 +210,7 @@ fn save_comparison_snapshot(
 #[tauri::command]
 #[instrument(skip(state), fields(session_id = %session_id))]
 fn load_comparison_snapshot(
-    state: tauri::State<AppState>,
+    state: tauri::State<Arc<SessionStore>>,
     session_id: String,
     file_path: String,
 ) -> Result<LoadComparisonSnapshotResponse, CsvAlignError> {
@@ -267,9 +242,7 @@ mod comparison_snapshot_tests;
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .manage(AppState {
-            sessions: Mutex::new(HashMap::new()),
-        })
+        .manage(Arc::new(SessionStore::default()))
         .invoke_handler(tauri::generate_handler![
             create_session,
             load_csv,
