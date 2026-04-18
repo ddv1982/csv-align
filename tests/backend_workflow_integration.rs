@@ -6,6 +6,7 @@ use csv_align::backend::{
 };
 use csv_align::data::csv_loader;
 use csv_align::data::types::{ComparisonNormalizationConfig, FileSide};
+use std::sync::Arc;
 
 fn prepared_snapshot_session() -> SessionData {
     let mut session = SessionData::new();
@@ -21,8 +22,8 @@ fn prepared_snapshot_session() -> SessionData {
 
     let (csv_a, csv_b) = comparison_inputs(&session).unwrap();
     let execution = run_comparison(
-        &csv_a,
-        &csv_b,
+        csv_a.as_ref(),
+        csv_b.as_ref(),
         CompareRequest {
             key_columns_a: vec!["id".to_string()],
             key_columns_b: vec!["record_id".to_string()],
@@ -64,6 +65,25 @@ fn apply_csv_to_session_autosuggests_after_both_files_load() {
             .iter()
             .any(|mapping| mapping.file_a_column == "id" && mapping.file_b_column == "id")
     );
+}
+
+#[test]
+fn comparison_inputs_return_shared_csv_arcs() {
+    let mut session = SessionData::new();
+
+    let csv_a = csv_loader::load_csv_from_bytes(b"id,name\n1,Alice\n").unwrap();
+    let csv_b = csv_loader::load_csv_from_bytes(b"id,full_name\n1,Alice\n").unwrap();
+
+    apply_csv_to_session(&mut session, FileSide::A, csv_a);
+    apply_csv_to_session(&mut session, FileSide::B, csv_b);
+
+    let original_a = Arc::clone(session.csv_a.as_ref().expect("file A stored in session"));
+    let original_b = Arc::clone(session.csv_b.as_ref().expect("file B stored in session"));
+
+    let (returned_a, returned_b) = comparison_inputs(&session).unwrap();
+
+    assert!(Arc::ptr_eq(&original_a, &returned_a));
+    assert!(Arc::ptr_eq(&original_b, &returned_b));
 }
 
 #[test]
@@ -228,8 +248,12 @@ fn run_comparison_uses_positional_mapping_compatibility_when_mappings_are_omitte
 #[test]
 fn save_pair_order_rejects_missing_columns_with_stable_message() {
     let session = SessionData {
-        csv_a: Some(csv_loader::load_csv_from_bytes(b"id,name\n1,Alice\n").unwrap()),
-        csv_b: Some(csv_loader::load_csv_from_bytes(b"id,full_name\n1,Alice\n").unwrap()),
+        csv_a: Some(Arc::new(
+            csv_loader::load_csv_from_bytes(b"id,name\n1,Alice\n").unwrap(),
+        )),
+        csv_b: Some(Arc::new(
+            csv_loader::load_csv_from_bytes(b"id,full_name\n1,Alice\n").unwrap(),
+        )),
         ..SessionData::new()
     };
 
@@ -254,8 +278,12 @@ fn save_pair_order_rejects_missing_columns_with_stable_message() {
 #[test]
 fn save_pair_order_rejects_duplicate_columns_with_stable_message() {
     let session = SessionData {
-        csv_a: Some(csv_loader::load_csv_from_bytes(b"id,name\n1,Alice\n").unwrap()),
-        csv_b: Some(csv_loader::load_csv_from_bytes(b"id,full_name\n1,Alice\n").unwrap()),
+        csv_a: Some(Arc::new(
+            csv_loader::load_csv_from_bytes(b"id,name\n1,Alice\n").unwrap(),
+        )),
+        csv_b: Some(Arc::new(
+            csv_loader::load_csv_from_bytes(b"id,full_name\n1,Alice\n").unwrap(),
+        )),
         ..SessionData::new()
     };
 

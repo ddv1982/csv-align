@@ -38,8 +38,8 @@ async fn comparison_snapshot_persistence_round_trips_zero_result_comparisons() {
     let session_id = state.create_session().await;
 
     let mut session = SessionData::new();
-    session.csv_a = Some(csv_data(&["id", "full_name"], "left.csv"));
-    session.csv_b = Some(csv_data(&["record_id", "display_name"], "right.csv"));
+    session.csv_a = Some(csv_data(&["id", "full_name"], "left.csv").into());
+    session.csv_b = Some(csv_data(&["record_id", "display_name"], "right.csv").into());
     assert!(state.update_session(&session_id, session).await);
 
     let compare_response = handlers::compare(

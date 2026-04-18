@@ -79,8 +79,8 @@ async fn session_with_loaded_csvs() -> (AppState, String) {
     let session_id = state.create_session().await;
 
     let mut session = SessionData::new();
-    session.csv_a = Some(build_csv_a());
-    session.csv_b = Some(build_csv_b());
+    session.csv_a = Some(build_csv_a().into());
+    session.csv_b = Some(build_csv_b().into());
     assert!(state.update_session(&session_id, session).await);
 
     (state, session_id)
@@ -264,8 +264,8 @@ async fn response_contracts_compare_serializes_each_result_variant_and_summary_s
     let session_id = state.create_session().await;
 
     let mut session = SessionData::new();
-    session.csv_a = Some(build_csv_a());
-    session.csv_b = Some(build_csv_b());
+    session.csv_a = Some(build_csv_a().into());
+    session.csv_b = Some(build_csv_b().into());
     assert!(state.update_session(&session_id, session).await);
 
     let response = handlers::compare(
@@ -383,8 +383,8 @@ async fn response_contracts_export_uses_stored_comparison_labels_for_csv_headers
     let session_id = state.create_session().await;
 
     let mut session = SessionData::new();
-    session.csv_a = Some(build_csv_a());
-    session.csv_b = Some(build_csv_b());
+    session.csv_a = Some(build_csv_a().into());
+    session.csv_b = Some(build_csv_b().into());
     assert!(state.update_session(&session_id, session).await);
 
     let compare_response = handlers::compare(
@@ -412,8 +412,8 @@ async fn response_contracts_compare_rejects_unknown_mapping_types() {
     let session_id = state.create_session().await;
 
     let mut session = SessionData::new();
-    session.csv_a = Some(build_csv_a());
-    session.csv_b = Some(build_csv_b());
+    session.csv_a = Some(build_csv_a().into());
+    session.csv_b = Some(build_csv_b().into());
     assert!(state.update_session(&session_id, session).await);
 
     let mut request = build_compare_request();

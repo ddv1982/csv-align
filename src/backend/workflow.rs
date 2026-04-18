@@ -1,4 +1,6 @@
+use std::borrow::Borrow;
 use std::path::Path;
+use std::sync::Arc;
 
 use crate::backend::error::CsvAlignError;
 use crate::backend::requests::{CompareExecution, CompareRequest, SuggestMappingsRequest};
@@ -39,10 +41,10 @@ pub fn apply_csv_to_session(
     let response = file_load_response(file_letter, headers, &columns, row_count);
 
     if file_letter == FileSide::A {
-        session_data.csv_a = Some(csv_data);
+        session_data.csv_a = Some(Arc::new(csv_data));
         session_data.columns_a = columns;
     } else {
-        session_data.csv_b = Some(csv_data);
+        session_data.csv_b = Some(Arc::new(csv_data));
         session_data.columns_b = columns;
     }
 
@@ -60,8 +62,8 @@ pub fn apply_csv_to_session(
         session_data.column_mappings = mapping::suggest_mappings_with_data(
             &col_names_a,
             &col_names_b,
-            session_data.csv_a.as_ref(),
-            session_data.csv_b.as_ref(),
+            session_data.csv_a.as_deref(),
+            session_data.csv_b.as_deref(),
         );
     }
 
@@ -76,8 +78,8 @@ pub fn suggest_mappings_workflow(
         Some(session_data) => mapping::suggest_mappings_with_data(
             &request.columns_a,
             &request.columns_b,
-            session_data.csv_a.as_ref(),
-            session_data.csv_b.as_ref(),
+            session_data.csv_a.as_deref(),
+            session_data.csv_b.as_deref(),
         ),
         None => mapping::suggest_mappings(&request.columns_a, &request.columns_b),
     };
@@ -90,7 +92,9 @@ pub fn suggest_mappings_workflow(
     response
 }
 
-pub fn comparison_inputs(session_data: &SessionData) -> Result<(CsvData, CsvData), CsvAlignError> {
+pub fn comparison_inputs(
+    session_data: &SessionData,
+) -> Result<(Arc<CsvData>, Arc<CsvData>), CsvAlignError> {
     let csv_a = session_data
         .csv_a
         .as_ref()
@@ -100,14 +104,16 @@ pub fn comparison_inputs(session_data: &SessionData) -> Result<(CsvData, CsvData
         .as_ref()
         .ok_or_else(|| CsvAlignError::BadInput("File B not selected or loaded".to_string()))?;
 
-    Ok((csv_a.clone(), csv_b.clone()))
+    Ok((Arc::clone(csv_a), Arc::clone(csv_b)))
 }
 
 pub fn run_comparison(
-    csv_a: &CsvData,
-    csv_b: &CsvData,
+    csv_a: impl Borrow<CsvData>,
+    csv_b: impl Borrow<CsvData>,
     request: CompareRequest,
 ) -> Result<CompareExecution, CsvAlignError> {
+    let csv_a = csv_a.borrow();
+    let csv_b = csv_b.borrow();
     let config = build_comparison_config(csv_a, csv_b, request)?;
     let results = engine::compare_csv_data(csv_a, csv_b, &config);
     let summary = engine::generate_summary(&results, csv_a.rows.len(), csv_b.rows.len());

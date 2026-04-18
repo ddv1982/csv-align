@@ -132,7 +132,7 @@ fn compare(
             resource: "Session".to_string(),
         })??;
 
-    let execution = run_comparison(&csv_a, &csv_b, request)?;
+    let execution = run_comparison(csv_a.as_ref(), csv_b.as_ref(), request)?;
 
     let response = execution.response.clone();
     state

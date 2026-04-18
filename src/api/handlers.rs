@@ -192,7 +192,7 @@ pub async fn compare(
     };
 
     let (csv_a, csv_b) = comparison_input;
-    let execution = match run_comparison(&csv_a, &csv_b, request) {
+    let execution = match run_comparison(csv_a.as_ref(), csv_b.as_ref(), request) {
         Ok(execution) => execution,
         Err(error) => return error.into_response(),
     };

@@ -47,8 +47,8 @@ async fn pair_order_persistence_round_trips_saved_selection_through_http_handler
     let session_id = state.create_session().await;
 
     let mut session = SessionData::new();
-    session.csv_a = Some(csv_data(&["id", "name", "value"]));
-    session.csv_b = Some(csv_data(&["id", "full_name", "amount"]));
+    session.csv_a = Some(csv_data(&["id", "name", "value"]).into());
+    session.csv_b = Some(csv_data(&["id", "full_name", "amount"]).into());
     assert!(state.update_session(&session_id, session).await);
 
     let save_response = handlers::save_pair_order(
@@ -98,8 +98,8 @@ async fn pair_order_persistence_rejects_saved_data_for_different_loaded_files() 
     let session_id = state.create_session().await;
 
     let mut session = SessionData::new();
-    session.csv_a = Some(csv_data(&["id", "name", "value"]));
-    session.csv_b = Some(csv_data(&["id", "full_name", "amount"]));
+    session.csv_a = Some(csv_data(&["id", "name", "value"]).into());
+    session.csv_b = Some(csv_data(&["id", "full_name", "amount"]).into());
     assert!(state.update_session(&session_id, session).await);
 
     let contents = serde_json::json!({
@@ -131,8 +131,8 @@ async fn pair_order_persistence_loads_when_matching_headers_are_reordered() {
     let session_id = state.create_session().await;
 
     let mut session = SessionData::new();
-    session.csv_a = Some(csv_data(&["value", "id", "name"]));
-    session.csv_b = Some(csv_data(&["amount", "full_name", "id"]));
+    session.csv_a = Some(csv_data(&["value", "id", "name"]).into());
+    session.csv_b = Some(csv_data(&["amount", "full_name", "id"]).into());
     assert!(state.update_session(&session_id, session).await);
 
     let contents = serde_json::json!({

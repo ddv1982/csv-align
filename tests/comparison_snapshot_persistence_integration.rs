@@ -45,16 +45,22 @@ async fn comparison_snapshot_persistence_round_trips_through_http_handlers() {
     let session_id = state.create_session().await;
 
     let mut session = SessionData::new();
-    session.csv_a = Some(csv_data(
-        &["id", "full_name"],
-        &[&["1", "Alice"], &["2", "Bob"]],
-        "left.csv",
-    ));
-    session.csv_b = Some(csv_data(
-        &["record_id", "display_name"],
-        &[&["1", "Alice"], &["2", "Robert"]],
-        "right.csv",
-    ));
+    session.csv_a = Some(
+        csv_data(
+            &["id", "full_name"],
+            &[&["1", "Alice"], &["2", "Bob"]],
+            "left.csv",
+        )
+        .into(),
+    );
+    session.csv_b = Some(
+        csv_data(
+            &["record_id", "display_name"],
+            &[&["1", "Alice"], &["2", "Robert"]],
+            "right.csv",
+        )
+        .into(),
+    );
     assert!(state.update_session(&session_id, session).await);
 
     let compare_response = handlers::compare(

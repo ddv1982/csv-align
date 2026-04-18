@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::data::types::{
     ColumnInfo, ColumnMapping, ComparisonConfig, CsvData, RowComparisonResult,
 };
@@ -5,8 +7,8 @@ use crate::data::types::{
 /// Data for a single comparison session.
 #[derive(Debug, Clone)]
 pub struct SessionData {
-    pub csv_a: Option<CsvData>,
-    pub csv_b: Option<CsvData>,
+    pub csv_a: Option<Arc<CsvData>>,
+    pub csv_b: Option<Arc<CsvData>>,
     pub columns_a: Vec<ColumnInfo>,
     pub columns_b: Vec<ColumnInfo>,
     pub column_mappings: Vec<ColumnMapping>,
