@@ -61,3 +61,13 @@ test('adds a descriptive tooltip to the new window action', async () => {
 
   expect(screen.getByRole('button', { name: 'New window' })).toHaveAttribute('title', 'Open CSV Align in a new window');
 });
+
+test('uses icon-button styling for the theme toggle', async () => {
+  await renderHeader();
+
+  const toggle = screen.getByRole('button', { name: 'Switch to dark mode' });
+  expect(toggle).toHaveClass('rounded-lg');
+  expect(toggle).toHaveClass('h-10');
+  expect(toggle).toHaveClass('w-10');
+  expect(toggle).not.toHaveClass('btn');
+});

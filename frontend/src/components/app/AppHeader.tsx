@@ -63,7 +63,7 @@ export function AppHeader({ theme, onThemeToggle, onReset }: AppHeaderProps) {
 
           <button
             onClick={onThemeToggle}
-            className="btn btn-secondary inline-flex h-10 w-10 shrink-0 items-center justify-center p-0"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-700 shadow-sm shadow-gray-950/5 transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:shadow-none dark:hover:border-gray-600 dark:hover:bg-gray-800 dark:focus-visible:ring-offset-gray-950"
             type="button"
             aria-label={`Switch to ${nextThemeLabel}`}
             title={`Switch to ${nextThemeLabel}`}

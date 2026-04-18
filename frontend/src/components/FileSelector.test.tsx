@@ -71,4 +71,20 @@ test('supports keyboard activation on the dropzone', () => {
 
   const dropzone = screen.getByRole('button', { name: 'File A file selector' });
   expect(dropzone).toHaveAttribute('tabindex', '0');
+  expect(dropzone).toHaveAttribute('title', 'Choose a local CSV for File A');
+});
+
+test('activates the picker from Enter and Space key presses', () => {
+  const onSelect = vi.fn();
+  render(<FileSelector label="File A" file={null} onSelect={onSelect} />);
+
+  const dropzone = screen.getByRole('button', { name: 'File A file selector' });
+  const input = screen.getByLabelText('Choose Local CSV', { selector: 'input' });
+  const clickSpy = vi.spyOn(input, 'click');
+
+  fireEvent.keyDown(dropzone, { key: 'Enter' });
+  fireEvent.keyDown(dropzone, { key: ' ' });
+  fireEvent.keyDown(dropzone, { key: 'Escape' });
+
+  expect(clickSpy).toHaveBeenCalledTimes(2);
 });

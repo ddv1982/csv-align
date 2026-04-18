@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useId, useState } from 'react';
 import { ColumnInfo } from '../types/api';
 import { CheckBadgeIcon, DocumentArrowUpIcon, DocumentTextIcon } from './icons';
 
@@ -18,6 +18,7 @@ interface FileSelectorProps {
 }
 
 export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
+  const inputId = useId();
   const [isDragging, setIsDragging] = useState(false);
   const [selectionError, setSelectionError] = useState<string | null>(null);
 
@@ -62,9 +63,9 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
   }, [handleSelectedFile]);
 
   const openFilePicker = useCallback(() => {
-    const input = document.getElementById(`file-selector-${label.replace(/\s+/g, '-').toLowerCase()}`) as HTMLInputElement | null;
+    const input = document.getElementById(inputId) as HTMLInputElement | null;
     input?.click();
-  }, [label]);
+  }, [inputId]);
 
   const handleDropzoneKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'Enter' && event.key !== ' ') {
@@ -120,7 +121,7 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
 
           <label className="mt-4 btn btn-secondary w-full text-center cursor-pointer block">
             <input
-              id={`file-selector-${label.replace(/\s+/g, '-').toLowerCase()}`}
+              id={inputId}
               type="file"
               accept=".csv"
               onChange={handleFileChange}
@@ -138,6 +139,7 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
           role="button"
           tabIndex={0}
           aria-label={`${label} file selector`}
+          title={`Choose a local CSV for ${label}`}
           className={`rounded-xl border-2 border-dashed p-8 text-center transition-all duration-200 ${
             isDragging
               ? 'border-primary-400 bg-primary-50 shadow-sm shadow-primary-500/10 dark:bg-primary-900/20 dark:shadow-none'
@@ -160,7 +162,7 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
 
             <label className="btn btn-primary cursor-pointer">
               <input
-                id={`file-selector-${label.replace(/\s+/g, '-').toLowerCase()}`}
+                id={inputId}
                 type="file"
                 accept=".csv"
                 onChange={handleFileChange}

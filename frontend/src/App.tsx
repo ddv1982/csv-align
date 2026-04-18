@@ -40,7 +40,7 @@ function App() {
     <div className="min-h-screen flex flex-col bg-slate-50 text-gray-900 transition-colors dark:bg-gray-950 dark:text-gray-100">
       <AppHeader theme={theme} onThemeToggle={toggleTheme} onReset={handleReset} />
 
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8">
         <ProgressSteps step={step} unlockedSteps={unlockedSteps} onStepChange={handleStepNavigation} />
 
         {state.error && <ErrorBanner error={state.error} />}
@@ -88,7 +88,7 @@ function App() {
             onStartNewComparison={handleReset}
           />
         )}
-      </div>
+      </main>
 
       <footer className="mt-auto border-t border-gray-200/80 py-6 text-center text-xs text-gray-500 dark:border-gray-800 dark:text-gray-500">
         <p>CSV Align — Compare CSV files with visual difference highlighting</p>
