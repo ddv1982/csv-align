@@ -11,6 +11,7 @@ use csv_align::api::{
     handlers::{self, CompareRequest, MappingRequest, SuggestMappingsRequest},
     state::{AppState, SessionData},
 };
+use csv_align::backend::{CompareValidationError, CsvAlignError};
 use csv_align::data::types::{ComparisonNormalizationConfig, CsvData};
 use serde_json::Value;
 
@@ -104,6 +105,75 @@ fn result_by_type<'a>(results: &'a [Value], result_type: &str) -> &'a Value {
         .iter()
         .find(|result| result.get("result_type") == Some(&Value::String(result_type.to_string())))
         .unwrap_or_else(|| panic!("missing result type {result_type}"))
+}
+
+#[tokio::test]
+async fn csv_align_error_variants_map_to_documented_http_status() {
+    let cases = [
+        (
+            CsvAlignError::NotFound {
+                resource: "Session".to_string(),
+            },
+            StatusCode::NOT_FOUND,
+            "not_found",
+            "Session not found",
+        ),
+        (
+            CsvAlignError::Validation(CompareValidationError::EmptyColumns(
+                "Key columns for File A",
+            )),
+            StatusCode::BAD_REQUEST,
+            "validation",
+            "Key columns for File A must include at least one column",
+        ),
+        (
+            CsvAlignError::BadInput("invalid request payload".to_string()),
+            StatusCode::BAD_REQUEST,
+            "bad_input",
+            "invalid request payload",
+        ),
+        (
+            CsvAlignError::Parse("Failed to parse CSV".to_string()),
+            StatusCode::BAD_REQUEST,
+            "parse",
+            "Failed to parse CSV",
+        ),
+        (
+            CsvAlignError::Io(std::io::Error::other("disk full")),
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "io",
+            "disk full",
+        ),
+        (
+            CsvAlignError::Internal("unexpected panic boundary".to_string()),
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "internal",
+            "unexpected panic boundary",
+        ),
+    ];
+
+    for (error, status, code, message) in cases {
+        let tauri_json = serde_json::to_value(&error).expect("serialize error");
+        assert_eq!(
+            tauri_json,
+            serde_json::json!({
+                "code": code,
+                "error": message,
+            })
+        );
+
+        let response = error.into_response();
+        assert_eq!(response.status(), status);
+
+        let json = response_json(response).await;
+        assert_eq!(
+            json,
+            serde_json::json!({
+                "code": code,
+                "error": message,
+            })
+        );
+    }
 }
 
 #[tokio::test]

@@ -1,4 +1,5 @@
 mod comparison_snapshot;
+mod error;
 mod pair_order;
 mod requests;
 mod session;
@@ -8,6 +9,7 @@ mod workflow;
 pub use comparison_snapshot::{
     load_comparison_snapshot_workflow, save_comparison_snapshot_workflow,
 };
+pub use error::CsvAlignError;
 pub use pair_order::{load_pair_order_workflow, save_pair_order_workflow};
 pub use requests::{
     CompareExecution, CompareRequest, CompareValidationError, ComparisonSnapshotFile,
