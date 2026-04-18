@@ -132,26 +132,15 @@ fn build_persisted_snapshot(
         mappings: comparison_config
             .column_mappings
             .iter()
-            .map(mapping_response)
+            .map(MappingResponse::from)
             .collect(),
         normalization: comparison_config.normalization.clone(),
         results: session_data
             .comparison_results
             .iter()
-            .map(result_response)
+            .map(ResultResponse::from)
             .collect(),
-        summary: SummaryResponse {
-            total_rows_a: summary.total_rows_a,
-            total_rows_b: summary.total_rows_b,
-            matches: summary.matches,
-            mismatches: summary.mismatches,
-            missing_left: summary.missing_left,
-            missing_right: summary.missing_right,
-            unkeyed_left: summary.unkeyed_left,
-            unkeyed_right: summary.unkeyed_right,
-            duplicates_a: summary.duplicates_a,
-            duplicates_b: summary.duplicates_b,
-        },
+        summary: SummaryResponse::from(&summary),
     })
 }
 
@@ -178,18 +167,7 @@ fn validate_snapshot(snapshot: &PersistedComparisonSnapshot) -> Result<(), CsvAl
         snapshot.file_b.row_count,
     );
 
-    let expected_summary = &snapshot.summary;
-    if generated_summary.total_rows_a != expected_summary.total_rows_a
-        || generated_summary.total_rows_b != expected_summary.total_rows_b
-        || generated_summary.matches != expected_summary.matches
-        || generated_summary.mismatches != expected_summary.mismatches
-        || generated_summary.missing_left != expected_summary.missing_left
-        || generated_summary.missing_right != expected_summary.missing_right
-        || generated_summary.unkeyed_left != expected_summary.unkeyed_left
-        || generated_summary.unkeyed_right != expected_summary.unkeyed_right
-        || generated_summary.duplicates_a != expected_summary.duplicates_a
-        || generated_summary.duplicates_b != expected_summary.duplicates_b
-    {
+    if generated_summary != snapshot.summary.clone().into() {
         return Err(CsvAlignError::BadInput(
             "Saved comparison snapshot summary does not match the persisted results".to_string(),
         ));
@@ -206,7 +184,7 @@ fn snapshot_file(
     ComparisonSnapshotFile {
         name: display_name(csv.file_path.as_deref(), fallback_name),
         headers: csv.headers.clone(),
-        columns: columns.iter().map(column_response).collect(),
+        columns: columns.iter().map(ColumnResponse::from).collect(),
         row_count: csv.rows.len(),
     }
 }
@@ -409,54 +387,6 @@ fn column_response_to_column_info(column: &ColumnResponse) -> ColumnInfo {
 
 fn difference_response_to_value_difference(difference: &DifferenceResponse) -> ValueDifference {
     ValueDifference {
-        column_a: difference.column_a.clone(),
-        column_b: difference.column_b.clone(),
-        value_a: difference.value_a.clone(),
-        value_b: difference.value_b.clone(),
-    }
-}
-
-fn column_response(column: &ColumnInfo) -> ColumnResponse {
-    ColumnResponse {
-        index: column.index,
-        name: column.name.clone(),
-        data_type: column.data_type.clone(),
-    }
-}
-
-fn mapping_response(mapping: &ColumnMapping) -> MappingResponse {
-    let (mapping_type, similarity) = match mapping.mapping_type {
-        MappingType::ExactMatch => (crate::data::types::MappingKind::Exact, None),
-        MappingType::ManualMatch => (crate::data::types::MappingKind::Manual, None),
-        MappingType::FuzzyMatch(score) => (crate::data::types::MappingKind::Fuzzy, Some(score)),
-    };
-
-    MappingResponse {
-        file_a_column: mapping.file_a_column.clone(),
-        file_b_column: mapping.file_b_column.clone(),
-        mapping_type,
-        similarity,
-    }
-}
-
-fn result_response(result: &RowComparisonResult) -> ResultResponse {
-    ResultResponse {
-        result_type: result.result_type(),
-        key: result.key().to_vec(),
-        values_a: result.values_a().to_vec(),
-        values_b: result.values_b().to_vec(),
-        duplicate_values_a: result.duplicate_values_a().to_vec(),
-        duplicate_values_b: result.duplicate_values_b().to_vec(),
-        differences: result
-            .differences()
-            .iter()
-            .map(difference_response)
-            .collect(),
-    }
-}
-
-fn difference_response(difference: &ValueDifference) -> DifferenceResponse {
-    DifferenceResponse {
         column_a: difference.column_a.clone(),
         column_b: difference.column_b.clone(),
         value_a: difference.value_a.clone(),

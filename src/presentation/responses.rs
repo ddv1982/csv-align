@@ -83,14 +83,14 @@ pub fn file_load_response(
         success: true,
         file_letter,
         headers,
-        columns: columns.iter().map(column_response).collect(),
+        columns: columns.iter().map(ColumnResponse::from).collect(),
         row_count,
     }
 }
 
 pub fn suggest_mappings_response(mappings: &[ColumnMapping]) -> SuggestMappingsResponse {
     SuggestMappingsResponse {
-        mappings: mappings.iter().map(mapping_response).collect(),
+        mappings: mappings.iter().map(MappingResponse::from).collect(),
     }
 }
 
@@ -100,67 +100,8 @@ pub fn compare_response(
 ) -> CompareResponse {
     CompareResponse {
         success: true,
-        results: results.iter().map(result_response).collect(),
-        summary: summary_response(summary),
-    }
-}
-
-fn column_response(column: &ColumnInfo) -> ColumnResponse {
-    ColumnResponse {
-        index: column.index,
-        name: column.name.clone(),
-        data_type: column.data_type.clone(),
-    }
-}
-
-fn mapping_response(mapping: &ColumnMapping) -> MappingResponse {
-    let (mapping_type, similarity) = mapping_type_response(&mapping.mapping_type);
-
-    MappingResponse {
-        file_a_column: mapping.file_a_column.clone(),
-        file_b_column: mapping.file_b_column.clone(),
-        mapping_type,
-        similarity,
-    }
-}
-
-fn result_response(result: &RowComparisonResult) -> ResultResponse {
-    ResultResponse {
-        result_type: result.result_type(),
-        key: result.key().to_vec(),
-        values_a: result.values_a().to_vec(),
-        values_b: result.values_b().to_vec(),
-        duplicate_values_a: result.duplicate_values_a().to_vec(),
-        duplicate_values_b: result.duplicate_values_b().to_vec(),
-        differences: result
-            .differences()
-            .iter()
-            .map(difference_response)
-            .collect(),
-    }
-}
-
-fn difference_response(difference: &ValueDifference) -> DifferenceResponse {
-    DifferenceResponse {
-        column_a: difference.column_a.clone(),
-        column_b: difference.column_b.clone(),
-        value_a: difference.value_a.clone(),
-        value_b: difference.value_b.clone(),
-    }
-}
-
-fn summary_response(summary: &ComparisonSummary) -> SummaryResponse {
-    SummaryResponse {
-        total_rows_a: summary.total_rows_a,
-        total_rows_b: summary.total_rows_b,
-        matches: summary.matches,
-        mismatches: summary.mismatches,
-        missing_left: summary.missing_left,
-        missing_right: summary.missing_right,
-        unkeyed_left: summary.unkeyed_left,
-        unkeyed_right: summary.unkeyed_right,
-        duplicates_a: summary.duplicates_a,
-        duplicates_b: summary.duplicates_b,
+        results: results.iter().map(ResultResponse::from).collect(),
+        summary: SummaryResponse::from(summary),
     }
 }
 
@@ -169,5 +110,91 @@ fn mapping_type_response(mapping_type: &MappingType) -> (MappingKind, Option<f64
         MappingType::ExactMatch => (MappingKind::Exact, None),
         MappingType::ManualMatch => (MappingKind::Manual, None),
         MappingType::FuzzyMatch(score) => (MappingKind::Fuzzy, Some(*score)),
+    }
+}
+
+impl From<&ColumnInfo> for ColumnResponse {
+    fn from(column: &ColumnInfo) -> Self {
+        Self {
+            index: column.index,
+            name: column.name.clone(),
+            data_type: column.data_type.clone(),
+        }
+    }
+}
+
+impl From<&ColumnMapping> for MappingResponse {
+    fn from(mapping: &ColumnMapping) -> Self {
+        let (mapping_type, similarity) = mapping_type_response(&mapping.mapping_type);
+
+        Self {
+            file_a_column: mapping.file_a_column.clone(),
+            file_b_column: mapping.file_b_column.clone(),
+            mapping_type,
+            similarity,
+        }
+    }
+}
+
+impl From<&RowComparisonResult> for ResultResponse {
+    fn from(result: &RowComparisonResult) -> Self {
+        Self {
+            result_type: result.result_type(),
+            key: result.key().to_vec(),
+            values_a: result.values_a().to_vec(),
+            values_b: result.values_b().to_vec(),
+            duplicate_values_a: result.duplicate_values_a().to_vec(),
+            duplicate_values_b: result.duplicate_values_b().to_vec(),
+            differences: result
+                .differences()
+                .iter()
+                .map(DifferenceResponse::from)
+                .collect(),
+        }
+    }
+}
+
+impl From<&ValueDifference> for DifferenceResponse {
+    fn from(difference: &ValueDifference) -> Self {
+        Self {
+            column_a: difference.column_a.clone(),
+            column_b: difference.column_b.clone(),
+            value_a: difference.value_a.clone(),
+            value_b: difference.value_b.clone(),
+        }
+    }
+}
+
+impl From<&ComparisonSummary> for SummaryResponse {
+    fn from(summary: &ComparisonSummary) -> Self {
+        Self {
+            total_rows_a: summary.total_rows_a,
+            total_rows_b: summary.total_rows_b,
+            matches: summary.matches,
+            mismatches: summary.mismatches,
+            missing_left: summary.missing_left,
+            missing_right: summary.missing_right,
+            unkeyed_left: summary.unkeyed_left,
+            unkeyed_right: summary.unkeyed_right,
+            duplicates_a: summary.duplicates_a,
+            duplicates_b: summary.duplicates_b,
+        }
+    }
+}
+
+impl From<SummaryResponse> for ComparisonSummary {
+    fn from(summary: SummaryResponse) -> Self {
+        Self {
+            total_rows_a: summary.total_rows_a,
+            total_rows_b: summary.total_rows_b,
+            matches: summary.matches,
+            mismatches: summary.mismatches,
+            missing_left: summary.missing_left,
+            missing_right: summary.missing_right,
+            unkeyed_left: summary.unkeyed_left,
+            unkeyed_right: summary.unkeyed_right,
+            duplicates_a: summary.duplicates_a,
+            duplicates_b: summary.duplicates_b,
+        }
     }
 }

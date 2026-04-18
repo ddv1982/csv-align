@@ -263,7 +263,7 @@ impl DuplicateSource {
 }
 
 /// Summary statistics of comparison results
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ComparisonSummary {
     pub total_rows_a: usize,
     pub total_rows_b: usize,
