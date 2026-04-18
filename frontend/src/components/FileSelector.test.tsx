@@ -64,3 +64,11 @@ test('renders a dark-mode idle background for the empty dropzone', () => {
 
   expect(dropzone).toHaveClass('dark:bg-gray-800/40');
 });
+
+test('supports keyboard activation on the dropzone', () => {
+  const onSelect = vi.fn();
+  render(<FileSelector label="File A" file={null} onSelect={onSelect} />);
+
+  const dropzone = screen.getByRole('button', { name: 'File A file selector' });
+  expect(dropzone).toHaveAttribute('tabindex', '0');
+});

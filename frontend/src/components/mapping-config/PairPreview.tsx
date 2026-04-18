@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ClipboardDocumentCheckIcon, ClipboardDocumentIcon } from '../icons';
 
 interface PairPreviewProps {
   comparisonColumnsA: string[];
@@ -65,14 +66,9 @@ export function PairPreview({ comparisonColumnsA, comparisonColumnsB }: PairPrev
         >
           <span className="sr-only">{buttonLabel}</span>
           {copySucceeded ? (
-            <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75">
-              <path d="M3.5 8.5 6.5 11.5 12.5 4.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <ClipboardDocumentCheckIcon className="h-4 w-4" />
           ) : (
-            <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <rect x="5.25" y="3.25" width="7.5" height="9.5" rx="1.25" />
-              <path d="M3.25 10.75V4.5C3.25 3.81 3.81 3.25 4.5 3.25H9.75" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <ClipboardDocumentIcon className="h-4 w-4" />
           )}
         </button>
       </div>

@@ -57,3 +57,16 @@ test('uses a minimal solid active style and subtle hover-ready styling for resul
   fireEvent.click(inactiveFilter!);
   expect(onFilterChange).toHaveBeenCalledWith('missing_left');
 });
+
+test('gives the export button an accessible label', () => {
+  render(
+    <FilterBar
+      filter="all"
+      results={RESULTS}
+      onFilterChange={vi.fn()}
+      onExport={vi.fn()}
+    />,
+  );
+
+  expect(screen.getByRole('button', { name: 'Export comparison results as CSV' })).toBeInTheDocument();
+});

@@ -2,6 +2,15 @@ import { Fragment, useMemo, useState } from 'react';
 import { ResultResponse } from '../types/api';
 import { getResultBadge, getResultDescription } from '../features/results/presentation';
 import { SectionCard } from './ui/SectionCard';
+import {
+  ArrowRightIcon,
+  Bars3BottomLeftIcon,
+  ChevronDownIcon,
+  MagnifyingGlassIcon,
+  NoSymbolSearchIcon,
+  PlusIcon,
+  XCircleIcon,
+} from './icons';
 
 interface ResultsTableProps {
   results: ResultResponse[];
@@ -33,9 +42,7 @@ function DiffRow({ columnA, columnB, valueA, valueB }: DiffRowProps) {
         </span>
         {!sameColumn && (
           <>
-            <svg className="h-3 w-3 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-            </svg>
+            <ArrowRightIcon className="h-3 w-3 text-gray-400 dark:text-gray-500" />
             <span className="font-mono text-[11px] font-semibold tracking-tight text-gray-700 dark:text-gray-200">
               {columnB}
             </span>
@@ -50,9 +57,7 @@ function DiffRow({ columnA, columnB, valueA, valueB }: DiffRowProps) {
           </span>
         </div>
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-gray-200/90 bg-gray-50 text-gray-500 dark:border-gray-700/80 dark:bg-gray-800/60 dark:text-gray-400">
-          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-          </svg>
+          <ArrowRightIcon className="h-3.5 w-3.5" />
         </div>
         <div className="min-w-0">
           <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-600/90 dark:text-emerald-300/90">File B</p>
@@ -210,9 +215,7 @@ export function ResultsTable({ results }: ResultsTableProps) {
   if (results.length === 0) {
     return (
       <div className="card border-gray-200/90 bg-white p-12 text-center shadow-lg shadow-gray-200/60 dark:border-gray-700/90 dark:bg-gray-900/85 dark:shadow-black/25">
-        <svg className="mx-auto mb-4 h-16 w-16 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
+        <XCircleIcon className="mx-auto mb-4 h-16 w-16 text-gray-300 dark:text-gray-600" />
         <p className="text-gray-500 dark:text-gray-400">No results match the selected filter</p>
       </div>
     );
@@ -225,16 +228,12 @@ export function ResultsTable({ results }: ResultsTableProps) {
       description={`${visibleResults.length} of ${results.length} rows shown`}
       className="card overflow-hidden border-gray-200/90 bg-white shadow-xl shadow-gray-200/70 dark:border-gray-700/90 dark:bg-gray-900/85 dark:shadow-black/30"
       icon={
-        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h10" />
-        </svg>
+        <Bars3BottomLeftIcon className="h-5 w-5" />
       }
       action={
         <label className="relative block w-full sm:max-w-xs">
           <span className="sr-only">Search result values</span>
-          <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+          <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
           <input
             type="search"
             value={searchQuery}
@@ -249,9 +248,7 @@ export function ResultsTable({ results }: ResultsTableProps) {
 
       {visibleResults.length === 0 ? (
         <div className="p-12 text-center">
-          <svg className="mx-auto mb-4 h-16 w-16 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.5 15.5L19 19m-9-1a6 6 0 110-12 6 6 0 010 12z" />
-          </svg>
+          <NoSymbolSearchIcon className="mx-auto mb-4 h-16 w-16 text-gray-300 dark:text-gray-600" />
           <p className="text-gray-500 dark:text-gray-400">No results match the current filter and search.</p>
         </div>
       ) : (
@@ -300,14 +297,7 @@ export function ResultsTable({ results }: ResultsTableProps) {
                           aria-expanded={isExpanded}
                         >
                           {result.differences.length} diff{result.differences.length > 1 ? 's' : ''}
-                          <svg
-                            className={`h-3.5 w-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
+                          <ChevronDownIcon className={`h-3.5 w-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                         </button>
                       ) : (
                         <span className={`text-sm ${resultDescription ? 'text-gray-600 dark:text-gray-300' : 'text-gray-400 dark:text-gray-500'}`}>
@@ -323,9 +313,7 @@ export function ResultsTable({ results }: ResultsTableProps) {
                         <div className="rounded-2xl border border-gray-200/80 bg-white/80 p-4 shadow-sm shadow-gray-200/50 dark:border-gray-700/80 dark:bg-gray-900/60 dark:shadow-none">
                           <div className="mb-3 flex items-center gap-2">
                             <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary-100 text-primary-700 ring-1 ring-inset ring-primary-200/80 dark:bg-primary-500/15 dark:text-primary-200 dark:ring-primary-500/30">
-                              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                              </svg>
+                              <PlusIcon className="h-3.5 w-3.5" />
                             </span>
                             <p className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Value Differences:</p>
                             <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">

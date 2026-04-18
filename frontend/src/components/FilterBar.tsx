@@ -1,6 +1,7 @@
 import { ResultFilter, ResultResponse } from '../types/api';
 import { getResultFilterCounts, RESULT_FILTER_OPTIONS } from '../features/results/presentation';
 import { SectionCard } from './ui/SectionCard';
+import { ArrowDownTrayIcon, FunnelIcon } from './icons';
 
 interface FilterBarProps {
   filter: ResultFilter;
@@ -19,26 +20,15 @@ export function FilterBar({ filter, results, onFilterChange, onExport }: FilterB
       description="Switch between result buckets or export the full comparison as CSV."
       className="card overflow-hidden border-gray-200/90 bg-white shadow-sm dark:border-gray-700/90 dark:bg-gray-900/85"
       icon={
-        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h18M6 8h12M9 12h6M11 16h2" />
-        </svg>
+        <FunnelIcon className="h-5 w-5" />
       }
       action={
-        <button onClick={onExport} className="btn btn-primary shadow-sm shadow-primary-200/70 dark:shadow-none shrink-0">
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-            />
-          </svg>
+        <button
+          onClick={onExport}
+          className="btn btn-primary shadow-sm shadow-primary-200/70 dark:shadow-none shrink-0"
+          aria-label="Export comparison results as CSV"
+        >
+          <ArrowDownTrayIcon className="h-4 w-4" />
           Export CSV
         </button>
       }

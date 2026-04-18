@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { ColumnInfo } from '../types/api';
+import { CheckBadgeIcon, DocumentArrowUpIcon, DocumentTextIcon } from './icons';
 
 function hasCsvExtension(fileName: string): boolean {
   return fileName.toLowerCase().endsWith('.csv');
@@ -60,6 +61,20 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
     e.target.value = '';
   }, [handleSelectedFile]);
 
+  const openFilePicker = useCallback(() => {
+    const input = document.getElementById(`file-selector-${label.replace(/\s+/g, '-').toLowerCase()}`) as HTMLInputElement | null;
+    input?.click();
+  }, [label]);
+
+  const handleDropzoneKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+
+    event.preventDefault();
+    openFilePicker();
+  }, [openFilePicker]);
+
   return (
     <div className="card p-6">
       <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
@@ -76,9 +91,7 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
       {file ? (
         <div className="animate-slide-up">
           <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm shadow-gray-950/5 dark:border-gray-600 dark:bg-gray-700/50 dark:shadow-none">
-            <svg className="w-10 h-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
+            <DocumentTextIcon className="w-10 h-10 text-primary-600" />
             <div className="flex-1 min-w-0">
               <p className="truncate font-medium text-gray-900 dark:text-gray-100">{file.name}</p>
               <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -86,9 +99,7 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
               </p>
             </div>
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200">
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+              <CheckBadgeIcon className="h-5 w-5" />
             </div>
           </div>
 
@@ -109,6 +120,7 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
 
           <label className="mt-4 btn btn-secondary w-full text-center cursor-pointer block">
             <input
+              id={`file-selector-${label.replace(/\s+/g, '-').toLowerCase()}`}
               type="file"
               accept=".csv"
               onChange={handleFileChange}
@@ -122,6 +134,10 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
+          onKeyDown={handleDropzoneKeyDown}
+          role="button"
+          tabIndex={0}
+          aria-label={`${label} file selector`}
           className={`rounded-xl border-2 border-dashed p-8 text-center transition-all duration-200 ${
             isDragging
               ? 'border-primary-400 bg-primary-50 shadow-sm shadow-primary-500/10 dark:bg-primary-900/20 dark:shadow-none'
@@ -132,19 +148,9 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
             <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
               isDragging ? 'bg-primary-100 dark:bg-primary-900/40' : 'bg-gray-100 dark:bg-gray-700'
             }`}>
-              <svg
+              <DocumentArrowUpIcon
                 className={`w-8 h-8 ${isDragging ? 'text-primary-600 dark:text-primary-300' : 'text-gray-400 dark:text-gray-500'}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                />
-              </svg>
+              />
             </div>
 
             <p className="mb-1 text-lg font-medium text-gray-900 dark:text-gray-100">
@@ -154,6 +160,7 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
 
             <label className="btn btn-primary cursor-pointer">
               <input
+                id={`file-selector-${label.replace(/\s+/g, '-').toLowerCase()}`}
                 type="file"
                 accept=".csv"
                 onChange={handleFileChange}

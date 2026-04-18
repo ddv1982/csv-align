@@ -55,3 +55,9 @@ test('shows a header error when opening a new app instance fails', async () => {
 
   expect(await screen.findByRole('alert')).toHaveTextContent('Unable to open a new window right now.');
 });
+
+test('adds a descriptive tooltip to the new window action', async () => {
+  await renderHeader();
+
+  expect(screen.getByRole('button', { name: 'New window' })).toHaveAttribute('title', 'Open CSV Align in a new window');
+});

@@ -1,4 +1,5 @@
 import type { ComparisonNormalizationConfig } from '../../types/api';
+import { Bars3Icon } from '../icons';
 
 interface NormalizationPanelProps {
   normalization: ComparisonNormalizationConfig;
@@ -11,9 +12,7 @@ export function NormalizationPanel({ normalization, onChange, onDateChange }: No
     <section className="rounded-2xl border border-gray-200/90 bg-white/95 p-6 shadow-sm shadow-gray-200/70 dark:border-gray-700/90 dark:bg-gray-900/85 dark:shadow-none">
       <div className="flex items-start gap-3">
         <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-100 text-primary-700 ring-1 ring-inset ring-primary-200/80 shadow-sm shadow-white/40 dark:bg-primary-500/15 dark:text-primary-200 dark:ring-primary-500/30">
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M6 12h12M9 17h6" />
-          </svg>
+          <Bars3Icon className="h-5 w-5" />
         </div>
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-primary-600 dark:text-primary-300">Cleanup</p>

@@ -1,6 +1,14 @@
 import { getResultLabel } from '../features/results/presentation';
 import { SummaryResponse } from '../types/api';
 import { SectionCard } from './ui/SectionCard';
+import {
+  ChartBarSquareIcon,
+  CheckBadgeIcon,
+  DocumentTextIcon,
+  ExclamationTriangleIcon,
+  RectangleStackIcon,
+  ArrowsRightLeftIcon,
+} from './icons';
 
 interface SummaryStatsProps {
   summary: SummaryResponse;
@@ -29,9 +37,7 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
           summaryClassName: 'text-sky-800 dark:text-sky-200',
           detailClassName: 'text-sky-700 dark:text-sky-300',
           icon: (
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6M7 4h10a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z" />
-            </svg>
+            <DocumentTextIcon className="h-5 w-5" />
           ),
         }
       : null,
@@ -47,9 +53,7 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
           summaryClassName: 'text-amber-800 dark:text-amber-200',
           detailClassName: 'text-amber-700 dark:text-amber-300',
           icon: (
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
-            </svg>
+            <RectangleStackIcon className="h-5 w-5" />
           ),
         }
       : null,
@@ -72,9 +76,7 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
       labelText: 'text-slate-700 dark:text-slate-200',
       descriptionText: 'text-slate-500 dark:text-slate-400',
       icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-        </svg>
+        <CheckBadgeIcon className="w-5 h-5" />
       ),
     },
     {
@@ -88,9 +90,7 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
       labelText: 'text-slate-700 dark:text-slate-200',
       descriptionText: 'text-slate-500 dark:text-slate-400',
       icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-        </svg>
+        <ExclamationTriangleIcon className="w-5 h-5" />
       ),
     },
     {
@@ -104,9 +104,7 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
       labelText: 'text-slate-700 dark:text-slate-200',
       descriptionText: 'text-slate-500 dark:text-slate-400',
       icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-        </svg>
+        <ArrowsRightLeftIcon className="w-5 h-5" />
       ),
     },
     {
@@ -120,9 +118,7 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
       labelText: 'text-slate-700 dark:text-slate-200',
       descriptionText: 'text-slate-500 dark:text-slate-400',
       icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-        </svg>
+        <ArrowsRightLeftIcon className="w-5 h-5" style={{ transform: 'rotate(180deg)' }} />
       ),
     },
   ];
@@ -132,9 +128,7 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
       eyebrow="Step 3 · Results"
       title={
         <span className="flex items-center gap-2 text-lg">
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
+          <ChartBarSquareIcon className="h-5 w-5" />
           Comparison Summary
         </span>
       }
@@ -142,9 +136,7 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
       description="Review the overall match quality before drilling into filtered result rows."
       className="card overflow-hidden border-gray-200/90 bg-white shadow-xl shadow-gray-200/70 dark:border-gray-700/90 dark:bg-gray-900/85 dark:shadow-black/30"
       icon={
-        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-        </svg>
+        <ChartBarSquareIcon className="h-5 w-5" />
       }
       action={
         <div className="grid gap-3 sm:grid-cols-2">

@@ -4,6 +4,7 @@ import type { ComparisonNormalizationConfig, FileLetter, MappingDto } from '../t
 import { isTauri } from '../services/tauri';
 import type { AppFile, MappingSelectionState } from '../types/ui';
 import { SectionCard } from './ui/SectionCard';
+import { CheckDocumentIcon, KeyIcon, PencilSquareIcon, TableCellsIcon } from './icons';
 import { ColumnChipSelector } from './mapping-config/ColumnChipSelector';
 import { NormalizationPanel } from './mapping-config/NormalizationPanel';
 import { PairPreview } from './mapping-config/PairPreview';
@@ -121,9 +122,7 @@ export function MappingConfig({
         headingLevel="h3"
         className="p-6"
         icon={
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12M8 12h12M8 17h12M4 7h.01M4 12h.01M4 17h.01" />
-          </svg>
+          <TableCellsIcon className="h-5 w-5" />
         }
       >
         <div className="flex flex-wrap gap-3">
@@ -171,9 +170,7 @@ export function MappingConfig({
         title="Key Columns (for row matching)"
         description="Selected keys align rows between File A and File B."
         icon={
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-          </svg>
+          <KeyIcon className="h-5 w-5" />
         }
       >
         <div className="grid gap-6 md:grid-cols-2">
@@ -199,9 +196,7 @@ export function MappingConfig({
         title="Comparison Columns"
         description="Pick the columns whose values should actually be compared between the two files."
         icon={
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-          </svg>
+          <PencilSquareIcon className="h-5 w-5" />
         }
       >
         <div className="grid gap-6 md:grid-cols-2">
@@ -228,9 +223,7 @@ export function MappingConfig({
           disabled={!hasManualPairSelection}
           className={`btn btn-success flex items-center gap-2 px-8 py-3 text-lg shadow-sm shadow-emerald-300/40 dark:shadow-none ${!hasManualPairSelection ? 'cursor-not-allowed opacity-50' : ''}`}
         >
-          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-          </svg>
+          <CheckDocumentIcon className="h-6 w-6" />
           Run Comparison
         </button>
       </div>

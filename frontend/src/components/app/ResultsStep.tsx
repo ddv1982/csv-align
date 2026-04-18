@@ -4,6 +4,7 @@ import { SummaryStats } from '../SummaryStats';
 import type { ResultFilter, ResultResponse, SummaryResponse } from '../../types/api';
 import { NavButton } from '../ui/NavButton';
 import { SectionCard } from '../ui/SectionCard';
+import { ArrowPathIcon, CheckDocumentIcon, InformationCircleIcon, PencilSquareIcon } from '../icons';
 
 interface ResultsStepProps {
   summary: SummaryResponse;
@@ -46,18 +47,14 @@ export function ResultsStep({
           tone="info"
           className="border-sky-200/90 bg-sky-50/95 px-5 py-4 shadow-sm shadow-sky-100/70 dark:border-sky-500/40 dark:bg-sky-950/35"
           icon={
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 6a9 9 0 110 18 9 9 0 010-18z" />
-            </svg>
+            <InformationCircleIcon className="h-5 w-5" />
           }
           action={
             <button
               onClick={onStartNewComparison}
               className="btn btn-primary flex items-center gap-2 shadow-sm shadow-primary-200/70 dark:shadow-none"
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
+              <ArrowPathIcon className="h-4 w-4" />
               Start new comparison
             </button>
           }
@@ -70,10 +67,7 @@ export function ResultsStep({
           title="Save this result for later review"
           description="Save a snapshot of this comparison to reopen the same results later in read-only mode."
           icon={
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-6 4h6" />
-            </svg>
+            <PencilSquareIcon className="h-5 w-5" />
           }
           action={
             <div className="flex flex-wrap justify-end gap-3 lg:shrink-0">
@@ -81,10 +75,7 @@ export function ResultsStep({
                 Back to configuration
               </NavButton>
               <button onClick={onSaveResult} className="btn btn-primary flex items-center gap-2 shadow-sm shadow-primary-200/70 dark:shadow-none">
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z" />
-                </svg>
+                <CheckDocumentIcon className="h-4 w-4" />
                 Save result
               </button>
             </div>

@@ -1,5 +1,6 @@
 import { useCallback, useId } from 'react';
 import { isTauri } from '../../services/tauri';
+import { ArrowDownTrayIcon } from '../icons';
 
 interface LoadResultButtonProps {
   onLoadResult: (file?: File) => void;
@@ -17,9 +18,7 @@ export function LoadResultButton({ onLoadResult }: LoadResultButtonProps) {
 
   const content = (
     <>
-      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-6l-4-4m0 0L8 10m4-4v12" />
-      </svg>
+      <ArrowDownTrayIcon className="h-4 w-4" style={{ transform: 'rotate(180deg)' }} />
       Load result
     </>
   );
