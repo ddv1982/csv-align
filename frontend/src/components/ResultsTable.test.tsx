@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { expect, test } from 'vitest';
 import { ResultsTable } from './ResultsTable';
 import type { ResultResponse } from '../types/api';
@@ -230,20 +230,23 @@ test('sorts rows by diff count descending when the details header is clicked twi
   expect(within(bodyRows[2]).getByText('ZERO')).toBeInTheDocument();
 });
 
-test('keeps the current search input responsive while showing pending search work', async () => {
+test('updates the controlled search input value synchronously on each keystroke', () => {
   render(<ResultsTable results={RESULTS} />);
 
   const search = screen.getByPlaceholderText('Search keys or values');
 
-  await act(async () => {
-    fireEvent.change(search, { target: { value: 'gamma' } });
-  });
+  fireEvent.change(search, { target: { value: 'g' } });
+  expect(search).toHaveValue('g');
 
+  fireEvent.change(search, { target: { value: 'ga' } });
+  expect(search).toHaveValue('ga');
+
+  fireEvent.change(search, { target: { value: 'gamma' } });
   expect(search).toHaveValue('gamma');
   expect(screen.getByText('1 of 4 rows shown')).toBeInTheDocument();
 });
 
-test('updates sort state from the transition-driven header action', async () => {
+test('updates sort state from the transition-driven header action', () => {
   render(<ResultsTable results={RESULTS} />);
 
   const keySort = screen.getByRole('button', { name: /key/i });
@@ -251,9 +254,7 @@ test('updates sort state from the transition-driven header action', async () => 
 
   expect(keyHeader).toHaveAttribute('aria-sort', 'none');
 
-  await act(async () => {
-    fireEvent.click(keySort);
-  });
+  fireEvent.click(keySort);
 
   expect(keyHeader).toHaveAttribute('aria-sort', 'ascending');
 });

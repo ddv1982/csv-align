@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState, useTransition } from 'react';
+import { Fragment, useDeferredValue, useMemo, useState, useTransition } from 'react';
 import { ResultResponse } from '../types/api';
 import { getResultBadge, getResultDescription } from '../features/results/presentation';
 import { SectionCard } from './ui/SectionCard';
@@ -85,10 +85,11 @@ function SortGlyph({ state }: { state: 'asc' | 'desc' | 'inactive' }) {
 
 export function ResultsTable({ results }: ResultsTableProps) {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [query, setQuery] = useState('');
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [isPending, startTransition] = useTransition();
+  const deferredQuery = useDeferredValue(query);
 
   const resultEntries = useMemo<ResultRowEntry[]>(() => {
     return results.map((result, index) => ({
@@ -97,7 +98,7 @@ export function ResultsTable({ results }: ResultsTableProps) {
     }));
   }, [results]);
 
-  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const normalizedSearch = deferredQuery.trim().toLowerCase();
 
   const visibleResults = useMemo(() => {
     const filtered = normalizedSearch.length === 0
@@ -239,13 +240,8 @@ export function ResultsTable({ results }: ResultsTableProps) {
           <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
           <input
             type="search"
-            value={searchQuery}
-            onChange={(event) => {
-              const nextValue = event.target.value;
-              startTransition(() => {
-                setSearchQuery(nextValue);
-              });
-            }}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
             placeholder="Search keys or values"
             className="input pl-9 pr-3 text-sm"
           />
