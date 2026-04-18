@@ -1,0 +1,58 @@
+{
+  "milestone": "misc-m6-polish",
+  "round": 1,
+  "status": "fail",
+  "validatorsRun": {
+    "test": {
+      "passed": true,
+      "command": "cd \"/Users/vriesd/projects/csv-align\" && cargo test -j 4 && (cd src-tauri && cargo test -j 4) && (cd frontend && npm test -- --run)",
+      "exitCode": 0
+    },
+    "typecheck": {
+      "passed": true,
+      "command": "cd \"/Users/vriesd/projects/csv-align\" && cd frontend && npx tsc --noEmit",
+      "exitCode": 0
+    },
+    "lint": {
+      "passed": true,
+      "command": "cd \"/Users/vriesd/projects/csv-align\" && cd frontend && npm run lint",
+      "exitCode": 0
+    }
+  },
+  "reviewsSummary": {
+    "total": 1,
+    "passed": 0,
+    "failed": 1,
+    "failedFeatures": [
+      "misc-sectioncard-skip-empty-body"
+    ]
+  },
+  "blockingIssues": [
+    {
+      "featureId": "misc-sectioncard-skip-empty-body",
+      "severity": "blocking",
+      "description": "Spacer-removal behavior is not achieved because SectionCard only suppresses body spacing for null/undefined/false children, while header-only ResultsStep callsites still pass empty <div /> children."
+    },
+    {
+      "featureId": "misc-sectioncard-skip-empty-body",
+      "severity": "blocking",
+      "description": "frontend/src/components/app/ResultsStep.tsx read-only header-only SectionCard still passes <div /> children, so the mt-5 body spacer remains."
+    },
+    {
+      "featureId": "misc-sectioncard-skip-empty-body",
+      "severity": "blocking",
+      "description": "frontend/src/components/app/ResultsStep.tsx save-result header-only SectionCard still passes <div /> children, so the mt-5 body spacer remains."
+    }
+  ],
+  "appliedUpdates": [],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "skills",
+      "suggestion": "Require explicit transcript evidence of red→green ordering before frontend-worker handoffs can mark `skillFeedback.followedProcedure` as true.",
+      "evidence": "Review of worker session 4d1e1639-1d17-4470-ad4c-cc5a5284a5a8 found ApplyPatch entries before the first targeted test run, while the handoff still reported procedure compliance.",
+      "isSystemic": false
+    }
+  ],
+  "rejectedObservations": [],
+  "previousRound": null
+}

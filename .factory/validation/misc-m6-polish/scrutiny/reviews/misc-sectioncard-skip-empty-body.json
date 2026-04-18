@@ -1,0 +1,40 @@
+{
+  "featureId": "misc-sectioncard-skip-empty-body",
+  "reviewedAt": "2026-04-18T06:10:48Z",
+  "commitId": "334303939bbd99234e78bb2ab53960722d5a431a",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "The commit adds a null-children guard and test, but it does not actually remove the spacer from the real header-only Results panels because those callsites still pass empty `<div />` children.",
+    "issues": [
+      {
+        "file": "frontend/src/components/ui/SectionCard.tsx",
+        "line": 64,
+        "severity": "blocking",
+        "description": "`hasBody` only excludes `null`/`undefined`/`false`. Existing header-only callsites pass an empty React element (`<div />`), which still evaluates as a body and keeps rendering the `mt-5` spacer."
+      },
+      {
+        "file": "frontend/src/components/app/ResultsStep.tsx",
+        "line": 62,
+        "severity": "blocking",
+        "description": "The read-only header-only `SectionCard` still passes `<div />` as children, so the body spacer remains present instead of being eliminated."
+      },
+      {
+        "file": "frontend/src/components/app/ResultsStep.tsx",
+        "line": 84,
+        "severity": "blocking",
+        "description": "The save-result header-only `SectionCard` still passes `<div />` as children, so the body spacer remains present instead of being eliminated."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "The frontend-worker skill requires explicit red→green TDD (failing test before implementation), but this session's transcript skeleton shows code patches before the first targeted test run while `skillFeedback.followedProcedure` is still true.",
+      "evidence": "worker-transcripts.jsonl entry for session `4d1e1639-1d17-4470-ad4c-cc5a5284a5a8`: `ApplyPatch` calls precede `npm test -- --run src/components/ui/SectionCard.test.tsx`; handoff `skillFeedback.followedProcedure` is true."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Fail: spacer-removal behavior is not achieved in the actual header-only ResultsStep SectionCard usages because placeholder children remain and still trigger the body wrapper."
+}
