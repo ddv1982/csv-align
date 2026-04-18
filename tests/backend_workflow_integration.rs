@@ -86,6 +86,19 @@ fn load_csv_workflow_supports_bytes_and_trims_blank_file_name() {
 }
 
 #[test]
+fn load_csv_workflow_rejects_empty_csv_bytes() {
+    let error = load_csv_workflow(
+        "a",
+        Some("empty.csv".to_string()),
+        CsvLoadSource::Bytes(Vec::new()),
+    )
+    .expect_err("empty csv bytes should be rejected");
+
+    assert!(matches!(error, CsvAlignError::BadInput(_)));
+    assert_eq!(error.to_string(), "CSV file is empty");
+}
+
+#[test]
 fn load_csv_workflow_supports_file_paths_and_sets_file_name() {
     let mut temp_file = NamedTempFile::with_suffix(".csv").unwrap();
     writeln!(temp_file, "id,name").unwrap();

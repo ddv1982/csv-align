@@ -144,6 +144,46 @@ fn tauri_delete_session_is_a_no_op_for_unknown_ids() {
 }
 
 #[test]
+fn tauri_load_csv_variants_reject_empty_csv_payloads() {
+    let app = tauri::test::mock_app();
+    app.manage(Arc::new(SessionStore::default()));
+
+    let session_id = create_session(app.state::<Arc<SessionStore>>()).session_id;
+
+    let bytes_error = load_csv_bytes(
+        app.state::<Arc<SessionStore>>(),
+        session_id.clone(),
+        "a".to_string(),
+        "empty.csv".to_string(),
+        Vec::new(),
+    )
+    .unwrap_err();
+    assert!(matches!(bytes_error, CsvAlignError::BadInput(_)));
+    assert_eq!(bytes_error.to_string(), "CSV file is empty");
+
+    let file_path = env::temp_dir()
+        .join(format!(
+            "csv-align-empty-file-test-{}",
+            uuid::Uuid::new_v4()
+        ))
+        .join("picked-empty.csv");
+    fs::create_dir_all(file_path.parent().unwrap()).unwrap();
+    fs::write(&file_path, b"").unwrap();
+
+    let path_error = load_csv(
+        app.state::<Arc<SessionStore>>(),
+        session_id,
+        "b".to_string(),
+        file_path.to_string_lossy().into_owned(),
+    )
+    .unwrap_err();
+    fs::remove_file(&file_path).unwrap();
+
+    assert!(matches!(path_error, CsvAlignError::BadInput(_)));
+    assert_eq!(path_error.to_string(), "CSV file is empty");
+}
+
+#[test]
 fn tauri_load_csv_variants_return_base_file_name_in_response() {
     let app = tauri::test::mock_app();
     app.manage(Arc::new(SessionStore::default()));

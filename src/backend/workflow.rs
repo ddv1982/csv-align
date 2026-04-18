@@ -22,6 +22,7 @@ pub enum CsvLoadSource {
     Bytes(Vec<u8>),
 }
 
+#[derive(Debug)]
 pub struct LoadedCsv {
     pub csv_data: CsvData,
     pub response: FileLoadResponse,
@@ -98,6 +99,10 @@ pub fn load_csv_workflow(
 
     if let Some(file_name) = file_name.filter(|value| !value.trim().is_empty()) {
         csv_data.file_path = Some(file_name);
+    }
+
+    if csv_data.headers.is_empty() && csv_data.rows.is_empty() {
+        return Err(CsvAlignError::BadInput("CSV file is empty".to_string()));
     }
 
     let headers = csv_data.headers.clone();

@@ -110,6 +110,25 @@ async fn local_file_loading_rejects_malformed_multipart_payloads() {
 }
 
 #[tokio::test]
+async fn local_file_loading_rejects_empty_csv_files() {
+    let state = AppState::new();
+    let session_id = state.create_session();
+    let boundary = "csv-align-boundary";
+    let request = multipart_request(
+        &format!("/api/sessions/{session_id}/files/a"),
+        boundary,
+        multipart_body(boundary, "empty.csv", b""),
+    );
+
+    let response = local_file_router(state).oneshot(request).await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let json = response_json(response).await;
+    assert_eq!(json["code"], "bad_input");
+    assert_eq!(json["error"], "CSV file is empty");
+}
+
+#[tokio::test]
 async fn local_file_loading_rejects_csv_rows_with_missing_columns() {
     let state = AppState::new();
     let session_id = state.create_session();
