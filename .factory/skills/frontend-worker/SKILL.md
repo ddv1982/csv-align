@@ -44,6 +44,13 @@ Do NOT use for: backend-only changes (use `rust-worker`), release tagging (use `
    - Stop the Axum server by PID before reporting handoff (see cleanup).
 6. **Drop old imports and dead code aggressively** — `import React` where unused post-React-19, unused props, stale comments. oxlint catches most; cross-check manually.
 7. **For wire-contract changes (MappingDto, v2 snapshot, port 3001):** coordinate with rust-worker handoff. If the backend has already shipped the new wire and the frontend still mirrors old types, update `frontend/src/types/api.ts` + `services/tauri.ts` in lockstep and add Vitest coverage for both transports (HTTP + invoke branches).
+
+   **Tauri invoke parity (HARD CHECK).** Whenever `services/tauri.ts` adds or renames an `invoke('<cmd>', ...)` call:
+   - Verify that `src-tauri/src/main.rs` exposes a matching `#[tauri::command]` function AND that the command name appears in the `tauri::generate_handler![...]` list.
+   - If the backing command does not exist, STOP and either hand off to `rust-worker`/`fullstack-worker` or add the command yourself within feature scope (only if the feature explicitly allows Tauri edits).
+   - Add a transport test exercising both branches (HTTP + invoke) for the new command.
+
+   **`useTransition` on controlled inputs (HARD CHECK).** A controlled `<input>`'s `value` state update MUST stay urgent — do not put `setX` inside `startTransition` when `value={x}`. Only wrap expensive derived state (filter/sort outputs) in the transition. Typical shape: keep two states (`query` urgent, `deferredQuery` via `useDeferredValue` or a transitioned mirror) and use the deferred one in heavy computations.
 8. **No `: any` types. No `@ts-ignore` / `@ts-expect-error` without an inline justification comment.**
 9. **Cleanup before handoff:**
    - `lsof -ti :3001 | xargs kill 2>/dev/null; lsof -ti :3000 | xargs kill 2>/dev/null` — no dangling Axum server.
