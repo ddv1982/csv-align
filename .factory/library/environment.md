@@ -25,6 +25,7 @@ What does NOT live here: service ports/commands (use `.factory/services.yaml`).
 - macOS is the dev environment; CI runs Ubuntu 22.04 + macOS latest.
 - Tauri Linux builds require libwebkit2gtk-4.1 + libayatana-appindicator3 + librsvg2 + patchelf (CI already installs).
 - Tauri v2 Linux builds need WebKitGTK 4.1 at runtime.
+- For informal memory checks on macOS, avoid Linux-only `/proc/*` probes; use `/usr/bin/time -l <command>` or `ps -o rss= -p <pid>` to capture RSS.
 
 ## Frontend linting
 

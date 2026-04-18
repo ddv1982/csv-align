@@ -40,7 +40,7 @@ How the system is organized after the v2 refactor. Written as the target state; 
                 ▼
          ┌─────────────┐
          │  data/      │   CsvData, ComparisonRow (flat struct post-M4),
-         │  types.rs   │   ResultKind enum (unit variants), ComparisonSummary,
+         │  types.rs   │   ResultType enum (unit variants), ComparisonSummary,
          │  export.rs  │   ComparisonConfig
          └─────────────┘
                 ▲
@@ -52,7 +52,7 @@ How the system is organized after the v2 refactor. Written as the target state; 
 
 ## Modules
 
-- **`src/data/`** — Domain types (`CsvData`, `ColumnInfo`, `ComparisonRow`, `ResultKind`, `ComparisonSummary`, `ComparisonConfig`), CSV ingestion (`csv_loader`), CSV export (`export`).
+- **`src/data/`** — Domain types (`CsvData`, `ColumnInfo`, `ComparisonRow`, `ResultType`, `ComparisonSummary`, `ComparisonConfig`), CSV ingestion (`csv_loader`), CSV export (`export`).
 - **`src/comparison/`** — Comparison engine, column-mapping heuristics, value comparators. Pure logic; no I/O. Operates on `Arc<CsvData>` to avoid clones.
 - **`src/backend/`** — Workflow orchestration used by both transports:
   - `store.rs` — `SessionStore` (sync API over `parking_lot::RwLock` or equivalent). Tauri calls directly; Axum wraps in `spawn_blocking`.
@@ -96,7 +96,7 @@ Same flow, but transport is `invoke('compare', …)`. Tauri command body calls t
 ### Snapshot save/load
 
 - Save: `backend::save_comparison_snapshot_workflow` constructs a `persistence::v1::Snapshot` from session state, serializes to JSON with `version: 2`, returns bytes.
-- Load: `backend::load_comparison_snapshot_workflow` reads JSON, checks `version == 2` (rejects v1.x with "Unsupported snapshot file version — produced by an older csv-align release. Re-run the comparison in v2."), hydrates session, returns `LoadComparisonSnapshotResponse`.
+- Load: `backend::load_comparison_snapshot_workflow` reads JSON, checks `version == 2` (rejects v1.x with `Unsupported comparison snapshot version {n} — this file was produced by an older csv-align release. Re-run the comparison in v2.`), hydrates session, returns `LoadComparisonSnapshotResponse`.
 
 ## Invariants
 
@@ -106,7 +106,7 @@ Same flow, but transport is `invoke('compare', …)`. Tauri command body calls t
 - **Wire = DTO.** API response shapes live in `src/presentation/`. On-disk snapshot shape lives in `src/backend/persistence/v1/` and is NOT the API DTO (decoupled to allow independent evolution).
 - **Port discipline.** Axum binds `127.0.0.1:3001`. Vite dev proxy targets `3001`. Nothing else.
 - **Observability.** Every handler and every `#[tauri::command]` opens a tracing span. `RUST_LOG` controls verbosity.
-- **v2 wire contract.** `ResultKind` serde: snake_case; `duplicate_file_a`/`duplicate_file_b`/`duplicate_both`. `MappingDto` everywhere (no MappingRequest/Response).
+- **v2 wire contract.** `ResultType` serde: snake_case; `duplicate_file_a`/`duplicate_file_b`/`duplicate_both`. `MappingDto` everywhere (no MappingRequest/Response).
 
 ## Non-invariants / intentional asymmetries
 

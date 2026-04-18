@@ -1,0 +1,21 @@
+{
+  "featureId": "m4-persistence-v1-module",
+  "reviewedAt": "2026-04-18T01:43:54Z",
+  "commitId": "50982a0",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Implementation matches feature scope: persistence::v1 module added with version=2 snapshots, save/load routed through the v1 schema, explicit legacy-version rejection message implemented, and required round-trip + legacy-rejection tests are present.",
+    "issues": []
+  },
+  "sharedStateObservations": [
+    {
+      "area": "knowledge",
+      "observation": "The architecture library note still documents an outdated legacy-version error string for snapshot loading, which no longer matches the implemented user-facing contract.",
+      "evidence": ".factory/library/architecture.md:99 says rejection message is \"Unsupported snapshot file version — produced by an older csv-align release. Re-run the comparison in v2.\", while src/backend/comparison_snapshot.rs:26 now returns \"Unsupported comparison snapshot version {n} — this file was produced by an older csv-align release. Re-run the comparison in v2.\""
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Pass. The feature requirements are implemented and covered by tests; no blocking or non-blocking code defects were found in this review."
+}

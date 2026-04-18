@@ -1,0 +1,66 @@
+{
+  "milestone": "m4-data-model-and-wire",
+  "round": 1,
+  "status": "pass",
+  "validatorsRun": {
+    "test": {
+      "passed": true,
+      "command": "cargo test -j 4 && (cd src-tauri && cargo test -j 4) && (cd frontend && npm test -- --run)",
+      "exitCode": 0
+    },
+    "typecheck": {
+      "passed": true,
+      "command": "cd frontend && npx tsc --noEmit",
+      "exitCode": 0
+    },
+    "lint": {
+      "passed": true,
+      "command": "cd frontend && npm run lint",
+      "exitCode": 0
+    }
+  },
+  "reviewsSummary": {
+    "total": 4,
+    "passed": 4,
+    "failed": 0,
+    "failedFeatures": []
+  },
+  "blockingIssues": [],
+  "appliedUpdates": [
+    {
+      "target": "library",
+      "description": "Updated .factory/library/architecture.md to align wire-contract naming with code (`ResultType` instead of `ResultKind`) and to reflect the current v2 legacy-snapshot rejection message text.",
+      "sourceFeature": "m4-duplicate-filea-to-duplicate-file-a-rename"
+    },
+    {
+      "target": "library",
+      "description": "Updated .factory/library/environment.md with portable macOS memory-check guidance (`/usr/bin/time -l` or `ps -o rss`) to avoid Linux-only `/proc/*` probes during informal large-CSV memory validation.",
+      "sourceFeature": "m4-arc-csvdata-in-session"
+    }
+  ],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Require every completed feature entry in mission features.json to include explicit worker-session linkage (or an equivalent canonical handoff reference), even when work lands early inside another feature commit.",
+      "evidence": "Both m4-duplicate-filea-to-duplicate-file-a-rename and m4-collapse-mapping-request-response-frontend are marked completed with empty workerSessionIds, forcing review evidence reconstruction from unrelated feature handoffs.",
+      "isSystemic": true
+    },
+    {
+      "target": "skills",
+      "suggestion": "Strengthen worker/validator guidance so features that fulfill agent-browser-backed assertions must include matching interactive evidence (or a documented blocker with fallback evidence) in the originating handoff.",
+      "evidence": "For m4-collapse-mapping-request-response-frontend and m4-duplicate-filea-to-duplicate-file-a-rename, recovered handoffs lacked direct agent-browser evidence for compare-response wire assertions despite fulfills linkage to contract checks.",
+      "isSystemic": true
+    }
+  ],
+  "rejectedObservations": [
+    {
+      "observation": "A second traceability observation repeating missing workerSessionIds for another early-completed m4 feature.",
+      "reason": "duplicate"
+    },
+    {
+      "observation": "A second skills observation about missing agent-browser compare-flow evidence for early-completed m4 work.",
+      "reason": "duplicate"
+    }
+  ],
+  "previousRound": null
+}
