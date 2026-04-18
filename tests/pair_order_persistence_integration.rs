@@ -161,3 +161,33 @@ async fn pair_order_persistence_loads_when_matching_headers_are_reordered() {
         serde_json::json!(["full_name", "amount"])
     );
 }
+
+#[tokio::test]
+async fn pair_order_persistence_rejects_unknown_version_with_contract_message() {
+    let state = AppState::new();
+    let session_id = state.create_session();
+
+    let mut session = SessionData::new();
+    session.csv_a = Some(csv_data(&["id", "name", "value"]).into());
+    session.csv_b = Some(csv_data(&["id", "full_name", "amount"]).into());
+    assert!(state.update_session(&session_id, session));
+
+    let contents = serde_json::json!({
+        "version": 999,
+        "headers_a": ["id", "name", "value"],
+        "headers_b": ["id", "full_name", "amount"],
+        "selection": selection(),
+    })
+    .to_string();
+
+    let load_response = handlers::load_pair_order(
+        State(state),
+        Path(session_id),
+        Json(LoadPairOrderRequest { contents }),
+    )
+    .await;
+
+    assert_eq!(load_response.status(), StatusCode::BAD_REQUEST);
+    let json = response_json(load_response).await;
+    assert_eq!(json["error"], "Unsupported pair-order file version 999");
+}

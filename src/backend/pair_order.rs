@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use crate::backend::error::CsvAlignError;
 use crate::backend::requests::CompareValidationError;
@@ -38,6 +39,8 @@ pub fn load_pair_order_workflow(
     session_data: &SessionData,
     contents: &str,
 ) -> Result<LoadPairOrderResponse, CsvAlignError> {
+    validate_pair_order_version(contents)?;
+
     let persisted: PersistedPairOrder = serde_json::from_str(contents).map_err(|error| {
         CsvAlignError::Parse(format!("Failed to parse pair-order file: {error}"))
     })?;
@@ -68,6 +71,30 @@ pub fn load_pair_order_workflow(
     Ok(LoadPairOrderResponse {
         selection: persisted.selection,
     })
+}
+
+fn validate_pair_order_version(contents: &str) -> Result<(), CsvAlignError> {
+    let value: Value = serde_json::from_str(contents).map_err(|error| {
+        CsvAlignError::Parse(format!("Failed to parse pair-order file: {error}"))
+    })?;
+
+    let version = value
+        .get("version")
+        .and_then(Value::as_u64)
+        .ok_or_else(|| {
+            CsvAlignError::Parse(
+                "Failed to parse pair-order file: missing or invalid version field".to_string(),
+            )
+        })?;
+
+    if version != u64::from(PAIR_ORDER_FILE_VERSION) {
+        return Err(CsvAlignError::BadInput(format!(
+            "Unsupported pair-order file version {}",
+            version
+        )));
+    }
+
+    Ok(())
 }
 
 fn session_headers(session_data: &SessionData) -> Result<(&[String], &[String]), CsvAlignError> {

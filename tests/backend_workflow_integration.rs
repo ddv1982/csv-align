@@ -2,7 +2,8 @@ use csv_align::backend::{
     CompareRequest, CsvAlignError, CsvLoadSource, MappingRequest, PairOrderSelection, SessionData,
     apply_csv_to_session, comparison_inputs, export_results_to_bytes,
     export_session_results_snapshot, load_comparison_snapshot_workflow, load_csv_workflow,
-    run_comparison, save_comparison_snapshot_workflow, save_pair_order_workflow,
+    load_pair_order_workflow, run_comparison, save_comparison_snapshot_workflow,
+    save_pair_order_workflow,
 };
 use csv_align::data::csv_loader;
 use csv_align::data::types::{ComparisonNormalizationConfig, FileSide};
@@ -374,6 +375,39 @@ fn save_pair_order_rejects_duplicate_columns_with_stable_message() {
         error.to_string(),
         "Saved key columns for File A contain duplicate columns: id"
     );
+}
+
+#[test]
+fn load_pair_order_rejects_unknown_version_before_full_deserialize() {
+    let session = SessionData {
+        csv_a: Some(Arc::new(
+            csv_loader::load_csv_from_bytes(b"id,name\n1,Alice\n").unwrap(),
+        )),
+        csv_b: Some(Arc::new(
+            csv_loader::load_csv_from_bytes(b"id,full_name\n1,Alice\n").unwrap(),
+        )),
+        ..SessionData::new()
+    };
+
+    let error = load_pair_order_workflow(
+        &session,
+        &serde_json::json!({
+            "version": 999,
+            "headers_a": ["id", "name"],
+            "headers_b": ["id", "full_name"],
+            "selection": {
+                "key_columns_a": ["id"],
+                "key_columns_b": ["id"],
+                "comparison_columns_a": ["name"],
+                "comparison_columns_b": ["full_name"]
+            }
+        })
+        .to_string(),
+    )
+    .unwrap_err();
+
+    assert!(matches!(error, CsvAlignError::BadInput(_)));
+    assert_eq!(error.to_string(), "Unsupported pair-order file version 999");
 }
 
 #[test]
