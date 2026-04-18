@@ -2,6 +2,7 @@ use super::types::{ColumnDataType, ColumnInfo, CsvData};
 use csv::ReaderBuilder;
 use encoding_rs_io::DecodeReaderBytesBuilder;
 use std::error::Error;
+use std::fmt;
 use std::fs::File;
 use std::io::{Cursor, Read};
 
@@ -34,14 +35,32 @@ fn parse_csv_text(csv_data: &str) -> Result<CsvData, Box<dyn Error>> {
     let mut reader = ReaderBuilder::new()
         .delimiter(delimiter)
         .has_headers(true)
-        .flexible(true)
+        .flexible(false)
         .from_reader(Cursor::new(csv_data.as_bytes()));
 
     let headers: Vec<String> = reader.headers()?.iter().map(|h| h.to_string()).collect();
 
     let mut rows = Vec::new();
     for result in reader.records() {
-        let record = result?;
+        let record = result.map_err(|error| {
+            if let csv::ErrorKind::UnequalLengths {
+                expected_len,
+                len,
+                pos,
+            } = error.kind()
+            {
+                Box::new(MalformedRowError {
+                    row_number: pos
+                        .as_ref()
+                        .map(|position| position.line())
+                        .unwrap_or((rows.len() + 2) as u64),
+                    actual_columns: *len,
+                    expected_columns: *expected_len,
+                }) as Box<dyn Error>
+            } else {
+                Box::new(error) as Box<dyn Error>
+            }
+        })?;
         let row: Vec<String> = record.iter().map(|field| field.to_string()).collect();
         rows.push(row);
     }
@@ -52,6 +71,25 @@ fn parse_csv_text(csv_data: &str) -> Result<CsvData, Box<dyn Error>> {
         rows,
     })
 }
+
+#[derive(Debug)]
+struct MalformedRowError {
+    row_number: u64,
+    actual_columns: u64,
+    expected_columns: u64,
+}
+
+impl fmt::Display for MalformedRowError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Row {} has {} columns, expected {} columns",
+            self.row_number, self.actual_columns, self.expected_columns
+        )
+    }
+}
+
+impl Error for MalformedRowError {}
 
 fn detect_delimiter(csv_data: &str) -> u8 {
     let first_row = csv_data

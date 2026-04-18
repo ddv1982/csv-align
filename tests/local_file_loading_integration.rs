@@ -110,6 +110,32 @@ async fn local_file_loading_rejects_malformed_multipart_payloads() {
 }
 
 #[tokio::test]
+async fn local_file_loading_rejects_csv_rows_with_missing_columns() {
+    let state = AppState::new();
+    let session_id = state.create_session();
+    let boundary = "csv-align-boundary";
+    let request = multipart_request(
+        &format!("/api/sessions/{session_id}/files/a"),
+        boundary,
+        multipart_body(
+            boundary,
+            "broken.csv",
+            b"id,name,city\n1,Alice,Paris\n2,Bob\n",
+        ),
+    );
+
+    let response = local_file_router(state).oneshot(request).await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let json = response_json(response).await;
+    assert_eq!(json["code"], "parse");
+    assert_eq!(
+        json["error"],
+        "Failed to parse CSV bytes: Row 3 has 2 columns, expected 3 columns"
+    );
+}
+
+#[tokio::test]
 async fn local_file_loading_persists_file_names_on_the_session() {
     let state = AppState::new();
     let session_id = state.create_session();

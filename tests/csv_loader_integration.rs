@@ -56,13 +56,11 @@ fn load_csv_from_bytes_utf8_bom_is_trimmed() {
 }
 
 #[test]
-fn load_csv_from_bytes_with_uneven_rows() {
-    let csv_data = load_csv_from_bytes(b"id,name,city\n1,Alice,Paris\n2,Bob\n").unwrap();
+fn load_csv_from_bytes_rejects_rows_with_missing_columns() {
+    let error =
+        load_csv_from_bytes(b"id,name,city\n1,Alice,Paris\n2,Bob\n").expect_err("should fail");
 
-    assert_eq!(csv_data.headers, vec!["id", "name", "city"]);
-    assert_eq!(csv_data.rows.len(), 2);
-    assert_eq!(csv_data.rows[0], vec!["1", "Alice", "Paris"]);
-    assert_eq!(csv_data.rows[1], vec!["2", "Bob"]);
+    assert_eq!(error.to_string(), "Row 3 has 2 columns, expected 3 columns");
 }
 
 #[test]
