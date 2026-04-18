@@ -151,6 +151,8 @@ async fn local_file_loading_persists_file_names_on_the_session() {
         .await
         .unwrap();
     assert_eq!(left_response.status(), StatusCode::OK);
+    let left_json = response_json(left_response).await;
+    assert_eq!(left_json["file_name"], "left.csv");
 
     let right_request = multipart_request(
         &format!("/api/sessions/{session_id}/files/b"),
@@ -162,6 +164,8 @@ async fn local_file_loading_persists_file_names_on_the_session() {
         .await
         .unwrap();
     assert_eq!(right_response.status(), StatusCode::OK);
+    let right_json = response_json(right_response).await;
+    assert_eq!(right_json["file_name"], "right.csv");
 
     let session = state
         .get_session(&session_id)

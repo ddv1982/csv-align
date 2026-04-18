@@ -79,6 +79,7 @@ fn load_csv_workflow_supports_bytes_and_trims_blank_file_name() {
     .unwrap();
 
     assert_eq!(loaded.response.file_letter, FileSide::A);
+    assert_eq!(loaded.response.file_name, "");
     assert_eq!(loaded.response.headers, vec!["id", "name"]);
     assert_eq!(loaded.response.row_count, 1);
     assert_eq!(loaded.csv_data.file_path, None);
@@ -86,7 +87,7 @@ fn load_csv_workflow_supports_bytes_and_trims_blank_file_name() {
 
 #[test]
 fn load_csv_workflow_supports_file_paths_and_sets_file_name() {
-    let mut temp_file = NamedTempFile::new().unwrap();
+    let mut temp_file = NamedTempFile::with_suffix(".csv").unwrap();
     writeln!(temp_file, "id,name").unwrap();
     writeln!(temp_file, "1,Alice").unwrap();
 
@@ -99,9 +100,29 @@ fn load_csv_workflow_supports_file_paths_and_sets_file_name() {
     .unwrap();
 
     assert_eq!(loaded.response.file_letter, FileSide::B);
+    assert_eq!(
+        loaded.response.file_name,
+        temp_file
+            .path()
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .into_owned()
+    );
     assert_eq!(loaded.response.headers, vec!["id", "name"]);
     assert_eq!(loaded.response.row_count, 1);
     assert_eq!(loaded.csv_data.file_path.as_deref(), Some(path.as_str()));
+}
+
+#[test]
+fn apply_csv_to_session_uses_uploaded_file_base_name_in_response() {
+    let mut session = SessionData::new();
+    let mut csv = csv_loader::load_csv_from_bytes(b"id,name\n1,Alice\n").unwrap();
+    csv.file_path = Some("uploads/customer-data.csv".to_string());
+
+    let response = apply_csv_to_session(&mut session, FileSide::A, csv);
+
+    assert_eq!(response.file_name, "customer-data.csv");
 }
 
 #[test]

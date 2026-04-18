@@ -1,6 +1,6 @@
 use std::borrow::Borrow;
 use std::io::Read;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use crate::backend::error::CsvAlignError;
@@ -27,6 +27,31 @@ pub struct LoadedCsv {
     pub response: FileLoadResponse,
 }
 
+fn file_name_from_source(file_name: Option<&str>, source: &CsvLoadSource) -> String {
+    if let Some(file_name) = file_name
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .and_then(|value| {
+            Path::new(value)
+                .file_name()
+                .and_then(|name| name.to_str())
+                .map(str::to_owned)
+                .or_else(|| Some(value.to_owned()))
+        })
+    {
+        return file_name;
+    }
+
+    match source {
+        CsvLoadSource::FilePath(file_path) => PathBuf::from(file_path)
+            .file_name()
+            .and_then(|name| name.to_str())
+            .map(str::to_owned)
+            .unwrap_or_else(|| file_path.clone()),
+        CsvLoadSource::Bytes(_) => String::new(),
+    }
+}
+
 pub fn validate_file_letter(file_letter: &str) -> Result<(), CsvAlignError> {
     parse_file_side(file_letter).map(|_| ())
 }
@@ -47,6 +72,7 @@ pub fn load_csv_workflow(
     source: CsvLoadSource,
 ) -> Result<LoadedCsv, CsvAlignError> {
     let file_side = parse_file_side(file_letter)?;
+    let response_file_name = file_name_from_source(file_name.as_deref(), &source);
 
     let mut csv_data = match source {
         CsvLoadSource::FilePath(file_path) => {
@@ -77,7 +103,7 @@ pub fn load_csv_workflow(
     let headers = csv_data.headers.clone();
     let columns = csv_loader::detect_columns(&csv_data);
     let row_count = csv_data.rows.len();
-    let response = file_load_response(file_side, headers, &columns, row_count);
+    let response = file_load_response(file_side, response_file_name, headers, &columns, row_count);
 
     Ok(LoadedCsv { csv_data, response })
 }
@@ -87,10 +113,16 @@ pub fn apply_csv_to_session(
     file_letter: FileSide,
     csv_data: CsvData,
 ) -> FileLoadResponse {
+    let file_name = csv_data
+        .file_path
+        .as_deref()
+        .and_then(|path| Path::new(path).file_name().and_then(|name| name.to_str()))
+        .map(str::to_owned)
+        .unwrap_or_default();
     let headers = csv_data.headers.clone();
     let columns = csv_loader::detect_columns(&csv_data);
     let row_count = csv_data.rows.len();
-    let response = file_load_response(file_letter, headers, &columns, row_count);
+    let response = file_load_response(file_letter, file_name, headers, &columns, row_count);
 
     if file_letter == FileSide::A {
         session_data.csv_a = Some(Arc::new(csv_data));

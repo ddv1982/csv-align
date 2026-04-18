@@ -2,6 +2,7 @@ use super::*;
 use csv_align::backend::MappingRequest;
 use csv_align::data::types::ComparisonNormalizationConfig;
 use std::sync::Arc;
+use std::{env, fs};
 use tauri::Manager;
 
 fn temp_output_path(test_name: &str) -> std::path::PathBuf {
@@ -140,4 +141,38 @@ fn tauri_delete_session_is_a_no_op_for_unknown_ids() {
     delete_session(app.state::<Arc<SessionStore>>(), unknown_id);
 
     assert!(store.with_session(&session_id, |_| ()).is_some());
+}
+
+#[test]
+fn tauri_load_csv_variants_return_base_file_name_in_response() {
+    let app = tauri::test::mock_app();
+    app.manage(Arc::new(SessionStore::default()));
+
+    let session_id = create_session(app.state::<Arc<SessionStore>>()).session_id;
+
+    let bytes_response = load_csv_bytes(
+        app.state::<Arc<SessionStore>>(),
+        session_id.clone(),
+        "a".to_string(),
+        "nested/uploaded-a.csv".to_string(),
+        b"id,name\n1,Alice\n".to_vec(),
+    )
+    .unwrap();
+    assert_eq!(bytes_response.file_name, "uploaded-a.csv");
+
+    let file_path = env::temp_dir()
+        .join(format!("csv-align-file-name-test-{}", uuid::Uuid::new_v4()))
+        .join("picked-b.csv");
+    fs::create_dir_all(file_path.parent().unwrap()).unwrap();
+    fs::write(&file_path, b"id,name\n1,Alice\n").unwrap();
+
+    let path_response = load_csv(
+        app.state::<Arc<SessionStore>>(),
+        session_id,
+        "b".to_string(),
+        file_path.to_string_lossy().into_owned(),
+    )
+    .unwrap();
+    fs::remove_file(&file_path).unwrap();
+    assert_eq!(path_response.file_name, "picked-b.csv");
 }

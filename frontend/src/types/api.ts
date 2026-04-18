@@ -23,6 +23,7 @@ export interface ColumnInfo {
 export interface FileLoadResponse {
   success: boolean;
   file_letter: FileLetter;
+  file_name: string;
   headers: string[];
   columns: ColumnInfo[];
   row_count: number;
