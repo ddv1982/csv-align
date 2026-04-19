@@ -80,8 +80,8 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
       <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold uppercase tracking-[0.14em] text-[color:var(--color-kinetic-copy)]">
         <span className={`flex h-7 w-7 items-center justify-center border font-mono text-sm font-bold ${
            label === 'File A'
-            ? 'border-[rgba(110,231,255,0.4)] bg-[rgba(110,231,255,0.08)] text-[color:var(--color-kinetic-accent)]'
-            : 'border-[rgba(108,255,190,0.4)] bg-[rgba(108,255,190,0.08)] text-[color:var(--color-kinetic-success)]'
+            ? 'kinetic-tone-accent-strong'
+            : 'kinetic-tone-success-strong'
          }`}>
           {label === 'File A' ? 'A' : 'B'}
         </span>
@@ -100,7 +100,7 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
                 {file.rowCount} rows • {file.headers.length} columns
               </p>
             </div>
-            <div className="flex h-8 w-8 items-center justify-center border border-[rgba(108,255,190,0.4)] bg-[rgba(108,255,190,0.08)] font-mono text-xs uppercase text-[color:var(--color-kinetic-success)]">
+            <div className="kinetic-tone-success-strong flex h-8 w-8 items-center justify-center border font-mono text-xs uppercase">
               OK
             </div>
           </div>
@@ -163,8 +163,8 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
           title={`Choose a CSV file for ${label}`}
           className={`border p-8 text-center transition-all duration-200 ${
              isDragging
-              ? 'border-[color:var(--color-kinetic-accent)] bg-[rgba(110,231,255,0.08)]'
-              : 'border-[color:var(--color-kinetic-line)] bg-[rgba(255,255,255,0.02)] hover:border-[color:var(--color-kinetic-line-strong)] hover:bg-[rgba(255,255,255,0.04)]'
+              ? 'kinetic-dropzone-active'
+              : 'kinetic-dropzone'
             }`}
           >
             <div className="flex flex-col items-center">
@@ -194,7 +194,7 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
       )}
 
       {selectionError && (
-        <p className="mt-3 border border-[rgba(255,122,122,0.45)] bg-[rgba(255,122,122,0.08)] px-3 py-2 text-sm font-medium text-[color:var(--color-kinetic-danger)]">{selectionError}</p>
+        <p className="kinetic-tone-danger-strong mt-3 border px-3 py-2 text-sm font-medium">{selectionError}</p>
       )}
     </div>
   );

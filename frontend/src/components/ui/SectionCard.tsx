@@ -13,13 +13,13 @@ interface ToneClasses {
 const TONE_CLASSES: Record<SectionCardTone, ToneClasses> = {
   primary: {
     eyebrow: 'text-[color:var(--color-kinetic-accent)]',
-    iconWrap: 'border-[rgba(110,231,255,0.38)] bg-[rgba(110,231,255,0.08)] text-[color:var(--color-kinetic-accent)]',
+    iconWrap: 'kinetic-tone-accent-strong',
     title: 'text-[color:var(--color-kinetic-copy)]',
     description: 'text-[color:var(--color-kinetic-muted)]',
   },
   info: {
     eyebrow: 'text-[color:var(--color-kinetic-accent-2)]',
-    iconWrap: 'border-[rgba(255,211,110,0.38)] bg-[rgba(255,211,110,0.08)] text-[color:var(--color-kinetic-accent-2)]',
+    iconWrap: 'kinetic-tone-highlight-strong',
     title: 'text-[color:var(--color-kinetic-copy)]',
     description: 'text-[color:var(--color-kinetic-muted)]',
   },

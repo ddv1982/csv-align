@@ -21,9 +21,9 @@ export function ColumnChipSelector({ title, columns, selectedColumns, emptyHint,
               onClick={() => onToggle(column)}
               className={`border px-3 py-1.5 text-sm font-medium transition-colors ${
                  isSelected
-                  ? 'border-[color:var(--color-kinetic-accent)] bg-[rgba(110,231,255,0.1)] text-[color:var(--color-kinetic-copy)]'
-                  : 'border-[color:var(--color-kinetic-line)] bg-[rgba(255,255,255,0.03)] text-[color:var(--color-kinetic-muted)] hover:border-[color:var(--color-kinetic-line-strong)] hover:text-[color:var(--color-kinetic-copy)]'
-               }`}
+                  ? 'kinetic-filter-chip-active'
+                  : 'kinetic-filter-chip'
+                }`}
             >
               {column}
             </button>

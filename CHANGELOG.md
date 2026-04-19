@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.10 - 2026-04-19
+
+- Refined the dark-mode theming so accent and highlight treatments pop more clearly across the shell, cards, chips, progress states, and drag/drop surfaces while keeping the Tailwind v4 CSS-theme setup intact.
+- Prepared the v2.1.10 patch release by synchronizing version metadata across the Rust crates, desktop bundle config, frontend package manifests, and lockfiles before rerunning the full validation suite.
+
 ## v2.1.9 - 2026-04-19
 
 - Hardened the shared web and desktop runtime entrypoints so recoverable startup and request-path failures now propagate explicitly instead of relying on `expect`/`unwrap` in production flows.

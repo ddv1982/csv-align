@@ -45,7 +45,7 @@ export function ResultsStep({
           title="Snapshot loaded in read-only mode"
           description="Loaded snapshots are read-only results. Start a new comparison to edit mappings or load different files."
           tone="info"
-          className="border-[rgba(255,211,110,0.4)] bg-[rgba(255,211,110,0.05)] px-5 py-4"
+          className="kinetic-tone-highlight px-5 py-4"
           icon={<ExclamationTriangleIcon className="h-5 w-5" />}
           action={
             <button

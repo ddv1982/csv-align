@@ -147,9 +147,9 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
               <span className="kinetic-muted text-xs">{summary.matches} of {comparableTotal} rows</span>
             </div>
           </div>
-          <div className="kinetic-frame mt-4 h-3 w-full overflow-hidden bg-[rgba(255,255,255,0.02)]">
+          <div className="kinetic-frame mt-4 h-3 w-full overflow-hidden">
             <div
-              className="h-full bg-[linear-gradient(90deg,rgba(110,231,255,0.3),rgba(110,231,255,1),rgba(255,211,110,0.75))] transition-all duration-500"
+              className="kinetic-progress-fill h-full transition-all duration-500"
               style={{ width: `${matchPercent}%` }}
             />
           </div>

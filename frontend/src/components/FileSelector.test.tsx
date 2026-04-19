@@ -62,8 +62,7 @@ test('renders the kinetic idle styling for the empty dropzone', () => {
 
   const dropzone = screen.getByText('Drag a CSV file here').closest('div')?.parentElement;
 
-  expect(dropzone).toHaveClass('border-[color:var(--color-kinetic-line)]');
-  expect(dropzone).toHaveClass('bg-[rgba(255,255,255,0.02)]');
+  expect(dropzone).toHaveClass('kinetic-dropzone');
 });
 
 test('supports keyboard activation on the dropzone', () => {
@@ -113,11 +112,11 @@ test('drag-leave-resets-hover styling without calling onSelect', () => {
   const dropzone = screen.getByRole('button', { name: 'File A file selector' });
 
   fireEvent.dragOver(dropzone);
-  expect(dropzone).toHaveClass('border-[color:var(--color-kinetic-accent)]', 'bg-[rgba(110,231,255,0.08)]');
-  expect(dropzone).not.toHaveClass('border-[color:var(--color-kinetic-line)]', 'bg-[rgba(255,255,255,0.02)]');
+  expect(dropzone).toHaveClass('kinetic-dropzone-active');
+  expect(dropzone).not.toHaveClass('kinetic-dropzone');
 
   fireEvent.dragLeave(dropzone);
-  expect(dropzone).toHaveClass('border-[color:var(--color-kinetic-line)]', 'bg-[rgba(255,255,255,0.02)]');
-  expect(dropzone).not.toHaveClass('border-[color:var(--color-kinetic-accent)]', 'bg-[rgba(110,231,255,0.08)]');
+  expect(dropzone).toHaveClass('kinetic-dropzone');
+  expect(dropzone).not.toHaveClass('kinetic-dropzone-active');
   expect(onSelect).not.toHaveBeenCalled();
 });

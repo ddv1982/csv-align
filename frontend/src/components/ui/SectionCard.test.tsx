@@ -24,7 +24,7 @@ test('renders eyebrow, title, description, action, and children', () => {
 });
 
 test('supports alternate heading levels and the info tone', () => {
-  render(
+  const { container } = render(
     <SectionCard
       eyebrow="Read-only snapshot"
       title="Snapshot loaded in read-only mode"
@@ -39,6 +39,7 @@ test('supports alternate heading levels and the info tone', () => {
   expect(screen.getByRole('heading', { level: 2, name: 'Snapshot loaded in read-only mode' })).toBeInTheDocument();
   expect(screen.getByText('Read-only snapshot')).toHaveClass('text-[color:var(--color-kinetic-accent-2)]');
   expect(screen.getByText('!!')).toBeInTheDocument();
+  expect(container.querySelector('.kinetic-tone-highlight-strong')).not.toBeNull();
 });
 
 test('applies tone-aware title and description classes for primary and info variants', () => {
