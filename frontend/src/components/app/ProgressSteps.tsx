@@ -14,6 +14,7 @@ interface ProgressStepsProps {
 
 export function ProgressSteps({ step, unlockedSteps, onStepChange }: ProgressStepsProps) {
   const activeIndex = STEPS.findIndex((s) => s.id === step);
+  const stepClasses = 'flex min-w-[11rem] items-center px-2 py-1 text-left transition-colors';
 
   return (
     <nav className="mb-8" aria-label="Progress">
@@ -24,7 +25,7 @@ export function ProgressSteps({ step, unlockedSteps, onStepChange }: ProgressSte
           const isUnlocked = unlockedSteps.includes(currentStep.id);
           const canNavigate = isUnlocked && !isActive;
 
-          const badgeClasses = `flex h-8 min-w-8 items-center justify-center border font-mono text-[11px] uppercase tracking-[0.18em] transition-colors ${
+          const badgeClasses = `flex h-8 w-8 shrink-0 items-center justify-center border font-mono text-[11px] uppercase tracking-[0.18em] transition-colors ${
             isActive
               ? 'kinetic-surface-accent'
               : isComplete
@@ -51,20 +52,20 @@ export function ProgressSteps({ step, unlockedSteps, onStepChange }: ProgressSte
           );
 
           return (
-            <li key={currentStep.id} className="flex items-center">
+            <li key={currentStep.id} className="flex shrink-0 items-center">
               {canNavigate ? (
                 <button
                   type="button"
                   onClick={() => onStepChange(currentStep.id)}
                   aria-label={`Go to step ${currentStep.number}: ${currentStep.label}`}
                   aria-current={isActive ? 'step' : undefined}
-                  className={`group kinetic-surface-hover flex items-center px-2 py-1 transition-colors ${textClasses}`}
+                  className={`group kinetic-surface-hover ${stepClasses} ${textClasses}`}
                 >
                   {commonContent}
                 </button>
               ) : (
                 <div
-                  className={`flex items-center ${textClasses}`}
+                  className={`${stepClasses} ${textClasses}`}
                   aria-current={isActive ? 'step' : undefined}
                   aria-disabled={!isUnlocked ? 'true' : undefined}
                 >

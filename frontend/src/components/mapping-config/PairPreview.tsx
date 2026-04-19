@@ -39,9 +39,7 @@ export function PairPreview({
         displayText: `${index + 1} ${normalizedColumnA} → ${normalizedColumnB}`,
       };
     });
-  const pairOrderText = pairs.length > 0
-    ? pairs.map((pair) => pair.displayText).join('\n')
-    : 'No pairs selected yet.';
+  const pairOrderText = pairs.map((pair) => pair.displayText).join('\n');
 
   useEffect(() => {
     if (!copySucceeded) {
@@ -58,6 +56,10 @@ export function PairPreview({
   }, [copySucceeded]);
 
   const handleCopy = async () => {
+    if (!hasPairOrderToSave) {
+      return;
+    }
+
     await navigator.clipboard.writeText(pairOrderText);
     setCopySucceeded(true);
   };
@@ -118,6 +120,7 @@ export function PairPreview({
               <button
                 aria-label={buttonLabel}
                 className={`btn btn-ghost px-2 py-1 text-xs ${copySucceeded ? 'text-[color:var(--color-kinetic-success)]' : ''}`}
+                disabled={!hasPairOrderToSave}
                 onClick={handleCopy}
                 title={buttonLabel}
                 type="button"

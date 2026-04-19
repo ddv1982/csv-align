@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.13 - 2026-04-20
+
+- Polished the frontend shell with a lighter sticky header treatment and more stable progress-step sizing so the top-level workflow stays readable while the shell scrolls.
+- Disabled pair-order copying when no pairs exist, then prepared the v2.1.13 patch release by synchronizing version metadata across the Rust crates, desktop bundle config, frontend package manifests, and lockfiles before rerunning broad validation.
+
 ## v2.1.12 - 2026-04-19
 
 - Disabled the pair-order save action until at least one column pair exists, preventing empty-state exports from the Configure step while leaving save behavior unchanged once a pair order is present.

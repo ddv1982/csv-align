@@ -49,3 +49,17 @@ test('keeps step labels left-aligned for active and navigable steps', () => {
   expect(screen.getByText('Step 2').parentElement).toHaveClass('text-left');
   expect(screen.getByText('Step 3').parentElement).toHaveClass('text-left');
 });
+
+test('keeps a consistent step container width for active and navigable steps', () => {
+  render(
+    <ProgressSteps
+      step="configure"
+      unlockedSteps={['select', 'configure', 'results']}
+      onStepChange={vi.fn()}
+    />,
+  );
+
+  expect(screen.getByRole('button', { name: 'Go to step 1: Choose Files' })).toHaveClass('min-w-[11rem]');
+  expect(screen.getByText('Step 2').closest('div')).toHaveClass('min-w-[11rem]');
+  expect(screen.getByRole('button', { name: 'Go to step 3: Results' })).toHaveClass('min-w-[11rem]');
+});

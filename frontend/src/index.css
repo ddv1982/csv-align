@@ -46,7 +46,7 @@
     --color-kinetic-danger: #ff7a7a;
     --color-kinetic-success: #6cffbe;
     --color-kinetic-warning: #ffb86e;
-    --color-kinetic-header: rgba(5, 5, 5, 0.92);
+    --color-kinetic-header: rgba(5, 5, 5, 0.78);
     --color-kinetic-overlay: color-mix(in srgb, var(--color-kinetic-panel) 94%, var(--color-kinetic-copy) 6%);
     --color-kinetic-overlay-strong: color-mix(in srgb, var(--color-kinetic-panel-2) 88%, var(--color-kinetic-copy) 12%);
     --color-kinetic-grid: color-mix(in srgb, var(--color-kinetic-copy) 18%, transparent);
@@ -105,7 +105,7 @@
   }
 
   .kinetic-shell {
-    @apply relative min-h-screen overflow-hidden;
+    @apply relative min-h-screen overflow-x-hidden;
   }
 
   .kinetic-shell::before {

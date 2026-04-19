@@ -75,3 +75,9 @@ test('does not render the legacy CA header badge', async () => {
   expect(screen.queryByText(/^CA$/)).not.toBeInTheDocument();
   expect(screen.getByRole('heading', { name: /csv align/i })).toBeInTheDocument();
 });
+
+test('uses sticky translucent header styling', async () => {
+  await renderHeader();
+
+  expect(screen.getByRole('banner')).toHaveClass('sticky', 'top-0', 'backdrop-blur-md');
+});

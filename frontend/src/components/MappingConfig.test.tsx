@@ -66,6 +66,12 @@ test('disables save pair order until at least one pair exists', () => {
   expect(within(screen.getByLabelText('Pair order')).getByRole('button', { name: 'Save pair order' })).toBeDisabled();
 });
 
+test('disables copy pair order until at least one pair exists', () => {
+  renderMappingConfig();
+
+  expect(within(screen.getByLabelText('Pair order')).getByRole('button', { name: 'Copy current pair order' })).toBeDisabled();
+});
+
 test('enables save pair order when a pair order exists', () => {
   render(
     <MappingConfig
@@ -167,7 +173,7 @@ test('copies the current pair order in the same displayed text format and shows 
   vi.unstubAllGlobals();
 });
 
-test('copies the empty-state text when no pairs are selected yet', async () => {
+test('does not copy when no pairs are selected yet', async () => {
   const writeText = vi.fn().mockResolvedValue(undefined);
   vi.stubGlobal('navigator', {
     ...navigator,
@@ -176,10 +182,13 @@ test('copies the empty-state text when no pairs are selected yet', async () => {
 
   renderMappingConfig();
 
-  fireEvent.click(within(screen.getByLabelText('Pair order')).getByRole('button', { name: 'Copy current pair order' }));
+  const copyButton = within(screen.getByLabelText('Pair order')).getByRole('button', { name: 'Copy current pair order' });
+
+  expect(copyButton).toBeDisabled();
+  fireEvent.click(copyButton);
 
   await waitFor(() => {
-    expect(writeText).toHaveBeenCalledWith('No pairs selected yet.');
+    expect(writeText).not.toHaveBeenCalled();
   });
 
   vi.unstubAllGlobals();

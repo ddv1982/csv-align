@@ -19,7 +19,7 @@ export function AppHeader({ onReset }: AppHeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-10 border-b border-[color:var(--color-kinetic-line)] bg-[color:var(--color-kinetic-header)] backdrop-blur-sm">
+    <header className="sticky top-0 z-30 border-b border-[color:var(--color-kinetic-line)] bg-[color:var(--color-kinetic-header)] shadow-[0_10px_24px_rgba(0,0,0,0.2)] backdrop-blur-md">
       <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 items-center gap-3">
