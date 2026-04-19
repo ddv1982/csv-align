@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.12 - 2026-04-19
+
+- Disabled the pair-order save action until at least one column pair exists, preventing empty-state exports from the Configure step while leaving save behavior unchanged once a pair order is present.
+- Prepared the v2.1.12 patch release by synchronizing version metadata across the Rust crates, desktop bundle config, frontend package manifests, and lockfiles before rerunning the documented validation workflow.
+
 ## v2.1.11 - 2026-04-19
 
 - Retuned the dark-only KINETIC theme toward flatter black surfaces by removing gradient-based shell, panel, button, and progress treatments while keeping the existing palette colors reserved for borders and accent states.

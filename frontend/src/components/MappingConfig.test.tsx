@@ -60,6 +60,36 @@ test('shows save, load, and copy actions inside the pair-order box', () => {
   expect(screen.queryByRole('heading', { name: 'Column pairing' })).not.toBeInTheDocument();
 });
 
+test('disables save pair order until at least one pair exists', () => {
+  renderMappingConfig();
+
+  expect(within(screen.getByLabelText('Pair order')).getByRole('button', { name: 'Save pair order' })).toBeDisabled();
+});
+
+test('enables save pair order when a pair order exists', () => {
+  render(
+    <MappingConfig
+      fileA={file}
+      fileB={file}
+      selection={{
+        keyColumnsA: [],
+        keyColumnsB: [],
+        comparisonColumnsA: ['id'],
+        comparisonColumnsB: ['value'],
+      }}
+      normalization={INITIAL_NORMALIZATION_CONFIG}
+      onSelectionChange={() => undefined}
+      onNormalizationChange={() => undefined}
+      onCompare={() => undefined}
+      onSavePairOrder={() => undefined}
+      onLoadPairOrder={() => undefined}
+      onAutoPairComparisonColumns={() => undefined}
+    />
+  );
+
+  expect(within(screen.getByLabelText('Pair order')).getByRole('button', { name: 'Save pair order' })).toBeEnabled();
+});
+
 test('shows auto-pair controls in the comparison preview', () => {
   renderMappingConfig();
 

@@ -63,6 +63,7 @@ export function PairPreview({
   };
 
   const buttonLabel = copySucceeded ? 'Copied current pair order' : 'Copy current pair order';
+  const hasPairOrderToSave = pairs.length > 0;
   const hasMismatchedCounts = comparisonColumnsA.length !== comparisonColumnsB.length;
 
   return (
@@ -103,7 +104,12 @@ export function PairPreview({
               <p className="mt-1 text-sm text-[color:var(--color-kinetic-muted)]">Save, load, or copy the order you want to review.</p>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
-              <button className="btn btn-ghost px-2 py-1 text-xs" onClick={onSavePairOrder} type="button">
+              <button
+                className={`btn btn-ghost px-2 py-1 text-xs ${!hasPairOrderToSave ? 'cursor-not-allowed opacity-50' : ''}`}
+                disabled={!hasPairOrderToSave}
+                onClick={onSavePairOrder}
+                type="button"
+              >
                 Save pair order
               </button>
               <button className="btn btn-ghost px-2 py-1 text-xs" onClick={onLoadPairOrder} type="button">
