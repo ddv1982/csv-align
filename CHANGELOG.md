@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.6 - 2026-04-19
+
+- Fixed the tagged release validation flow so the frontend build now runs before Tauri wrapper tests, ensuring `tauri::generate_context!()` can resolve the configured `frontendDist` path during CI release checks.
+- Prepared the v2.1.6 follow-up patch release by updating version metadata across the Rust crates, desktop bundle config, frontend package manifests, and lockfiles before rerunning the full validation suite.
+
 ## v2.1.5 - 2026-04-19
 
 - Hardened the shared web and desktop runtime surfaces by centralizing comparison-snapshot version validation, moving the main blocking Axum workflow paths onto `spawn_blocking`, and initializing desktop tracing with the same baseline subscriber setup used by the web runtime.
