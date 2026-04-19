@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { TAURI_COMMANDS } from './tauriCommands';
 
 const invokeMock = vi.fn();
 const openMock = vi.fn();
@@ -56,7 +57,7 @@ describe('transport helpers', () => {
     const { createSession } = await importTauriModule();
 
     await expect(createSession()).resolves.toEqual({ session_id: 'session-2' });
-    expect(invokeMock).toHaveBeenCalledWith('create_session');
+    expect(invokeMock).toHaveBeenCalledWith(TAURI_COMMANDS.createSession);
   });
 
   test('loadFile posts multipart form data in browser mode', async () => {
@@ -102,11 +103,35 @@ describe('transport helpers', () => {
       headers: ['record_id'],
       row_count: 2,
     });
-    expect(invokeMock).toHaveBeenCalledWith('load_csv_bytes', {
+    expect(invokeMock).toHaveBeenCalledWith(TAURI_COMMANDS.loadCsvBytes, {
       sessionId: 'session-2',
       fileLetter: 'b',
       fileName: 'tauri.csv',
       fileBytes: [97, 98, 99],
+    });
+  });
+
+  test('loadFile uses the Tauri path-loading command when given a file path', async () => {
+    (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
+    invokeMock.mockResolvedValue({
+      success: true,
+      file_letter: 'a',
+      headers: ['id'],
+      columns: [{ index: 0, name: 'id', data_type: 'string' }],
+      row_count: 1,
+    });
+
+    const { loadFile } = await importTauriModule();
+
+    await expect(loadFile('session-path', '/tmp/input.csv', 'a')).resolves.toMatchObject({
+      file_letter: 'a',
+      headers: ['id'],
+      row_count: 1,
+    });
+    expect(invokeMock).toHaveBeenCalledWith(TAURI_COMMANDS.loadCsv, {
+      sessionId: 'session-path',
+      fileLetter: 'a',
+      filePath: '/tmp/input.csv',
     });
   });
 
@@ -184,7 +209,7 @@ describe('transport helpers', () => {
 
     await compareFiles('session-4', request);
 
-    expect(invokeMock).toHaveBeenCalledWith('compare', {
+    expect(invokeMock).toHaveBeenCalledWith(TAURI_COMMANDS.compare, {
       sessionId: 'session-4',
       request,
     });
@@ -217,9 +242,86 @@ describe('transport helpers', () => {
       defaultPath: 'comparison-snapshot.json',
       filters: [{ name: 'JSON Files', extensions: ['json'] }],
     });
-    expect(invokeMock).toHaveBeenCalledWith('save_comparison_snapshot', {
+    expect(invokeMock).toHaveBeenCalledWith(TAURI_COMMANDS.saveComparisonSnapshot, {
       sessionId: 'session-6',
       outputPath: '/tmp/comparison-snapshot.json',
+    });
+  });
+
+  test('deleteSession invokes the Tauri delete command when running in Tauri', async () => {
+    (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
+    invokeMock.mockResolvedValue(undefined);
+
+    const { deleteSession } = await importTauriModule();
+
+    await expect(deleteSession('session-7')).resolves.toBeUndefined();
+    expect(invokeMock).toHaveBeenCalledWith(TAURI_COMMANDS.deleteSession, {
+      sessionId: 'session-7',
+    });
+  });
+
+  test('suggestMappings invokes the Tauri mapping command when running in Tauri', async () => {
+    (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
+    invokeMock.mockResolvedValue({ mappings: [] });
+
+    const { suggestMappings } = await importTauriModule();
+    const request = { columns_a: ['id'], columns_b: ['record_id'] };
+
+    await expect(suggestMappings('session-8', request)).resolves.toEqual({ mappings: [] });
+    expect(invokeMock).toHaveBeenCalledWith(TAURI_COMMANDS.suggestMappings, {
+      sessionId: 'session-8',
+      request,
+    });
+  });
+
+  test('exportResults invokes the Tauri export command when a save path is chosen', async () => {
+    (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
+    saveMock.mockResolvedValue('/tmp/comparison-results.csv');
+    invokeMock.mockResolvedValue(undefined);
+
+    const { exportResults } = await importTauriModule();
+
+    await expect(exportResults('session-9')).resolves.toBeUndefined();
+    expect(invokeMock).toHaveBeenCalledWith(TAURI_COMMANDS.exportResults, {
+      sessionId: 'session-9',
+      outputPath: '/tmp/comparison-results.csv',
+    });
+  });
+
+  test('savePairOrder invokes the Tauri pair-order save command when a save path is chosen', async () => {
+    (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
+    saveMock.mockResolvedValue('/tmp/pair-order.txt');
+    invokeMock.mockResolvedValue(undefined);
+
+    const { savePairOrder } = await importTauriModule();
+    const selection = {
+      key_columns_a: ['id'],
+      key_columns_b: ['record_id'],
+      comparison_columns_a: ['name'],
+      comparison_columns_b: ['display_name'],
+    };
+
+    await expect(savePairOrder('session-10', selection)).resolves.toBeUndefined();
+    expect(invokeMock).toHaveBeenCalledWith(TAURI_COMMANDS.savePairOrder, {
+      sessionId: 'session-10',
+      selection,
+      outputPath: '/tmp/pair-order.txt',
+    });
+  });
+
+  test('loadPairOrder invokes the Tauri pair-order load command when a file is chosen', async () => {
+    (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
+    openMock.mockResolvedValue('/tmp/pair-order.txt');
+    invokeMock.mockResolvedValue({ selection: { key_columns_a: [], key_columns_b: [], comparison_columns_a: [], comparison_columns_b: [] } });
+
+    const { loadPairOrder } = await importTauriModule();
+
+    await expect(loadPairOrder('session-11')).resolves.toEqual({
+      selection: { key_columns_a: [], key_columns_b: [], comparison_columns_a: [], comparison_columns_b: [] },
+    });
+    expect(invokeMock).toHaveBeenCalledWith(TAURI_COMMANDS.loadPairOrder, {
+      sessionId: 'session-11',
+      filePath: '/tmp/pair-order.txt',
     });
   });
 });

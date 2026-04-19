@@ -1,5 +1,5 @@
 use super::*;
-use csv_align::backend::MappingRequest;
+use csv_align::backend::{CompareRequest, CsvAlignError, MappingRequest};
 use csv_align::data::types::ComparisonNormalizationConfig;
 use std::sync::Arc;
 use std::{env, fs};
@@ -10,6 +10,16 @@ fn temp_output_path(test_name: &str) -> std::path::PathBuf {
         "csv-align-{test_name}-{}.csv",
         uuid::Uuid::new_v4()
     ))
+}
+
+#[test]
+fn frontend_tauri_command_map_matches_registered_backend_commands() {
+    let frontend_commands = include_str!("../../frontend/src/services/tauriCommands.ts")
+        .lines()
+        .filter_map(|line| line.split('\'').nth(1))
+        .collect::<Vec<_>>();
+
+    assert_eq!(frontend_commands, REGISTERED_TAURI_COMMAND_NAMES);
 }
 
 #[test]

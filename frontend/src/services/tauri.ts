@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { open, save } from '@tauri-apps/plugin-dialog';
+import { TAURI_COMMANDS } from './tauriCommands';
 import type {
   FileLoadResponse,
   SuggestMappingsRequest,
@@ -62,7 +63,7 @@ async function readFileBytes(file: File): Promise<number[]> {
 
 export async function createSession(): Promise<SessionResponse> {
   if (isTauri) {
-    return invoke('create_session');
+    return invoke(TAURI_COMMANDS.createSession);
   }
 
   return fetchJson('/api/sessions', { method: 'POST' }, 'Failed to create session');
@@ -70,7 +71,7 @@ export async function createSession(): Promise<SessionResponse> {
 
 export async function deleteSession(sessionId: string): Promise<void> {
   if (isTauri) {
-    await invoke('delete_session', { sessionId });
+    await invoke(TAURI_COMMANDS.deleteSession, { sessionId });
     return;
   }
 
@@ -89,14 +90,14 @@ export async function loadFile(
   if (isTauri) {
     // In Tauri, support both direct path loading and File object loading.
     if (typeof file === 'string') {
-      return invoke('load_csv', {
+      return invoke(TAURI_COMMANDS.loadCsv, {
         sessionId,
         fileLetter,
         filePath: file,
       });
     }
 
-    return invoke('load_csv_bytes', {
+    return invoke(TAURI_COMMANDS.loadCsvBytes, {
       sessionId,
       fileLetter,
       fileName: file.name,
@@ -121,7 +122,7 @@ export async function suggestMappings(
   request: SuggestMappingsRequest
 ): Promise<SuggestMappingsResponse> {
   if (isTauri) {
-    return invoke('suggest_mappings', {
+    return invoke(TAURI_COMMANDS.suggestMappings, {
       sessionId,
       request,
     });
@@ -135,7 +136,7 @@ export async function compareFiles(
   request: CompareRequest
 ): Promise<CompareResponse> {
   if (isTauri) {
-    return invoke('compare', {
+    return invoke(TAURI_COMMANDS.compare, {
       sessionId,
       request,
     });
@@ -155,7 +156,7 @@ export async function exportResults(sessionId: string): Promise<Blob | void> {
       return;
     }
 
-    await invoke('export_results', {
+    await invoke(TAURI_COMMANDS.exportResults, {
       sessionId,
       outputPath,
     });
@@ -182,7 +183,7 @@ export async function savePairOrder(
       return;
     }
 
-    await invoke('save_pair_order', {
+    await invoke(TAURI_COMMANDS.savePairOrder, {
       sessionId,
       selection,
       outputPath,
@@ -212,7 +213,7 @@ export async function loadPairOrder(
       return;
     }
 
-    return invoke('load_pair_order', {
+    return invoke(TAURI_COMMANDS.loadPairOrder, {
       sessionId,
       filePath,
     });
@@ -238,7 +239,7 @@ export async function saveComparisonSnapshot(sessionId: string): Promise<Blob | 
       return;
     }
 
-    await invoke('save_comparison_snapshot', {
+    await invoke(TAURI_COMMANDS.saveComparisonSnapshot, {
       sessionId,
       outputPath,
     });
@@ -265,7 +266,7 @@ export async function loadComparisonSnapshot(
       return;
     }
 
-    return invoke('load_comparison_snapshot', {
+    return invoke(TAURI_COMMANDS.loadComparisonSnapshot, {
       sessionId,
       filePath,
     });

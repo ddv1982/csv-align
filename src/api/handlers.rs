@@ -17,7 +17,6 @@ use crate::backend::{
 use crate::backend::{
     apply_csv_to_session, comparison_inputs, export_results_to_bytes,
     export_session_results_snapshot, parse_file_side, run_comparison, suggest_mappings_workflow,
-    validate_file_letter,
 };
 
 /// Response for health check
@@ -122,9 +121,10 @@ pub async fn load_csv_file(
     Path((session_id, file_letter)): Path<(String, String)>,
     mut multipart: Multipart,
 ) -> Response {
-    if let Err(error) = validate_file_letter(&file_letter) {
-        return error.into_response();
-    }
+    let file_side = match parse_file_side(&file_letter) {
+        Ok(file_side) => file_side,
+        Err(error) => return error.into_response(),
+    };
 
     if state.with_session(&session_id, |_| ()).is_none() {
         return session_not_found_response();
@@ -165,12 +165,9 @@ pub async fn load_csv_file(
     let expected_response = loaded.response.clone();
     let update_state = state.clone();
     let update_session_id = session_id.clone();
-    let update_file_letter = file_letter.clone();
     let response = match run_blocking(move || {
         update_state
             .with_session_mut(&update_session_id, |session_data| {
-                let file_side = parse_file_side(&update_file_letter)
-                    .expect("validated file letter should parse into a file side");
                 apply_csv_to_session(session_data, file_side, loaded.csv_data)
             })
             .ok_or_else(|| CsvAlignError::NotFound {

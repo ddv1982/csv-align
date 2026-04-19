@@ -1,5 +1,5 @@
 use super::*;
-use csv_align::backend::{CompareRequest, MappingRequest};
+use csv_align::backend::{CompareRequest, CsvAlignError, MappingRequest};
 use csv_align::data::types::ComparisonNormalizationConfig;
 use std::sync::Arc;
 use tauri::Manager;

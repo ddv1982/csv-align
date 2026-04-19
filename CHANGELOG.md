@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.9 - 2026-04-19
+
+- Hardened the shared web and desktop runtime entrypoints so recoverable startup and request-path failures now propagate explicitly instead of relying on `expect`/`unwrap` in production flows.
+- Refactored the frontend comparison workflow into a dedicated reducer module, centralized Tauri invoke command names with backend parity checks, and prepared the v2.1.9 patch release after rerunning the full validation suite.
+
 ## v2.1.8 - 2026-04-19
 
 - Replaced unclear step-1 file-selection wording with clearer language for choosing CSV files, reviewing saved results, and moving through the flow.

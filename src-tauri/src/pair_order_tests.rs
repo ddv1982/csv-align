@@ -1,4 +1,5 @@
 use super::*;
+use csv_align::backend::PairOrderSelection;
 use std::sync::Arc;
 use tauri::Manager;
 
