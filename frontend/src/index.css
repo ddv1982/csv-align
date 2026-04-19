@@ -35,10 +35,10 @@
 
   html {
     --color-kinetic-bg: #050505;
-    --color-kinetic-panel: #0b0f14;
-    --color-kinetic-panel-2: #11161d;
-    --color-kinetic-line: rgba(151, 177, 204, 0.26);
-    --color-kinetic-line-strong: rgba(198, 220, 242, 0.55);
+    --color-kinetic-panel: #090909;
+    --color-kinetic-panel-2: #111111;
+    --color-kinetic-line: rgba(151, 177, 204, 0.18);
+    --color-kinetic-line-strong: rgba(198, 220, 242, 0.36);
     --color-kinetic-copy: #f5f7fb;
     --color-kinetic-muted: #95a2b3;
     --color-kinetic-accent: var(--k-accent);
@@ -47,9 +47,9 @@
     --color-kinetic-success: #6cffbe;
     --color-kinetic-warning: #ffb86e;
     --color-kinetic-header: rgba(5, 5, 5, 0.92);
-    --color-kinetic-overlay: color-mix(in srgb, var(--color-kinetic-panel) 82%, var(--color-kinetic-accent) 18%);
-    --color-kinetic-overlay-strong: color-mix(in srgb, color-mix(in srgb, var(--color-kinetic-panel-2) 76%, var(--color-kinetic-accent) 24%) 82%, var(--color-kinetic-accent-2) 18%);
-    --color-kinetic-grid: color-mix(in srgb, var(--color-kinetic-copy) 2%, var(--color-kinetic-accent) 98%);
+    --color-kinetic-overlay: color-mix(in srgb, var(--color-kinetic-panel) 94%, var(--color-kinetic-copy) 6%);
+    --color-kinetic-overlay-strong: color-mix(in srgb, var(--color-kinetic-panel-2) 88%, var(--color-kinetic-copy) 12%);
+    --color-kinetic-grid: color-mix(in srgb, var(--color-kinetic-copy) 18%, transparent);
     font-family: var(--font-sans);
     color-scheme: dark;
     background: var(--color-kinetic-bg);
@@ -57,11 +57,7 @@
 
   body {
     min-height: 100vh;
-    background:
-      radial-gradient(circle at top, color-mix(in srgb, var(--color-kinetic-accent) 18%, transparent), transparent 34%),
-      radial-gradient(circle at 85% 0%, color-mix(in srgb, var(--color-kinetic-accent-2) 12%, transparent), transparent 28%),
-      linear-gradient(180deg, var(--color-kinetic-overlay), transparent 28%),
-      var(--color-kinetic-bg);
+    background: var(--color-kinetic-bg);
     color: var(--color-kinetic-copy);
     @apply antialiased;
   }
@@ -117,17 +113,14 @@
     position: fixed;
     inset: 0;
     pointer-events: none;
-    background-image:
-      linear-gradient(var(--color-kinetic-grid) 1px, transparent 1px),
-      linear-gradient(90deg, var(--color-kinetic-grid) 1px, transparent 1px);
-    background-size: 100% 40px, 40px 100%;
-    mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.85), transparent 90%);
-    opacity: 0.28;
+    background: rgba(255, 255, 255, 0.01);
+    border: 1px solid color-mix(in srgb, var(--color-kinetic-grid) 18%, transparent);
+    opacity: 0.14;
   }
 
   .kinetic-panel,
   .card {
-    background: linear-gradient(180deg, color-mix(in srgb, var(--color-kinetic-panel) 92%, transparent), color-mix(in srgb, var(--color-kinetic-panel-2) 96%, transparent));
+    background: color-mix(in srgb, var(--color-kinetic-panel) 92%, var(--color-kinetic-panel-2) 8%);
     border: 1px solid var(--color-kinetic-line);
     @apply relative;
   }
@@ -138,10 +131,10 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    border-top: 1px solid color-mix(in srgb, var(--color-kinetic-accent) 32%, transparent);
-    border-left: 1px solid color-mix(in srgb, var(--color-kinetic-accent) 16%, transparent);
-    background: linear-gradient(135deg, color-mix(in srgb, var(--color-kinetic-accent) 10%, transparent), transparent 36%, color-mix(in srgb, var(--color-kinetic-accent-2) 8%, transparent));
-    opacity: 0.85;
+    border-top: 1px solid color-mix(in srgb, var(--color-kinetic-copy) 10%, transparent);
+    border-left: 1px solid color-mix(in srgb, var(--color-kinetic-copy) 4%, transparent);
+    background: transparent;
+    opacity: 1;
   }
 
   .kinetic-utility-cluster {
@@ -171,23 +164,23 @@
   }
 
   .btn-primary {
-    border-color: color-mix(in srgb, var(--color-kinetic-accent) 62%, var(--color-kinetic-accent-2) 38%);
-    background: linear-gradient(90deg, color-mix(in srgb, var(--color-kinetic-accent) 18%, transparent), color-mix(in srgb, var(--color-kinetic-accent-2) 10%, transparent));
+    border-color: color-mix(in srgb, var(--color-kinetic-accent) 52%, var(--color-kinetic-line) 48%);
+    background: color-mix(in srgb, var(--color-kinetic-accent) 10%, var(--color-kinetic-panel) 90%);
     color: var(--color-kinetic-copy);
   }
 
   .btn-primary:hover {
-    background: linear-gradient(90deg, color-mix(in srgb, var(--color-kinetic-accent) 24%, transparent), color-mix(in srgb, var(--color-kinetic-accent-2) 14%, transparent));
+    background: color-mix(in srgb, var(--color-kinetic-accent) 14%, var(--color-kinetic-panel) 86%);
   }
 
   .btn-success {
     border-color: rgba(108, 255, 190, 0.42);
-    background: linear-gradient(90deg, rgba(108, 255, 190, 0.14), rgba(108, 255, 190, 0.05));
+    background: color-mix(in srgb, var(--color-kinetic-success) 10%, var(--color-kinetic-panel) 90%);
   }
 
   .btn-danger {
     border-color: rgba(255, 122, 122, 0.45);
-    background: linear-gradient(90deg, rgba(255, 122, 122, 0.18), rgba(255, 122, 122, 0.05));
+    background: color-mix(in srgb, var(--color-kinetic-danger) 10%, var(--color-kinetic-panel) 90%);
   }
 
   .btn-ghost {
@@ -208,12 +201,7 @@
   }
 
   .kinetic-progress-fill {
-    background: linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--color-kinetic-accent) 30%, transparent),
-      var(--color-kinetic-accent),
-      color-mix(in srgb, var(--color-kinetic-accent-2) 75%, transparent)
-    );
+    background: var(--color-kinetic-accent);
   }
 
   .kinetic-surface-subtle {

@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.11 - 2026-04-19
+
+- Retuned the dark-only KINETIC theme toward flatter black surfaces by removing gradient-based shell, panel, button, and progress treatments while keeping the existing palette colors reserved for borders and accent states.
+- Prepared the v2.1.11 patch release by synchronizing version metadata across the Rust crates, desktop bundle config, frontend package manifests, and lockfiles after rerunning targeted frontend validation for the refreshed theme.
+
 ## v2.1.10 - 2026-04-19
 
 - Refined the dark-mode theming so accent and highlight treatments pop more clearly across the shell, cards, chips, progress states, and drag/drop surfaces while keeping the Tailwind v4 CSS-theme setup intact.
