@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.8 - 2026-04-19
+
+- Replaced unclear step-1 file-selection wording with clearer language for choosing CSV files, reviewing saved results, and moving through the flow.
+- Tightened nearby file-picker, stepper, and file-details copy, then prepared the v2.1.8 patch release by updating version metadata before rerunning broad validation.
+
 ## v2.1.7 - 2026-04-19
 
 - Cleaned up the step-2 configuration language so row keys, comparison columns, auto-pair guidance, and cleanup rules read more clearly during setup.

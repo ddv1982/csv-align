@@ -17,15 +17,15 @@ export function FileSelectionStep({ fileA, fileB, onFileSelect, onLoadResult, on
       <div className="card p-4 sm:p-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
-            <p className="hud-label">Intake</p>
-            <h2 className="mt-1 text-lg font-semibold uppercase tracking-[0.14em] text-[color:var(--color-kinetic-copy)]">Stage the two CSV feeds</h2>
-            <p className="mt-2 text-sm text-[color:var(--color-kinetic-muted)]">Choose the two local files you want to compare. Full column inventories stay tucked away until you need them.</p>
+            <p className="hud-label">Files</p>
+            <h2 className="mt-1 text-lg font-semibold uppercase tracking-[0.14em] text-[color:var(--color-kinetic-copy)]">Choose the two CSV files</h2>
+            <p className="mt-2 text-sm text-[color:var(--color-kinetic-muted)]">Select the two local CSV files you want to compare. Row counts and column details stay available if you need to review them.</p>
           </div>
 
           <div className="kinetic-utility-strip max-w-md">
             <div>
-              <p className="hud-label">Replay</p>
-              <p className="mt-1 text-sm text-[color:var(--color-kinetic-muted)]">Load a saved result to reopen its findings in read-only mode.</p>
+              <p className="hud-label">Saved Result</p>
+              <p className="mt-1 text-sm text-[color:var(--color-kinetic-muted)]">Open a saved result to review its findings in read-only mode.</p>
             </div>
             <LoadResultButton onLoadResult={onLoadResult} />
           </div>

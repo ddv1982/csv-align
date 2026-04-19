@@ -1,7 +1,7 @@
 import type { AppStep } from '../../types/ui';
 
 const STEPS: { id: AppStep; label: string; number: number }[] = [
-  { id: 'select', label: 'Choose Local Files', number: 1 },
+  { id: 'select', label: 'Choose Files', number: 1 },
   { id: 'configure', label: 'Configure', number: 2 },
   { id: 'results', label: 'Results', number: 3 },
 ];
@@ -44,7 +44,7 @@ export function ProgressSteps({ step, unlockedSteps, onStepChange }: ProgressSte
             <>
               <span className={badgeClasses}>{currentStep.number}</span>
               <span className="ml-3 text-left">
-                <span className="hud-label block">Stage {currentStep.number}</span>
+                <span className="hud-label block">Step {currentStep.number}</span>
                 <span className="block text-sm font-medium uppercase tracking-[0.14em]">{currentStep.label}</span>
               </span>
             </>

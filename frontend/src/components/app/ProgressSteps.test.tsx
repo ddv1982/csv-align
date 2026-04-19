@@ -15,7 +15,7 @@ test('uses shared theme surface classes for active, complete, and unlocked steps
   expect(screen.getByText('1')).toHaveClass('kinetic-surface-success');
   expect(screen.getByText('3')).toHaveClass('kinetic-surface-subtle');
 
-  const stepOneButton = screen.getByRole('button', { name: 'Go to step 1: Choose Local Files' });
+  const stepOneButton = screen.getByRole('button', { name: 'Go to step 1: Choose Files' });
   expect(stepOneButton).toHaveClass('kinetic-surface-hover');
 });
 
@@ -45,7 +45,7 @@ test('keeps step labels left-aligned for active and navigable steps', () => {
     />,
   );
 
-  expect(screen.getByText('Stage 1').parentElement).toHaveClass('text-left');
-  expect(screen.getByText('Stage 2').parentElement).toHaveClass('text-left');
-  expect(screen.getByText('Stage 3').parentElement).toHaveClass('text-left');
+  expect(screen.getByText('Step 1').parentElement).toHaveClass('text-left');
+  expect(screen.getByText('Step 2').parentElement).toHaveClass('text-left');
+  expect(screen.getByText('Step 3').parentElement).toHaveClass('text-left');
 });

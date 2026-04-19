@@ -30,7 +30,7 @@ afterEach(() => {
 test('shows load result copy and forwards the selected snapshot file in browser mode', async () => {
   const { onFileSelect, onLoadResult } = await renderStep(false);
 
-  expect(screen.getByText('Load a saved result to reopen its findings in read-only mode.')).toBeInTheDocument();
+  expect(screen.getByText('Open a saved result to review its findings in read-only mode.')).toBeInTheDocument();
 
   fireEvent.change(screen.getByTestId('load-result-input'), {
     target: {
@@ -49,7 +49,7 @@ test('triggers saved-result loading directly in tauri mode', async () => {
 
   expect(screen.queryByTestId('load-result-input')).not.toBeInTheDocument();
 
-  fireEvent.click(screen.getByRole('button', { name: 'Load result' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Open saved result' }));
 
   expect(onLoadResult).toHaveBeenCalledTimes(1);
   expect(onLoadResult).toHaveBeenCalledWith();

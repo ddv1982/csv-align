@@ -38,7 +38,7 @@ test('triggers loading directly in tauri mode without rendering a file input', a
 
   expect(screen.queryByTestId('load-result-input')).not.toBeInTheDocument();
 
-  fireEvent.click(screen.getByRole('button', { name: 'Load result' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Open saved result' }));
   expect(onLoadResult).toHaveBeenCalledWith();
 });
 

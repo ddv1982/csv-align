@@ -18,7 +18,7 @@ export function LoadResultButton({ onLoadResult }: LoadResultButtonProps) {
   const content = (
     <>
       <span aria-hidden="true">[[</span>
-      Load result
+      Open saved result
     </>
   );
 

@@ -108,8 +108,8 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
           <details className="kinetic-panel mt-4 px-4 py-3 group">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 marker:hidden">
               <div>
-                <p className="hud-label">Inventory</p>
-                <p className="mt-1 text-sm font-medium uppercase tracking-[0.14em] text-[color:var(--color-kinetic-copy)]">View file metadata and columns</p>
+                <p className="hud-label">Details</p>
+                <p className="mt-1 text-sm font-medium uppercase tracking-[0.14em] text-[color:var(--color-kinetic-copy)]">View rows, columns, and headers</p>
               </div>
               <span aria-hidden="true" className="font-mono text-sm text-[color:var(--color-kinetic-muted)] transition-transform group-open:rotate-90">▸</span>
             </summary>
@@ -148,7 +148,7 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
               onChange={handleFileChange}
               className="hidden"
             />
-            Select Another File
+            Choose a different CSV file
           </label>
         </div>
       ) : (
@@ -160,7 +160,7 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
           role="button"
           tabIndex={0}
           aria-label={`${label} file selector`}
-          title={`Choose a local CSV for ${label}`}
+          title={`Choose a CSV file for ${label}`}
           className={`border p-8 text-center transition-all duration-200 ${
              isDragging
               ? 'border-[color:var(--color-kinetic-accent)] bg-[rgba(110,231,255,0.08)]'
@@ -175,9 +175,9 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
               </div>
 
               <p className="mb-1 text-lg font-medium uppercase tracking-[0.14em] text-[color:var(--color-kinetic-copy)]">
-                {isDragging ? 'Drop CSV here' : 'Drag in a CSV feed'}
+                {isDragging ? 'Drop the CSV file here' : 'Drag a CSV file here'}
               </p>
-              <p className="mb-4 text-sm text-[color:var(--color-kinetic-muted)]">or choose it from this device</p>
+              <p className="mb-4 text-sm text-[color:var(--color-kinetic-muted)]">or choose one from this device</p>
 
               <label className="btn btn-primary cursor-pointer">
                 <input
@@ -187,7 +187,7 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
                   onChange={handleFileChange}
                   className="hidden"
                 />
-                Choose local CSV
+                Choose a CSV file
               </label>
             </div>
           </div>

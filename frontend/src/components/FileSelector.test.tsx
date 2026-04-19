@@ -46,7 +46,7 @@ test('accepts dropped files with an uppercase .CSV extension', () => {
   const onSelect = vi.fn();
   render(<FileSelector label="File A" file={null} onSelect={onSelect} />);
 
-  fireEvent.drop(screen.getByText('Drag in a CSV feed').closest('div') as HTMLElement, {
+  fireEvent.drop(screen.getByText('Drag a CSV file here').closest('div') as HTMLElement, {
     dataTransfer: {
       files: [new File(['id,name\n1,Alice'], 'UPPERCASE.CSV', { type: '' })],
     },
@@ -60,7 +60,7 @@ test('renders the kinetic idle styling for the empty dropzone', () => {
   const onSelect = vi.fn();
   render(<FileSelector label="File A" file={null} onSelect={onSelect} />);
 
-  const dropzone = screen.getByText('Drag in a CSV feed').closest('div')?.parentElement;
+  const dropzone = screen.getByText('Drag a CSV file here').closest('div')?.parentElement;
 
   expect(dropzone).toHaveClass('border-[color:var(--color-kinetic-line)]');
   expect(dropzone).toHaveClass('bg-[rgba(255,255,255,0.02)]');
@@ -72,7 +72,7 @@ test('supports keyboard activation on the dropzone', () => {
 
   const dropzone = screen.getByRole('button', { name: 'File A file selector' });
   expect(dropzone).toHaveAttribute('tabindex', '0');
-  expect(dropzone).toHaveAttribute('title', 'Choose a local CSV for File A');
+  expect(dropzone).toHaveAttribute('title', 'Choose a CSV file for File A');
 });
 
 test('activates the picker from Enter and Space key presses', () => {
@@ -80,7 +80,7 @@ test('activates the picker from Enter and Space key presses', () => {
   render(<FileSelector label="File A" file={null} onSelect={onSelect} />);
 
   const dropzone = screen.getByRole('button', { name: 'File A file selector' });
-  const input = screen.getByLabelText('Choose local CSV', { selector: 'input' });
+  const input = screen.getByLabelText('Choose a CSV file', { selector: 'input' });
   const clickSpy = vi.spyOn(input, 'click');
 
   fireEvent.keyDown(dropzone, { key: 'Enter' });
@@ -94,7 +94,7 @@ test('picker-cancel does not call onSelect when the file input is cleared', () =
   const onSelect = vi.fn();
   render(<FileSelector label="File A" file={null} onSelect={onSelect} />);
 
-  const input = screen.getByLabelText('Choose local CSV', { selector: 'input' });
+  const input = screen.getByLabelText('Choose a CSV file', { selector: 'input' });
 
   fireEvent.change(input, {
     target: {
