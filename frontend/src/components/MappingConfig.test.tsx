@@ -38,8 +38,6 @@ function renderMappingConfig(normalization: ComparisonNormalizationConfig = INIT
 test('shows the simplified cleanup copy and labels', () => {
   renderMappingConfig();
 
-  expect(screen.getByRole('heading', { name: 'Column pairing' })).toBeInTheDocument();
-  expect(screen.getByText('Use matching row keys to unlock auto-pair from either file.')).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Cleanup before compare' })).toBeInTheDocument();
   expect(screen.getByLabelText('Treat blank cells as missing')).toBeInTheDocument();
   expect(screen.getByText('Also treat these exact values as missing')).toBeInTheDocument();
@@ -51,14 +49,22 @@ test('shows save and load pair-order actions in the comparison preview', () => {
   renderMappingConfig();
 
   const comparisonSection = screen.getByRole('heading', { name: 'Comparison Columns' }).closest('section');
-  const pairingSection = screen.getByRole('heading', { name: 'Column pairing' }).closest('section');
 
   expect(comparisonSection).not.toBeNull();
-  expect(pairingSection).not.toBeNull();
   expect(within(comparisonSection as HTMLElement).getByRole('button', { name: 'Save pair order' })).toBeInTheDocument();
   expect(within(comparisonSection as HTMLElement).getByRole('button', { name: 'Load pair order' })).toBeInTheDocument();
-  expect(within(pairingSection as HTMLElement).queryByRole('button', { name: 'Save pair order' })).not.toBeInTheDocument();
-  expect(within(pairingSection as HTMLElement).queryByRole('button', { name: 'Load pair order' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('heading', { name: 'Column pairing' })).not.toBeInTheDocument();
+});
+
+test('shows auto-pair controls in the comparison preview', () => {
+  renderMappingConfig();
+
+  const comparisonSection = screen.getByRole('heading', { name: 'Comparison Columns' }).closest('section');
+
+  expect(comparisonSection).not.toBeNull();
+  expect(within(comparisonSection as HTMLElement).getByText('Select the same number of key columns in both files to unlock auto-pair.')).toBeInTheDocument();
+  expect(within(comparisonSection as HTMLElement).getByRole('button', { name: 'From File A' })).toBeInTheDocument();
+  expect(within(comparisonSection as HTMLElement).getByRole('button', { name: 'From File B' })).toBeInTheDocument();
 });
 
 test('keeps advanced date controls collapsed by default and lets users reveal them', () => {

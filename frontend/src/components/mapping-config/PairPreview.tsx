@@ -3,6 +3,10 @@ import { useEffect, useState } from 'react';
 interface PairPreviewProps {
   comparisonColumnsA: string[];
   comparisonColumnsB: string[];
+  autoPairMessage: string;
+  autoPairEnabled: boolean;
+  onAutoPairFromFileA: () => void;
+  onAutoPairFromFileB: () => void;
   onSavePairOrder: () => void;
   onLoadPairOrder: () => void;
 }
@@ -14,6 +18,10 @@ function normalizeVisibleText(value: string) {
 export function PairPreview({
   comparisonColumnsA,
   comparisonColumnsB,
+  autoPairMessage,
+  autoPairEnabled,
+  onAutoPairFromFileA,
+  onAutoPairFromFileB,
   onSavePairOrder,
   onLoadPairOrder,
 }: PairPreviewProps) {
@@ -79,6 +87,30 @@ export function PairPreview({
           >
             <span className="sr-only">{buttonLabel}</span>
             <span aria-hidden="true">{copySucceeded ? 'OK' : 'CP'}</span>
+          </button>
+        </div>
+      </div>
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-[color:var(--color-kinetic-line)] pb-4">
+        <div className="max-w-2xl">
+          <p className="hud-label">Auto-pair</p>
+          <p className="mt-1 text-sm text-[color:var(--color-kinetic-muted)]">{autoPairMessage}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            className="btn btn-ghost px-2 py-1 text-xs"
+            disabled={!autoPairEnabled}
+            onClick={onAutoPairFromFileA}
+            type="button"
+          >
+            From File A
+          </button>
+          <button
+            className="btn btn-ghost px-2 py-1 text-xs"
+            disabled={!autoPairEnabled}
+            onClick={onAutoPairFromFileB}
+            type="button"
+          >
+            From File B
           </button>
         </div>
       </div>

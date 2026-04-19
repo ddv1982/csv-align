@@ -7,7 +7,7 @@ import { SectionCard } from './ui/SectionCard';
 import { ColumnChipSelector } from './mapping-config/ColumnChipSelector';
 import { NormalizationPanel } from './mapping-config/NormalizationPanel';
 import { PairPreview } from './mapping-config/PairPreview';
-import { ArrowsRightLeftIcon, KeyIcon, TableCellsIcon } from './icons';
+import { KeyIcon, TableCellsIcon } from './icons';
 
 interface MappingConfigProps {
   fileA: AppFile;
@@ -118,48 +118,6 @@ export function MappingConfig({
 
   return (
     <div className="space-y-6">
-      <SectionCard
-        eyebrow="Pairing"
-        title="Column pairing"
-        description="Use matching row keys to unlock auto-pair from either file."
-        headingLevel="h3"
-        className="p-6"
-        icon={<ArrowsRightLeftIcon className="h-5 w-5" />}
-      >
-        <div className="space-y-4">
-          <div className="kinetic-panel p-4">
-            <p className="hud-label">Auto-pair</p>
-            <p className="mt-1 text-sm text-[color:var(--color-kinetic-muted)]">{autoPairMessage}</p>
-            <div className="mt-3 flex flex-wrap gap-3">
-              <button
-                onClick={() => onAutoPairComparisonColumns('a')}
-                disabled={!hasValidAutoPairKeySelection}
-                className="btn btn-ghost"
-                type="button"
-              >
-                From File A
-              </button>
-              <button
-                onClick={() => onAutoPairComparisonColumns('b')}
-                disabled={!hasValidAutoPairKeySelection}
-                className="btn btn-ghost"
-                type="button"
-              >
-                From File B
-              </button>
-            </div>
-          </div>
-
-          <input
-            ref={fileInputRef}
-            accept=".txt,text/plain,application/json"
-            className="hidden"
-            onChange={handleLoadInputChange}
-            type="file"
-          />
-        </div>
-      </SectionCard>
-
       <NormalizationPanel normalization={normalization} onChange={updateNormalization} onDateChange={updateDateNormalization} />
 
       <SectionCard
@@ -210,8 +168,20 @@ export function MappingConfig({
         <PairPreview
           comparisonColumnsA={comparisonColumnsA}
           comparisonColumnsB={comparisonColumnsB}
+          autoPairMessage={autoPairMessage}
+          autoPairEnabled={hasValidAutoPairKeySelection}
+          onAutoPairFromFileA={() => onAutoPairComparisonColumns('a')}
+          onAutoPairFromFileB={() => onAutoPairComparisonColumns('b')}
           onSavePairOrder={onSavePairOrder}
           onLoadPairOrder={handleLoadButtonClick}
+        />
+
+        <input
+          ref={fileInputRef}
+          accept=".txt,text/plain,application/json"
+          className="hidden"
+          onChange={handleLoadInputChange}
+          type="file"
         />
       </SectionCard>
 

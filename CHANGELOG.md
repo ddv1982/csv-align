@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.4 - 2026-04-19
+
+- Moved auto-pair controls fully into the comparison area and removed the standalone Pairing panel, keeping the configure flow focused without changing the underlying pair-order or automatic pairing behavior.
+- Preserved the existing save/load pair-order workflow and auto-pair results while preparing the v2.1.4 release by updating version metadata across the Rust crates, desktop bundle config, frontend package manifests, and lockfiles before rerunning broad validation.
+
 ## v2.1.3 - 2026-04-19
 
 - Finalized the shipped KINETIC shell as a dark-only experience by removing the theme toggle and light palette path, dropping the legacy header CA badge, and tightening the configure header and file overview chrome so the workflow stays focused on comparison setup.
