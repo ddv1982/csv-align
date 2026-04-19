@@ -79,6 +79,19 @@ jobs:
       - name: Run Clippy
         run: cargo clippy -- -D warnings
 
+  validate-release-metadata:
+    name: Validate Release Metadata
+    needs: changes
+    if: needs.changes.outputs.run_full_ci == 'true'
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate release metadata
+        run: python3 scripts/check_release_metadata.py
+
   test-frontend:
     name: Test Frontend
     needs: changes
@@ -100,13 +113,21 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm test
+
+      - name: Run frontend lint
+        working-directory: frontend
+        run: npm run lint
+
       - name: Build frontend
         working-directory: frontend
         run: npm run build
 
   build-tauri:
     name: Build Tauri
-    needs: [changes, test, test-frontend]
+    needs: [changes, test, validate-release-metadata, test-frontend]
     if: needs.changes.outputs.run_full_ci == 'true'
     runs-on: ${{ matrix.os }}
     strategy:

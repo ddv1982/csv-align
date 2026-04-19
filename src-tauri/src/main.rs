@@ -1,8 +1,6 @@
 use std::fs;
 use std::sync::Arc;
 
-use serde::Deserialize;
-use serde_json::Value;
 use tracing::instrument;
 
 use csv_align::backend::{
@@ -229,8 +227,6 @@ fn load_comparison_snapshot(
         ))
     })?;
 
-    validate_snapshot_contents_version(&contents)?;
-
     state
         .with_session_mut(&session_id, |session_data| {
             load_comparison_snapshot_workflow(session_data, &contents)
@@ -238,30 +234,6 @@ fn load_comparison_snapshot(
         .ok_or_else(|| CsvAlignError::NotFound {
             resource: "Session".to_string(),
         })?
-}
-
-#[derive(Deserialize)]
-struct SnapshotVersionProbe {
-    version: u8,
-}
-
-fn validate_snapshot_contents_version(contents: &str) -> Result<(), CsvAlignError> {
-    let value: Value = serde_json::from_str(contents).map_err(|error| {
-        CsvAlignError::Parse(format!("Failed to parse comparison snapshot file: {error}"))
-    })?;
-
-    let probe: SnapshotVersionProbe = serde_json::from_value(value).map_err(|error| {
-        CsvAlignError::Parse(format!("Failed to parse comparison snapshot file: {error}"))
-    })?;
-
-    if probe.version != csv_align::backend::SNAPSHOT_VERSION {
-        return Err(CsvAlignError::BadInput(format!(
-            "Unsupported comparison snapshot version {} — this file was produced by an older csv-align release. Re-run the comparison in v2.",
-            probe.version
-        )));
-    }
-
-    Ok(())
 }
 
 #[cfg(test)]
@@ -274,6 +246,11 @@ mod pair_order_tests;
 mod comparison_snapshot_tests;
 
 fn main() {
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .try_init()
+        .expect("failed to initialize tracing subscriber");
+
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(Arc::new(SessionStore::default()))

@@ -1,6 +1,6 @@
 [package]
 name = "csv-align-app"
-version = "2.1.4"
+version = "2.1.5"
 edition = "2024"
 description = "CSV file comparison desktop application"
 license = "MIT"
@@ -17,6 +17,7 @@ uuid = { version = "1.0", features = ["v4"] }
 thiserror = "1.0"
 anyhow = "1.0"
 tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 
 # Import our core library for comparison logic
 csv-align = { path = ".." }

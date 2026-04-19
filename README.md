@@ -163,6 +163,8 @@ Top-level `tests/` is for public Rust integration coverage; frontend Vitest file
 
 Documentation-only updates do **not** require a version bump or a tagged release. They can be committed and pushed directly to `main`.
 
+For real releases, keep the documented version-bearing files in sync and validate them with `python3 scripts/check_release_metadata.py` before tagging. The documented release flow now expects the Rust, Tauri, and frontend validation suite to pass before artifacts are published. Release commits should follow the repo's Conventional Commit convention, for example `chore(release): v2.1.4`.
+
 ## License
 
 Licensed under the [MIT License](LICENSE).

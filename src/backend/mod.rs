@@ -10,6 +10,7 @@ mod workflow;
 
 pub use comparison_snapshot::{
     load_comparison_snapshot_workflow, save_comparison_snapshot_workflow,
+    validate_comparison_snapshot_version,
 };
 pub use error::CsvAlignError;
 pub use pair_order::{load_pair_order_workflow, save_pair_order_workflow};

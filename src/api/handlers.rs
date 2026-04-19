@@ -4,8 +4,8 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Json, Response},
 };
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde::Serialize;
+use tokio::task;
 
 use super::state::AppState;
 pub use crate::backend::{CompareRequest, MappingRequest, SessionResponse, SuggestMappingsRequest};
@@ -75,28 +75,15 @@ fn attachment(content_type: &str, filename: &str, body: impl Into<Body>) -> Resp
     response
 }
 
-#[derive(Deserialize)]
-struct SnapshotVersionProbe {
-    version: u8,
-}
-
-fn validate_snapshot_request_version(contents: &str) -> Result<(), CsvAlignError> {
-    let value: Value = serde_json::from_str(contents).map_err(|error| {
-        CsvAlignError::Parse(format!("Failed to parse comparison snapshot file: {error}"))
-    })?;
-
-    let probe: SnapshotVersionProbe = serde_json::from_value(value).map_err(|error| {
-        CsvAlignError::Parse(format!("Failed to parse comparison snapshot file: {error}"))
-    })?;
-
-    if probe.version != crate::backend::SNAPSHOT_VERSION {
-        return Err(CsvAlignError::BadInput(format!(
-            "Unsupported comparison snapshot version {} — this file was produced by an older csv-align release. Re-run the comparison in v2.",
-            probe.version
-        )));
-    }
-
-    Ok(())
+async fn run_blocking<T>(
+    f: impl FnOnce() -> Result<T, CsvAlignError> + Send + 'static,
+) -> Result<T, CsvAlignError>
+where
+    T: Send + 'static,
+{
+    task::spawn_blocking(f)
+        .await
+        .map_err(|error| CsvAlignError::Internal(format!("Blocking task failed: {error}")))?
 }
 
 /// Health check endpoint
@@ -146,40 +133,58 @@ pub async fn load_csv_file(
     let field = match multipart.next_field().await {
         Ok(Some(field)) => field,
         Ok(None) => return bad_request_response("No file provided"),
-        Err(e) => {
-            return CsvAlignError::BadInput(format!("Failed to read multipart: {e}"))
+        Err(error) => {
+            return CsvAlignError::BadInput(format!("Failed to read multipart: {error}"))
                 .into_response();
         }
     };
 
     let file_name = field.file_name().map(str::to_string);
-
     let bytes = match field.bytes().await {
         Ok(bytes) => bytes,
-        Err(e) => {
-            return CsvAlignError::BadInput(format!("Failed to read file: {e}")).into_response();
+        Err(error) => {
+            return CsvAlignError::BadInput(format!("Failed to read file: {error}"))
+                .into_response();
         }
     };
 
-    let loaded = match load_csv_workflow(
-        &file_letter,
-        file_name,
-        CsvLoadSource::Bytes(bytes.to_vec()),
-    ) {
+    let load_file_letter = file_letter.clone();
+    let loaded = match run_blocking(move || {
+        load_csv_workflow(
+            &load_file_letter,
+            file_name,
+            CsvLoadSource::Bytes(bytes.to_vec()),
+        )
+    })
+    .await
+    {
         Ok(loaded) => loaded,
         Err(error) => return error.into_response(),
     };
 
-    let response = match state.with_session_mut(&session_id, |session_data| {
-        let file_side = parse_file_side(&file_letter)
-            .expect("validated file letter should parse into a file side");
-        apply_csv_to_session(session_data, file_side, loaded.csv_data)
-    }) {
-        Some(response) => response,
-        None => return session_not_found_response(),
+    let expected_response = loaded.response.clone();
+    let update_state = state.clone();
+    let update_session_id = session_id.clone();
+    let update_file_letter = file_letter.clone();
+    let response = match run_blocking(move || {
+        update_state
+            .with_session_mut(&update_session_id, |session_data| {
+                let file_side = parse_file_side(&update_file_letter)
+                    .expect("validated file letter should parse into a file side");
+                apply_csv_to_session(session_data, file_side, loaded.csv_data)
+            })
+            .ok_or_else(|| CsvAlignError::NotFound {
+                resource: "Session".to_string(),
+            })
+    })
+    .await
+    {
+        Ok(response) => response,
+        Err(CsvAlignError::NotFound { .. }) => return session_not_found_response(),
+        Err(error) => return error.into_response(),
     };
 
-    debug_assert_eq!(response, loaded.response);
+    debug_assert_eq!(response, expected_response);
     Json(response).into_response()
 }
 
@@ -206,38 +211,69 @@ pub async fn compare(
     Path(session_id): Path<String>,
     Json(request): Json<CompareRequest>,
 ) -> Response {
-    let comparison_input = match state.with_session(&session_id, comparison_inputs) {
-        Some(Ok(input)) => input,
-        Some(Err(error)) => return error.into_response(),
-        None => return session_not_found_response(),
-    };
+    let compare_state = state.clone();
+    let compare_session_id = session_id.clone();
+    let execution = match run_blocking(move || {
+        let (csv_a, csv_b) = compare_state
+            .with_session(&compare_session_id, comparison_inputs)
+            .ok_or_else(|| CsvAlignError::NotFound {
+                resource: "Session".to_string(),
+            })??;
 
-    let (csv_a, csv_b) = comparison_input;
-    let execution = match run_comparison(csv_a.as_ref(), csv_b.as_ref(), request) {
+        run_comparison(csv_a.as_ref(), csv_b.as_ref(), request)
+    })
+    .await
+    {
         Ok(execution) => execution,
+        Err(CsvAlignError::NotFound { .. }) => return session_not_found_response(),
         Err(error) => return error.into_response(),
     };
 
-    let _ = state.with_session_mut(&session_id, |session_data| {
-        session_data.comparison_results = execution.results.clone();
-        session_data.comparison_config = Some(execution.config.clone());
-    });
+    let response = execution.response.clone();
+    let results = execution.results;
+    let config = execution.config;
+    let update_state = state.clone();
+    let update_session_id = session_id.clone();
+    if let Err(error) = run_blocking(move || {
+        update_state
+            .with_session_mut(&update_session_id, |session_data| {
+                session_data.comparison_results = results;
+                session_data.comparison_config = Some(config);
+            })
+            .ok_or_else(|| CsvAlignError::NotFound {
+                resource: "Session".to_string(),
+            })
+            .map(|_| ())
+    })
+    .await
+    {
+        return match error {
+            CsvAlignError::NotFound { .. } => session_not_found_response(),
+            other => other.into_response(),
+        };
+    }
 
-    Json(execution.response).into_response()
+    Json(response).into_response()
 }
 
 /// Export comparison results as CSV
 #[tracing::instrument(skip(state), fields(session_id = %session_id))]
 pub async fn export_csv(State(state): State<AppState>, Path(session_id): Path<String>) -> Response {
-    let snapshot = match state.with_session(&session_id, export_session_results_snapshot) {
-        Some(Ok(snapshot)) => snapshot,
-        Some(Err(error)) => return error.into_response(),
-        None => return session_not_found_response(),
-    };
+    let export_state = state.clone();
+    let export_session_id = session_id.clone();
+    let csv_content = match run_blocking(move || {
+        let (results, comparison_config) = export_state
+            .with_session(&export_session_id, export_session_results_snapshot)
+            .ok_or_else(|| CsvAlignError::NotFound {
+                resource: "Session".to_string(),
+            })??;
 
-    let (results, comparison_config) = snapshot;
-    let csv_content = match export_results_to_bytes(&results, comparison_config.as_ref()) {
+        export_results_to_bytes(&results, comparison_config.as_ref())
+    })
+    .await
+    {
         Ok(bytes) => bytes,
+        Err(CsvAlignError::NotFound { .. }) => return session_not_found_response(),
         Err(error) => return error.into_response(),
     };
 
@@ -250,12 +286,22 @@ pub async fn save_pair_order(
     Path(session_id): Path<String>,
     Json(request): Json<SavePairOrderRequest>,
 ) -> Response {
-    let contents = match state.with_session(&session_id, |session_data| {
-        save_pair_order_workflow(session_data, request.selection)
-    }) {
-        Some(Ok(contents)) => contents,
-        Some(Err(error)) => return error.into_response(),
-        None => return session_not_found_response(),
+    let save_state = state.clone();
+    let save_session_id = session_id.clone();
+    let contents = match run_blocking(move || {
+        save_state
+            .with_session(&save_session_id, |session_data| {
+                save_pair_order_workflow(session_data, request.selection)
+            })
+            .ok_or_else(|| CsvAlignError::NotFound {
+                resource: "Session".to_string(),
+            })?
+    })
+    .await
+    {
+        Ok(contents) => contents,
+        Err(CsvAlignError::NotFound { .. }) => return session_not_found_response(),
+        Err(error) => return error.into_response(),
     };
 
     attachment("text/plain; charset=utf-8", "pair-order.txt", contents)
@@ -267,12 +313,22 @@ pub async fn load_pair_order(
     Path(session_id): Path<String>,
     Json(request): Json<LoadPairOrderRequest>,
 ) -> Response {
-    let response = match state.with_session(&session_id, |session_data| {
-        load_pair_order_workflow(session_data, &request.contents)
-    }) {
-        Some(Ok(response)) => response,
-        Some(Err(error)) => return error.into_response(),
-        None => return session_not_found_response(),
+    let load_state = state.clone();
+    let load_session_id = session_id.clone();
+    let response = match run_blocking(move || {
+        load_state
+            .with_session(&load_session_id, |session_data| {
+                load_pair_order_workflow(session_data, &request.contents)
+            })
+            .ok_or_else(|| CsvAlignError::NotFound {
+                resource: "Session".to_string(),
+            })?
+    })
+    .await
+    {
+        Ok(response) => response,
+        Err(CsvAlignError::NotFound { .. }) => return session_not_found_response(),
+        Err(error) => return error.into_response(),
     };
 
     Json(response).into_response()
@@ -283,10 +339,20 @@ pub async fn save_comparison_snapshot(
     State(state): State<AppState>,
     Path(session_id): Path<String>,
 ) -> Response {
-    let contents = match state.with_session(&session_id, save_comparison_snapshot_workflow) {
-        Some(Ok(contents)) => contents,
-        Some(Err(error)) => return error.into_response(),
-        None => return session_not_found_response(),
+    let save_state = state.clone();
+    let save_session_id = session_id.clone();
+    let contents = match run_blocking(move || {
+        save_state
+            .with_session(&save_session_id, save_comparison_snapshot_workflow)
+            .ok_or_else(|| CsvAlignError::NotFound {
+                resource: "Session".to_string(),
+            })?
+    })
+    .await
+    {
+        Ok(contents) => contents,
+        Err(CsvAlignError::NotFound { .. }) => return session_not_found_response(),
+        Err(error) => return error.into_response(),
     };
 
     attachment(
@@ -302,16 +368,22 @@ pub async fn load_comparison_snapshot(
     Path(session_id): Path<String>,
     Json(request): Json<LoadComparisonSnapshotRequest>,
 ) -> Response {
-    if let Err(error) = validate_snapshot_request_version(&request.contents) {
-        return error.into_response();
-    }
-
-    let response = match state.with_session_mut(&session_id, |session_data| {
-        load_comparison_snapshot_workflow(session_data, &request.contents)
-    }) {
-        Some(Ok(response)) => response,
-        Some(Err(error)) => return error.into_response(),
-        None => return session_not_found_response(),
+    let load_state = state.clone();
+    let load_session_id = session_id.clone();
+    let response = match run_blocking(move || {
+        load_state
+            .with_session_mut(&load_session_id, |session_data| {
+                load_comparison_snapshot_workflow(session_data, &request.contents)
+            })
+            .ok_or_else(|| CsvAlignError::NotFound {
+                resource: "Session".to_string(),
+            })?
+    })
+    .await
+    {
+        Ok(response) => response,
+        Err(CsvAlignError::NotFound { .. }) => return session_not_found_response(),
+        Err(error) => return error.into_response(),
     };
 
     Json(response).into_response()

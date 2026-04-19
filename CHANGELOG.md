@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.5 - 2026-04-19
+
+- Hardened the shared web and desktop runtime surfaces by centralizing comparison-snapshot version validation, moving the main blocking Axum workflow paths onto `spawn_blocking`, and initializing desktop tracing with the same baseline subscriber setup used by the web runtime.
+- Strengthened the release process with synced-version validation tooling, frontend test/lint/build gates in CI, a tagged-release validation job covering Rust, Tauri, and frontend checks, and the v2.1.5 metadata/doc updates required for the patch release.
+
 ## v2.1.4 - 2026-04-19
 
 - Moved auto-pair controls fully into the comparison area and removed the standalone Pairing panel, keeping the configure flow focused without changing the underlying pair-order or automatic pairing behavior.

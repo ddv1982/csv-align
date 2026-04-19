@@ -13,8 +13,65 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  validate-release:
+    name: Validate Release
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Tauri test dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Validate release metadata
+        run: python3 scripts/check_release_metadata.py --expected-tag "${{ github.ref_name }}"
+
+      - name: Check Rust formatting
+        run: cargo fmt --check
+
+      - name: Run Rust tests
+        run: cargo test --verbose
+
+      - name: Run Clippy
+        run: cargo clippy -- -D warnings
+
+      - name: Run Tauri wrapper tests
+        working-directory: src-tauri
+        run: cargo test
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm test
+
+      - name: Run frontend lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
   create-release:
     name: Create Release
+    needs: validate-release
     runs-on: ubuntu-22.04
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
@@ -102,7 +159,7 @@ jobs:
 
   build-release:
     name: Build Release
-    needs: create-release
+    needs: [validate-release, create-release]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
