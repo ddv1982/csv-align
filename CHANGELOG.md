@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.7 - 2026-04-19
+
+- Cleaned up the step-2 configuration language so row keys, comparison columns, auto-pair guidance, and cleanup rules read more clearly during setup.
+- Moved the pair-order copy action into the pair-order box, switched it to a clipboard icon with success feedback, and prepared the v2.1.7 patch release by updating version metadata before rerunning broad validation.
+
 ## v2.1.6 - 2026-04-19
 
 - Fixed the tagged release validation flow so the frontend build now runs before Tauri wrapper tests, ensuring `tauri::generate_context!()` can resolve the configured `frontendDist` path during CI release checks.

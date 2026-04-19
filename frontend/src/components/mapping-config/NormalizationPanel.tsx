@@ -12,8 +12,8 @@ export function NormalizationPanel({ normalization, onChange, onDateChange }: No
   return (
     <SectionCard
       eyebrow="Cleanup"
-      title="Cleanup before compare"
-      description="Choose a few optional cleanup rules to avoid false mismatches."
+      title="Comparison cleanup rules"
+      description="Use optional cleanup rules when the same values are formatted differently between files."
       icon={<PencilSquareIcon className="h-5 w-5" />}
       className="p-6"
     >
@@ -29,8 +29,8 @@ export function NormalizationPanel({ normalization, onChange, onDateChange }: No
         </label>
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-[color:var(--color-kinetic-copy)]">Also treat these exact values as missing</label>
-          <p className="text-sm text-[color:var(--color-kinetic-muted)]">Enter literal values like `null`, `n/a`, or `unknown`, separated by commas.</p>
+          <label className="block text-sm font-medium text-[color:var(--color-kinetic-copy)]">Also treat these values as missing</label>
+          <p className="text-sm text-[color:var(--color-kinetic-muted)]">Enter exact values such as `null`, `n/a`, or `unknown`, separated by commas.</p>
           <input
             type="text"
             value={normalization.null_tokens.join(', ')}
@@ -52,7 +52,7 @@ export function NormalizationPanel({ normalization, onChange, onDateChange }: No
               onChange={(event) => onChange({ null_token_case_insensitive: event.target.checked })}
               className="h-4 w-4 border-[color:var(--color-kinetic-line)] bg-transparent text-[color:var(--color-kinetic-accent)]"
             />
-            Ignore uppercase/lowercase for those values
+            Ignore letter case for those values
           </label>
         </div>
 
@@ -64,7 +64,7 @@ export function NormalizationPanel({ normalization, onChange, onDateChange }: No
               onChange={(event) => onChange({ case_insensitive: event.target.checked })}
               className="h-4 w-4 border-[color:var(--color-kinetic-line)] bg-transparent text-[color:var(--color-kinetic-accent)]"
             />
-            Ignore uppercase/lowercase
+            Ignore letter case
           </label>
 
           <label className="flex items-center gap-3 text-sm text-[color:var(--color-kinetic-copy)]">
@@ -74,7 +74,7 @@ export function NormalizationPanel({ normalization, onChange, onDateChange }: No
               onChange={(event) => onChange({ trim_whitespace: event.target.checked })}
               className="h-4 w-4 border-[color:var(--color-kinetic-line)] bg-transparent text-[color:var(--color-kinetic-accent)]"
             />
-            Ignore extra spaces at the start or end
+            Ignore extra spaces at the start or end of a value
           </label>
         </div>
 
@@ -86,9 +86,9 @@ export function NormalizationPanel({ normalization, onChange, onDateChange }: No
               onChange={(event) => onDateChange({ enabled: event.target.checked })}
               className="h-4 w-4 border-[color:var(--color-kinetic-line)] bg-transparent text-[color:var(--color-kinetic-accent)]"
             />
-            Match dates across different formats
+            Match dates written in different formats
           </label>
-          <p className="text-sm text-[color:var(--color-kinetic-muted)]">Off by default. Turn this on only if your files store the same dates in different formats.</p>
+          <p className="text-sm text-[color:var(--color-kinetic-muted)]">Leave this off unless the same dates appear in different formats across the two files.</p>
 
           <details className="group kinetic-panel px-4 py-3">
             <summary className="cursor-pointer text-sm font-medium text-[color:var(--color-kinetic-copy)] marker:hidden">

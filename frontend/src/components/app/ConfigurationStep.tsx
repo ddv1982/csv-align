@@ -69,7 +69,7 @@ export function ConfigurationStep({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="hud-label">Configure</p>
-            <h2 className="mt-1 text-lg font-semibold uppercase tracking-[0.14em] text-[color:var(--color-kinetic-copy)]">Pair columns and compare</h2>
+            <h2 className="mt-1 text-lg font-semibold uppercase tracking-[0.14em] text-[color:var(--color-kinetic-copy)]">Set row keys and comparison pairs</h2>
           </div>
           <div className="shrink-0">
             <NavButton direction="back" onClick={onBack}>

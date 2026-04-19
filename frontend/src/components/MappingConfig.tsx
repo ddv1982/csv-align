@@ -77,8 +77,8 @@ export function MappingConfig({
     keyColumnsB.length > 0 &&
     keyColumnsA.length === keyColumnsB.length;
   const autoPairMessage = hasValidAutoPairKeySelection
-    ? 'Auto-pair uses the selected key columns as its anchor, then fills in confident one-to-one matches.'
-    : 'Select the same number of key columns in both files to unlock auto-pair.';
+    ? 'Auto-pair starts from the selected row keys and fills in the strongest one-to-one column matches.'
+    : 'Select the same number of row keys in both files to enable auto-pair.';
 
   const manualMappings: MappingDto[] = comparisonColumnsA.map((fileAColumn, index) => ({
     file_a_column: fileAColumn,
@@ -122,23 +122,23 @@ export function MappingConfig({
 
       <SectionCard
         eyebrow="Keys"
-        title="Row keys"
-        description="Use matching key sets to line up rows before comparing values."
+        title="Match rows with row keys"
+        description="Pick the columns that identify the same row in each file before comparing values."
         icon={<KeyIcon className="h-5 w-5" />}
       >
         <div className="grid gap-6 md:grid-cols-2">
           <ColumnChipSelector
-            title="File A Key Columns"
+            title="Row keys in File A"
             columns={fileA.headers}
             selectedColumns={keyColumnsA}
-            emptyHint="Click to select key columns (default: first column)"
+            emptyHint="Select row keys (defaults to the first column if left empty)"
             onToggle={(column) => updateSelection({ keyColumnsA: toggleColumnSelection(keyColumnsA, column) })}
           />
           <ColumnChipSelector
-            title="File B Key Columns"
+            title="Row keys in File B"
             columns={fileB.headers}
             selectedColumns={keyColumnsB}
-            emptyHint="Click to select key columns (default: first column)"
+            emptyHint="Select row keys (defaults to the first column if left empty)"
             onToggle={(column) => updateSelection({ keyColumnsB: toggleColumnSelection(keyColumnsB, column) })}
           />
         </div>
@@ -146,8 +146,8 @@ export function MappingConfig({
 
       <SectionCard
         eyebrow="Comparison"
-        title="Comparison Columns"
-        description="Choose the value columns to compare, then save, load, or copy the exact review order."
+        title="Choose columns to compare"
+        description="Select the columns to compare, then review or reuse the pair order shown below."
         icon={<TableCellsIcon className="h-5 w-5" />}
       >
         <div className="grid gap-6 md:grid-cols-2">

@@ -237,7 +237,7 @@ test('refuses auto-pairing until matching key columns have been selected', async
   });
 
   expect(suggestMappingsMock).not.toHaveBeenCalled();
-  expect(result.current.state.error).toBe('Select the same number of key columns in File A and File B before using auto-pair.');
+  expect(result.current.state.error).toBe('Select the same number of row keys in File A and File B before using auto-pair.');
 });
 
 test('keeps the current selection when no additional confident comparison pairs are found', async () => {

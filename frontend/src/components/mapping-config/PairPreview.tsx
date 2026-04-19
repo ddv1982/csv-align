@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ClipboardDocumentCheckIcon, ClipboardDocumentIcon } from '../icons';
 
 interface PairPreviewProps {
   comparisonColumnsA: string[];
@@ -66,70 +67,85 @@ export function PairPreview({
 
   return (
     <div className="kinetic-panel mt-6 p-4">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div>
-          <p className="hud-label">Preview</p>
-          <h4 className="mt-0.5 text-sm font-semibold uppercase tracking-[0.14em] text-[color:var(--color-kinetic-copy)]">Current pair order</h4>
-        </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <button className="btn btn-ghost px-2 py-1 text-xs" onClick={onSavePairOrder} type="button">
-            Save pair order
-          </button>
-          <button className="btn btn-ghost px-2 py-1 text-xs" onClick={onLoadPairOrder} type="button">
-            Load pair order
-          </button>
-          <button
-            aria-label={buttonLabel}
-            className={`btn btn-ghost px-2 py-1 text-xs ${copySucceeded ? 'text-[color:var(--color-kinetic-success)]' : ''}`}
-            onClick={handleCopy}
-            title={buttonLabel}
-            type="button"
-          >
-            <span className="sr-only">{buttonLabel}</span>
-            <span aria-hidden="true">{copySucceeded ? 'OK' : 'CP'}</span>
-          </button>
-        </div>
+      <div className="mb-4">
+        <p className="hud-label">Preview</p>
+        <h4 className="mt-0.5 text-sm font-semibold uppercase tracking-[0.14em] text-[color:var(--color-kinetic-copy)]">Review auto-pair help and pair order</h4>
       </div>
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-[color:var(--color-kinetic-line)] pb-4">
-        <div className="max-w-2xl">
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section aria-label="Auto-pair helper" className="kinetic-panel p-4">
           <p className="hud-label">Auto-pair</p>
           <p className="mt-1 text-sm text-[color:var(--color-kinetic-muted)]">{autoPairMessage}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            className="btn btn-ghost px-2 py-1 text-xs"
-            disabled={!autoPairEnabled}
-            onClick={onAutoPairFromFileA}
-            type="button"
-          >
-            From File A
-          </button>
-          <button
-            className="btn btn-ghost px-2 py-1 text-xs"
-            disabled={!autoPairEnabled}
-            onClick={onAutoPairFromFileB}
-            type="button"
-          >
-            From File B
-          </button>
-        </div>
-      </div>
-      {pairs.length > 0 ? (
-        <div className="space-y-1 font-mono text-sm text-[color:var(--color-kinetic-copy)]">
-          {pairs.map((pair, index) => (
-            <div key={`${pair.columnA}-${pair.columnB}-${index}`} className="truncate" title={pair.displayText}>
-              {pair.displayText}
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <button
+              className="btn btn-ghost px-2 py-1 text-xs"
+              disabled={!autoPairEnabled}
+              onClick={onAutoPairFromFileA}
+              type="button"
+            >
+              From File A
+            </button>
+            <button
+              className="btn btn-ghost px-2 py-1 text-xs"
+              disabled={!autoPairEnabled}
+              onClick={onAutoPairFromFileB}
+              type="button"
+            >
+              From File B
+            </button>
+          </div>
+        </section>
+
+        <section aria-label="Pair order" className="kinetic-panel p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="hud-label">Pair order</p>
+              <p className="mt-1 text-sm text-[color:var(--color-kinetic-muted)]">Save, load, or copy the order you want to review.</p>
             </div>
-          ))}
-        </div>
-      ) : (
-        <p className="text-sm text-[color:var(--color-kinetic-muted)]">No pairs selected yet.</p>
-      )}
-      {hasMismatchedCounts && (
-        <p className="mt-3 text-sm text-[color:var(--color-kinetic-warning)]">
-          Select the same number of comparison columns in both files to run comparison.
-        </p>
-      )}
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <button className="btn btn-ghost px-2 py-1 text-xs" onClick={onSavePairOrder} type="button">
+                Save pair order
+              </button>
+              <button className="btn btn-ghost px-2 py-1 text-xs" onClick={onLoadPairOrder} type="button">
+                Load pair order
+              </button>
+              <button
+                aria-label={buttonLabel}
+                className={`btn btn-ghost px-2 py-1 text-xs ${copySucceeded ? 'text-[color:var(--color-kinetic-success)]' : ''}`}
+                onClick={handleCopy}
+                title={buttonLabel}
+                type="button"
+              >
+                <span className="sr-only">{buttonLabel}</span>
+                {copySucceeded ? (
+                  <ClipboardDocumentCheckIcon className="h-4 w-4" />
+                ) : (
+                  <ClipboardDocumentIcon className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 border-t border-[color:var(--color-kinetic-line)] pt-4">
+            {pairs.length > 0 ? (
+              <div className="space-y-1 font-mono text-sm text-[color:var(--color-kinetic-copy)]">
+                {pairs.map((pair, index) => (
+                  <div key={`${pair.columnA}-${pair.columnB}-${index}`} className="truncate" title={pair.displayText}>
+                    {pair.displayText}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-[color:var(--color-kinetic-muted)]">No pairs selected yet.</p>
+            )}
+            {hasMismatchedCounts && (
+              <p className="mt-3 text-sm text-[color:var(--color-kinetic-warning)]">
+                Select the same number of comparison columns in both files to run the comparison.
+              </p>
+            )}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

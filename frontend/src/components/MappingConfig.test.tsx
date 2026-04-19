@@ -38,31 +38,35 @@ function renderMappingConfig(normalization: ComparisonNormalizationConfig = INIT
 test('shows the simplified cleanup copy and labels', () => {
   renderMappingConfig();
 
-  expect(screen.getByRole('heading', { name: 'Cleanup before compare' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Comparison cleanup rules' })).toBeInTheDocument();
   expect(screen.getByLabelText('Treat blank cells as missing')).toBeInTheDocument();
-  expect(screen.getByText('Also treat these exact values as missing')).toBeInTheDocument();
-  expect(screen.getByLabelText('Match dates across different formats')).toBeInTheDocument();
-  expect(screen.getByText('Select the same number of key columns in both files to unlock auto-pair.')).toBeInTheDocument();
+  expect(screen.getByText('Also treat these values as missing')).toBeInTheDocument();
+  expect(screen.getByLabelText('Match dates written in different formats')).toBeInTheDocument();
+  expect(screen.getByText('Select the same number of row keys in both files to enable auto-pair.')).toBeInTheDocument();
 });
 
-test('shows save and load pair-order actions in the comparison preview', () => {
+test('shows save, load, and copy actions inside the pair-order box', () => {
   renderMappingConfig();
 
-  const comparisonSection = screen.getByRole('heading', { name: 'Comparison Columns' }).closest('section');
+  const comparisonSection = screen.getByRole('heading', { name: 'Choose columns to compare' }).closest('section');
+  const pairOrderBox = screen.getByLabelText('Pair order');
+  const autoPairBox = screen.getByLabelText('Auto-pair helper');
 
   expect(comparisonSection).not.toBeNull();
-  expect(within(comparisonSection as HTMLElement).getByRole('button', { name: 'Save pair order' })).toBeInTheDocument();
-  expect(within(comparisonSection as HTMLElement).getByRole('button', { name: 'Load pair order' })).toBeInTheDocument();
+  expect(within(pairOrderBox).getByRole('button', { name: 'Save pair order' })).toBeInTheDocument();
+  expect(within(pairOrderBox).getByRole('button', { name: 'Load pair order' })).toBeInTheDocument();
+  expect(within(pairOrderBox).getByRole('button', { name: 'Copy current pair order' })).toBeInTheDocument();
+  expect(within(autoPairBox).queryByRole('button', { name: 'Copy current pair order' })).not.toBeInTheDocument();
   expect(screen.queryByRole('heading', { name: 'Column pairing' })).not.toBeInTheDocument();
 });
 
 test('shows auto-pair controls in the comparison preview', () => {
   renderMappingConfig();
 
-  const comparisonSection = screen.getByRole('heading', { name: 'Comparison Columns' }).closest('section');
+  const comparisonSection = screen.getByRole('heading', { name: 'Choose columns to compare' }).closest('section');
 
   expect(comparisonSection).not.toBeNull();
-  expect(within(comparisonSection as HTMLElement).getByText('Select the same number of key columns in both files to unlock auto-pair.')).toBeInTheDocument();
+  expect(within(comparisonSection as HTMLElement).getByText('Select the same number of row keys in both files to enable auto-pair.')).toBeInTheDocument();
   expect(within(comparisonSection as HTMLElement).getByRole('button', { name: 'From File A' })).toBeInTheDocument();
   expect(within(comparisonSection as HTMLElement).getByRole('button', { name: 'From File B' })).toBeInTheDocument();
 });
@@ -112,15 +116,22 @@ test('copies the current pair order in the same displayed text format and shows 
   expect(screen.getByText('1 id → value')).toBeInTheDocument();
   expect(screen.getByText('2 name → id')).toBeInTheDocument();
 
-  const copyButton = screen.getByRole('button', { name: 'Copy current pair order' });
+  const pairOrderBox = screen.getByLabelText('Pair order');
+  const copyButton = within(pairOrderBox).getByRole('button', { name: 'Copy current pair order' });
   expect(copyButton).toHaveAttribute('title', 'Copy current pair order');
+  expect(copyButton.querySelector('svg')).not.toBeNull();
+  expect(within(copyButton).queryByText('CP')).not.toBeInTheDocument();
 
   fireEvent.click(copyButton);
 
   await waitFor(() => {
     expect(writeText).toHaveBeenCalledWith('1 id → value\n2 name → id');
-    expect(screen.getByRole('button', { name: 'Copied current pair order' })).toHaveClass('text-[color:var(--color-kinetic-success)]');
-    expect(screen.getByRole('button', { name: 'Copied current pair order' })).toHaveAttribute('title', 'Copied current pair order');
+    const copiedButton = within(pairOrderBox).getByRole('button', { name: 'Copied current pair order' });
+
+    expect(copiedButton).toHaveClass('text-[color:var(--color-kinetic-success)]');
+    expect(copiedButton).toHaveAttribute('title', 'Copied current pair order');
+    expect(copiedButton.querySelector('svg')).not.toBeNull();
+    expect(within(copiedButton).queryByText('OK')).not.toBeInTheDocument();
   });
 
   vi.unstubAllGlobals();
@@ -135,7 +146,7 @@ test('copies the empty-state text when no pairs are selected yet', async () => {
 
   renderMappingConfig();
 
-  fireEvent.click(screen.getByRole('button', { name: 'Copy current pair order' }));
+  fireEvent.click(within(screen.getByLabelText('Pair order')).getByRole('button', { name: 'Copy current pair order' }));
 
   await waitFor(() => {
     expect(writeText).toHaveBeenCalledWith('No pairs selected yet.');
@@ -174,7 +185,7 @@ test('copies the same whitespace-collapsed text shown in the pair preview', asyn
   expect(screen.getByText('1 full name → customer id')).toBeInTheDocument();
   expect(screen.getByText('2 zip code → postal code')).toBeInTheDocument();
 
-  fireEvent.click(screen.getByRole('button', { name: 'Copy current pair order' }));
+  fireEvent.click(within(screen.getByLabelText('Pair order')).getByRole('button', { name: 'Copy current pair order' }));
 
   await waitFor(() => {
     expect(writeText).toHaveBeenCalledWith('1 full name → customer id\n2 zip code → postal code');

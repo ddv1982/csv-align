@@ -526,7 +526,7 @@ export function useComparisonWorkflow() {
     if (!hasExplicitKeySelection) {
       dispatch({
         type: 'workflowError',
-        error: 'Select the same number of key columns in File A and File B before using auto-pair.',
+        error: 'Select the same number of row keys in File A and File B before using auto-pair.',
       });
       return;
     }
