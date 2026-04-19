@@ -131,14 +131,11 @@ jobs:
     if: needs.changes.outputs.run_full_ci == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
-          - os: macos-latest
-            target: aarch64-apple-darwin
-          - os: macos-latest
-            target: x86_64-apple-darwin
             
     steps:
       - name: Checkout repository
@@ -205,20 +202,4 @@ jobs:
           path: |
             src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/*.deb
             src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage
-          retention-days: 7
-
-      - name: Upload artifacts (macOS ARM)
-        if: matrix.os == 'macos-latest' && matrix.target == 'aarch64-apple-darwin'
-        uses: actions/upload-artifact@v4
-        with:
-          name: csv-align-macos-arm64
-          path: src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
-          retention-days: 7
-
-      - name: Upload artifacts (macOS Intel)
-        if: matrix.os == 'macos-latest' && matrix.target == 'x86_64-apple-darwin'
-        uses: actions/upload-artifact@v4
-        with:
-          name: csv-align-macos-x86_64
-          path: src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
           retention-days: 7
