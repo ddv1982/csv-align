@@ -13,28 +13,6 @@
 
 @layer base {
   html {
-    --color-kinetic-bg: #f4f7fb;
-    --color-kinetic-panel: #ffffff;
-    --color-kinetic-panel-2: #eef3f9;
-    --color-kinetic-line: rgba(69, 86, 107, 0.18);
-    --color-kinetic-line-strong: rgba(45, 62, 84, 0.34);
-    --color-kinetic-copy: #132033;
-    --color-kinetic-muted: #5c6f87;
-    --color-kinetic-accent: #0b7fa3;
-    --color-kinetic-accent-2: #b97810;
-    --color-kinetic-danger: #c24747;
-    --color-kinetic-success: #18704c;
-    --color-kinetic-warning: #b56d10;
-    --color-kinetic-header: rgba(244, 247, 251, 0.9);
-    --color-kinetic-overlay: rgba(19, 32, 51, 0.04);
-    --color-kinetic-overlay-strong: rgba(19, 32, 51, 0.07);
-    --color-kinetic-grid: rgba(19, 32, 51, 0.045);
-    font-family: var(--font-sans);
-    color-scheme: light;
-    background: var(--color-kinetic-bg);
-  }
-
-  html.dark {
     --color-kinetic-bg: #050505;
     --color-kinetic-panel: #0b0f14;
     --color-kinetic-panel-2: #11161d;
@@ -51,7 +29,9 @@
     --color-kinetic-overlay: rgba(255, 255, 255, 0.03);
     --color-kinetic-overlay-strong: rgba(255, 255, 255, 0.06);
     --color-kinetic-grid: rgba(255, 255, 255, 0.03);
+    font-family: var(--font-sans);
     color-scheme: dark;
+    background: var(--color-kinetic-bg);
   }
 
   body {

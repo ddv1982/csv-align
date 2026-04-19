@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { ArrowRightIcon, MoonIcon, SunIcon } from '../icons';
-import { useThemePreference } from '../../hooks/useThemePreference';
+import { ArrowRightIcon } from '../icons';
 import { openNewAppWindow } from '../../services/appWindows';
 
 interface AppHeaderProps {
@@ -9,7 +8,6 @@ interface AppHeaderProps {
 
 export function AppHeader({ onReset }: AppHeaderProps) {
   const [openWindowError, setOpenWindowError] = useState<string | null>(null);
-  const { theme, toggleTheme } = useThemePreference();
 
   async function handleOpenNewWindow() {
     try {
@@ -25,9 +23,6 @@ export function AppHeader({ onReset }: AppHeaderProps) {
       <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[color:var(--color-kinetic-line-strong)] bg-[color:var(--color-kinetic-panel)] font-mono text-sm uppercase tracking-[0.18em] text-[color:var(--color-kinetic-accent)] shadow-sm">
-              CA
-            </div>
             <div className="min-w-0">
               <h1 className="display-title truncate text-3xl text-[color:var(--color-kinetic-copy)] sm:text-[2.2rem]">
                 <span className="kinetic-stroke">CSV</span> ALIGN
@@ -40,17 +35,6 @@ export function AppHeader({ onReset }: AppHeaderProps) {
 
           <div className="flex flex-wrap items-center gap-2 lg:justify-end">
             <div className="kinetic-utility-cluster">
-              <button
-                onClick={toggleTheme}
-                className="btn btn-ghost min-w-[6.5rem]"
-                type="button"
-                aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-                title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-              >
-                {theme === 'dark' ? <MoonIcon className="h-4 w-4" /> : <SunIcon className="h-4 w-4" />}
-                {theme === 'dark' ? 'Dark' : 'Light'}
-              </button>
-
               <button
                 onClick={() => void handleOpenNewWindow()}
                 className="btn btn-ghost"

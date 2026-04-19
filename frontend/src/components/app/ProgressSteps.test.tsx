@@ -35,3 +35,17 @@ test('navigates only for unlocked non-active steps', () => {
   expect(onStepChange).toHaveBeenCalledWith('configure');
   expect(screen.queryByRole('button', { name: 'Go to step 3: Results' })).not.toBeInTheDocument();
 });
+
+test('keeps step labels left-aligned for active and navigable steps', () => {
+  render(
+    <ProgressSteps
+      step="configure"
+      unlockedSteps={['select', 'configure', 'results']}
+      onStepChange={vi.fn()}
+    />,
+  );
+
+  expect(screen.getByText('Stage 1').parentElement).toHaveClass('text-left');
+  expect(screen.getByText('Stage 2').parentElement).toHaveClass('text-left');
+  expect(screen.getByText('Stage 3').parentElement).toHaveClass('text-left');
+});

@@ -3,13 +3,20 @@ import { useEffect, useState } from 'react';
 interface PairPreviewProps {
   comparisonColumnsA: string[];
   comparisonColumnsB: string[];
+  onSavePairOrder: () => void;
+  onLoadPairOrder: () => void;
 }
 
 function normalizeVisibleText(value: string) {
   return value.replace(/\s+/g, ' ').trim();
 }
 
-export function PairPreview({ comparisonColumnsA, comparisonColumnsB }: PairPreviewProps) {
+export function PairPreview({
+  comparisonColumnsA,
+  comparisonColumnsB,
+  onSavePairOrder,
+  onLoadPairOrder,
+}: PairPreviewProps) {
   const [copySucceeded, setCopySucceeded] = useState(false);
   const pairs = comparisonColumnsA
     .slice(0, comparisonColumnsB.length)
@@ -56,16 +63,24 @@ export function PairPreview({ comparisonColumnsA, comparisonColumnsB }: PairPrev
           <p className="hud-label">Preview</p>
           <h4 className="mt-0.5 text-sm font-semibold uppercase tracking-[0.14em] text-[color:var(--color-kinetic-copy)]">Current pair order</h4>
         </div>
-        <button
-          aria-label={buttonLabel}
-          className={`btn btn-ghost px-2 py-1 text-xs ${copySucceeded ? 'text-[color:var(--color-kinetic-success)]' : ''}`}
-          onClick={handleCopy}
-          title={buttonLabel}
-          type="button"
-        >
-          <span className="sr-only">{buttonLabel}</span>
-          <span aria-hidden="true">{copySucceeded ? 'OK' : 'CP'}</span>
-        </button>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <button className="btn btn-ghost px-2 py-1 text-xs" onClick={onSavePairOrder} type="button">
+            Save pair order
+          </button>
+          <button className="btn btn-ghost px-2 py-1 text-xs" onClick={onLoadPairOrder} type="button">
+            Load pair order
+          </button>
+          <button
+            aria-label={buttonLabel}
+            className={`btn btn-ghost px-2 py-1 text-xs ${copySucceeded ? 'text-[color:var(--color-kinetic-success)]' : ''}`}
+            onClick={handleCopy}
+            title={buttonLabel}
+            type="button"
+          >
+            <span className="sr-only">{buttonLabel}</span>
+            <span aria-hidden="true">{copySucceeded ? 'OK' : 'CP'}</span>
+          </button>
+        </div>
       </div>
       {pairs.length > 0 ? (
         <div className="space-y-1 font-mono text-sm text-[color:var(--color-kinetic-copy)]">

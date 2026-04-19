@@ -43,7 +43,7 @@ export function ProgressSteps({ step, unlockedSteps, onStepChange }: ProgressSte
           const commonContent = (
             <>
               <span className={badgeClasses}>{currentStep.number}</span>
-              <span className="ml-3">
+              <span className="ml-3 text-left">
                 <span className="hud-label block">Stage {currentStep.number}</span>
                 <span className="block text-sm font-medium uppercase tracking-[0.14em]">{currentStep.label}</span>
               </span>

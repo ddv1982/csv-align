@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.3 - 2026-04-19
+
+- Finalized the shipped KINETIC shell as a dark-only experience by removing the theme toggle and light palette path, dropping the legacy header CA badge, and tightening the configure header and file overview chrome so the workflow stays focused on comparison setup.
+- Cleaned up pair-order setup by moving save/load actions into the Current pair order preview, simplifying the auto-pair panel copy, and stabilizing the progress stepper labels with left-aligned text while preserving the same direct step navigation behavior.
+
 ## v2.1.2 - 2026-04-19
 
 - Tightened the KINETIC follow-up polish with lighter theme copy, cleaner results and configure card treatment, and a more direct stepper so the workflow reads faster without changing the comparison engine or saved-data contracts.

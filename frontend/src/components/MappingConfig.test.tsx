@@ -39,12 +39,26 @@ test('shows the simplified cleanup copy and labels', () => {
   renderMappingConfig();
 
   expect(screen.getByRole('heading', { name: 'Column pairing' })).toBeInTheDocument();
-  expect(screen.getByText('Set row keys first, then build the comparison pairs manually or from either file as the lead order.')).toBeInTheDocument();
+  expect(screen.getByText('Use matching row keys to unlock auto-pair from either file.')).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Cleanup before compare' })).toBeInTheDocument();
   expect(screen.getByLabelText('Treat blank cells as missing')).toBeInTheDocument();
   expect(screen.getByText('Also treat these exact values as missing')).toBeInTheDocument();
   expect(screen.getByLabelText('Match dates across different formats')).toBeInTheDocument();
   expect(screen.getByText('Select the same number of key columns in both files to unlock auto-pair.')).toBeInTheDocument();
+});
+
+test('shows save and load pair-order actions in the comparison preview', () => {
+  renderMappingConfig();
+
+  const comparisonSection = screen.getByRole('heading', { name: 'Comparison Columns' }).closest('section');
+  const pairingSection = screen.getByRole('heading', { name: 'Column pairing' }).closest('section');
+
+  expect(comparisonSection).not.toBeNull();
+  expect(pairingSection).not.toBeNull();
+  expect(within(comparisonSection as HTMLElement).getByRole('button', { name: 'Save pair order' })).toBeInTheDocument();
+  expect(within(comparisonSection as HTMLElement).getByRole('button', { name: 'Load pair order' })).toBeInTheDocument();
+  expect(within(pairingSection as HTMLElement).queryByRole('button', { name: 'Save pair order' })).not.toBeInTheDocument();
+  expect(within(pairingSection as HTMLElement).queryByRole('button', { name: 'Load pair order' })).not.toBeInTheDocument();
 });
 
 test('keeps advanced date controls collapsed by default and lets users reveal them', () => {

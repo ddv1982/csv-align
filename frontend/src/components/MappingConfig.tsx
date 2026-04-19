@@ -121,42 +121,31 @@ export function MappingConfig({
       <SectionCard
         eyebrow="Pairing"
         title="Column pairing"
-        description="Set row keys first, then build the comparison pairs manually or from either file as the lead order."
+        description="Use matching row keys to unlock auto-pair from either file."
         headingLevel="h3"
         className="p-6"
         icon={<ArrowsRightLeftIcon className="h-5 w-5" />}
       >
         <div className="space-y-4">
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
-            <div className="kinetic-panel p-4">
-              <p className="hud-label">Auto-pair</p>
-              <p className="mt-1 text-sm text-[color:var(--color-kinetic-muted)]">{autoPairMessage}</p>
-              <div className="mt-3 flex flex-wrap gap-3">
-                <button
-                  onClick={() => onAutoPairComparisonColumns('a')}
-                  disabled={!hasValidAutoPairKeySelection}
-                  className="btn btn-ghost"
-                  type="button"
-                >
-                  From File A
-                </button>
-                <button
-                  onClick={() => onAutoPairComparisonColumns('b')}
-                  disabled={!hasValidAutoPairKeySelection}
-                  className="btn btn-ghost"
-                  type="button"
-                >
-                  From File B
-                </button>
-              </div>
-            </div>
-
-            <div className="kinetic-utility-cluster">
-              <button onClick={onSavePairOrder} className="btn btn-ghost" type="button">
-                Save pair order
+          <div className="kinetic-panel p-4">
+            <p className="hud-label">Auto-pair</p>
+            <p className="mt-1 text-sm text-[color:var(--color-kinetic-muted)]">{autoPairMessage}</p>
+            <div className="mt-3 flex flex-wrap gap-3">
+              <button
+                onClick={() => onAutoPairComparisonColumns('a')}
+                disabled={!hasValidAutoPairKeySelection}
+                className="btn btn-ghost"
+                type="button"
+              >
+                From File A
               </button>
-              <button onClick={handleLoadButtonClick} className="btn btn-ghost" type="button">
-                Load pair order
+              <button
+                onClick={() => onAutoPairComparisonColumns('b')}
+                disabled={!hasValidAutoPairKeySelection}
+                className="btn btn-ghost"
+                type="button"
+              >
+                From File B
               </button>
             </div>
           </div>
@@ -200,7 +189,7 @@ export function MappingConfig({
       <SectionCard
         eyebrow="Comparison"
         title="Comparison Columns"
-        description="Choose the value columns to compare, in the exact left-to-right order you want reviewed."
+        description="Choose the value columns to compare, then save, load, or copy the exact review order."
         icon={<TableCellsIcon className="h-5 w-5" />}
       >
         <div className="grid gap-6 md:grid-cols-2">
@@ -218,7 +207,12 @@ export function MappingConfig({
           />
         </div>
 
-        <PairPreview comparisonColumnsA={comparisonColumnsA} comparisonColumnsB={comparisonColumnsB} />
+        <PairPreview
+          comparisonColumnsA={comparisonColumnsA}
+          comparisonColumnsB={comparisonColumnsB}
+          onSavePairOrder={onSavePairOrder}
+          onLoadPairOrder={handleLoadButtonClick}
+        />
       </SectionCard>
 
       <div className="flex justify-center">

@@ -27,7 +27,6 @@ async function renderHeader(options?: {
 
 afterEach(() => {
   cleanup();
-  window.localStorage?.removeItem?.('csv-align-theme');
   document.documentElement.classList.remove('dark');
   document.documentElement.style.colorScheme = '';
   vi.resetModules();
@@ -64,13 +63,15 @@ test('adds a descriptive tooltip to the new window action', async () => {
   expect(screen.getByRole('button', { name: 'New window' })).toHaveAttribute('title', 'Open CSV Align in a new window');
 });
 
-test('toggles between dark and light theme labels', async () => {
+test('does not render a theme toggle', async () => {
   await renderHeader();
 
-  const themeButton = screen.getByRole('button', { name: 'Switch to light mode' });
-  expect(themeButton).toHaveTextContent('Dark');
+  expect(screen.queryByRole('button', { name: /switch to .* mode/i })).not.toBeInTheDocument();
+});
 
-  fireEvent.click(themeButton);
+test('does not render the legacy CA header badge', async () => {
+  await renderHeader();
 
-  expect(screen.getByRole('button', { name: 'Switch to dark mode' })).toHaveTextContent('Light');
+  expect(screen.queryByText(/^CA$/)).not.toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: /csv align/i })).toBeInTheDocument();
 });
