@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -54,16 +54,12 @@ pub fn load_pair_order_workflow(
 
     let (headers_a, headers_b) = session_headers(session_data)?;
 
-    if !same_header_names(&persisted.headers_a, headers_a) {
-        return Err(CsvAlignError::BadInput(
-            "Saved pair order does not match the currently loaded File A columns".to_string(),
-        ));
+    if let Some(message) = header_mismatch_message("File A", &persisted.headers_a, headers_a) {
+        return Err(CsvAlignError::BadInput(message));
     }
 
-    if !same_header_names(&persisted.headers_b, headers_b) {
-        return Err(CsvAlignError::BadInput(
-            "Saved pair order does not match the currently loaded File B columns".to_string(),
-        ));
+    if let Some(message) = header_mismatch_message("File B", &persisted.headers_b, headers_b) {
+        return Err(CsvAlignError::BadInput(message));
     }
 
     validate_selection(headers_a, headers_b, &persisted.selection)?;
@@ -89,8 +85,7 @@ fn validate_pair_order_version(contents: &str) -> Result<(), CsvAlignError> {
 
     if version != u64::from(PAIR_ORDER_FILE_VERSION) {
         return Err(CsvAlignError::BadInput(format!(
-            "Unsupported pair-order file version {}",
-            version
+            "Unsupported pair-order file version {version}"
         )));
     }
 
@@ -166,12 +161,61 @@ fn saved_selection_validation_error(error: CompareValidationError) -> CsvAlignEr
     }
 }
 
-fn same_header_names(saved_headers: &[String], current_headers: &[String]) -> bool {
-    header_name_counts(saved_headers) == header_name_counts(current_headers)
+fn header_mismatch_message(
+    file_label: &str,
+    saved_headers: &[String],
+    current_headers: &[String],
+) -> Option<String> {
+    let missing_from_saved = header_count_difference(current_headers, saved_headers);
+    let unexpected_in_saved = header_count_difference(saved_headers, current_headers);
+
+    if missing_from_saved.is_empty() && unexpected_in_saved.is_empty() {
+        return None;
+    }
+
+    let mut details = Vec::new();
+
+    if !missing_from_saved.is_empty() {
+        details.push(format!(
+            "missing from saved: {}",
+            missing_from_saved.join(", ")
+        ));
+    }
+
+    if !unexpected_in_saved.is_empty() {
+        details.push(format!(
+            "unexpected in saved: {}",
+            unexpected_in_saved.join(", ")
+        ));
+    }
+
+    Some(format!(
+        "Saved pair order does not match the currently loaded {file_label} columns: {}",
+        details.join("; ")
+    ))
 }
 
-fn header_name_counts(headers: &[String]) -> HashMap<&str, usize> {
-    let mut counts = HashMap::new();
+fn header_count_difference(expected_headers: &[String], actual_headers: &[String]) -> Vec<String> {
+    let expected_counts = header_name_counts(expected_headers);
+    let actual_counts = header_name_counts(actual_headers);
+    let mut differences = Vec::new();
+
+    for (header, expected_count) in expected_counts {
+        let actual_count = actual_counts.get(header).copied().unwrap_or_default();
+        let missing_count = expected_count.saturating_sub(actual_count);
+
+        if missing_count == 1 {
+            differences.push(header.to_string());
+        } else if missing_count > 1 {
+            differences.push(format!("{header} (x{missing_count})"));
+        }
+    }
+
+    differences
+}
+
+fn header_name_counts(headers: &[String]) -> BTreeMap<&str, usize> {
+    let mut counts = BTreeMap::new();
 
     for header in headers {
         *counts.entry(header.as_str()).or_default() += 1;

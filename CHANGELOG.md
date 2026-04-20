@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.16 - 2026-04-20
+
+- Added richer pair-order load diagnostics so invalid imports now explain the concrete File A and File B column mismatches instead of failing with less specific feedback.
+- Prepared the v2.1.16 patch release by synchronizing version metadata across the Rust crates, desktop bundle config, frontend package manifests, and lockfiles before rerunning the documented broad validation workflow.
+
 ## v2.1.15 - 2026-04-20
 
 - Fixed the step-1 drag-and-drop flow so desktop Tauri file drops now activate only when they land inside the intended selector and still preserve the dropped CSV basename correctly across browser, macOS, and Windows-style paths.

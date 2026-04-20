@@ -411,6 +411,42 @@ fn load_pair_order_rejects_unknown_version_before_full_deserialize() {
 }
 
 #[test]
+fn load_pair_order_reports_concrete_file_a_header_mismatches() {
+    let session = SessionData {
+        csv_a: Some(Arc::new(
+            csv_loader::load_csv_from_bytes(b"id,name,value\n1,Alice,10\n").unwrap(),
+        )),
+        csv_b: Some(Arc::new(
+            csv_loader::load_csv_from_bytes(b"id,full_name,amount\n1,Alice,10\n").unwrap(),
+        )),
+        ..SessionData::new()
+    };
+
+    let error = load_pair_order_workflow(
+        &session,
+        &serde_json::json!({
+            "version": 1,
+            "headers_a": ["id", "name", "old_value"],
+            "headers_b": ["id", "full_name", "amount"],
+            "selection": {
+                "key_columns_a": ["id"],
+                "key_columns_b": ["id"],
+                "comparison_columns_a": ["name", "old_value"],
+                "comparison_columns_b": ["full_name", "amount"]
+            }
+        })
+        .to_string(),
+    )
+    .unwrap_err();
+
+    assert!(matches!(error, CsvAlignError::BadInput(_)));
+    assert_eq!(
+        error.to_string(),
+        "Saved pair order does not match the currently loaded File A columns: missing from saved: value; unexpected in saved: old_value"
+    );
+}
+
+#[test]
 fn comparison_snapshot_round_trips_saved_results_and_hydrates_session() {
     let session = prepared_snapshot_session();
 

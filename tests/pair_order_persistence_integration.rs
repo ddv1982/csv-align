@@ -121,7 +121,7 @@ async fn pair_order_persistence_rejects_saved_data_for_different_loaded_files() 
     let json = response_json(load_response).await;
     assert_eq!(
         json["error"],
-        "Saved pair order does not match the currently loaded File B columns"
+        "Saved pair order does not match the currently loaded File B columns: missing from saved: amount; unexpected in saved: other_amount"
     );
 }
 
