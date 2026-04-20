@@ -158,14 +158,16 @@ export function buildResultsHtmlDocument(params: {
 }): string {
   const exportDocument = buildHtmlExportDocument(params);
   const serializedData = escapeJsonForHtml(exportDocument);
-  const title = escapeHtmlText(`${params.fileAName} vs ${params.fileBName} comparison results`);
+  const documentTitle = escapeHtmlText(`${params.fileAName} vs ${params.fileBName} comparison results`);
+  const fileAName = escapeHtmlText(params.fileAName);
+  const fileBName = escapeHtmlText(params.fileBName);
 
   return `<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>${title}</title>
+    <title>${documentTitle}</title>
     <style>
       :root {
         color-scheme: dark;
@@ -180,6 +182,10 @@ export function buildResultsHtmlDocument(params: {
         --line-strong: rgba(198, 220, 242, 0.36);
         --accent: #06b6d4;
         --accent-2: #bef264;
+        --success: #6cffbe;
+        --success-bg: rgba(108, 255, 190, 0.1);
+        --danger: #ff8a8a;
+        --danger-bg: rgba(255, 138, 138, 0.1);
         --match: #6cffbe;
         --match-bg: rgba(108, 255, 190, 0.08);
         --mismatch: #ffb86e;
@@ -285,6 +291,41 @@ export function buildResultsHtmlDocument(params: {
 
       .hero-copy {
         max-width: 60rem;
+      }
+
+      .hero-context {
+        display: grid;
+        gap: 8px;
+        margin-top: 14px;
+      }
+
+      .hero-files {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .hero-file {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        border: 1px solid var(--line);
+        background: var(--overlay);
+        padding: 8px 10px;
+        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
+        font-size: 12px;
+      }
+
+      .hero-file-label {
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        flex: 0 0 auto;
+      }
+
+      .hero-file-name {
+        overflow-wrap: anywhere;
       }
 
       .summary-grid {
@@ -528,39 +569,152 @@ export function buildResultsHtmlDocument(params: {
         padding: 16px;
       }
 
-      .diff-panel h3 {
-        font-size: 14px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--muted);
+      .diff-panel-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
         margin-bottom: 12px;
+      }
+
+      .diff-panel-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border: 1px solid var(--accent);
+        background: rgba(6, 182, 212, 0.14);
+        color: var(--text);
+        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .diff-panel-title {
+        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--text);
+      }
+
+      .diff-panel-count {
+        margin-left: auto;
+        color: var(--muted);
+        font-size: 12px;
       }
 
       .diff-grid {
         display: grid;
         gap: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       }
 
-      .diff-item {
+      .diff-card {
         border: 1px solid var(--line);
         padding: 14px;
         background: rgba(26, 31, 36, 0.82);
       }
 
-      .diff-item header {
+      .diff-card-header {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
+        align-items: flex-start;
         color: var(--muted);
         font-size: 12px;
         margin-bottom: 10px;
       }
 
+      .diff-column-chip {
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+        border: 1px solid var(--line);
+        background: var(--overlay);
+        padding: 6px 10px;
+        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
+        font-size: 13px;
+        overflow-wrap: anywhere;
+      }
+
+      .diff-arrow-box {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border: 1px solid var(--line);
+        background: rgba(9, 9, 9, 0.92);
+        color: var(--muted);
+        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
+        font-size: 11px;
+        flex: 0 0 auto;
+      }
+
       .diff-values {
         display: grid;
         grid-template-columns: minmax(0, 1fr) min-content minmax(0, 1fr);
-        gap: 10px;
+        gap: 8px;
         align-items: start;
+      }
+
+      .diff-value-label {
+        display: block;
+        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+      }
+
+      .diff-value-label.file-a {
+        color: var(--danger);
+      }
+
+      .diff-value-label.file-b {
+        color: var(--success);
+      }
+
+      .diff-value-box {
+        display: block;
+        border: 1px solid var(--line);
+        padding: 10px;
+        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
+        font-size: 13px;
+        background: rgba(9, 9, 9, 0.92);
+        overflow-wrap: anywhere;
+        min-height: 42px;
+      }
+
+      .diff-value-box.file-a {
+        border-color: rgba(255, 138, 138, 0.28);
+        background: var(--danger-bg);
+      }
+
+      .diff-value-box.file-b {
+        border-color: rgba(108, 255, 190, 0.28);
+        background: var(--success-bg);
+      }
+
+      .diff-values-arrow {
+        align-self: center;
+      }
+
+      .diff-empty {
+        color: var(--muted);
+        font-style: italic;
+      }
+
+      .result-description {
+        color: var(--muted);
+      }
+
+      .diff-values-arrow {
+        color: var(--muted);
       }
 
       .diff-values strong {
@@ -568,17 +722,7 @@ export function buildResultsHtmlDocument(params: {
         font-size: 11px;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: var(--muted);
         margin-bottom: 6px;
-      }
-
-      .diff-values span {
-        display: block;
-        border: 1px solid var(--line);
-        padding: 10px;
-        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
-        background: rgba(9, 9, 9, 0.92);
-        overflow-wrap: anywhere;
       }
 
       .empty-state {
@@ -607,6 +751,7 @@ export function buildResultsHtmlDocument(params: {
         .hero, .controls { padding: 16px; }
         .controls-head, .table-header { flex-direction: column; }
         .search { width: 100%; }
+        .diff-grid { grid-template-columns: 1fr; }
       }
     </style>
   </head>
@@ -614,8 +759,14 @@ export function buildResultsHtmlDocument(params: {
     <div class="shell stack">
       <section class="card hero">
         <span class="eyebrow">Saved comparison review</span>
-        <h1>${title}</h1>
+        <h1>Comparison results</h1>
         <p class="hero-copy">Standalone HTML export of the current comparison results with the same result buckets, sortable review table, and kinetic dark review surface as the app.</p>
+        <div class="hero-context">
+          <div class="hero-files" aria-label="Compared files">
+            <span class="hero-file"><span class="hero-file-label">File A</span><span class="hero-file-name">${fileAName}</span></span>
+            <span class="hero-file"><span class="hero-file-label">File B</span><span class="hero-file-name">${fileBName}</span></span>
+          </div>
+        </div>
         <div class="summary-grid">
           <div class="summary-item"><span>File A rows</span><strong id="summary-total-a"></strong></div>
           <div class="summary-item"><span>File B rows</span><strong id="summary-total-b"></strong></div>
@@ -746,15 +897,15 @@ export function buildResultsHtmlDocument(params: {
           return '';
         }
 
-        return '<tr class="details-row"><td colspan="5"><div class="diff-panel"><h3>Value Differences</h3><div class="diff-grid">' + row.differences.map((diff) => (
-          '<article class="diff-item">'
-            + '<header><span class="chip">' + escapeHtml(diff.column_a) + '</span>'
-            + (diff.column_a === diff.column_b ? '' : '<span style="align-self:center;">-&gt;</span><span class="chip">' + escapeHtml(diff.column_b) + '</span>')
+        return '<tr class="details-row"><td colspan="5"><div class="diff-panel"><div class="diff-panel-header"><span class="diff-panel-icon">+</span><span class="diff-panel-title">Value Differences</span><span class="diff-panel-count">' + row.differences.length + ' field' + (row.differences.length === 1 ? '' : 's') + '</span></div><div class="diff-grid">' + row.differences.map((diff) => (
+          '<article class="diff-card">'
+            + '<header class="diff-card-header"><span class="diff-column-chip">' + escapeHtml(diff.column_a) + '</span>'
+            + (diff.column_a === diff.column_b ? '' : '<span class="diff-arrow-box">-&gt;</span><span class="diff-column-chip">' + escapeHtml(diff.column_b) + '</span>')
             + '</header>'
             + '<div class="diff-values">'
-            + '<div><strong>File A</strong><span>' + escapeHtml(diff.value_a) + '</span></div>'
-            + '<div style="align-self:center;">-&gt;</div>'
-            + '<div><strong>File B</strong><span>' + escapeHtml(diff.value_b) + '</span></div>'
+            + '<div><span class="diff-value-label file-a">File A</span><span class="diff-value-box file-a" title="' + escapeHtml(diff.value_a) + '">' + (diff.value_a === '' ? '<span class="diff-empty">-</span>' : escapeHtml(diff.value_a)) + '</span></div>'
+            + '<div class="diff-values-arrow"><span class="diff-arrow-box">-&gt;</span></div>'
+            + '<div><span class="diff-value-label file-b">File B</span><span class="diff-value-box file-b" title="' + escapeHtml(diff.value_b) + '">' + (diff.value_b === '' ? '<span class="diff-empty">-</span>' : escapeHtml(diff.value_b)) + '</span></div>'
             + '</div>'
             + '</article>'
         )).join('') + '</div></div></td></tr>';
@@ -810,7 +961,7 @@ export function buildResultsHtmlDocument(params: {
         resultsBody.innerHTML = visibleRows.map((row) => {
           const detailCell = row.detailsCount > 0
             ? '<button type="button" class="diff-toggle" data-expand-row="' + row.id + '" aria-expanded="' + (state.expandedRow === row.id ? 'true' : 'false') + '">' + row.detailsCount + ' diff' + (row.detailsCount === 1 ? '' : 's') + '</button>'
-            : '<span>' + escapeHtml(row.description || '-') + '</span>';
+            : '<span class="result-description">' + escapeHtml(row.description || '-') + '</span>';
 
           return '<tr>'
             + '<td><span class="badge tone-' + row.badgeTone + '"><span class="badge-dot"></span>' + escapeHtml(row.badgeLabel) + '</span></td>'

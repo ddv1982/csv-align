@@ -62,14 +62,28 @@ test('buildResultsHtmlDocument embeds the current comparison view state for stan
   });
 
   expect(html).toContain('<!DOCTYPE html>');
+  expect(html).toContain('<title>left.csv vs right.csv comparison results</title>');
+  expect(html).toContain('<h1>Comparison results</h1>');
   expect(html).toContain('left.csv vs right.csv comparison results');
+  expect(html).toContain('aria-label="Compared files"');
+  expect(html).toContain('class="hero-file-label">File A</span><span class="hero-file-name">left.csv</span>');
+  expect(html).toContain('class="hero-file-label">File B</span><span class="hero-file-name">right.csv</span>');
   expect(html).toContain('"initialFilter":"duplicate"');
   expect(html).toContain('"label":"Duplicates","count":1');
   expect(html).toContain('"badgeLabel":"Mismatch"');
   expect(html).toContain('"description":"Multiple File A rows share this selected key."');
   expect(html).toContain('data-sort-column="details"');
   expect(html).toContain('data-expand-row=');
+  expect(html).toContain('diff-panel-title">Value Differences</span>');
+  expect(html).toContain('diff-panel-count">\' + row.differences.length + \'' );
+  expect(html).toContain('class="diff-column-chip">\' + escapeHtml(diff.column_a) + \'' );
+  expect(html).toContain('class="diff-arrow-box">-&gt;</span><span class="diff-column-chip">\' + escapeHtml(diff.column_b) + \'' );
+  expect(html).toContain('class="diff-value-label file-a">File A</span>');
+  expect(html).toContain('class="diff-value-box file-b"');
   expect(html).toContain('color-scheme: dark;');
   expect(html).toContain('--bg: #050505;');
+  expect(html).toContain('--success: #6cffbe;');
+  expect(html).toContain('.hero-file-name');
+  expect(html).toContain('.diff-card');
   expect(html).toContain('kinetic dark review surface as the app');
 });

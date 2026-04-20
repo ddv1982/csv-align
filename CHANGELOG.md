@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.19 - 2026-04-20
+
+- Refined the standalone HTML export presentation so saved reports now show a clearer comparison-results header with explicit File A and File B names and a more polished Value Differences card layout that better matches the in-app review surface.
+- Prepared the v2.1.19 patch release by synchronizing version metadata across the Rust crates, desktop bundle config, frontend package manifests, and lockfiles before rerunning the documented broad validation workflow.
+
 ## v2.1.18 - 2026-04-20
 
 - Fixed the standalone HTML export styling so value-difference layouts now match the in-app results presentation more closely, keeping exported comparison reports easier to scan outside the app.
