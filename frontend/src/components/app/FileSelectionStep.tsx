@@ -1,12 +1,12 @@
 import { FileSelector } from '../FileSelector';
-import type { AppFile } from '../../types/ui';
+import type { AppFile, SelectedFileSource } from '../../types/ui';
 import { LoadResultButton } from '../ui/LoadResultButton';
 import { NavButton } from '../ui/NavButton';
 
 interface FileSelectionStepProps {
   fileA: AppFile | null;
   fileB: AppFile | null;
-  onFileSelect: (file: File, fileLetter: 'a' | 'b') => void;
+  onFileSelect: (file: SelectedFileSource, fileLetter: 'a' | 'b') => void;
   onLoadResult: (file?: File) => void;
   onContinue: () => void;
 }

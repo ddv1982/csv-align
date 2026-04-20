@@ -82,12 +82,12 @@ beforeEach(() => {
 
   createSessionMock.mockResolvedValue({ session_id: 'session-1' });
   deleteSessionMock.mockResolvedValue(undefined);
-  loadFileMock.mockImplementation(async (_sessionId: string, file: File) => ({
+  loadFileMock.mockImplementation(async (_sessionId: string, file: File | string) => ({
     success: true,
-    file_letter: file.name === FILE_A.name ? 'a' : 'b',
+    file_letter: typeof file !== 'string' && file.name === FILE_A.name ? 'a' : 'b',
     headers: ['id', 'name'],
     columns: FILE_COLUMNS,
-    row_count: file.name === FILE_A.name ? 2 : 3,
+    row_count: typeof file !== 'string' && file.name === FILE_A.name ? 2 : 3,
   }));
   compareFilesMock.mockResolvedValue({
     success: true,
@@ -185,6 +185,62 @@ test('bootstraps a session and advances to configure after both files load', asy
   });
   expect(result.current.mappingSelection).toEqual(INITIAL_MAPPING_SELECTION);
   expect(result.current.normalizationConfig).toEqual(INITIAL_NORMALIZATION_CONFIG);
+});
+
+test('uses the basename when step 1 loads a Tauri file path', async () => {
+  const tauriFilePath = '/Users/vriesd/Desktop/from-drop.csv';
+  loadFileMock.mockResolvedValueOnce({
+    success: true,
+    file_letter: 'a',
+    headers: ['id', 'name'],
+    columns: FILE_COLUMNS,
+    row_count: 4,
+  });
+
+  const { result } = renderHook(() => useComparisonWorkflow());
+
+  await waitFor(() => {
+    expect(result.current.state.sessionId).toBe('session-1');
+  });
+
+  await act(async () => {
+    await result.current.handleFileSelection(tauriFilePath, 'a');
+  });
+
+  expect(loadFileMock).toHaveBeenCalledWith('session-1', tauriFilePath, 'a');
+  expect(result.current.state.fileA).toMatchObject({
+    name: 'from-drop.csv',
+    headers: ['id', 'name'],
+    rowCount: 4,
+  });
+});
+
+test('uses the basename when step 1 loads a Windows-style Tauri file path', async () => {
+  const tauriFilePath = 'C:\\Users\\vriesd\\Desktop\\from-drop.csv';
+  loadFileMock.mockResolvedValueOnce({
+    success: true,
+    file_letter: 'b',
+    headers: ['id', 'name'],
+    columns: FILE_COLUMNS,
+    row_count: 5,
+  });
+
+  const { result } = renderHook(() => useComparisonWorkflow());
+
+  await waitFor(() => {
+    expect(result.current.state.sessionId).toBe('session-1');
+  });
+
+  await act(async () => {
+    await result.current.handleFileSelection(tauriFilePath, 'b');
+  });
+
+  expect(loadFileMock).toHaveBeenCalledWith('session-1', tauriFilePath, 'b');
+  expect(result.current.state.fileB).toMatchObject({
+    name: 'from-drop.csv',
+    headers: ['id', 'name'],
+    rowCount: 5,
+  });
 });
 
 test('submits comparisons, updates filtered results, and resets with a fresh session', async () => {

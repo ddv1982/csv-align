@@ -3,7 +3,13 @@ import { afterEach, expect, test, vi } from 'vitest';
 
 async function renderStep(isTauri: boolean) {
   vi.resetModules();
-  vi.doMock('../../services/tauri', () => ({ isTauri }));
+  vi.doMock('../../services/tauri', async () => {
+    const actual = await vi.importActual<typeof import('../../services/tauri')>('../../services/tauri');
+    return {
+      ...actual,
+      isTauri,
+    };
+  });
 
   const { FileSelectionStep } = await import('./FileSelectionStep');
   const onFileSelect = vi.fn();

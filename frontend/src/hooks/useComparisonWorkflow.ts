@@ -23,6 +23,15 @@ import {
   getErrorMessage,
   workflowReducer,
 } from './useComparisonWorkflow.reducer';
+import type { SelectedFileSource } from '../types/ui';
+
+function getSelectedFileName(file: SelectedFileSource): string {
+  if (typeof file === 'string') {
+    return file.split(/[/\\]/).pop() ?? file;
+  }
+
+  return file.name;
+}
 
 export function useComparisonWorkflow() {
   const [workflowState, dispatch] = useReducer(workflowReducer, INITIAL_WORKFLOW_STATE);
@@ -62,7 +71,7 @@ export function useComparisonWorkflow() {
 
     initSession();
   }, [setWorkflowError]);
-  const handleFileSelection = useCallback(async (file: File, fileLetter: 'a' | 'b') => {
+  const handleFileSelection = useCallback(async (file: SelectedFileSource, fileLetter: 'a' | 'b') => {
     if (!state.sessionId) {
       return;
     }
@@ -72,7 +81,7 @@ export function useComparisonWorkflow() {
     try {
       const response = await loadFile(state.sessionId, file, fileLetter);
       const fileData = {
-        name: file.name,
+        name: getSelectedFileName(file),
         headers: response.headers,
         columns: response.columns,
         rowCount: response.row_count,

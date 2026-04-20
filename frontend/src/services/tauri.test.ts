@@ -4,6 +4,10 @@ import { TAURI_COMMANDS } from './tauriCommands';
 const invokeMock = vi.fn();
 const openMock = vi.fn();
 const saveMock = vi.fn();
+const onDragDropEventMock = vi.fn();
+const getCurrentWebviewWindowMock = vi.fn(() => ({
+  onDragDropEvent: onDragDropEventMock,
+}));
 
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: invokeMock,
@@ -12,6 +16,10 @@ vi.mock('@tauri-apps/api/core', () => ({
 vi.mock('@tauri-apps/plugin-dialog', () => ({
   open: openMock,
   save: saveMock,
+}));
+
+vi.mock('@tauri-apps/api/webviewWindow', () => ({
+  getCurrentWebviewWindow: getCurrentWebviewWindowMock,
 }));
 
 async function importTauriModule() {
@@ -31,9 +39,44 @@ describe('transport helpers', () => {
     invokeMock.mockReset();
     openMock.mockReset();
     saveMock.mockReset();
+    onDragDropEventMock.mockReset();
+    getCurrentWebviewWindowMock.mockClear();
     vi.unstubAllGlobals();
     vi.stubGlobal('fetch', vi.fn());
     delete (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
+  });
+
+  test('listenForTauriDragDrop is a no-op outside Tauri', async () => {
+    const handler = vi.fn();
+    const { listenForTauriDragDrop } = await importTauriModule();
+
+    await expect(listenForTauriDragDrop(handler)).resolves.toBeUndefined();
+    expect(getCurrentWebviewWindowMock).not.toHaveBeenCalled();
+    expect(onDragDropEventMock).not.toHaveBeenCalled();
+  });
+
+  test('listenForTauriDragDrop subscribes to the window drag-drop stream in Tauri', async () => {
+    (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
+    const unlisten = vi.fn();
+    const handler = vi.fn();
+    onDragDropEventMock.mockResolvedValue(unlisten);
+
+    const { listenForTauriDragDrop } = await importTauriModule();
+
+    await expect(listenForTauriDragDrop(handler)).resolves.toBe(unlisten);
+    expect(getCurrentWebviewWindowMock).toHaveBeenCalledTimes(1);
+    expect(onDragDropEventMock).toHaveBeenCalledTimes(1);
+
+    const bridgeHandler = onDragDropEventMock.mock.calls[0][0] as (event: { payload: unknown }) => void;
+    bridgeHandler({
+      payload: { type: 'drop', paths: ['/tmp/bridge.csv'], position: { x: 24, y: 48 } },
+    });
+
+    expect(handler).toHaveBeenCalledWith({
+      type: 'drop',
+      paths: ['/tmp/bridge.csv'],
+      position: { x: 24, y: 48 },
+    });
   });
 
   test('createSession posts to the browser API when not running in Tauri', async () => {

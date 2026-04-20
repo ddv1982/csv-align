@@ -9,6 +9,8 @@ export interface AppFile {
   rowCount: number;
 }
 
+export type SelectedFileSource = File | string;
+
 export interface MappingSelectionState {
   keyColumnsA: string[];
   keyColumnsB: string[];

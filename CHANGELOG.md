@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.15 - 2026-04-20
+
+- Fixed the step-1 drag-and-drop flow so desktop Tauri file drops now activate only when they land inside the intended selector and still preserve the dropped CSV basename correctly across browser, macOS, and Windows-style paths.
+- Prepared the v2.1.15 patch release by synchronizing version metadata across the Rust crates, desktop bundle config, frontend package manifests, and lockfiles before rerunning the documented broad validation suite.
+
 ## v2.1.14 - 2026-04-20
 
 - Realigned the mismatch Value Differences arrow block with the adjacent File A and File B value boxes so results like Bob -> Robert render with consistent styling in the Results UI.

@@ -1,8 +1,35 @@
-import { useCallback, useId, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { listenForTauriDragDrop } from '../services/tauri';
 import { ColumnInfo } from '../types/api';
+import type { SelectedFileSource } from '../types/ui';
 
 function hasCsvExtension(fileName: string): boolean {
   return fileName.toLowerCase().endsWith('.csv');
+}
+
+function getSelectedFileName(selectedFile: SelectedFileSource): string {
+  if (typeof selectedFile === 'string') {
+    return selectedFile.split(/[/\\]/).pop() ?? selectedFile;
+  }
+
+  return selectedFile.name;
+}
+
+function isPointInsideElement(element: HTMLElement, position: { x: number; y: number }): boolean {
+  const rect = element.getBoundingClientRect();
+  return position.x >= rect.left
+    && position.x <= rect.right
+    && position.y >= rect.top
+    && position.y <= rect.bottom;
+}
+
+function toCssPixelPosition(position: { x: number; y: number }): { x: number; y: number } {
+  const scaleFactor = window.devicePixelRatio || 1;
+
+  return {
+    x: position.x / scaleFactor,
+    y: position.y / scaleFactor,
+  };
 }
 
 interface FileSelectorProps {
@@ -13,20 +40,21 @@ interface FileSelectorProps {
     columns: ColumnInfo[];
     rowCount: number;
   } | null;
-  onSelect: (file: File) => void;
+  onSelect: (file: SelectedFileSource) => void;
 }
 
 export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
   const inputId = useId();
+  const dropzoneRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [selectionError, setSelectionError] = useState<string | null>(null);
 
-  const handleSelectedFile = useCallback((selectedFile?: File) => {
+  const handleSelectedFile = useCallback((selectedFile?: SelectedFileSource) => {
     if (!selectedFile) {
       return;
     }
 
-    if (!hasCsvExtension(selectedFile.name)) {
+    if (!hasCsvExtension(getSelectedFileName(selectedFile))) {
       setSelectionError('Please choose a file with a .csv extension.');
       return;
     }
@@ -34,6 +62,54 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
     setSelectionError(null);
     onSelect(selectedFile);
   }, [onSelect]);
+
+  useEffect(() => {
+    if (file) {
+      return;
+    }
+
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
+
+    void listenForTauriDragDrop((event) => {
+      const dropzone = dropzoneRef.current;
+      if (disposed || !dropzone) {
+        return;
+      }
+
+      if (event.type === 'leave') {
+        setIsDragging(false);
+        return;
+      }
+
+      const isInsideDropzone = isPointInsideElement(dropzone, toCssPixelPosition(event.position));
+
+      if (event.type === 'enter' || event.type === 'over') {
+        setIsDragging(isInsideDropzone);
+        return;
+      }
+
+      setIsDragging(false);
+
+      if (!isInsideDropzone || event.paths.length === 0) {
+        return;
+      }
+
+      handleSelectedFile(event.paths[0]);
+    }).then((tauriUnlisten) => {
+      if (disposed) {
+        tauriUnlisten?.();
+        return;
+      }
+
+      unlisten = tauriUnlisten;
+    });
+
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, [file, handleSelectedFile]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -153,6 +229,7 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
         </div>
       ) : (
         <div
+          ref={dropzoneRef}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}

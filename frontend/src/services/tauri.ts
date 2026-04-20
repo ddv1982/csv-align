@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { TAURI_COMMANDS } from './tauriCommands';
+import type { SelectedFileSource } from '../types/ui';
 import type {
   FileLoadResponse,
   SuggestMappingsRequest,
@@ -61,6 +62,25 @@ async function readFileBytes(file: File): Promise<number[]> {
   return Array.from(new Uint8Array(await file.arrayBuffer()));
 }
 
+export type TauriDragDropEvent =
+  | { type: 'enter'; paths: string[]; position: { x: number; y: number } }
+  | { type: 'over'; position: { x: number; y: number } }
+  | { type: 'drop'; paths: string[]; position: { x: number; y: number } }
+  | { type: 'leave' };
+
+export async function listenForTauriDragDrop(
+  handler: (event: TauriDragDropEvent) => void,
+): Promise<(() => void) | undefined> {
+  if (!isTauri) {
+    return undefined;
+  }
+
+  const { getCurrentWebviewWindow } = await import('@tauri-apps/api/webviewWindow');
+  return getCurrentWebviewWindow().onDragDropEvent((event) => {
+    handler(event.payload as TauriDragDropEvent);
+  });
+}
+
 export async function createSession(): Promise<SessionResponse> {
   if (isTauri) {
     return invoke(TAURI_COMMANDS.createSession);
@@ -84,7 +104,7 @@ export async function deleteSession(sessionId: string): Promise<void> {
 
 export async function loadFile(
   sessionId: string,
-  file: File | string,  // File in browser, path string/bytes in Tauri
+  file: SelectedFileSource,
   fileLetter: 'a' | 'b'
 ): Promise<FileLoadResponse> {
   if (isTauri) {

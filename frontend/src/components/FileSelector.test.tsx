@@ -1,6 +1,23 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { expect, test, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, expect, test, vi } from 'vitest';
+import type { TauriDragDropEvent } from '../services/tauri';
+import { listenForTauriDragDrop } from '../services/tauri';
 import { FileSelector, hasCsvExtension } from './FileSelector';
+
+vi.mock('../services/tauri', async () => {
+  const actual = await vi.importActual('../services/tauri');
+  return {
+    ...actual,
+    listenForTauriDragDrop: vi.fn(),
+  };
+});
+
+const listenForTauriDragDropMock = vi.mocked(listenForTauriDragDrop);
+
+beforeEach(() => {
+  listenForTauriDragDropMock.mockReset();
+  listenForTauriDragDropMock.mockResolvedValue(undefined);
+});
 
 test('accepts files by .csv extension even when the MIME type is generic', () => {
   expect(hasCsvExtension('report.csv')).toBe(true);
@@ -119,4 +136,72 @@ test('drag-leave-resets-hover styling without calling onSelect', () => {
   expect(dropzone).toHaveClass('kinetic-dropzone');
   expect(dropzone).not.toHaveClass('kinetic-dropzone-active');
   expect(onSelect).not.toHaveBeenCalled();
+});
+
+test('accepts a Tauri path drop when the window drop lands inside the selector', async () => {
+  const onSelect = vi.fn();
+  let dragDropHandler: ((event: TauriDragDropEvent) => void) | undefined;
+
+  listenForTauriDragDropMock.mockImplementation(async (handler) => {
+    dragDropHandler = handler;
+    return undefined;
+  });
+
+  render(<FileSelector label="File A" file={null} onSelect={onSelect} />);
+
+  const dropzone = screen.getByRole('button', { name: 'File A file selector' });
+  vi.spyOn(dropzone, 'getBoundingClientRect').mockReturnValue({
+    x: 0,
+    y: 0,
+    width: 200,
+    height: 120,
+    top: 0,
+    right: 200,
+    bottom: 120,
+    left: 0,
+    toJSON: () => ({}),
+  });
+
+  dragDropHandler?.({ type: 'drop', paths: ['/tmp/desktop-drop.csv'], position: { x: 50, y: 50 } });
+
+  await waitFor(() => {
+    expect(onSelect).toHaveBeenCalledWith('/tmp/desktop-drop.csv');
+  });
+  expect(screen.queryByText('Please choose a file with a .csv extension.')).not.toBeInTheDocument();
+});
+
+test('ignores a Tauri path drop when the window drop lands outside the selector bounds', async () => {
+  const onSelect = vi.fn();
+  let dragDropHandler: ((event: TauriDragDropEvent) => void) | undefined;
+
+  listenForTauriDragDropMock.mockImplementation(async (handler) => {
+    dragDropHandler = handler;
+    return undefined;
+  });
+
+  render(<FileSelector label="File A" file={null} onSelect={onSelect} />);
+
+  const dropzone = screen.getByRole('button', { name: 'File A file selector' });
+  vi.spyOn(dropzone, 'getBoundingClientRect').mockReturnValue({
+    x: 0,
+    y: 0,
+    width: 200,
+    height: 120,
+    top: 0,
+    right: 200,
+    bottom: 120,
+    left: 0,
+    toJSON: () => ({}),
+  });
+
+  dragDropHandler?.({ type: 'enter', paths: ['/tmp/outside-drop.csv'], position: { x: 50, y: 50 } });
+
+  dragDropHandler?.({ type: 'drop', paths: ['/tmp/outside-drop.csv'], position: { x: 240, y: 140 } });
+
+  await waitFor(() => {
+    expect(dropzone).toHaveClass('kinetic-dropzone');
+  });
+  expect(dropzone).not.toHaveClass('kinetic-dropzone-active');
+  expect(onSelect).not.toHaveBeenCalled();
+  expect(screen.queryByText('Please choose a file with a .csv extension.')).not.toBeInTheDocument();
 });
