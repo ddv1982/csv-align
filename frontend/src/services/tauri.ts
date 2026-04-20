@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { TAURI_COMMANDS } from './tauriCommands';
 import type { SelectedFileSource } from '../types/ui';
@@ -75,7 +76,6 @@ export async function listenForTauriDragDrop(
     return undefined;
   }
 
-  const { getCurrentWebviewWindow } = await import('@tauri-apps/api/webviewWindow');
   return getCurrentWebviewWindow().onDragDropEvent((event) => {
     handler(event.payload as TauriDragDropEvent);
   });

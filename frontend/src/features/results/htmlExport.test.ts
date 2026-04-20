@@ -69,4 +69,7 @@ test('buildResultsHtmlDocument embeds the current comparison view state for stan
   expect(html).toContain('"description":"Multiple File A rows share this selected key."');
   expect(html).toContain('data-sort-column="details"');
   expect(html).toContain('data-expand-row=');
+  expect(html).toContain('color-scheme: dark;');
+  expect(html).toContain('--bg: #050505;');
+  expect(html).toContain('kinetic dark review surface as the app');
 });

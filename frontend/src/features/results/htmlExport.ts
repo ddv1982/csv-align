@@ -168,51 +168,86 @@ export function buildResultsHtmlDocument(params: {
     <title>${title}</title>
     <style>
       :root {
-        color-scheme: light;
-        --bg: #f5f7fb;
-        --panel: #ffffff;
-        --panel-strong: #eef2ff;
-        --text: #172033;
-        --muted: #5c6b88;
-        --line: #d9e0ee;
-        --accent: #405cf5;
-        --accent-soft: #eef2ff;
-        --match: #067647;
-        --match-bg: #ecfdf3;
-        --mismatch: #b54708;
-        --mismatch-bg: #fff7ed;
-        --missing-left: #155eef;
-        --missing-left-bg: #eff8ff;
-        --missing-right: #6938ef;
-        --missing-right-bg: #f5f3ff;
-        --unkeyed-left: #c01048;
-        --unkeyed-left-bg: #fff1f3;
-        --unkeyed-right: #a1127f;
-        --unkeyed-right-bg: #fdf2fa;
-        --duplicate: #b54708;
-        --duplicate-bg: #fff7ed;
-        --shadow: 0 18px 40px rgba(23, 32, 51, 0.08);
+        color-scheme: dark;
+        --bg: #050505;
+        --panel: #090909;
+        --panel-2: #111111;
+        --overlay: rgba(19, 22, 26, 0.92);
+        --overlay-strong: rgba(26, 31, 36, 0.96);
+        --text: #f5f7fb;
+        --muted: #95a2b3;
+        --line: rgba(151, 177, 204, 0.18);
+        --line-strong: rgba(198, 220, 242, 0.36);
+        --accent: #06b6d4;
+        --accent-2: #bef264;
+        --match: #6cffbe;
+        --match-bg: rgba(108, 255, 190, 0.08);
+        --mismatch: #ffb86e;
+        --mismatch-bg: rgba(255, 184, 110, 0.08);
+        --missing-left: #06b6d4;
+        --missing-left-bg: rgba(6, 182, 212, 0.1);
+        --missing-right: #ff7a7a;
+        --missing-right-bg: rgba(255, 122, 122, 0.08);
+        --unkeyed-left: #06b6d4;
+        --unkeyed-left-bg: rgba(6, 182, 212, 0.08);
+        --unkeyed-right: #fbbf24;
+        --unkeyed-right-bg: rgba(251, 191, 36, 0.08);
+        --duplicate: #ffb86e;
+        --duplicate-bg: rgba(255, 184, 110, 0.08);
+        --shadow: 0 24px 60px rgba(0, 0, 0, 0.38);
       }
 
       * { box-sizing: border-box; }
+      html {
+        background: var(--bg);
+      }
+
       body {
         margin: 0;
-        font-family: Inter, "Segoe UI", sans-serif;
+        min-height: 100vh;
+        font-family: "Space Grotesk", "Segoe UI", sans-serif;
         background: var(--bg);
         color: var(--text);
+        position: relative;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background:
+          linear-gradient(180deg, rgba(6, 182, 212, 0.06), transparent 26%),
+          radial-gradient(circle at top, rgba(190, 242, 100, 0.07), transparent 36%),
+          rgba(255, 255, 255, 0.01);
+        border: 1px solid rgba(255, 255, 255, 0.02);
+        opacity: 0.8;
       }
 
       .shell {
         max-width: 1320px;
         margin: 0 auto;
         padding: 24px;
+        position: relative;
+        z-index: 1;
       }
 
       .card {
-        background: var(--panel);
+        background: linear-gradient(180deg, rgba(17, 17, 17, 0.94) 0%, rgba(9, 9, 9, 0.98) 100%);
         border: 1px solid var(--line);
-        border-radius: 20px;
+        position: relative;
+        overflow: hidden;
+        border-radius: 0;
         box-shadow: var(--shadow);
+      }
+
+      .card::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        border-top: 1px solid rgba(245, 247, 251, 0.1);
+        border-left: 1px solid rgba(245, 247, 251, 0.04);
       }
 
       .hero {
@@ -222,16 +257,35 @@ export function buildResultsHtmlDocument(params: {
 
       .eyebrow {
         display: inline-block;
-        font-size: 12px;
-        letter-spacing: 0.14em;
+        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
+        font-size: 10px;
+        letter-spacing: 0.22em;
         text-transform: uppercase;
-        color: var(--muted);
+        color: var(--accent);
         margin-bottom: 12px;
       }
 
       h1, h2, h3, p { margin: 0; }
-      h1 { font-size: clamp(1.75rem, 4vw, 2.5rem); }
+      h1 {
+        font-family: "Bebas Neue", Impact, sans-serif;
+        font-size: clamp(2.8rem, 8vw, 5rem);
+        letter-spacing: 0.08em;
+        line-height: 0.92;
+        text-transform: uppercase;
+      }
+
+      h2 {
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
       .hero p { color: var(--muted); margin-top: 8px; }
+
+      .hero-copy {
+        max-width: 60rem;
+      }
 
       .summary-grid {
         display: grid;
@@ -241,10 +295,19 @@ export function buildResultsHtmlDocument(params: {
       }
 
       .summary-item {
-        background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+        background: var(--overlay);
         border: 1px solid var(--line);
-        border-radius: 16px;
+        min-height: 100%;
         padding: 14px;
+      }
+
+      .summary-item span {
+        display: block;
+        color: var(--muted);
+        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
+        font-size: 10px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
       }
 
       .summary-item strong {
@@ -287,31 +350,46 @@ export function buildResultsHtmlDocument(params: {
         align-items: center;
         gap: 8px;
         border: 1px solid var(--line);
-        background: #fff;
+        background: var(--overlay);
         color: var(--text);
-        border-radius: 999px;
         padding: 9px 14px;
+        transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+      }
+
+      .filter-button:hover {
+        border-color: var(--line-strong);
+        background: var(--overlay-strong);
       }
 
       .filter-button.active {
         border-color: var(--accent);
-        background: var(--accent-soft);
+        background: rgba(6, 182, 212, 0.1);
       }
 
       .filter-count {
-        background: rgba(64, 92, 245, 0.12);
-        border-radius: 999px;
+        background: rgba(19, 22, 26, 0.92);
         padding: 2px 8px;
         font-size: 12px;
         font-weight: 600;
+        color: var(--muted);
+      }
+
+      .filter-button.active .filter-count {
+        background: rgba(26, 31, 36, 0.96);
+        color: var(--text);
       }
 
       .search {
         width: min(100%, 320px);
         border: 1px solid var(--line);
-        border-radius: 12px;
+        background: var(--overlay);
+        color: var(--text);
         padding: 10px 12px;
         font: inherit;
+      }
+
+      .search::placeholder {
+        color: var(--muted);
       }
 
       .table-card { overflow: hidden; }
@@ -342,12 +420,17 @@ export function buildResultsHtmlDocument(params: {
       }
 
       thead th {
-        background: #f9fbff;
+        background: rgba(19, 22, 26, 0.92);
         border-top: none;
         color: var(--muted);
-        font-size: 12px;
-        letter-spacing: 0.08em;
+        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
+        font-size: 11px;
+        letter-spacing: 0.18em;
         text-transform: uppercase;
+      }
+
+      tbody tr:hover td {
+        background: rgba(19, 22, 26, 0.48);
       }
 
       .sort-button {
@@ -358,6 +441,9 @@ export function buildResultsHtmlDocument(params: {
         display: inline-flex;
         align-items: center;
         gap: 6px;
+        font: inherit;
+        letter-spacing: inherit;
+        text-transform: inherit;
       }
 
       .badge {
@@ -365,10 +451,10 @@ export function buildResultsHtmlDocument(params: {
         align-items: center;
         gap: 8px;
         padding: 6px 10px;
-        border-radius: 999px;
         border: 1px solid currentColor;
-        font-size: 12px;
-        letter-spacing: 0.08em;
+        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
+        font-size: 10px;
+        letter-spacing: 0.16em;
         text-transform: uppercase;
         font-weight: 700;
         white-space: nowrap;
@@ -388,13 +474,12 @@ export function buildResultsHtmlDocument(params: {
       .tone-unkeyed-left { color: var(--unkeyed-left); background: var(--unkeyed-left-bg); }
       .tone-unkeyed-right { color: var(--unkeyed-right); background: var(--unkeyed-right-bg); }
       .tone-duplicate { color: var(--duplicate); background: var(--duplicate-bg); }
-      .tone-neutral { color: var(--text); background: #eef2f7; }
+      .tone-neutral { color: var(--text); background: var(--overlay); }
 
       .chip {
         display: inline-block;
         border: 1px solid var(--line);
-        background: #f9fbff;
-        border-radius: 10px;
+        background: var(--overlay);
         padding: 6px 10px;
         font-family: "JetBrains Mono", "SFMono-Regular", monospace;
         font-size: 13px;
@@ -409,8 +494,7 @@ export function buildResultsHtmlDocument(params: {
 
       .value-row {
         border: 1px solid var(--line);
-        background: #fbfcff;
-        border-radius: 10px;
+        background: var(--overlay);
         padding: 8px 10px;
         font-family: "JetBrains Mono", "SFMono-Regular", monospace;
         font-size: 13px;
@@ -418,23 +502,29 @@ export function buildResultsHtmlDocument(params: {
 
       .diff-toggle {
         border: 1px solid var(--line);
-        background: #f9fbff;
-        border-radius: 999px;
+        background: var(--overlay);
         padding: 7px 10px;
+        color: var(--text);
+        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
         font-size: 12px;
         font-weight: 700;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.14em;
         text-transform: uppercase;
+        transition: border-color 0.18s ease, background 0.18s ease;
+      }
+
+      .diff-toggle:hover {
+        border-color: var(--line-strong);
+        background: var(--overlay-strong);
       }
 
       .details-row td {
-        background: #fcfdff;
+        background: rgba(14, 16, 19, 0.98);
       }
 
       .diff-panel {
         border: 1px solid var(--line);
-        border-radius: 16px;
-        background: #fff;
+        background: rgba(19, 22, 26, 0.92);
         padding: 16px;
       }
 
@@ -453,9 +543,8 @@ export function buildResultsHtmlDocument(params: {
 
       .diff-item {
         border: 1px solid var(--line);
-        border-radius: 14px;
         padding: 14px;
-        background: #fbfcff;
+        background: rgba(26, 31, 36, 0.82);
       }
 
       .diff-item header {
@@ -486,10 +575,9 @@ export function buildResultsHtmlDocument(params: {
       .diff-values span {
         display: block;
         border: 1px solid var(--line);
-        border-radius: 10px;
         padding: 10px;
         font-family: "JetBrains Mono", "SFMono-Regular", monospace;
-        background: #fff;
+        background: rgba(9, 9, 9, 0.92);
         overflow-wrap: anywhere;
       }
 
@@ -500,9 +588,18 @@ export function buildResultsHtmlDocument(params: {
       }
 
       .empty-glyph {
+        border: 1px solid var(--line);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 12px;
+        background: var(--overlay);
+        color: var(--text);
+        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
         font-size: 28px;
-        letter-spacing: 0.16em;
-        margin-bottom: 8px;
+        letter-spacing: 0.18em;
       }
 
       @media (max-width: 720px) {
@@ -518,7 +615,7 @@ export function buildResultsHtmlDocument(params: {
       <section class="card hero">
         <span class="eyebrow">Saved comparison review</span>
         <h1>${title}</h1>
-        <p>Standalone HTML export of the current comparison results with the same result buckets and sortable review table.</p>
+        <p class="hero-copy">Standalone HTML export of the current comparison results with the same result buckets, sortable review table, and kinetic dark review surface as the app.</p>
         <div class="summary-grid">
           <div class="summary-item"><span>File A rows</span><strong id="summary-total-a"></strong></div>
           <div class="summary-item"><span>File B rows</span><strong id="summary-total-b"></strong></div>

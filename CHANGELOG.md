@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.18 - 2026-04-20
+
+- Fixed the standalone HTML export styling so value-difference layouts now match the in-app results presentation more closely, keeping exported comparison reports easier to scan outside the app.
+- Removed the frontend Vite warning around the Tauri transport layer, then prepared the v2.1.18 patch release by synchronizing version metadata across the Rust crates, desktop bundle config, frontend package manifests, and lockfiles before rerunning the documented broad validation workflow.
+
 ## v2.1.17 - 2026-04-20
 
 - Added standalone HTML results export so comparison runs can be saved with embedded summary data, filter counts, searchable result rows, and desktop save support for later review outside the app.
