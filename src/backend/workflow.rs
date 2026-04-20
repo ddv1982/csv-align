@@ -3,8 +3,16 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use super::comparison_snapshot::{
+    load_comparison_snapshot_workflow, save_comparison_snapshot_workflow,
+};
+use super::pair_order::{load_pair_order_workflow, save_pair_order_workflow};
+use super::store::SessionStore;
 use crate::backend::error::CsvAlignError;
-use crate::backend::requests::{CompareExecution, CompareRequest, SuggestMappingsRequest};
+use crate::backend::requests::{
+    CompareExecution, CompareRequest, LoadComparisonSnapshotResponse, LoadPairOrderResponse,
+    PairOrderSelection, SuggestMappingsRequest,
+};
 use crate::backend::session::SessionData;
 use crate::backend::validation::build_comparison_config;
 use crate::comparison::{engine, mapping};
@@ -13,8 +21,8 @@ use crate::data::{
     types::{ComparisonConfig, CsvData, FileSide, RowComparisonResult},
 };
 use crate::presentation::responses::{
-    FileLoadResponse, SuggestMappingsResponse, compare_response, file_load_response,
-    suggest_mappings_response,
+    CompareResponse, FileLoadResponse, SuggestMappingsResponse, compare_response,
+    file_load_response, suggest_mappings_response,
 };
 
 pub enum CsvLoadSource {
@@ -26,6 +34,12 @@ pub enum CsvLoadSource {
 pub struct LoadedCsv {
     pub csv_data: CsvData,
     pub response: FileLoadResponse,
+}
+
+fn session_not_found() -> CsvAlignError {
+    CsvAlignError::NotFound {
+        resource: "Session".to_string(),
+    }
 }
 
 fn file_name_from_source(file_name: Option<&str>, source: &CsvLoadSource) -> String {
@@ -159,6 +173,19 @@ pub fn apply_csv_to_session(
     response
 }
 
+pub fn apply_loaded_csv_for_session(
+    store: &SessionStore,
+    session_id: &str,
+    file_letter: FileSide,
+    loaded: LoadedCsv,
+) -> Result<FileLoadResponse, CsvAlignError> {
+    store
+        .with_session_mut(session_id, |session_data| {
+            apply_csv_to_session(session_data, file_letter, loaded.csv_data)
+        })
+        .ok_or_else(session_not_found)
+}
+
 pub fn suggest_mappings_workflow(
     session_data: Option<&mut SessionData>,
     request: &SuggestMappingsRequest,
@@ -214,6 +241,28 @@ pub fn run_comparison(
     })
 }
 
+pub fn run_comparison_for_session(
+    store: &SessionStore,
+    session_id: &str,
+    request: CompareRequest,
+) -> Result<CompareResponse, CsvAlignError> {
+    let (csv_a, csv_b) = store
+        .with_session(session_id, comparison_inputs)
+        .ok_or_else(session_not_found)??;
+
+    let execution = run_comparison(csv_a.as_ref(), csv_b.as_ref(), request)?;
+    let response = execution.response.clone();
+
+    store
+        .with_session_mut(session_id, |session_data| {
+            session_data.comparison_results = execution.results;
+            session_data.comparison_config = Some(execution.config);
+        })
+        .ok_or_else(session_not_found)?;
+
+    Ok(response)
+}
+
 pub fn export_session_results_snapshot(
     session_data: &SessionData,
 ) -> Result<(Vec<RowComparisonResult>, Option<ComparisonConfig>), CsvAlignError> {
@@ -244,4 +293,60 @@ pub fn write_export_results(
 ) -> Result<(), CsvAlignError> {
     csv_export::write_export_results(results, comparison_config, output_path)
         .map_err(|error| CsvAlignError::Internal(format!("Failed to export results: {error}")))
+}
+
+pub fn export_results_for_session(
+    store: &SessionStore,
+    session_id: &str,
+) -> Result<Vec<u8>, CsvAlignError> {
+    let (results, comparison_config) = store
+        .with_session(session_id, export_session_results_snapshot)
+        .ok_or_else(session_not_found)??;
+
+    export_results_to_bytes(&results, comparison_config.as_ref())
+}
+
+pub fn save_pair_order_for_session(
+    store: &SessionStore,
+    session_id: &str,
+    selection: PairOrderSelection,
+) -> Result<String, CsvAlignError> {
+    store
+        .with_session(session_id, |session_data| {
+            save_pair_order_workflow(session_data, selection)
+        })
+        .ok_or_else(session_not_found)?
+}
+
+pub fn load_pair_order_for_session(
+    store: &SessionStore,
+    session_id: &str,
+    contents: &str,
+) -> Result<LoadPairOrderResponse, CsvAlignError> {
+    store
+        .with_session(session_id, |session_data| {
+            load_pair_order_workflow(session_data, contents)
+        })
+        .ok_or_else(session_not_found)?
+}
+
+pub fn save_comparison_snapshot_for_session(
+    store: &SessionStore,
+    session_id: &str,
+) -> Result<String, CsvAlignError> {
+    store
+        .with_session(session_id, save_comparison_snapshot_workflow)
+        .ok_or_else(session_not_found)?
+}
+
+pub fn load_comparison_snapshot_for_session(
+    store: &SessionStore,
+    session_id: &str,
+    contents: &str,
+) -> Result<LoadComparisonSnapshotResponse, CsvAlignError> {
+    store
+        .with_session_mut(session_id, |session_data| {
+            load_comparison_snapshot_workflow(session_data, contents)
+        })
+        .ok_or_else(session_not_found)?
 }

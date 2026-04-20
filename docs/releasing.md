@@ -69,6 +69,6 @@ cd frontend && npm run build
 
 Pushing a tag matching `v*` triggers the release workflow.
 
-The CI workflow runs frontend tests, lint, and build, and also validates that release metadata stays aligned across the documented version-bearing files.
+The CI workflow runs Rust tests/formatting/clippy, Tauri wrapper tests, frontend tests/lint/build, and validates that release metadata stays aligned across the documented version-bearing files.
 
-The tagged release workflow now validates release metadata against the tag, checks the Rust, Tauri, and frontend validation suite, and expects a matching non-empty `CHANGELOG.md` section before creating the GitHub Release or uploading artifacts.
+The tagged release workflow validates release metadata against the tag, checks the Rust, Tauri, and frontend validation suite, expects a matching non-empty `CHANGELOG.md` section, ensures the GitHub Release is in draft state before packaging (creating it if needed or moving an existing release back to draft), uploads the packaged assets, and only publishes the final GitHub Release after packaging succeeds.

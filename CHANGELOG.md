@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.22 - 2026-04-20
+
+- Improved release readiness by tightening CI and Tauri coverage, aligning release automation with the documented process, and adding broader runtime/bootstrap plus session-store validation so the shared web and desktop surfaces ship with stronger regression protection.
+- Reduced frontend workflow duplication by splitting transport and workflow responsibilities into smaller hooks while preserving the same comparison behavior, then prepared the v2.1.22 patch release by synchronizing version metadata across the Rust crates, desktop bundle config, frontend package manifests, and lockfiles before rerunning the documented broad validation suite.
+
 ## v2.1.21 - 2026-04-20
 
 - Refactored the standalone HTML export and in-app results styling to share the same presentation building blocks, reducing duplication while keeping exported comparison reports visually aligned with the review surface.

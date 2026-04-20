@@ -6,11 +6,10 @@ use tracing::instrument;
 use csv_align::backend::{
     CompareRequest, CsvAlignError, CsvLoadSource, LoadComparisonSnapshotResponse,
     LoadPairOrderResponse, PairOrderSelection, SessionResponse, SessionStore,
-    SuggestMappingsRequest, apply_csv_to_session, comparison_inputs,
-    export_session_results_snapshot, load_comparison_snapshot_workflow, load_csv_workflow,
-    load_pair_order_workflow, parse_file_side, run_comparison, save_comparison_snapshot_workflow,
-    save_pair_order_workflow, suggest_mappings_workflow, validate_file_letter,
-    write_export_results,
+    SuggestMappingsRequest, apply_loaded_csv_for_session, export_results_for_session,
+    load_comparison_snapshot_for_session, load_csv_workflow, load_pair_order_for_session,
+    parse_file_side, run_comparison_for_session, save_comparison_snapshot_for_session,
+    save_pair_order_for_session, suggest_mappings_workflow, validate_file_letter,
 };
 use csv_align::presentation::responses::{
     CompareResponse, FileLoadResponse, SuggestMappingsResponse,
@@ -61,13 +60,7 @@ pub(crate) fn load_csv(
         CsvLoadSource::FilePath(file_path),
     )?;
 
-    state
-        .with_session_mut(&session_id, |session_data| {
-            apply_csv_to_session(session_data, file_side, loaded.csv_data)
-        })
-        .ok_or_else(|| CsvAlignError::NotFound {
-            resource: "Session".to_string(),
-        })
+    apply_loaded_csv_for_session(state.inner().as_ref(), &session_id, file_side, loaded)
 }
 
 /// Load a CSV file from raw bytes (desktop/webview file selection)
@@ -88,13 +81,7 @@ pub(crate) fn load_csv_bytes(
         CsvLoadSource::Bytes(file_bytes),
     )?;
 
-    state
-        .with_session_mut(&session_id, |session_data| {
-            apply_csv_to_session(session_data, file_side, loaded.csv_data)
-        })
-        .ok_or_else(|| CsvAlignError::NotFound {
-            resource: "Session".to_string(),
-        })
+    apply_loaded_csv_for_session(state.inner().as_ref(), &session_id, file_side, loaded)
 }
 
 /// Get suggested column mappings
@@ -120,25 +107,7 @@ pub(crate) fn compare(
     session_id: String,
     request: CompareRequest,
 ) -> Result<CompareResponse, CsvAlignError> {
-    let (csv_a, csv_b) = state
-        .with_session(&session_id, comparison_inputs)
-        .ok_or_else(|| CsvAlignError::NotFound {
-            resource: "Session".to_string(),
-        })??;
-
-    let execution = run_comparison(csv_a.as_ref(), csv_b.as_ref(), request)?;
-
-    let response = execution.response.clone();
-    state
-        .with_session_mut(&session_id, |session_data| {
-            session_data.comparison_results = execution.results;
-            session_data.comparison_config = Some(execution.config);
-        })
-        .ok_or_else(|| CsvAlignError::NotFound {
-            resource: "Session".to_string(),
-        })?;
-
-    Ok(response)
+    run_comparison_for_session(state.inner().as_ref(), &session_id, request)
 }
 
 /// Export comparison results to a CSV file path
@@ -149,13 +118,8 @@ pub(crate) fn export_results(
     session_id: String,
     output_path: String,
 ) -> Result<(), CsvAlignError> {
-    let (results, comparison_config) = state
-        .with_session(&session_id, export_session_results_snapshot)
-        .ok_or_else(|| CsvAlignError::NotFound {
-            resource: "Session".to_string(),
-        })??;
-
-    write_export_results(&results, comparison_config.as_ref(), &output_path)
+    let csv_content = export_results_for_session(state.inner().as_ref(), &session_id)?;
+    write_output_file(&output_path, csv_content, "CSV export")
 }
 
 #[tauri::command]
@@ -175,13 +139,7 @@ pub(crate) fn save_pair_order(
     selection: PairOrderSelection,
     output_path: String,
 ) -> Result<(), CsvAlignError> {
-    let contents = state
-        .with_session(&session_id, |session_data| {
-            save_pair_order_workflow(session_data, selection)
-        })
-        .ok_or_else(|| CsvAlignError::NotFound {
-            resource: "Session".to_string(),
-        })??;
+    let contents = save_pair_order_for_session(state.inner().as_ref(), &session_id, selection)?;
 
     write_output_file(&output_path, contents, "pair-order")
 }
@@ -200,13 +158,7 @@ pub(crate) fn load_pair_order(
         ))
     })?;
 
-    state
-        .with_session(&session_id, |session_data| {
-            load_pair_order_workflow(session_data, &contents)
-        })
-        .ok_or_else(|| CsvAlignError::NotFound {
-            resource: "Session".to_string(),
-        })?
+    load_pair_order_for_session(state.inner().as_ref(), &session_id, &contents)
 }
 
 #[tauri::command]
@@ -216,11 +168,7 @@ pub(crate) fn save_comparison_snapshot(
     session_id: String,
     output_path: String,
 ) -> Result<(), CsvAlignError> {
-    let contents = state
-        .with_session(&session_id, save_comparison_snapshot_workflow)
-        .ok_or_else(|| CsvAlignError::NotFound {
-            resource: "Session".to_string(),
-        })??;
+    let contents = save_comparison_snapshot_for_session(state.inner().as_ref(), &session_id)?;
 
     write_output_file(&output_path, contents, "comparison snapshot")
 }
@@ -239,11 +187,5 @@ pub(crate) fn load_comparison_snapshot(
         ))
     })?;
 
-    state
-        .with_session_mut(&session_id, |session_data| {
-            load_comparison_snapshot_workflow(session_data, &contents)
-        })
-        .ok_or_else(|| CsvAlignError::NotFound {
-            resource: "Session".to_string(),
-        })?
+    load_comparison_snapshot_for_session(state.inner().as_ref(), &session_id, &contents)
 }

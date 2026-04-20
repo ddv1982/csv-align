@@ -22,11 +22,11 @@ Desktop builds are published on the GitHub Releases page:
 
 - [Releases](https://github.com/ddv1982/csv-align/releases)
 
-Typical release assets include:
+Current automated release assets include:
 
-- macOS Apple Silicon: `csv-align-macos-arm64.dmg`
-- macOS Intel: `csv-align-macos-x86_64.dmg`
 - Linux: `.AppImage` and `.deb`
+
+If additional desktop platforms are restored in the release workflow later, their assets will appear on the same Releases page.
 
 Linux note: Tauri v2 Linux builds require a distro with **WebKitGTK 4.1**.
 

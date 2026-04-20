@@ -145,13 +145,24 @@ jobs:
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Refresh existing release as draft
+        if: steps.release_exists.outputs.exists == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release edit "${{ github.ref_name }}" \
+            --title "CSV Align ${{ github.ref_name }}" \
+            --notes-file release-notes.md \
+            --draft=true \
+            --prerelease=false
+
       - name: Create GitHub Release
         id: create_release
         if: steps.release_exists.outputs.exists != 'true'
         uses: softprops/action-gh-release@v2
         with:
           name: CSV Align ${{ github.ref_name }}
-          draft: false
+          draft: true
           prerelease: false
           body_path: release-notes.md
         env:
@@ -237,3 +248,14 @@ jobs:
             src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-release:
+    name: Publish Release
+    needs: [create-release, build-release]
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "${{ github.ref_name }}" --draft=false --prerelease=false

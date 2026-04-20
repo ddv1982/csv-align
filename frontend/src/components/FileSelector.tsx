@@ -2,17 +2,10 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { listenForTauriDragDrop } from '../services/tauri';
 import { ColumnInfo } from '../types/api';
 import type { SelectedFileSource } from '../types/ui';
+import { getSelectedFileName } from '../utils/selectedFileSource';
 
 function hasCsvExtension(fileName: string): boolean {
   return fileName.toLowerCase().endsWith('.csv');
-}
-
-function getSelectedFileName(selectedFile: SelectedFileSource): string {
-  if (typeof selectedFile === 'string') {
-    return selectedFile.split(/[/\\]/).pop() ?? selectedFile;
-  }
-
-  return selectedFile.name;
 }
 
 function isPointInsideElement(element: HTMLElement, position: { x: number; y: number }): boolean {
