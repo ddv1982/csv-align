@@ -4,6 +4,7 @@ import {
   getResultBadge,
   getResultDescription,
   getResultFilterCounts,
+  getResultLabel,
 } from './presentation';
 
 type SortColumn = 'type' | 'key' | 'fileA' | 'fileB' | 'details';
@@ -13,7 +14,15 @@ type ExportRow = {
   resultType: ResultResponse['result_type'];
   filterBucket: Exclude<ResultFilter, 'all'> | 'duplicate';
   badgeLabel: string;
-  badgeTone: 'match' | 'mismatch' | 'missing-left' | 'missing-right' | 'unkeyed-left' | 'unkeyed-right' | 'duplicate' | 'neutral';
+  badgeTone:
+    | 'match'
+    | 'mismatch'
+    | 'missing-left'
+    | 'missing-right'
+    | 'unkeyed-left'
+    | 'unkeyed-right'
+    | 'duplicate'
+    | 'neutral';
   description: string | null;
   keyText: string;
   fileAValues: string[][];
@@ -32,6 +41,24 @@ type HtmlExportDocument = {
   filterOptions: Array<{ value: ResultFilter; label: string; count: number }>;
   initialFilter: ResultFilter;
   rows: ExportRow[];
+};
+
+type SummaryStatTone = 'success' | 'warning' | 'accent' | 'danger';
+
+type SummaryStat = {
+  label: string;
+  value: number;
+  description: string;
+  tone: SummaryStatTone;
+  icon: string;
+};
+
+type SummaryBanner = {
+  title: string;
+  summary: string;
+  details: string[];
+  tone: 'accent' | 'warning';
+  icon: string;
 };
 
 function getFilterBucket(result: ResultResponse): Exclude<ResultFilter, 'all'> | 'duplicate' {
@@ -149,6 +176,119 @@ function buildHtmlExportDocument(params: {
   };
 }
 
+function getComparableTotal(summary: SummaryResponse): number {
+  return summary.matches + summary.mismatches + summary.missing_left + summary.missing_right;
+}
+
+function describeComparableShare(value: number, comparableTotal: number): string {
+  return comparableTotal > 0
+    ? `${Math.round((value / comparableTotal) * 100)}% of comparable rows`
+    : 'No comparable rows';
+}
+
+function buildSummaryStats(summary: SummaryResponse): SummaryStat[] {
+  const comparableTotal = getComparableTotal(summary);
+
+  return [
+    {
+      label: 'Matches',
+      value: summary.matches,
+      description: describeComparableShare(summary.matches, comparableTotal),
+      tone: 'success',
+      icon: 'OK',
+    },
+    {
+      label: 'Mismatches',
+      value: summary.mismatches,
+      description: describeComparableShare(summary.mismatches, comparableTotal),
+      tone: 'warning',
+      icon: '!!',
+    },
+    {
+      label: getResultLabel('missing_left'),
+      value: summary.missing_left,
+      description: describeComparableShare(summary.missing_left, comparableTotal),
+      tone: 'accent',
+      icon: 'A',
+    },
+    {
+      label: getResultLabel('missing_right'),
+      value: summary.missing_right,
+      description: describeComparableShare(summary.missing_right, comparableTotal),
+      tone: 'danger',
+      icon: 'B',
+    },
+  ];
+}
+
+function buildSummaryBanners(summary: SummaryResponse): SummaryBanner[] {
+  const ignoredTotal = summary.unkeyed_left + summary.unkeyed_right;
+  const banners: SummaryBanner[] = [];
+
+  if (ignoredTotal > 0) {
+    banners.push({
+      title: 'Ignored rows',
+      summary: `${summary.unkeyed_right} in File A, ${summary.unkeyed_left} in File B`,
+      details: [
+        'Ignored rows were not compared because the selected key was empty or matched a missing-value token after cleanup settings.',
+        'Ignored rows may correspond to one-sided results on the other file, but they could not be matched confidently by key.',
+      ],
+      tone: 'accent',
+      icon: 'i',
+    });
+  }
+
+  if (summary.duplicates_a > 0 || summary.duplicates_b > 0) {
+    banners.push({
+      title: 'Duplicate keys detected',
+      summary: `Duplicates found: ${summary.duplicates_a} in File A, ${summary.duplicates_b} in File B`,
+      details: ['Rows with duplicate selected keys can produce repeated matches or one-sided results and are worth reviewing before export.'],
+      tone: 'warning',
+      icon: '!!',
+    });
+  }
+
+  return banners;
+}
+
+function renderSummaryStats(summary: SummaryResponse): string {
+  return buildSummaryStats(summary)
+    .map(
+      (stat) => `<div class="kinetic-panel summary-stat kinetic-tone-${stat.tone}">
+                <div class="summary-stat-head">
+                  <div class="summary-stat-icon kinetic-tone-${stat.tone}-strong">${escapeHtmlText(stat.icon)}</div>
+                  <span class="summary-stat-value kinetic-copy">${stat.value}</span>
+                </div>
+                <p class="summary-stat-label kinetic-copy">${escapeHtmlText(stat.label)}</p>
+                <p class="summary-stat-description kinetic-muted">${escapeHtmlText(stat.description)}</p>
+              </div>`,
+    )
+    .join('');
+}
+
+function renderSummaryBanners(summary: SummaryResponse): string {
+  const banners = buildSummaryBanners(summary);
+
+  if (banners.length === 0) {
+    return '';
+  }
+
+  return `<div class="summary-banners">${banners
+    .map(
+      (banner) => `<div class="kinetic-panel summary-banner kinetic-tone-${banner.tone}">
+                <div class="summary-banner-icon kinetic-tone-${banner.tone}-strong">${escapeHtmlText(banner.icon)}</div>
+                <div class="summary-banner-copy">
+                  <p class="summary-banner-title kinetic-copy">${escapeHtmlText(banner.title)}</p>
+                  <p class="summary-banner-summary kinetic-copy">${escapeHtmlText(banner.summary)}</p>
+                  ${banner.details
+                    .map((detail) => `<p class="summary-banner-detail kinetic-muted">${escapeHtmlText(detail)}</p>`)
+                    .join('')}
+                </div>
+              </div>`,
+    )
+    .join('')}</div>`;
+}
+
 export function buildResultsHtmlDocument(params: {
   summary: SummaryResponse;
   fileAName: string;
@@ -161,6 +301,10 @@ export function buildResultsHtmlDocument(params: {
   const documentTitle = escapeHtmlText(`${params.fileAName} vs ${params.fileBName} comparison results`);
   const fileAName = escapeHtmlText(params.fileAName);
   const fileBName = escapeHtmlText(params.fileBName);
+  const comparableTotal = getComparableTotal(params.summary);
+  const matchPercent = comparableTotal > 0 ? Math.round((params.summary.matches / comparableTotal) * 100) : 0;
+  const summaryStatsMarkup = renderSummaryStats(params.summary);
+  const summaryBannersMarkup = renderSummaryBanners(params.summary);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -171,82 +315,136 @@ export function buildResultsHtmlDocument(params: {
     <style>
       :root {
         color-scheme: dark;
-        --bg: #050505;
-        --panel: #090909;
-        --panel-2: #111111;
-        --overlay: rgba(19, 22, 26, 0.92);
-        --overlay-strong: rgba(26, 31, 36, 0.96);
-        --text: #f5f7fb;
-        --muted: #95a2b3;
-        --line: rgba(151, 177, 204, 0.18);
-        --line-strong: rgba(198, 220, 242, 0.36);
-        --accent: #06b6d4;
-        --accent-2: #bef264;
-        --success: #6cffbe;
-        --success-bg: rgba(108, 255, 190, 0.1);
-        --danger: #ff8a8a;
-        --danger-bg: rgba(255, 138, 138, 0.1);
-        --match: #6cffbe;
-        --match-bg: rgba(108, 255, 190, 0.08);
-        --mismatch: #ffb86e;
-        --mismatch-bg: rgba(255, 184, 110, 0.08);
-        --missing-left: #06b6d4;
-        --missing-left-bg: rgba(6, 182, 212, 0.1);
-        --missing-right: #ff7a7a;
-        --missing-right-bg: rgba(255, 122, 122, 0.08);
-        --unkeyed-left: #06b6d4;
-        --unkeyed-left-bg: rgba(6, 182, 212, 0.08);
-        --unkeyed-right: #fbbf24;
-        --unkeyed-right-bg: rgba(251, 191, 36, 0.08);
-        --duplicate: #ffb86e;
-        --duplicate-bg: rgba(255, 184, 110, 0.08);
-        --shadow: 0 24px 60px rgba(0, 0, 0, 0.38);
+        --font-sans: "Space Grotesk", "Segoe UI", sans-serif;
+        --font-mono: "JetBrains Mono", "SFMono-Regular", monospace;
+        --font-display: "Bebas Neue", Impact, sans-serif;
+        --color-kinetic-bg: #050505;
+        --color-kinetic-panel: #090909;
+        --color-kinetic-panel-2: #111111;
+        --color-kinetic-line: rgba(151, 177, 204, 0.18);
+        --color-kinetic-line-strong: rgba(198, 220, 242, 0.36);
+        --color-kinetic-copy: #f5f7fb;
+        --color-kinetic-muted: #95a2b3;
+        --color-kinetic-accent: #06b6d4;
+        --color-kinetic-accent-2: #bef264;
+        --color-kinetic-danger: #ff7a7a;
+        --color-kinetic-success: #6cffbe;
+        --color-kinetic-warning: #ffb86e;
+        --color-kinetic-overlay: rgba(19, 22, 26, 0.92);
+        --color-kinetic-overlay-strong: rgba(26, 31, 36, 0.96);
+        --color-kinetic-grid: rgba(245, 247, 251, 0.18);
       }
 
-      * { box-sizing: border-box; }
+      * {
+        box-sizing: border-box;
+        scrollbar-color: rgba(6, 182, 212, 0.45) var(--color-kinetic-overlay);
+      }
+
+      *:focus-visible {
+        outline: 1px solid var(--color-kinetic-accent);
+        outline-offset: 2px;
+        box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.32);
+      }
+
+      ::selection {
+        background: rgba(6, 182, 212, 0.22);
+        color: var(--color-kinetic-copy);
+      }
+
       html {
-        background: var(--bg);
+        background: var(--color-kinetic-bg);
+        font-family: var(--font-sans);
       }
 
       body {
         margin: 0;
         min-height: 100vh;
-        font-family: "Space Grotesk", "Segoe UI", sans-serif;
-        background: var(--bg);
-        color: var(--text);
-        position: relative;
+        background: radial-gradient(circle at top, rgba(190, 242, 100, 0.07), transparent 34%),
+          linear-gradient(180deg, rgba(6, 182, 212, 0.06), transparent 24%),
+          var(--color-kinetic-bg);
+        color: var(--color-kinetic-copy);
       }
 
-      body::before {
+      button,
+      input {
+        border-radius: 0;
+      }
+
+      .kinetic-shell {
+        position: relative;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      .kinetic-shell::before {
         content: "";
         position: fixed;
         inset: 0;
         pointer-events: none;
-        background:
-          linear-gradient(180deg, rgba(6, 182, 212, 0.06), transparent 26%),
-          radial-gradient(circle at top, rgba(190, 242, 100, 0.07), transparent 36%),
-          rgba(255, 255, 255, 0.01);
-        border: 1px solid rgba(255, 255, 255, 0.02);
-        opacity: 0.8;
+        background: rgba(255, 255, 255, 0.01);
+        border: 1px solid rgba(245, 247, 251, 0.04);
+        opacity: 0.14;
       }
 
       .shell {
+        position: relative;
+        z-index: 1;
         max-width: 1320px;
         margin: 0 auto;
         padding: 24px;
-        position: relative;
-        z-index: 1;
       }
 
+      .stack {
+        display: grid;
+        gap: 24px;
+      }
+
+      .kinetic-copy {
+        color: var(--color-kinetic-copy);
+      }
+
+      .kinetic-muted {
+        color: var(--color-kinetic-muted);
+      }
+
+      .hud-label,
+      .kinetic-mono-label,
+      .kinetic-table-head,
+      .status-strip,
+      .table-chip,
+      .btn,
+      .badge,
+      .chip,
+      .sort-button,
+      .filter-button,
+      .diff-toggle {
+        font-family: var(--font-mono);
+      }
+
+      .hud-label {
+        margin: 0;
+        letter-spacing: 0.22em;
+        font-size: 10px;
+        text-transform: uppercase;
+        color: var(--color-kinetic-muted);
+      }
+
+      .display-title {
+        font-family: var(--font-display);
+        letter-spacing: 0.08em;
+        line-height: 0.92;
+        text-transform: uppercase;
+      }
+
+      .kinetic-panel,
       .card {
-        background: linear-gradient(180deg, rgba(17, 17, 17, 0.94) 0%, rgba(9, 9, 9, 0.98) 100%);
-        border: 1px solid var(--line);
         position: relative;
-        overflow: hidden;
-        border-radius: 0;
-        box-shadow: var(--shadow);
+        background: linear-gradient(180deg, rgba(17, 17, 17, 0.94) 0%, rgba(9, 9, 9, 0.98) 100%);
+        border: 1px solid var(--color-kinetic-line);
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.38);
       }
 
+      .kinetic-panel::after,
       .card::after {
         content: "";
         position: absolute;
@@ -256,276 +454,509 @@ export function buildResultsHtmlDocument(params: {
         border-left: 1px solid rgba(245, 247, 251, 0.04);
       }
 
-      .hero {
-        padding: 24px;
-        margin-bottom: 20px;
+      .card {
+        padding: 20px;
+        overflow: hidden;
       }
 
-      .eyebrow {
-        display: inline-block;
-        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
-        font-size: 10px;
-        letter-spacing: 0.22em;
+      .section-card-header {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .section-card-heading {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+      }
+
+      .section-card-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        flex: 0 0 auto;
+        border: 1px solid transparent;
+        letter-spacing: 0.18em;
+        font-size: 11px;
         text-transform: uppercase;
-        color: var(--accent);
-        margin-bottom: 12px;
       }
 
-      h1, h2, h3, p { margin: 0; }
-      h1 {
-        font-family: "Bebas Neue", Impact, sans-serif;
-        font-size: clamp(2.8rem, 8vw, 5rem);
-        letter-spacing: 0.08em;
-        line-height: 0.92;
-        text-transform: uppercase;
+      .section-card-copy h1,
+      .section-card-copy h2,
+      .section-card-copy h3,
+      .section-card-copy p {
+        margin: 0;
       }
 
-      h2 {
+      .section-card-copy h1,
+      .section-card-copy h2,
+      .section-card-copy h3 {
+        margin-top: 4px;
         font-size: 14px;
         font-weight: 600;
         letter-spacing: 0.14em;
         text-transform: uppercase;
       }
 
-      .hero p { color: var(--muted); margin-top: 8px; }
-
-      .hero-copy {
-        max-width: 60rem;
+      .section-card-copy p + p {
+        margin-top: 4px;
       }
 
-      .hero-context {
-        display: grid;
-        gap: 8px;
-        margin-top: 14px;
-      }
-
-      .hero-files {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-      }
-
-      .hero-file {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        min-width: 0;
-        border: 1px solid var(--line);
-        background: var(--overlay);
-        padding: 8px 10px;
-        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
-        font-size: 12px;
-      }
-
-      .hero-file-label {
-        color: var(--muted);
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-        flex: 0 0 auto;
-      }
-
-      .hero-file-name {
-        overflow-wrap: anywhere;
-      }
-
-      .summary-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 12px;
+      .section-card-body {
         margin-top: 20px;
+        display: grid;
+        gap: 24px;
       }
 
-      .summary-item {
-        background: var(--overlay);
-        border: 1px solid var(--line);
-        min-height: 100%;
-        padding: 14px;
+      .section-card-action {
+        display: grid;
+        gap: 12px;
       }
 
-      .summary-item span {
-        display: block;
-        color: var(--muted);
-        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
-        font-size: 10px;
+      .kinetic-tone-accent-strong {
+        border-color: rgba(6, 182, 212, 0.4);
+        background: rgba(6, 182, 212, 0.08);
+        color: var(--color-kinetic-accent);
+      }
+
+      .kinetic-tone-highlight-strong {
+        border-color: rgba(190, 242, 100, 0.4);
+        background: rgba(190, 242, 100, 0.08);
+        color: var(--color-kinetic-accent-2);
+      }
+
+      .kinetic-tone-success {
+        border-color: rgba(108, 255, 190, 0.35);
+        background: rgba(108, 255, 190, 0.05);
+      }
+
+      .kinetic-tone-success-strong {
+        border-color: rgba(108, 255, 190, 0.4);
+        background: rgba(108, 255, 190, 0.08);
+        color: var(--color-kinetic-success);
+      }
+
+      .kinetic-tone-warning {
+        border-color: rgba(255, 184, 110, 0.35);
+        background: rgba(255, 184, 110, 0.05);
+      }
+
+      .kinetic-tone-warning-strong {
+        border-color: rgba(255, 184, 110, 0.4);
+        background: rgba(255, 184, 110, 0.08);
+        color: var(--color-kinetic-warning);
+      }
+
+      .kinetic-tone-accent {
+        border-color: rgba(6, 182, 212, 0.35);
+        background: rgba(6, 182, 212, 0.05);
+      }
+
+      .kinetic-tone-danger {
+        border-color: rgba(255, 122, 122, 0.35);
+        background: rgba(255, 122, 122, 0.05);
+      }
+
+      .kinetic-tone-danger-strong {
+        border-color: rgba(255, 122, 122, 0.4);
+        background: rgba(255, 122, 122, 0.08);
+        color: var(--color-kinetic-danger);
+      }
+
+      .kinetic-surface-subtle {
+        background: var(--color-kinetic-overlay);
+      }
+
+      .kinetic-surface-hover:hover td {
+        background: var(--color-kinetic-overlay);
+      }
+
+      .kinetic-surface-accent-strong {
+        background: rgba(6, 182, 212, 0.1);
+      }
+
+      .kinetic-surface-danger {
+        border-color: rgba(255, 122, 122, 0.4);
+        background: rgba(255, 122, 122, 0.06);
+      }
+
+      .kinetic-surface-success-muted {
+        border-color: rgba(108, 255, 190, 0.4);
+        background: rgba(108, 255, 190, 0.06);
+      }
+
+      .kinetic-glyph-box {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--color-kinetic-line);
+        background: var(--color-kinetic-overlay);
         letter-spacing: 0.18em;
         text-transform: uppercase;
       }
 
-      .summary-item strong {
-        display: block;
-        font-size: 1.5rem;
-        margin-top: 6px;
+      .kinetic-frame {
+        border: 1px solid var(--color-kinetic-line);
+        background: var(--color-kinetic-overlay);
       }
 
-      .stack { display: grid; gap: 20px; }
+      .kinetic-progress-fill {
+        height: 100%;
+        background: var(--color-kinetic-accent);
+      }
 
-      .controls {
+      .summary-file-grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .summary-file-panel {
+        padding: 12px 16px;
+      }
+
+      .summary-file-panel .file-name {
+        margin-top: 4px;
+        max-width: 280px;
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .summary-main {
+        display: grid;
+        gap: 24px;
+      }
+
+      .summary-match-rate {
         padding: 20px;
       }
 
-      .controls-head {
+      .summary-match-rate-head {
         display: flex;
-        justify-content: space-between;
-        gap: 16px;
-        align-items: flex-start;
-        margin-bottom: 16px;
+        flex-direction: column;
+        gap: 8px;
       }
 
-      .controls-head p { color: var(--muted); margin-top: 6px; }
+      .summary-match-rate-value {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+      }
+
+      .summary-match-rate-value .display-title {
+        font-size: clamp(2.5rem, 6vw, 4rem);
+      }
+
+      .summary-progress {
+        margin-top: 16px;
+        height: 12px;
+        overflow: hidden;
+      }
+
+      .summary-stat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+      }
+
+      .summary-stat {
+        padding: 16px;
+      }
+
+      .summary-stat-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .summary-stat-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border: 1px solid transparent;
+        letter-spacing: 0.18em;
+        font-size: 11px;
+        text-transform: uppercase;
+      }
+
+      .summary-stat-value {
+        font-size: 30px;
+        font-weight: 700;
+      }
+
+      .summary-stat-label,
+      .summary-banner-title,
+      .summary-banner-summary {
+        margin: 0;
+      }
+
+      .summary-stat-description,
+      .summary-banner-detail {
+        margin: 4px 0 0;
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      .summary-banners {
+        display: grid;
+        gap: 16px;
+      }
+
+      .summary-banner {
+        display: flex;
+        gap: 12px;
+        padding: 16px;
+      }
+
+      .summary-banner-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        flex: 0 0 auto;
+        border: 1px solid transparent;
+        letter-spacing: 0.18em;
+        font-size: 11px;
+        text-transform: uppercase;
+      }
+
+      .summary-banner-copy {
+        min-width: 0;
+      }
+
+      .summary-banner-summary {
+        margin-top: 6px;
+        font-size: 14px;
+        font-weight: 600;
+      }
 
       .filter-row {
         display: flex;
         flex-wrap: wrap;
-        gap: 10px;
-      }
-
-      .filter-button,
-      .sort-button,
-      .diff-toggle {
-        font: inherit;
-        cursor: pointer;
+        gap: 8px;
       }
 
       .filter-button {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        border: 1px solid var(--line);
-        background: var(--overlay);
-        color: var(--text);
-        padding: 9px 14px;
-        transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+        border: 1px solid var(--color-kinetic-line);
+        background: var(--color-kinetic-overlay);
+        color: var(--color-kinetic-muted);
+        padding: 7px 14px;
+        letter-spacing: 0.04em;
+        font-size: 13px;
+        transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease;
+        cursor: pointer;
       }
 
       .filter-button:hover {
-        border-color: var(--line-strong);
-        background: var(--overlay-strong);
+        border-color: var(--color-kinetic-line-strong);
+        color: var(--color-kinetic-copy);
       }
 
       .filter-button.active {
-        border-color: var(--accent);
+        border-color: var(--color-kinetic-accent);
         background: rgba(6, 182, 212, 0.1);
+        color: var(--color-kinetic-copy);
+      }
+
+      .filter-dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border: 1px solid currentColor;
       }
 
       .filter-count {
-        background: rgba(19, 22, 26, 0.92);
+        background: var(--color-kinetic-overlay);
+        color: var(--color-kinetic-muted);
         padding: 2px 8px;
         font-size: 12px;
         font-weight: 600;
-        color: var(--muted);
       }
 
       .filter-button.active .filter-count {
-        background: rgba(26, 31, 36, 0.96);
-        color: var(--text);
+        background: var(--color-kinetic-overlay-strong);
+        color: var(--color-kinetic-copy);
       }
 
-      .search {
-        width: min(100%, 320px);
-        border: 1px solid var(--line);
-        background: var(--overlay);
-        color: var(--text);
-        padding: 10px 12px;
-        font: inherit;
+      .search-wrap {
+        position: relative;
+        width: 100%;
       }
 
-      .search::placeholder {
-        color: var(--muted);
+      .search-wrap::before {
+        content: "?";
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--color-kinetic-muted);
+        font-family: var(--font-mono);
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        pointer-events: none;
       }
 
-      .table-card { overflow: hidden; }
-
-      .table-header {
-        padding: 20px 20px 0;
-        display: flex;
-        justify-content: space-between;
-        gap: 16px;
-        align-items: flex-start;
+      .input {
+        width: 100%;
+        border: 1px solid var(--color-kinetic-line);
+        background: var(--color-kinetic-overlay);
+        color: var(--color-kinetic-copy);
+        padding: 10px 12px 10px 36px;
+        font-size: 14px;
       }
 
-      .table-header p { color: var(--muted); margin-top: 6px; }
+      .input::placeholder {
+        color: var(--color-kinetic-muted);
+      }
 
-      .table-wrap { overflow-x: auto; padding: 0 20px 20px; }
+      .table-card {
+        padding-bottom: 0;
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+        margin: 0 -20px;
+      }
 
       table {
         width: 100%;
+        min-width: 960px;
         border-collapse: collapse;
-        min-width: 900px;
       }
 
-      th, td {
-        padding: 14px 12px;
+      thead {
+        background: var(--color-kinetic-overlay);
+        border-top: 1px solid var(--color-kinetic-line);
+        border-bottom: 1px solid var(--color-kinetic-line);
+      }
+
+      th,
+      td {
+        padding: 14px 16px;
         text-align: left;
         vertical-align: top;
-        border-top: 1px solid var(--line);
       }
 
-      thead th {
-        background: rgba(19, 22, 26, 0.92);
-        border-top: none;
-        color: var(--muted);
-        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
+      .kinetic-table-head {
         font-size: 11px;
+        font-weight: 600;
         letter-spacing: 0.18em;
         text-transform: uppercase;
+        color: var(--color-kinetic-muted);
       }
 
-      tbody tr:hover td {
-        background: rgba(19, 22, 26, 0.48);
+      tbody {
+        border-bottom: 1px solid var(--color-kinetic-line);
+      }
+
+      tbody tr + tr td {
+        border-top: 1px solid var(--color-kinetic-line);
       }
 
       .sort-button {
-        background: transparent;
-        border: none;
-        color: inherit;
-        padding: 0;
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        font: inherit;
+        padding: 0;
+        border: none;
+        background: transparent;
+        color: inherit;
+        font-size: inherit;
         letter-spacing: inherit;
         text-transform: inherit;
+        cursor: pointer;
+      }
+
+      .sort-button.active {
+        color: var(--color-kinetic-copy);
+      }
+
+      .sort-glyph {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        line-height: 0.8;
+        font-size: 8px;
+      }
+
+      .sort-glyph .active {
+        color: var(--color-kinetic-accent);
       }
 
       .badge {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
-        padding: 6px 10px;
+        gap: 6px;
+        width: fit-content;
         border: 1px solid currentColor;
-        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
+        padding: 6px 10px;
         font-size: 10px;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
         font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
         white-space: nowrap;
       }
 
       .badge-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 999px;
+        width: 6px;
+        height: 6px;
         background: currentColor;
       }
 
-      .tone-match { color: var(--match); background: var(--match-bg); }
-      .tone-mismatch { color: var(--mismatch); background: var(--mismatch-bg); }
-      .tone-missing-left { color: var(--missing-left); background: var(--missing-left-bg); }
-      .tone-missing-right { color: var(--missing-right); background: var(--missing-right-bg); }
-      .tone-unkeyed-left { color: var(--unkeyed-left); background: var(--unkeyed-left-bg); }
-      .tone-unkeyed-right { color: var(--unkeyed-right); background: var(--unkeyed-right-bg); }
-      .tone-duplicate { color: var(--duplicate); background: var(--duplicate-bg); }
-      .tone-neutral { color: var(--text); background: var(--overlay); }
+      .tone-match {
+        color: var(--color-kinetic-success);
+        background: rgba(108, 255, 190, 0.08);
+      }
+
+      .tone-mismatch,
+      .tone-duplicate {
+        color: var(--color-kinetic-warning);
+        background: rgba(255, 184, 110, 0.08);
+      }
+
+      .tone-missing-left,
+      .tone-unkeyed-left {
+        color: var(--color-kinetic-accent);
+        background: rgba(6, 182, 212, 0.08);
+      }
+
+      .tone-missing-right,
+      .tone-unkeyed-right {
+        color: var(--color-kinetic-danger);
+        background: rgba(255, 122, 122, 0.08);
+      }
+
+      .tone-neutral {
+        color: var(--color-kinetic-copy);
+        background: var(--color-kinetic-overlay);
+      }
+
+      .chip,
+      .table-chip {
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+        border: 1px solid var(--color-kinetic-line);
+        background: var(--color-kinetic-overlay);
+        padding: 6px 10px;
+        font-size: 13px;
+        overflow-wrap: anywhere;
+      }
 
       .chip {
-        display: inline-block;
-        border: 1px solid var(--line);
-        background: var(--overlay);
-        padding: 6px 10px;
-        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
-        font-size: 13px;
-        max-width: 100%;
-        overflow-wrap: anywhere;
+        font-weight: 600;
       }
 
       .value-stack {
@@ -534,76 +965,90 @@ export function buildResultsHtmlDocument(params: {
       }
 
       .value-row {
-        border: 1px solid var(--line);
-        background: var(--overlay);
+        border: 1px solid var(--color-kinetic-line);
+        background: var(--color-kinetic-overlay);
         padding: 8px 10px;
-        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
         font-size: 13px;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
       }
 
       .diff-toggle {
-        border: 1px solid var(--line);
-        background: var(--overlay);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid var(--color-kinetic-line);
+        background: var(--color-kinetic-overlay);
+        color: var(--color-kinetic-muted);
         padding: 7px 10px;
-        color: var(--text);
-        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 700;
-        letter-spacing: 0.14em;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
-        transition: border-color 0.18s ease, background 0.18s ease;
+        cursor: pointer;
+        transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease;
       }
 
       .diff-toggle:hover {
-        border-color: var(--line-strong);
-        background: var(--overlay-strong);
+        border-color: var(--color-kinetic-line-strong);
+        color: var(--color-kinetic-copy);
+      }
+
+      .diff-toggle[aria-expanded="true"] {
+        border-color: var(--color-kinetic-accent);
+        background: rgba(6, 182, 212, 0.1);
+        color: var(--color-kinetic-copy);
+      }
+
+      .diff-toggle-glyph {
+        display: inline-block;
+        transition: transform 0.18s ease;
+      }
+
+      .diff-toggle[aria-expanded="true"] .diff-toggle-glyph {
+        transform: rotate(90deg);
       }
 
       .details-row td {
-        background: rgba(14, 16, 19, 0.98);
+        background: var(--color-kinetic-overlay);
       }
 
       .diff-panel {
-        border: 1px solid var(--line);
-        background: rgba(19, 22, 26, 0.92);
         padding: 16px;
       }
 
       .diff-panel-header {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
         margin-bottom: 12px;
       }
 
       .diff-panel-icon {
-        display: inline-flex;
+        display: flex;
         align-items: center;
         justify-content: center;
         width: 24px;
         height: 24px;
-        border: 1px solid var(--accent);
-        background: rgba(6, 182, 212, 0.14);
-        color: var(--text);
-        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
+        border: 1px solid rgba(6, 182, 212, 0.4);
+        background: rgba(6, 182, 212, 0.08);
+        color: var(--color-kinetic-accent);
         font-size: 11px;
-        font-weight: 700;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
       }
 
       .diff-panel-title {
-        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
         font-size: 11px;
         font-weight: 700;
         letter-spacing: 0.16em;
         text-transform: uppercase;
-        color: var(--text);
       }
 
       .diff-panel-count {
         margin-left: auto;
-        color: var(--muted);
         font-size: 12px;
+        color: var(--color-kinetic-muted);
       }
 
       .diff-grid {
@@ -613,31 +1058,15 @@ export function buildResultsHtmlDocument(params: {
       }
 
       .diff-card {
-        border: 1px solid var(--line);
         padding: 14px;
-        background: rgba(26, 31, 36, 0.82);
       }
 
       .diff-card-header {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
         align-items: flex-start;
-        color: var(--muted);
-        font-size: 12px;
+        gap: 8px;
         margin-bottom: 10px;
-      }
-
-      .diff-column-chip {
-        display: inline-flex;
-        align-items: center;
-        max-width: 100%;
-        border: 1px solid var(--line);
-        background: var(--overlay);
-        padding: 6px 10px;
-        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
-        font-size: 13px;
-        overflow-wrap: anywhere;
       }
 
       .diff-arrow-box {
@@ -646,12 +1075,8 @@ export function buildResultsHtmlDocument(params: {
         justify-content: center;
         width: 32px;
         height: 32px;
-        border: 1px solid var(--line);
-        background: rgba(9, 9, 9, 0.92);
-        color: var(--muted);
-        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
-        font-size: 11px;
         flex: 0 0 auto;
+        font-size: 11px;
       }
 
       .diff-values {
@@ -663,164 +1088,225 @@ export function buildResultsHtmlDocument(params: {
 
       .diff-value-label {
         display: block;
-        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
+        margin-bottom: 6px;
         font-size: 10px;
         font-weight: 700;
         letter-spacing: 0.14em;
         text-transform: uppercase;
-        margin-bottom: 6px;
       }
 
       .diff-value-label.file-a {
-        color: var(--danger);
+        color: var(--color-kinetic-danger);
       }
 
       .diff-value-label.file-b {
-        color: var(--success);
+        color: var(--color-kinetic-success);
       }
 
       .diff-value-box {
         display: block;
-        border: 1px solid var(--line);
-        padding: 10px;
-        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
-        font-size: 13px;
-        background: rgba(9, 9, 9, 0.92);
-        overflow-wrap: anywhere;
         min-height: 42px;
-      }
-
-      .diff-value-box.file-a {
-        border-color: rgba(255, 138, 138, 0.28);
-        background: var(--danger-bg);
-      }
-
-      .diff-value-box.file-b {
-        border-color: rgba(108, 255, 190, 0.28);
-        background: var(--success-bg);
-      }
-
-      .diff-values-arrow {
-        align-self: center;
+        padding: 10px;
+        border: 1px solid var(--color-kinetic-line);
+        font-size: 13px;
+        overflow-wrap: anywhere;
       }
 
       .diff-empty {
-        color: var(--muted);
         font-style: italic;
+        color: var(--color-kinetic-muted);
       }
 
       .result-description {
-        color: var(--muted);
-      }
-
-      .diff-values-arrow {
-        color: var(--muted);
-      }
-
-      .diff-values strong {
-        display: block;
-        font-size: 11px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        margin-bottom: 6px;
+        color: var(--color-kinetic-muted);
       }
 
       .empty-state {
         padding: 48px 24px;
         text-align: center;
-        color: var(--muted);
       }
 
-      .empty-glyph {
-        border: 1px solid var(--line);
-        display: inline-flex;
+      .kinetic-empty-glyph {
+        display: flex;
         align-items: center;
         justify-content: center;
         width: 64px;
         height: 64px;
-        margin: 0 auto 12px;
-        background: var(--overlay);
-        color: var(--text);
-        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
-        font-size: 28px;
-        letter-spacing: 0.18em;
+        margin: 0 auto 16px;
+        border: 1px solid var(--color-kinetic-line);
+        letter-spacing: 0.22em;
+        font-size: 18px;
+        text-transform: uppercase;
+      }
+
+      .status-strip {
+        border-top: 1px solid var(--color-kinetic-line);
+        background: var(--color-kinetic-overlay);
+        padding: 12px 16px;
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--color-kinetic-muted);
+      }
+
+      @media (min-width: 860px) {
+        .section-card-header {
+          flex-direction: row;
+          align-items: flex-start;
+          justify-content: space-between;
+        }
+
+        .section-card-action {
+          min-width: 280px;
+          justify-items: end;
+        }
+
+        .summary-file-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .summary-match-rate-head {
+          flex-direction: row;
+          justify-content: space-between;
+          align-items: baseline;
+        }
       }
 
       @media (max-width: 720px) {
-        .shell { padding: 16px; }
-        .hero, .controls { padding: 16px; }
-        .controls-head, .table-header { flex-direction: column; }
-        .search { width: 100%; }
-        .diff-grid { grid-template-columns: 1fr; }
+        .shell {
+          padding: 16px;
+        }
+
+        .card {
+          padding: 16px;
+        }
+
+        .table-wrap {
+          margin: 0 -16px;
+        }
+
+        .diff-grid {
+          grid-template-columns: 1fr;
+        }
       }
     </style>
   </head>
   <body>
-    <div class="shell stack">
-      <section class="card hero">
-        <span class="eyebrow">Saved comparison review</span>
-        <h1>Comparison results</h1>
-        <p class="hero-copy">Standalone HTML export of the current comparison results with the same result buckets, sortable review table, and kinetic dark review surface as the app.</p>
-        <div class="hero-context">
-          <div class="hero-files" aria-label="Compared files">
-            <span class="hero-file"><span class="hero-file-label">File A</span><span class="hero-file-name">${fileAName}</span></span>
-            <span class="hero-file"><span class="hero-file-label">File B</span><span class="hero-file-name">${fileBName}</span></span>
+    <div class="kinetic-shell">
+      <div class="shell stack">
+        <section class="card">
+          <div class="section-card-header">
+            <div class="section-card-heading">
+              <div class="section-card-icon kinetic-tone-accent-strong">SUM</div>
+              <div class="section-card-copy">
+                <p class="hud-label" style="color: var(--color-kinetic-accent);">Step 3 · Results</p>
+                <h1><span class="kinetic-copy">Comparison Summary</span></h1>
+                <p class="kinetic-muted">Review the overall match quality before drilling into filtered result rows.</p>
+              </div>
+            </div>
+            <div class="section-card-action summary-file-grid" aria-label="Compared files">
+              <div class="kinetic-panel summary-file-panel">
+                <p class="hud-label">File A</p>
+                <p class="kinetic-muted"><span class="kinetic-copy">${params.summary.total_rows_a}</span> rows</p>
+                <p class="kinetic-muted file-name" title="${fileAName}">${fileAName}</p>
+              </div>
+              <div class="kinetic-panel summary-file-panel">
+                <p class="hud-label">File B</p>
+                <p class="kinetic-muted"><span class="kinetic-copy">${params.summary.total_rows_b}</span> rows</p>
+                <p class="kinetic-muted file-name" title="${fileBName}">${fileBName}</p>
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="summary-grid">
-          <div class="summary-item"><span>File A rows</span><strong id="summary-total-a"></strong></div>
-          <div class="summary-item"><span>File B rows</span><strong id="summary-total-b"></strong></div>
-          <div class="summary-item"><span>Matches</span><strong id="summary-matches"></strong></div>
-          <div class="summary-item"><span>Mismatches</span><strong id="summary-mismatches"></strong></div>
-          <div class="summary-item"><span>Only in File B</span><strong id="summary-missing-left"></strong></div>
-          <div class="summary-item"><span>Only in File A</span><strong id="summary-missing-right"></strong></div>
-          <div class="summary-item"><span>Ignored in File B</span><strong id="summary-unkeyed-left"></strong></div>
-          <div class="summary-item"><span>Ignored in File A</span><strong id="summary-unkeyed-right"></strong></div>
-          <div class="summary-item"><span>Duplicates in File A</span><strong id="summary-duplicates-a"></strong></div>
-          <div class="summary-item"><span>Duplicates in File B</span><strong id="summary-duplicates-b"></strong></div>
-        </div>
-      </section>
+          <div class="section-card-body summary-main">
+            <div class="kinetic-panel summary-match-rate">
+              <div class="summary-match-rate-head">
+                <div>
+                  <p class="hud-label">Match rate</p>
+                  <p class="kinetic-copy" style="margin-top: 4px; font-size: 14px; font-weight: 500;">Match rate of comparable rows</p>
+                </div>
+                <div class="summary-match-rate-value">
+                  <span class="display-title kinetic-copy">${matchPercent}%</span>
+                  <span class="kinetic-muted" style="font-size: 12px;">${params.summary.matches} of ${comparableTotal} rows</span>
+                </div>
+              </div>
+              <div class="kinetic-frame summary-progress">
+                <div class="kinetic-progress-fill" style="width: ${matchPercent}%;"></div>
+              </div>
+            </div>
 
-      <section class="card controls">
-        <div class="controls-head">
-          <div>
-            <span class="eyebrow">Results filter</span>
-            <h2>Focus on the rows you care about</h2>
-            <p>Switch between result buckets while reviewing the exported comparison.</p>
-          </div>
-          <input id="results-search" class="search" type="search" placeholder="Search keys or values" aria-label="Search keys or values" />
-        </div>
-        <div id="filter-row" class="filter-row" role="group" aria-label="Result buckets"></div>
-      </section>
+            <div>
+              <div style="margin-bottom: 12px;">
+                <p class="hud-label">Outcome breakdown</p>
+                <p class="kinetic-muted" style="margin-top: 4px; font-size: 14px;">How each comparable row was classified.</p>
+              </div>
+              <div class="summary-stat-grid">${summaryStatsMarkup}</div>
+            </div>
 
-      <section class="card table-card">
-        <div class="table-header">
-          <div>
-            <span class="eyebrow">Detailed results</span>
-            <h2>Comparison results</h2>
-            <p id="results-count"></p>
+            ${summaryBannersMarkup}
           </div>
-          <p id="generated-at"></p>
-        </div>
-        <div class="table-wrap">
-          <div id="table-empty-state" class="empty-state" hidden>
-            <div id="table-empty-glyph" class="empty-glyph"></div>
-            <p id="table-empty-copy"></p>
+        </section>
+
+        <section class="card">
+          <div class="section-card-header">
+            <div class="section-card-heading">
+              <div class="section-card-icon kinetic-tone-accent-strong">FLT</div>
+              <div class="section-card-copy">
+                <p class="hud-label" style="color: var(--color-kinetic-accent);">Results filter</p>
+                <h2><span class="kinetic-copy">Focus on the rows you care about</span></h2>
+                <p class="kinetic-muted">Switch between result buckets while reviewing the exported comparison.</p>
+              </div>
+            </div>
           </div>
-          <table id="results-table">
-            <thead>
-              <tr>
-                <th><button type="button" class="sort-button" data-sort-column="type">Type</button></th>
-                <th><button type="button" class="sort-button" data-sort-column="key">Key</button></th>
-                <th><button type="button" class="sort-button" data-sort-column="fileA">File A Values</button></th>
-                <th><button type="button" class="sort-button" data-sort-column="fileB">File B Values</button></th>
-                <th><button type="button" class="sort-button" data-sort-column="details">Details</button></th>
-              </tr>
-            </thead>
-            <tbody id="results-body"></tbody>
-          </table>
-        </div>
-      </section>
+          <div class="section-card-body">
+            <div id="filter-row" class="filter-row" role="group" aria-label="Result buckets"></div>
+          </div>
+        </section>
+
+        <section class="card table-card">
+          <div class="section-card-header">
+            <div class="section-card-heading">
+              <div class="section-card-icon kinetic-tone-accent-strong">RES</div>
+              <div class="section-card-copy">
+                <p class="hud-label" style="color: var(--color-kinetic-accent);">Detailed results</p>
+                <h2><span class="kinetic-copy">Comparison results</span></h2>
+                <p id="results-count" class="kinetic-muted"></p>
+              </div>
+            </div>
+            <div class="section-card-action">
+              <label class="search-wrap" for="results-search">
+                <span style="position:absolute;left:-9999px;">Search result values</span>
+                <input id="results-search" class="input" type="search" placeholder="Search keys or values" aria-label="Search keys or values" />
+              </label>
+            </div>
+          </div>
+
+          <div class="section-card-body" style="gap: 0; margin-top: 16px;">
+            <div id="table-empty-state" class="empty-state" hidden>
+              <div id="table-empty-glyph" class="kinetic-empty-glyph kinetic-muted"></div>
+              <p id="table-empty-copy" class="kinetic-muted"></p>
+            </div>
+
+            <div class="table-wrap">
+              <table id="results-table">
+                <thead>
+                  <tr>
+                    <th class="kinetic-table-head" aria-sort="none"><button type="button" class="sort-button" data-sort-column="type">Type <span class="sort-glyph" aria-hidden="true"><span data-sort-dir="asc">▲</span><span data-sort-dir="desc">▼</span></span></button></th>
+                    <th class="kinetic-table-head" aria-sort="none"><button type="button" class="sort-button" data-sort-column="key">Key <span class="sort-glyph" aria-hidden="true"><span data-sort-dir="asc">▲</span><span data-sort-dir="desc">▼</span></span></button></th>
+                    <th class="kinetic-table-head" aria-sort="none"><button type="button" class="sort-button" data-sort-column="fileA">File A Values <span class="sort-glyph" aria-hidden="true"><span data-sort-dir="asc">▲</span><span data-sort-dir="desc">▼</span></span></button></th>
+                    <th class="kinetic-table-head" aria-sort="none"><button type="button" class="sort-button" data-sort-column="fileB">File B Values <span class="sort-glyph" aria-hidden="true"><span data-sort-dir="asc">▲</span><span data-sort-dir="desc">▼</span></span></button></th>
+                    <th class="kinetic-table-head" aria-sort="none"><button type="button" class="sort-button" data-sort-column="details">Details <span class="sort-glyph" aria-hidden="true"><span data-sort-dir="asc">▲</span><span data-sort-dir="desc">▼</span></span></button></th>
+                  </tr>
+                </thead>
+                <tbody id="results-body"></tbody>
+              </table>
+            </div>
+
+            <div class="status-strip">
+              <span id="generated-at"></span>
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
 
     <script id="csv-align-export-data" type="application/json">${serializedData}</script>
@@ -834,25 +1320,6 @@ export function buildResultsHtmlDocument(params: {
         expandedRow: null,
       };
 
-      const summaryMap = {
-        'summary-total-a': data.summary.total_rows_a,
-        'summary-total-b': data.summary.total_rows_b,
-        'summary-matches': data.summary.matches,
-        'summary-mismatches': data.summary.mismatches,
-        'summary-missing-left': data.summary.missing_left,
-        'summary-missing-right': data.summary.missing_right,
-        'summary-unkeyed-left': data.summary.unkeyed_left,
-        'summary-unkeyed-right': data.summary.unkeyed_right,
-        'summary-duplicates-a': data.summary.duplicates_a,
-        'summary-duplicates-b': data.summary.duplicates_b,
-      };
-
-      Object.entries(summaryMap).forEach(([id, value]) => {
-        document.getElementById(id).textContent = String(value);
-      });
-
-      document.getElementById('generated-at').textContent = 'Generated ' + new Date(data.generatedAt).toLocaleString();
-
       const filterRow = document.getElementById('filter-row');
       const resultsCount = document.getElementById('results-count');
       const resultsBody = document.getElementById('results-body');
@@ -861,6 +1328,8 @@ export function buildResultsHtmlDocument(params: {
       const emptyGlyph = document.getElementById('table-empty-glyph');
       const emptyCopy = document.getElementById('table-empty-copy');
       const searchInput = document.getElementById('results-search');
+
+      document.getElementById('generated-at').textContent = 'Generated ' + new Date(data.generatedAt).toLocaleString();
 
       function escapeHtml(value) {
         return String(value)
@@ -882,9 +1351,27 @@ export function buildResultsHtmlDocument(params: {
         });
       }
 
+      function getFilterDotStyle(filterValue) {
+        switch (filterValue) {
+          case 'match':
+            return 'style="color: var(--color-kinetic-success);"';
+          case 'mismatch':
+          case 'duplicate':
+            return 'style="color: var(--color-kinetic-warning);"';
+          case 'missing_left':
+          case 'unkeyed_left':
+            return 'style="color: var(--color-kinetic-accent);"';
+          case 'missing_right':
+          case 'unkeyed_right':
+            return 'style="color: var(--color-kinetic-danger);"';
+          default:
+            return 'style="color: var(--color-kinetic-muted);"';
+        }
+      }
+
       function formatValueStack(rows) {
         if (rows.length === 0) {
-          return '<span style="color: var(--muted); font-style: italic;">-</span>';
+          return '<span class="kinetic-muted" style="font-style: italic;">-</span>';
         }
 
         return '<div class="value-stack">' + rows.map((row) => (
@@ -897,15 +1384,15 @@ export function buildResultsHtmlDocument(params: {
           return '';
         }
 
-        return '<tr class="details-row"><td colspan="5"><div class="diff-panel"><div class="diff-panel-header"><span class="diff-panel-icon">+</span><span class="diff-panel-title">Value Differences</span><span class="diff-panel-count">' + row.differences.length + ' field' + (row.differences.length === 1 ? '' : 's') + '</span></div><div class="diff-grid">' + row.differences.map((diff) => (
-          '<article class="diff-card">'
-            + '<header class="diff-card-header"><span class="diff-column-chip">' + escapeHtml(diff.column_a) + '</span>'
-            + (diff.column_a === diff.column_b ? '' : '<span class="diff-arrow-box">-&gt;</span><span class="diff-column-chip">' + escapeHtml(diff.column_b) + '</span>')
+        return '<tr class="details-row"><td colspan="5"><div class="kinetic-panel diff-panel"><div class="diff-panel-header"><span class="diff-panel-icon">+</span><span class="diff-panel-title kinetic-copy">Value Differences</span><span class="diff-panel-count">' + row.differences.length + ' field' + (row.differences.length === 1 ? '' : 's') + '</span></div><div class="diff-grid">' + row.differences.map((diff) => (
+          '<article class="kinetic-panel diff-card">'
+            + '<header class="diff-card-header kinetic-muted"><span class="table-chip kinetic-copy">' + escapeHtml(diff.column_a) + '</span>'
+            + (diff.column_a === diff.column_b ? '' : '<span class="kinetic-glyph-box diff-arrow-box kinetic-muted">-&gt;</span><span class="table-chip kinetic-copy">' + escapeHtml(diff.column_b) + '</span>')
             + '</header>'
             + '<div class="diff-values">'
-            + '<div><span class="diff-value-label file-a">File A</span><span class="diff-value-box file-a" title="' + escapeHtml(diff.value_a) + '">' + (diff.value_a === '' ? '<span class="diff-empty">-</span>' : escapeHtml(diff.value_a)) + '</span></div>'
-            + '<div class="diff-values-arrow"><span class="diff-arrow-box">-&gt;</span></div>'
-            + '<div><span class="diff-value-label file-b">File B</span><span class="diff-value-box file-b" title="' + escapeHtml(diff.value_b) + '">' + (diff.value_b === '' ? '<span class="diff-empty">-</span>' : escapeHtml(diff.value_b)) + '</span></div>'
+            + '<div><span class="diff-value-label file-a">File A</span><span class="diff-value-box kinetic-copy kinetic-surface-danger" title="' + escapeHtml(diff.value_a) + '">' + (diff.value_a === '' ? '<span class="diff-empty">-</span>' : escapeHtml(diff.value_a)) + '</span></div>'
+            + '<div class="kinetic-glyph-box diff-arrow-box kinetic-muted">-&gt;</div>'
+            + '<div><span class="diff-value-label file-b">File B</span><span class="diff-value-box kinetic-copy kinetic-surface-success-muted" title="' + escapeHtml(diff.value_b) + '">' + (diff.value_b === '' ? '<span class="diff-empty">-</span>' : escapeHtml(diff.value_b)) + '</span></div>'
             + '</div>'
             + '</article>'
         )).join('') + '</div></div></td></tr>';
@@ -927,9 +1414,27 @@ export function buildResultsHtmlDocument(params: {
         return [...filtered].sort((left, right) => compareValues(left.sortValues[state.sortColumn], right.sortValues[state.sortColumn]) * direction);
       }
 
+      function updateSortButtons() {
+        document.querySelectorAll('[data-sort-column]').forEach((button) => {
+          const column = button.getAttribute('data-sort-column');
+          const isActive = state.sortColumn === column;
+          button.classList.toggle('active', isActive);
+
+          const th = button.closest('th');
+          if (th) {
+            th.setAttribute('aria-sort', isActive ? (state.sortDirection === 'asc' ? 'ascending' : 'descending') : 'none');
+          }
+
+          button.querySelectorAll('[data-sort-dir]').forEach((glyph) => {
+            const glyphDirection = glyph.getAttribute('data-sort-dir');
+            glyph.classList.toggle('active', isActive && glyphDirection === state.sortDirection);
+          });
+        });
+      }
+
       function renderFilters() {
         filterRow.innerHTML = data.filterOptions.map((option) => (
-          '<button type="button" class="filter-button' + (state.filter === option.value ? ' active' : '') + '" data-filter="' + option.value + '" aria-pressed="' + (state.filter === option.value ? 'true' : 'false') + '">' + escapeHtml(option.label) + '<span class="filter-count">' + option.count + '</span></button>'
+          '<button type="button" class="filter-button' + (state.filter === option.value ? ' active' : '') + '" data-filter="' + option.value + '" aria-pressed="' + (state.filter === option.value ? 'true' : 'false') + '"><span class="filter-dot" ' + getFilterDotStyle(option.value) + '></span>' + escapeHtml(option.label) + '<span class="filter-count">' + option.count + '</span></button>'
         )).join('');
       }
 
@@ -941,7 +1446,7 @@ export function buildResultsHtmlDocument(params: {
 
         if (filterOnlyRows.length === 0) {
           emptyGlyph.textContent = '0X';
-          emptyCopy.textContent = 'No results match the selected filter';
+          emptyCopy.textContent = 'No results match the selected filter.';
           emptyState.hidden = false;
           resultsTable.hidden = true;
           return;
@@ -959,19 +1464,22 @@ export function buildResultsHtmlDocument(params: {
         resultsTable.hidden = false;
 
         resultsBody.innerHTML = visibleRows.map((row) => {
+          const isExpanded = state.expandedRow === row.id;
           const detailCell = row.detailsCount > 0
-            ? '<button type="button" class="diff-toggle" data-expand-row="' + row.id + '" aria-expanded="' + (state.expandedRow === row.id ? 'true' : 'false') + '">' + row.detailsCount + ' diff' + (row.detailsCount === 1 ? '' : 's') + '</button>'
+            ? '<button type="button" class="diff-toggle" data-expand-row="' + row.id + '" aria-expanded="' + (isExpanded ? 'true' : 'false') + '">' + row.detailsCount + ' diff' + (row.detailsCount === 1 ? '' : 's') + '<span class="diff-toggle-glyph">&gt;</span></button>'
             : '<span class="result-description">' + escapeHtml(row.description || '-') + '</span>';
 
-          return '<tr>'
+          return '<tr class="' + (isExpanded ? 'kinetic-surface-accent-strong' : 'kinetic-surface-hover') + '">'
             + '<td><span class="badge tone-' + row.badgeTone + '"><span class="badge-dot"></span>' + escapeHtml(row.badgeLabel) + '</span></td>'
-            + '<td><span class="chip">' + escapeHtml(row.keyText) + '</span></td>'
+            + '<td><span class="chip kinetic-copy" title="' + escapeHtml(row.keyText) + '">' + escapeHtml(row.keyText) + '</span></td>'
             + '<td>' + formatValueStack(row.fileAValues) + '</td>'
             + '<td>' + formatValueStack(row.fileBValues) + '</td>'
             + '<td>' + detailCell + '</td>'
             + '</tr>'
             + renderDifferences(row);
         }).join('');
+
+        updateSortButtons();
       }
 
       filterRow.addEventListener('click', (event) => {
@@ -1019,6 +1527,7 @@ export function buildResultsHtmlDocument(params: {
 
       renderFilters();
       renderTable();
+      updateSortButtons();
     </script>
   </body>
 </html>`;

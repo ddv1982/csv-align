@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.20 - 2026-04-20
+
+- Refined the standalone HTML export Step 3 parity work so saved reports now match the in-app review surface more closely, tightening the comparison-results header and Value Differences presentation for clearer exported mismatch review.
+- Prepared the v2.1.20 patch release by synchronizing version metadata across the Rust crates, desktop bundle config, frontend package manifests, and lockfiles before rerunning the documented broad validation suite.
+
 ## v2.1.19 - 2026-04-20
 
 - Refined the standalone HTML export presentation so saved reports now show a clearer comparison-results header with explicit File A and File B names and a more polished Value Differences card layout that better matches the in-app review surface.

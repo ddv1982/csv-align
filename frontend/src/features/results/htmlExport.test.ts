@@ -63,27 +63,67 @@ test('buildResultsHtmlDocument embeds the current comparison view state for stan
 
   expect(html).toContain('<!DOCTYPE html>');
   expect(html).toContain('<title>left.csv vs right.csv comparison results</title>');
-  expect(html).toContain('<h1>Comparison results</h1>');
+  expect(html).toContain('Step 3 · Results');
+  expect(html).toContain('<h1><span class="kinetic-copy">Comparison Summary</span></h1>');
   expect(html).toContain('left.csv vs right.csv comparison results');
   expect(html).toContain('aria-label="Compared files"');
-  expect(html).toContain('class="hero-file-label">File A</span><span class="hero-file-name">left.csv</span>');
-  expect(html).toContain('class="hero-file-label">File B</span><span class="hero-file-name">right.csv</span>');
+  expect(html).toContain('<p class="hud-label">File A</p>');
+  expect(html).toContain('<p class="kinetic-muted file-name" title="left.csv">left.csv</p>');
+  expect(html).toContain('<p class="hud-label">File B</p>');
+  expect(html).toContain('<p class="kinetic-muted file-name" title="right.csv">right.csv</p>');
+  expect(html).toContain('Match rate of comparable rows');
+  expect(html).toContain('How each comparable row was classified.');
+  expect(html).toContain('Duplicate keys detected');
   expect(html).toContain('"initialFilter":"duplicate"');
   expect(html).toContain('"label":"Duplicates","count":1');
   expect(html).toContain('"badgeLabel":"Mismatch"');
   expect(html).toContain('"description":"Multiple File A rows share this selected key."');
   expect(html).toContain('data-sort-column="details"');
   expect(html).toContain('data-expand-row=');
-  expect(html).toContain('diff-panel-title">Value Differences</span>');
+  expect(html).toContain('diff-panel-title kinetic-copy">Value Differences</span>');
   expect(html).toContain('diff-panel-count">\' + row.differences.length + \'' );
-  expect(html).toContain('class="diff-column-chip">\' + escapeHtml(diff.column_a) + \'' );
-  expect(html).toContain('class="diff-arrow-box">-&gt;</span><span class="diff-column-chip">\' + escapeHtml(diff.column_b) + \'' );
+  expect(html).toContain('class="table-chip kinetic-copy">\' + escapeHtml(diff.column_a) + \'' );
+  expect(html).toContain('class="kinetic-glyph-box diff-arrow-box kinetic-muted">-&gt;</span><span class="table-chip kinetic-copy">\' + escapeHtml(diff.column_b) + \'' );
   expect(html).toContain('class="diff-value-label file-a">File A</span>');
-  expect(html).toContain('class="diff-value-box file-b"');
+  expect(html).toContain('class="diff-value-box kinetic-copy kinetic-surface-success-muted"');
   expect(html).toContain('color-scheme: dark;');
-  expect(html).toContain('--bg: #050505;');
-  expect(html).toContain('--success: #6cffbe;');
-  expect(html).toContain('.hero-file-name');
+  expect(html).toContain('--color-kinetic-bg: #050505;');
+  expect(html).toContain('--color-kinetic-success: #6cffbe;');
+  expect(html).toContain('.summary-file-panel');
   expect(html).toContain('.diff-card');
-  expect(html).toContain('kinetic dark review surface as the app');
+  expect(html).toContain('.section-card-header');
+  expect(html).toContain('.status-strip');
+});
+
+test('standalone export table count matches the active filter bucket after the embedded script runs', () => {
+  const html = buildResultsHtmlDocument({
+    summary: SUMMARY,
+    fileAName: 'left.csv',
+    fileBName: 'right.csv',
+    results: RESULTS,
+    initialFilter: 'all',
+  });
+
+  const parsed = new DOMParser().parseFromString(html, 'text/html');
+  const script = parsed.querySelector('script:not([type="application/json"])');
+
+  expect(script?.textContent).toBeTruthy();
+
+  document.body.innerHTML = parsed.body.innerHTML;
+  // eslint-disable-next-line no-new-func
+  Function(script?.textContent ?? '')();
+
+  const resultsCount = document.getElementById('results-count');
+  expect(resultsCount?.textContent).toBe('3 of 3 rows shown');
+
+  const duplicateFilter = (Array.from(document.querySelectorAll('[data-filter]')) as HTMLButtonElement[]).find(
+    (button) => button.getAttribute('data-filter') === 'duplicate',
+  );
+
+  expect(duplicateFilter).toBeTruthy();
+  duplicateFilter?.click();
+
+  expect(resultsCount?.textContent).toBe('1 of 1 rows shown');
+
+  document.body.innerHTML = '';
 });
