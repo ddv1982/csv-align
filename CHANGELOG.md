@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.21 - 2026-04-20
+
+- Refactored the standalone HTML export and in-app results styling to share the same presentation building blocks, reducing duplication while keeping exported comparison reports visually aligned with the review surface.
+- Prepared the v2.1.21 patch release by synchronizing version metadata across the Rust crates, desktop bundle config, frontend package manifests, and lockfiles before rerunning the documented broad validation suite.
+
 ## v2.1.20 - 2026-04-20
 
 - Refined the standalone HTML export Step 3 parity work so saved reports now match the in-app review surface more closely, tightening the comparison-results header and Value Differences presentation for clearer exported mismatch review.

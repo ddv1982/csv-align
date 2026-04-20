@@ -1,4 +1,4 @@
-import type { CompareResultType, ResultFilter, ResultResponse } from '../../types/api';
+import type { CompareResultType, ResultFilter, ResultResponse, SummaryResponse } from '../../types/api';
 
 type ResultFilterOption = {
   value: ResultFilter;
@@ -6,11 +6,68 @@ type ResultFilterOption = {
   accent: string;
 };
 
-type ResultBadge = {
+export type ResultBadge = {
   label: string;
   bg: string;
   text: string;
   dot: string;
+};
+
+export type ResultBadgeTone =
+  | 'match'
+  | 'mismatch'
+  | 'missing-left'
+  | 'missing-right'
+  | 'unkeyed-left'
+  | 'unkeyed-right'
+  | 'duplicate'
+  | 'neutral';
+
+export type ResultSortColumn = 'type' | 'key' | 'fileA' | 'fileB' | 'details';
+export type ResultSortDirection = 'asc' | 'desc';
+export type ResultFilterBucket = Exclude<ResultFilter, 'all'> | 'duplicate';
+
+export type ResultRowViewModel = {
+  id: string;
+  result: ResultResponse;
+  resultType: CompareResultType;
+  filterBucket: ResultFilterBucket;
+  badge: ResultBadge;
+  badgeLabel: string;
+  badgeTone: ResultBadgeTone;
+  description: string | null;
+  keyText: string;
+  fileAValues: string[][];
+  fileBValues: string[][];
+  detailsCount: number;
+  differences: ResultResponse['differences'];
+  searchText: string;
+  sortValues: Record<ResultSortColumn, string | number>;
+};
+
+export type SummaryStatTone = 'success' | 'warning' | 'accent' | 'danger';
+
+export type SummaryStatViewModel = {
+  label: string;
+  value: number;
+  description: string;
+  tone: SummaryStatTone;
+  icon: string;
+};
+
+export type SummaryBannerViewModel = {
+  title: string;
+  summary: string;
+  details: string[];
+  tone: 'accent' | 'warning';
+  icon: string;
+};
+
+export type SummaryOverview = {
+  comparableTotal: number;
+  matchPercent: number;
+  comparableStats: SummaryStatViewModel[];
+  infoBanners: SummaryBannerViewModel[];
 };
 
 type ResultStaticCopy = {
@@ -83,6 +140,33 @@ export function getResultDescription(resultType: CompareResultType): string | nu
   return RESULT_COPY[resultType].description;
 }
 
+export function getResultFilterBucket(result: ResultResponse): ResultFilterBucket {
+  if (result.result_type.startsWith('duplicate')) {
+    return 'duplicate';
+  }
+
+  return result.result_type as Exclude<ResultFilter, 'all' | 'duplicate'>;
+}
+
+export function getResultBadgeTone(resultType: CompareResultType): ResultBadgeTone {
+  switch (resultType) {
+    case 'match':
+      return 'match';
+    case 'mismatch':
+      return 'mismatch';
+    case 'missing_left':
+      return 'missing-left';
+    case 'missing_right':
+      return 'missing-right';
+    case 'unkeyed_left':
+      return 'unkeyed-left';
+    case 'unkeyed_right':
+      return 'unkeyed-right';
+    default:
+      return resultType.startsWith('duplicate') ? 'duplicate' : 'neutral';
+  }
+}
+
 export function matchesResultFilter(result: ResultResponse, filter: ResultFilter): boolean {
   if (filter === 'all') {
     return true;
@@ -121,6 +205,170 @@ export function getResultFilterCounts(results: ResultResponse[]): Record<ResultF
     counts[filter] += 1;
     return counts;
   }, initialCounts);
+}
+
+function getDisplayRows(rows: string[][], fallback: string[]): string[][] {
+  if (rows.length > 0) {
+    return rows;
+  }
+
+  return fallback.length > 0 ? [fallback] : [];
+}
+
+function compareResultSortValues(left: string | number, right: string | number): number {
+  if (typeof left === 'number' && typeof right === 'number') {
+    return left - right;
+  }
+
+  return String(left).localeCompare(String(right), undefined, {
+    numeric: true,
+    sensitivity: 'base',
+  });
+}
+
+export function buildResultRows(results: ResultResponse[]): ResultRowViewModel[] {
+  return results.map((result, index) => {
+    const badge = getResultBadge(result.result_type);
+    const fileAValues = getDisplayRows(result.duplicate_values_a, result.values_a);
+    const fileBValues = getDisplayRows(result.duplicate_values_b, result.values_b);
+
+    return {
+      id: `${index}-${result.result_type}-${result.key.join('|')}`,
+      result,
+      resultType: result.result_type,
+      filterBucket: getResultFilterBucket(result),
+      badge,
+      badgeLabel: badge.label,
+      badgeTone: getResultBadgeTone(result.result_type),
+      description: getResultDescription(result.result_type),
+      keyText: result.key.join(', '),
+      fileAValues,
+      fileBValues,
+      detailsCount: result.differences.length,
+      differences: result.differences,
+      searchText: [
+        badge.label,
+        result.key.join(' '),
+        result.values_a.join(' '),
+        result.values_b.join(' '),
+        result.duplicate_values_a.flat().join(' '),
+        result.duplicate_values_b.flat().join(' '),
+        result.differences.flatMap((diff) => [diff.column_a, diff.column_b, diff.value_a, diff.value_b]).join(' '),
+      ]
+        .join(' ')
+        .toLowerCase(),
+      sortValues: {
+        type: badge.label,
+        key: result.key.join(' '),
+        fileA: [...result.values_a, ...result.duplicate_values_a.flat()].join(' '),
+        fileB: [...result.values_b, ...result.duplicate_values_b.flat()].join(' '),
+        details: result.differences.length,
+      },
+    };
+  });
+}
+
+export function filterAndSortResultRows(
+  rows: ResultRowViewModel[],
+  params: {
+    filter: ResultFilter;
+    query: string;
+    sortColumn: ResultSortColumn | null;
+    sortDirection: ResultSortDirection;
+  },
+): ResultRowViewModel[] {
+  const normalizedQuery = params.query.trim().toLowerCase();
+  const filtered = rows.filter((row) => {
+    const matchesBucket = params.filter === 'all' || row.filterBucket === params.filter;
+    const matchesSearch = normalizedQuery.length === 0 || row.searchText.includes(normalizedQuery);
+    return matchesBucket && matchesSearch;
+  });
+
+  if (!params.sortColumn) {
+    return filtered;
+  }
+
+  const sortColumn = params.sortColumn;
+  const direction = params.sortDirection === 'asc' ? 1 : -1;
+
+  return [...filtered].sort((left, right) => (
+    compareResultSortValues(left.sortValues[sortColumn], right.sortValues[sortColumn]) * direction
+  ));
+}
+
+export function getComparableTotal(summary: SummaryResponse): number {
+  return summary.matches + summary.mismatches + summary.missing_left + summary.missing_right;
+}
+
+function describeComparableShare(value: number, comparableTotal: number): string {
+  return comparableTotal > 0
+    ? `${Math.round((value / comparableTotal) * 100)}% of comparable rows`
+    : 'No comparable rows';
+}
+
+export function buildSummaryOverview(summary: SummaryResponse): SummaryOverview {
+  const comparableTotal = getComparableTotal(summary);
+  const ignoredTotal = summary.unkeyed_left + summary.unkeyed_right;
+  const infoBanners: SummaryBannerViewModel[] = [];
+
+  if (ignoredTotal > 0) {
+    infoBanners.push({
+      title: 'Ignored rows',
+      summary: `${summary.unkeyed_right} in File A, ${summary.unkeyed_left} in File B`,
+      details: [
+        'Ignored rows were not compared because the selected key was empty or matched a missing-value token after cleanup settings.',
+        'Ignored rows may correspond to one-sided results on the other file, but they could not be matched confidently by key.',
+      ],
+      tone: 'accent',
+      icon: 'i',
+    });
+  }
+
+  if (summary.duplicates_a > 0 || summary.duplicates_b > 0) {
+    infoBanners.push({
+      title: 'Duplicate keys detected',
+      summary: `Duplicates found: ${summary.duplicates_a} in File A, ${summary.duplicates_b} in File B`,
+      details: ['Rows with duplicate selected keys can produce repeated matches or one-sided results and are worth reviewing before export.'],
+      tone: 'warning',
+      icon: '!!',
+    });
+  }
+
+  return {
+    comparableTotal,
+    matchPercent: comparableTotal > 0 ? Math.round((summary.matches / comparableTotal) * 100) : 0,
+    comparableStats: [
+      {
+        label: 'Matches',
+        value: summary.matches,
+        description: describeComparableShare(summary.matches, comparableTotal),
+        tone: 'success',
+        icon: 'OK',
+      },
+      {
+        label: 'Mismatches',
+        value: summary.mismatches,
+        description: describeComparableShare(summary.mismatches, comparableTotal),
+        tone: 'warning',
+        icon: '!!',
+      },
+      {
+        label: getResultLabel('missing_left'),
+        value: summary.missing_left,
+        description: describeComparableShare(summary.missing_left, comparableTotal),
+        tone: 'accent',
+        icon: 'A',
+      },
+      {
+        label: getResultLabel('missing_right'),
+        value: summary.missing_right,
+        description: describeComparableShare(summary.missing_right, comparableTotal),
+        tone: 'danger',
+        icon: 'B',
+      },
+    ],
+    infoBanners,
+  };
 }
 
 export function getResultBadge(resultType: CompareResultType): ResultBadge {

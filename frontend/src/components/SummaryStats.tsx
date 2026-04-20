@@ -1,4 +1,4 @@
-import { getResultLabel } from '../features/results/presentation';
+import { buildSummaryOverview } from '../features/results/presentation';
 import { SummaryResponse } from '../types/api';
 import { ChartBarSquareIcon, CheckBadgeIcon, ExclamationCircleIcon, ExclamationTriangleIcon, InformationCircleIcon } from './icons';
 import { SectionCard } from './ui/SectionCard';
@@ -10,99 +10,7 @@ interface SummaryStatsProps {
 }
 
 export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProps) {
-  const comparableTotal = summary.matches + summary.mismatches + summary.missing_left + summary.missing_right;
-  const ignoredTotal = summary.unkeyed_left + summary.unkeyed_right;
-  const matchPercent = comparableTotal > 0 ? Math.round((summary.matches / comparableTotal) * 100) : 0;
-
-  const infoBanners = [
-    ignoredTotal > 0
-      ? {
-          key: 'ignored',
-          title: 'Ignored rows',
-          summary: `${summary.unkeyed_right} in File A, ${summary.unkeyed_left} in File B`,
-          details: [
-            'Ignored rows were not compared because the selected key was empty or matched a missing-value token after cleanup settings.',
-            'Ignored rows may correspond to one-sided results on the other file, but they could not be matched confidently by key.',
-          ],
-          containerClassName: 'kinetic-tone-accent',
-          iconWrapClassName: 'kinetic-tone-accent-strong',
-          titleClassName: 'kinetic-copy',
-          summaryClassName: 'kinetic-copy',
-          detailClassName: 'kinetic-muted',
-          icon: <InformationCircleIcon className="h-5 w-5" />,
-        }
-      : null,
-    summary.duplicates_a > 0 || summary.duplicates_b > 0
-      ? {
-          key: 'duplicates',
-          title: 'Duplicate keys detected',
-          summary: `Duplicates found: ${summary.duplicates_a} in File A, ${summary.duplicates_b} in File B`,
-          details: ['Rows with duplicate selected keys can produce repeated matches or one-sided results and are worth reviewing before export.'],
-          containerClassName: 'kinetic-tone-warning',
-          iconWrapClassName: 'kinetic-tone-warning-strong',
-          titleClassName: 'kinetic-copy',
-          summaryClassName: 'kinetic-copy',
-          detailClassName: 'kinetic-muted',
-          icon: <ExclamationTriangleIcon className="h-5 w-5" />,
-        }
-      : null,
-  ].filter((banner): banner is NonNullable<typeof banner> => banner !== null);
-
-  const describeShare = (value: number) =>
-    comparableTotal > 0
-      ? `${Math.round((value / comparableTotal) * 100)}% of comparable rows`
-      : 'No comparable rows';
-
-  const comparableStats = [
-    {
-      label: 'Matches',
-      value: summary.matches,
-      description: describeShare(summary.matches),
-      surface: 'kinetic-tone-success',
-      iconBg: 'kinetic-tone-success-strong',
-      iconText: '',
-      valueText: 'kinetic-copy',
-      labelText: 'kinetic-copy',
-      descriptionText: 'kinetic-muted',
-      icon: <CheckBadgeIcon className="h-5 w-5" />,
-    },
-    {
-      label: 'Mismatches',
-      value: summary.mismatches,
-      description: describeShare(summary.mismatches),
-      surface: 'kinetic-tone-warning',
-      iconBg: 'kinetic-tone-warning-strong',
-      iconText: '',
-      valueText: 'kinetic-copy',
-      labelText: 'kinetic-copy',
-      descriptionText: 'kinetic-muted',
-      icon: <ExclamationCircleIcon className="h-5 w-5" />,
-    },
-    {
-      label: getResultLabel('missing_left'),
-      value: summary.missing_left,
-      description: describeShare(summary.missing_left),
-      surface: 'kinetic-tone-accent',
-      iconBg: 'kinetic-tone-accent-strong',
-      iconText: '',
-      valueText: 'kinetic-copy',
-      labelText: 'kinetic-copy',
-      descriptionText: 'kinetic-muted',
-      icon: 'A',
-    },
-    {
-      label: getResultLabel('missing_right'),
-      value: summary.missing_right,
-      description: describeShare(summary.missing_right),
-      surface: 'kinetic-tone-danger',
-      iconBg: 'kinetic-tone-danger-strong',
-      iconText: '',
-      valueText: 'kinetic-copy',
-      labelText: 'kinetic-copy',
-      descriptionText: 'kinetic-muted',
-      icon: 'B',
-    },
-  ];
+  const { comparableTotal, matchPercent, comparableStats, infoBanners } = buildSummaryOverview(summary);
 
   return (
     <SectionCard
@@ -162,38 +70,41 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
               <p className="kinetic-muted mt-0.5 text-sm">How each comparable row was classified.</p>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            {comparableStats.map((stat) => (
-              <div
-                key={stat.label}
-                className={`kinetic-panel p-4 ${stat.surface}`}
-              >
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div className={`${stat.iconBg} ${stat.iconText} flex h-10 w-10 items-center justify-center border font-mono text-xs uppercase tracking-[0.18em]`}>
-                    {stat.icon}
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              {comparableStats.map((stat) => (
+                <div
+                  key={stat.label}
+                  className={`kinetic-panel p-4 kinetic-tone-${stat.tone}`}
+                >
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div className={`kinetic-tone-${stat.tone}-strong flex h-10 w-10 items-center justify-center border font-mono text-xs uppercase tracking-[0.18em]`}>
+                      {stat.tone === 'success' && <CheckBadgeIcon className="h-5 w-5" />}
+                      {stat.tone === 'warning' && <ExclamationCircleIcon className="h-5 w-5" />}
+                      {stat.tone === 'accent' && stat.icon}
+                      {stat.tone === 'danger' && stat.icon}
+                    </div>
+                    <span className="kinetic-copy text-2xl font-bold tabular-nums">{stat.value}</span>
                   </div>
-                  <span className={`text-2xl font-bold tabular-nums ${stat.valueText}`}>{stat.value}</span>
+                  <p className="kinetic-copy text-sm font-semibold">{stat.label}</p>
+                  <p className="kinetic-muted mt-0.5 text-xs">{stat.description}</p>
                 </div>
-                <p className={`text-sm font-semibold ${stat.labelText}`}>{stat.label}</p>
-                <p className={`mt-0.5 text-xs ${stat.descriptionText}`}>{stat.description}</p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
         </div>
 
         {infoBanners.length > 0 && (
           <div className="space-y-4">
             {infoBanners.map((banner) => (
-              <div key={banner.key} className={`kinetic-panel p-4 ${banner.containerClassName}`}>
+              <div key={banner.title} className={`kinetic-panel p-4 kinetic-tone-${banner.tone}`}>
                 <div className="flex items-start gap-3">
-                  <div className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center border font-mono text-xs uppercase tracking-[0.18em] ${banner.iconWrapClassName}`}>
-                    {banner.icon}
+                  <div className={`kinetic-tone-${banner.tone}-strong mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center border font-mono text-xs uppercase tracking-[0.18em]`}>
+                    {banner.tone === 'accent' ? <InformationCircleIcon className="h-5 w-5" /> : <ExclamationTriangleIcon className="h-5 w-5" />}
                   </div>
                   <div className="space-y-1.5">
-                    <p className={`text-sm font-semibold ${banner.titleClassName}`}>{banner.title}</p>
-                    <p className={`text-sm font-medium ${banner.summaryClassName}`}>{banner.summary}</p>
+                    <p className="kinetic-copy text-sm font-semibold">{banner.title}</p>
+                    <p className="kinetic-copy text-sm font-medium">{banner.summary}</p>
                     {banner.details.map((detail) => (
-                      <p key={detail} className={`text-sm leading-6 ${banner.detailClassName}`}>
+                      <p key={detail} className="kinetic-muted text-sm leading-6">
                         {detail}
                       </p>
                     ))}
