@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.23 - 2026-04-20
+
+- Fixed the tagged release workflow so the final publish step now runs with repository context, allowing GitHub releases to transition cleanly out of draft after successful asset packaging.
+- Prepared the v2.1.23 follow-up patch release by synchronizing version metadata across the Rust crates, desktop bundle config, frontend package manifests, and lockfiles before rerunning the documented broad validation suite.
+
 ## v2.1.22 - 2026-04-20
 
 - Improved release readiness by tightening CI and Tauri coverage, aligning release automation with the documented process, and adding broader runtime/bootstrap plus session-store validation so the shared web and desktop surfaces ship with stronger regression protection.
