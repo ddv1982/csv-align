@@ -7,6 +7,7 @@ const {
   createSessionMock,
   downloadBlobMock,
   exportResultsMock,
+  exportResultsHtmlMock,
   loadComparisonSnapshotMock,
   loadFileMock,
   loadPairOrderMock,
@@ -34,6 +35,7 @@ beforeEach(() => {
   createSessionMock.mockReset();
   downloadBlobMock.mockReset();
   exportResultsMock.mockReset();
+  exportResultsHtmlMock.mockReset();
   loadComparisonSnapshotMock.mockReset();
   loadFileMock.mockReset();
   loadPairOrderMock.mockReset();

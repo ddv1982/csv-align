@@ -15,7 +15,8 @@ interface ResultsStepProps {
   filteredResults: ResultResponse[];
   snapshotReadOnly: boolean;
   onFilterChange: (filter: ResultFilter) => void;
-  onExport: () => void;
+  onExportCsv: () => void;
+  onExportHtml: () => void;
   onSaveResult: () => void;
   onBack: () => void;
   onStartNewComparison: () => void;
@@ -30,7 +31,8 @@ export function ResultsStep({
   filteredResults,
   snapshotReadOnly,
   onFilterChange,
-  onExport,
+  onExportCsv,
+  onExportHtml,
   onSaveResult,
   onBack,
   onStartNewComparison,
@@ -79,7 +81,13 @@ export function ResultsStep({
         </SectionCard>
       )}
 
-      <FilterBar filter={filter} results={results} onFilterChange={onFilterChange} onExport={onExport} />
+      <FilterBar
+        filter={filter}
+        results={results}
+        onFilterChange={onFilterChange}
+        onExportCsv={onExportCsv}
+        onExportHtml={onExportHtml}
+      />
       <ResultsTable results={filteredResults} totalResultsCount={results.length} />
     </div>
   );

@@ -331,6 +331,34 @@ describe('transport helpers', () => {
     });
   });
 
+  test('exportResultsHtml returns a browser blob outside Tauri', async () => {
+    const { exportResultsHtml } = await importTauriModule();
+
+    const blob = await exportResultsHtml('<!DOCTYPE html><title>Export</title>');
+
+    expect(blob).toBeInstanceOf(Blob);
+    await expect(blob?.text()).resolves.toContain('<title>Export</title>');
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+
+  test('exportResultsHtml invokes the Tauri html export command when a save path is chosen', async () => {
+    (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
+    saveMock.mockResolvedValue('/tmp/comparison-results.html');
+    invokeMock.mockResolvedValue(undefined);
+
+    const { exportResultsHtml } = await importTauriModule();
+
+    await expect(exportResultsHtml('<!DOCTYPE html><title>Export</title>')).resolves.toBeUndefined();
+    expect(saveMock).toHaveBeenCalledWith({
+      defaultPath: 'comparison-results.html',
+      filters: [{ name: 'HTML Files', extensions: ['html'] }],
+    });
+    expect(invokeMock).toHaveBeenCalledWith(TAURI_COMMANDS.exportResultsHtml, {
+      outputPath: '/tmp/comparison-results.html',
+      htmlContents: '<!DOCTYPE html><title>Export</title>',
+    });
+  });
+
   test('savePairOrder invokes the Tauri pair-order save command when a save path is chosen', async () => {
     (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
     saveMock.mockResolvedValue('/tmp/pair-order.txt');

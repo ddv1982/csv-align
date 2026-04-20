@@ -6,10 +6,7 @@ use std::{env, fs};
 use tauri::Manager;
 
 fn temp_output_path(test_name: &str) -> std::path::PathBuf {
-    std::env::temp_dir().join(format!(
-        "csv-align-{test_name}-{}.csv",
-        uuid::Uuid::new_v4()
-    ))
+    std::env::temp_dir().join(format!("csv-align-{test_name}-{}", uuid::Uuid::new_v4()))
 }
 
 #[test]
@@ -69,7 +66,7 @@ fn tauri_command_wrappers_compare_then_export_use_stored_comparison_labels() {
     assert_eq!(response.summary.matches, 1);
     assert_eq!(response.summary.mismatches, 1);
 
-    let output_path = temp_output_path("tauri-export-labels");
+    let output_path = temp_output_path("tauri-export-labels.csv");
 
     export_results(
         app.state::<Arc<SessionStore>>(),
@@ -85,6 +82,23 @@ fn tauri_command_wrappers_compare_then_export_use_stored_comparison_labels() {
     assert!(exported.contains("File A: full_name"));
     assert!(exported.contains("File B: display_name"));
     assert!(exported.contains("Mismatch,2,Bob,Robert"));
+}
+
+#[test]
+fn tauri_export_results_html_writes_the_supplied_document() {
+    let output_path = temp_output_path("tauri-export-results.html");
+    let html_contents = "<!DOCTYPE html><html><body><h1>Exported Results</h1></body></html>";
+
+    export_results_html(
+        output_path.to_string_lossy().into_owned(),
+        html_contents.to_string(),
+    )
+    .unwrap();
+
+    let exported = std::fs::read_to_string(&output_path).unwrap();
+    std::fs::remove_file(&output_path).unwrap();
+
+    assert_eq!(exported, html_contents);
 }
 
 #[test]

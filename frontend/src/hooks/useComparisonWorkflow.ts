@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useReducer } from 'react';
 import { buildAutoPairSelection } from '../features/mapping/autoPair';
+import { buildResultsHtmlDocument } from '../features/results/htmlExport';
 import { filterResults } from '../features/results/presentation';
 import { downloadBlob } from '../services/browserDownload';
 import {
   compareFiles,
   createSession,
   deleteSession,
+  exportResultsHtml,
   exportResults,
   loadComparisonSnapshot,
   loadFile,
@@ -134,7 +136,7 @@ export function useComparisonWorkflow() {
     }
   }, [blockSnapshotFollowOnWorkflow, failLoading, startLoading, state.sessionId]);
 
-  const handleExport = useCallback(async () => {
+  const handleExportCsv = useCallback(async () => {
     if (!state.sessionId) {
       return;
     }
@@ -151,6 +153,31 @@ export function useComparisonWorkflow() {
       failLoading(error);
     }
   }, [failLoading, startLoading, state.sessionId]);
+
+  const handleExportHtml = useCallback(async () => {
+    if (state.summary === null) {
+      return;
+    }
+
+    startLoading(false);
+
+    try {
+      const htmlDocument = buildResultsHtmlDocument({
+        summary: state.summary,
+        fileAName: state.fileA?.name ?? 'File A',
+        fileBName: state.fileB?.name ?? 'File B',
+        results: state.results,
+        initialFilter: state.filter,
+      });
+      const blob = await exportResultsHtml(htmlDocument);
+      if (blob) {
+        downloadBlob(blob, 'comparison-results.html');
+      }
+      dispatch({ type: 'downloadCompleted' });
+    } catch (error) {
+      failLoading(error);
+    }
+  }, [failLoading, startLoading, state.fileA?.name, state.fileB?.name, state.filter, state.results, state.summary]);
 
   const handleSaveComparisonSnapshot = useCallback(async () => {
     if (!state.sessionId) {
@@ -448,7 +475,8 @@ export function useComparisonWorkflow() {
     setNormalizationConfig,
     handleFileSelection,
     handleCompare,
-    handleExport,
+    handleExportCsv,
+    handleExportHtml,
     handleSaveComparisonSnapshot,
     handleLoadComparisonSnapshot,
     handleSavePairOrder,

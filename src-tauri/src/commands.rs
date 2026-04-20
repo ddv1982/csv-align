@@ -16,6 +16,19 @@ use csv_align::presentation::responses::{
     CompareResponse, FileLoadResponse, SuggestMappingsResponse,
 };
 
+fn write_output_file(
+    output_path: &str,
+    contents: impl AsRef<[u8]>,
+    file_kind: &str,
+) -> Result<(), CsvAlignError> {
+    fs::write(output_path, contents).map_err(|error| {
+        CsvAlignError::Io(std::io::Error::new(
+            error.kind(),
+            format!("Failed to save {file_kind} file: {error}"),
+        ))
+    })
+}
+
 /// Create a new session
 #[tauri::command]
 #[instrument(skip(state))]
@@ -146,6 +159,15 @@ pub(crate) fn export_results(
 }
 
 #[tauri::command]
+#[instrument(skip(html_contents), fields(output_path = %output_path))]
+pub(crate) fn export_results_html(
+    output_path: String,
+    html_contents: String,
+) -> Result<(), CsvAlignError> {
+    write_output_file(&output_path, html_contents, "HTML export")
+}
+
+#[tauri::command]
 #[instrument(skip(state, selection), fields(session_id = %session_id))]
 pub(crate) fn save_pair_order(
     state: tauri::State<Arc<SessionStore>>,
@@ -161,12 +183,7 @@ pub(crate) fn save_pair_order(
             resource: "Session".to_string(),
         })??;
 
-    fs::write(&output_path, contents).map_err(|error| {
-        CsvAlignError::Io(std::io::Error::new(
-            error.kind(),
-            format!("Failed to save pair-order file: {error}"),
-        ))
-    })
+    write_output_file(&output_path, contents, "pair-order")
 }
 
 #[tauri::command]
@@ -205,12 +222,7 @@ pub(crate) fn save_comparison_snapshot(
             resource: "Session".to_string(),
         })??;
 
-    fs::write(&output_path, contents).map_err(|error| {
-        CsvAlignError::Io(std::io::Error::new(
-            error.kind(),
-            format!("Failed to save comparison snapshot file: {error}"),
-        ))
-    })
+    write_output_file(&output_path, contents, "comparison snapshot")
 }
 
 #[tauri::command]

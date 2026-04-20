@@ -6,6 +6,7 @@ export const TAURI_COMMANDS = {
   suggestMappings: 'suggest_mappings',
   compare: 'compare',
   exportResults: 'export_results',
+  exportResultsHtml: 'export_results_html',
   savePairOrder: 'save_pair_order',
   loadPairOrder: 'load_pair_order',
   saveComparisonSnapshot: 'save_comparison_snapshot',

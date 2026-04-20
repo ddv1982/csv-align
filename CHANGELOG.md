@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.17 - 2026-04-20
+
+- Added standalone HTML results export so comparison runs can be saved with embedded summary data, filter counts, searchable result rows, and desktop save support for later review outside the app.
+- Prepared the v2.1.17 patch release by synchronizing version metadata across the Rust crates, desktop bundle config, frontend package manifests, and lockfiles before rerunning the documented broad validation workflow.
+
 ## v2.1.16 - 2026-04-20
 
 - Added richer pair-order load diagnostics so invalid imports now explain the concrete File A and File B column mismatches instead of failing with less specific feedback.

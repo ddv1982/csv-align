@@ -54,7 +54,8 @@ test('shows a save result entry point for live comparison results', () => {
       filteredResults={RESULTS}
       snapshotReadOnly={false}
       onFilterChange={vi.fn()}
-      onExport={vi.fn()}
+      onExportCsv={vi.fn()}
+      onExportHtml={vi.fn()}
       onSaveResult={onSaveResult}
       onBack={onBack}
       onStartNewComparison={vi.fn()}
@@ -84,7 +85,8 @@ test('keeps loaded snapshots read-only and exposes a start-new-comparison action
       filteredResults={RESULTS}
       snapshotReadOnly
       onFilterChange={vi.fn()}
-      onExport={vi.fn()}
+      onExportCsv={vi.fn()}
+      onExportHtml={vi.fn()}
       onSaveResult={vi.fn()}
       onBack={vi.fn()}
       onStartNewComparison={onStartNewComparison}

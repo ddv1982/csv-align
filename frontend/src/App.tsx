@@ -20,7 +20,8 @@ function App() {
     setNormalizationConfig,
     handleFileSelection,
     handleCompare,
-    handleExport,
+    handleExportCsv,
+    handleExportHtml,
     handleSaveComparisonSnapshot,
     handleLoadComparisonSnapshot,
     handleSavePairOrder,
@@ -80,7 +81,8 @@ function App() {
             filteredResults={filteredResults}
             snapshotReadOnly={isSnapshotReadOnly}
             onFilterChange={handleFilterChange}
-            onExport={handleExport}
+            onExportCsv={handleExportCsv}
+            onExportHtml={handleExportHtml}
             onSaveResult={handleSaveComparisonSnapshot}
             onBack={handleBackToConfigure}
             onStartNewComparison={handleReset}

@@ -8,6 +8,7 @@ const {
   loadFileMock,
   compareFilesMock,
   exportResultsMock,
+  exportResultsHtmlMock,
   loadPairOrderMock,
   downloadBlobMock,
   savePairOrderMock,
@@ -89,6 +90,7 @@ beforeEach(() => {
   loadFileMock.mockReset();
   compareFilesMock.mockReset();
   exportResultsMock.mockReset();
+  exportResultsHtmlMock.mockReset();
   loadPairOrderMock.mockReset();
   downloadBlobMock.mockReset();
   savePairOrderMock.mockReset();

@@ -10,6 +10,7 @@ const {
   createSessionMock,
   deleteSessionMock,
   downloadBlobMock,
+  exportResultsHtmlMock,
   exportResultsMock,
   loadComparisonSnapshotMock,
   loadPairOrderMock,
@@ -22,6 +23,7 @@ const {
   createSessionMock: vi.fn(),
   deleteSessionMock: vi.fn(),
   downloadBlobMock: vi.fn(),
+  exportResultsHtmlMock: vi.fn(),
   exportResultsMock: vi.fn(),
   loadComparisonSnapshotMock: vi.fn(),
   loadPairOrderMock: vi.fn(),
@@ -35,7 +37,7 @@ vi.mock('../services/tauri', () => ({
   compareFiles: compareFilesMock,
   createSession: createSessionMock,
   deleteSession: deleteSessionMock,
-  downloadBlob: downloadBlobMock,
+  exportResultsHtml: exportResultsHtmlMock,
   exportResults: exportResultsMock,
   loadComparisonSnapshot: loadComparisonSnapshotMock,
   loadPairOrder: loadPairOrderMock,
@@ -43,6 +45,10 @@ vi.mock('../services/tauri', () => ({
   saveComparisonSnapshot: saveComparisonSnapshotMock,
   savePairOrder: savePairOrderMock,
   suggestMappings: suggestMappingsMock,
+}));
+
+vi.mock('../services/browserDownload', () => ({
+  downloadBlob: downloadBlobMock,
 }));
 
 const FILE_COLUMNS = [
@@ -72,6 +78,7 @@ beforeEach(() => {
   createSessionMock.mockReset();
   deleteSessionMock.mockReset();
   downloadBlobMock.mockReset();
+  exportResultsHtmlMock.mockReset();
   exportResultsMock.mockReset();
   loadComparisonSnapshotMock.mockReset();
   loadPairOrderMock.mockReset();
@@ -372,7 +379,7 @@ test('keeps the workflow on configure and clears loading when compare fails', as
   expect(result.current.state.loading).toBe(false);
 });
 
-test('sets an export error and clears loading when export fails', async () => {
+test('sets an export error and clears loading when csv export fails', async () => {
   exportResultsMock.mockRejectedValueOnce(new Error('export failed'));
 
   const { result } = renderHook(() => useComparisonWorkflow());
@@ -382,12 +389,52 @@ test('sets an export error and clears loading when export fails', async () => {
   });
 
   await act(async () => {
-    await result.current.handleExport();
+    await result.current.handleExportCsv();
   });
 
   expect(exportResultsMock).toHaveBeenCalledWith('session-1');
   expect(downloadBlobMock).not.toHaveBeenCalled();
   expect(result.current.state.error).toBe('export failed');
+  expect(result.current.state.loading).toBe(false);
+});
+
+test('exports a standalone html review file from the current results state', async () => {
+  exportResultsHtmlMock.mockResolvedValue(new Blob(['<html></html>'], { type: 'text/html' }));
+
+  const { result } = renderHook(() => useComparisonWorkflow());
+
+  await waitFor(() => {
+    expect(result.current.state.sessionId).toBe('session-1');
+  });
+
+  await act(async () => {
+    await result.current.handleFileSelection(FILE_A, 'a');
+    await result.current.handleFileSelection(FILE_B, 'b');
+  });
+
+  await act(async () => {
+    await result.current.handleCompare(
+      ['id'],
+      ['id'],
+      ['name'],
+      ['name'],
+      COLUMN_MAPPINGS,
+      NORMALIZATION,
+    );
+  });
+
+  act(() => {
+    result.current.handleFilterChange('duplicate');
+  });
+
+  await act(async () => {
+    await result.current.handleExportHtml();
+  });
+
+  expect(exportResultsHtmlMock).toHaveBeenCalledWith(expect.stringContaining('<!DOCTYPE html>'));
+  expect(exportResultsHtmlMock).toHaveBeenCalledWith(expect.stringContaining('left.csv vs right.csv comparison results'));
+  expect(exportResultsHtmlMock).toHaveBeenCalledWith(expect.stringContaining('"initialFilter":"duplicate"'));
+  expect(downloadBlobMock).toHaveBeenCalledWith(expect.any(Blob), 'comparison-results.html');
   expect(result.current.state.loading).toBe(false);
 });
 
@@ -403,7 +450,8 @@ test('keeps public handlers stable across rerenders when their dependencies do n
     setNormalizationConfig: result.current.setNormalizationConfig,
     handleFileSelection: result.current.handleFileSelection,
     handleCompare: result.current.handleCompare,
-    handleExport: result.current.handleExport,
+    handleExportCsv: result.current.handleExportCsv,
+    handleExportHtml: result.current.handleExportHtml,
     handleSaveComparisonSnapshot: result.current.handleSaveComparisonSnapshot,
     handleLoadComparisonSnapshot: result.current.handleLoadComparisonSnapshot,
     handleSavePairOrder: result.current.handleSavePairOrder,
@@ -423,7 +471,8 @@ test('keeps public handlers stable across rerenders when their dependencies do n
   expect(result.current.setNormalizationConfig).toBe(initialHandlers.setNormalizationConfig);
   expect(result.current.handleFileSelection).toBe(initialHandlers.handleFileSelection);
   expect(result.current.handleCompare).toBe(initialHandlers.handleCompare);
-  expect(result.current.handleExport).toBe(initialHandlers.handleExport);
+  expect(result.current.handleExportCsv).toBe(initialHandlers.handleExportCsv);
+  expect(result.current.handleExportHtml).toBe(initialHandlers.handleExportHtml);
   expect(result.current.handleSaveComparisonSnapshot).toBe(initialHandlers.handleSaveComparisonSnapshot);
   expect(result.current.handleLoadComparisonSnapshot).toBe(initialHandlers.handleLoadComparisonSnapshot);
   expect(result.current.handleSavePairOrder).toBe(initialHandlers.handleSavePairOrder);

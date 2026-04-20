@@ -7,28 +7,39 @@ interface FilterBarProps {
   filter: ResultFilter;
   results: ResultResponse[];
   onFilterChange: (filter: ResultFilter) => void;
-  onExport: () => void;
+  onExportCsv: () => void;
+  onExportHtml: () => void;
 }
 
-export function FilterBar({ filter, results, onFilterChange, onExport }: FilterBarProps) {
+export function FilterBar({ filter, results, onFilterChange, onExportCsv, onExportHtml }: FilterBarProps) {
   const counts = getResultFilterCounts(results);
 
   return (
     <SectionCard
       eyebrow="Results filter"
       title="Focus on the rows you care about"
-      description="Switch between result buckets or export the full comparison as CSV."
+      description="Switch between result buckets or export the full comparison as HTML or CSV."
       className="overflow-hidden"
       icon={<FunnelIcon className="h-5 w-5" />}
       action={
-        <button
-          onClick={onExport}
-          className="btn btn-primary shrink-0"
-          aria-label="Export comparison results as CSV"
-        >
-          <ArrowDownTrayIcon className="h-4 w-4" />
-          Export CSV
-        </button>
+        <div className="flex shrink-0 flex-wrap gap-3">
+          <button
+            onClick={onExportHtml}
+            className="btn btn-secondary shrink-0"
+            aria-label="Export comparison results as HTML"
+          >
+            <ArrowDownTrayIcon className="h-4 w-4" />
+            Export HTML
+          </button>
+          <button
+            onClick={onExportCsv}
+            className="btn btn-primary shrink-0"
+            aria-label="Export comparison results as CSV"
+          >
+            <ArrowDownTrayIcon className="h-4 w-4" />
+            Export CSV
+          </button>
+        </div>
       }
     >
       <div>

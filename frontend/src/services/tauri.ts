@@ -189,6 +189,28 @@ export async function exportResults(sessionId: string): Promise<Blob | void> {
   }, 'Failed to export results');
 }
 
+export async function exportResultsHtml(contents: string): Promise<Blob | void> {
+  if (isTauri) {
+    const outputPath = await save({
+      defaultPath: 'comparison-results.html',
+      filters: [{ name: 'HTML Files', extensions: ['html'] }],
+    });
+
+    if (!outputPath) {
+      return;
+    }
+
+    await invoke(TAURI_COMMANDS.exportResultsHtml, {
+      outputPath,
+      htmlContents: contents,
+    });
+
+    return;
+  }
+
+  return new Blob([contents], { type: 'text/html;charset=utf-8' });
+}
+
 export async function savePairOrder(
   sessionId: string,
   selection: PairOrderSelection,

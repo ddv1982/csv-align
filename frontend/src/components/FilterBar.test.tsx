@@ -32,7 +32,8 @@ test('uses a minimal solid active style and subtle hover-ready styling for resul
       filter="match"
       results={RESULTS}
       onFilterChange={onFilterChange}
-      onExport={vi.fn()}
+      onExportCsv={vi.fn()}
+      onExportHtml={vi.fn()}
     />,
   );
 
@@ -55,14 +56,29 @@ test('uses a minimal solid active style and subtle hover-ready styling for resul
 });
 
 test('gives the export button an accessible label', () => {
+  const onExportHtml = vi.fn();
+  const onExportCsv = vi.fn();
+
   render(
     <FilterBar
       filter="all"
       results={RESULTS}
       onFilterChange={vi.fn()}
-      onExport={vi.fn()}
+      onExportCsv={onExportCsv}
+      onExportHtml={onExportHtml}
     />,
   );
 
+  const htmlButton = screen.getByRole('button', { name: 'Export comparison results as HTML' });
+  const csvButton = screen.getByRole('button', { name: 'Export comparison results as CSV' });
+
+  expect(htmlButton).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Export comparison results as CSV' })).toBeInTheDocument();
+
+  fireEvent.click(htmlButton);
+  fireEvent.click(csvButton);
+
+  expect(onExportHtml).toHaveBeenCalledTimes(1);
+  expect(onExportCsv).toHaveBeenCalledTimes(1);
+  expect(htmlButton.compareDocumentPosition(csvButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
