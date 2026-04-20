@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.14 - 2026-04-20
+
+- Realigned the mismatch Value Differences arrow block with the adjacent File A and File B value boxes so results like Bob -> Robert render with consistent styling in the Results UI.
+- Prepared the v2.1.14 patch release by synchronizing version metadata across the Rust crates, desktop bundle config, frontend package manifests, and lockfiles before rerunning broad validation.
+
 ## v2.1.13 - 2026-04-20
 
 - Polished the frontend shell with a lighter sticky header treatment and more stable progress-step sizing so the top-level workflow stays readable while the shell scrolls.

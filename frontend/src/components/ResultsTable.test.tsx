@@ -282,6 +282,16 @@ test('renders long diff column names with the larger wrapped header treatment', 
   expect(columnHeader).toHaveClass('table-chip');
 });
 
+test('positions the mismatch diff arrow on the same row as the value boxes', () => {
+  render(<ResultsTable results={RESULTS} />);
+
+  fireEvent.click(screen.getByRole('button', { name: /1 diff/i }));
+
+  const valueArrow = screen.getByText('->');
+  expect(valueArrow).toHaveClass('row-start-2');
+  expect(valueArrow).toHaveClass('self-center');
+});
+
 test('shows the selected-filter empty-state copy when there are zero total results', () => {
   render(<ResultsTable results={[]} totalResultsCount={0} />);
 

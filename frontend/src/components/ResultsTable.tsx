@@ -45,18 +45,18 @@ function DiffRow({ columnA, columnB, valueA, valueB }: DiffRowProps) {
           </>
         )}
       </div>
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-        <div className="min-w-0">
-          <p className="kinetic-mono-label mb-1 text-[10px] text-[color:var(--color-kinetic-danger)]">File A</p>
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-x-2 gap-y-1">
+        <p className="kinetic-mono-label text-[10px] text-[color:var(--color-kinetic-danger)]">File A</p>
+        <div className="min-w-0 row-start-2">
           <span className="kinetic-copy kinetic-surface-danger block truncate border px-2.5 py-1.5 font-mono text-sm" title={valueA}>
             {valueA}
           </span>
         </div>
-        <div className="kinetic-glyph-box kinetic-muted h-7 w-7 shrink-0 text-[11px]">
+        <p className="kinetic-mono-label col-start-3 text-[10px] text-[color:var(--color-kinetic-success)]">File B</p>
+        <div className="kinetic-glyph-box kinetic-muted row-start-2 self-center h-7 w-7 shrink-0 text-[11px]">
           {'->'}
         </div>
-        <div className="min-w-0">
-          <p className="kinetic-mono-label mb-1 text-[10px] text-[color:var(--color-kinetic-success)]">File B</p>
+        <div className="min-w-0 col-start-3 row-start-2">
           <span className="kinetic-copy kinetic-surface-success-muted block truncate border px-2.5 py-1.5 font-mono text-sm" title={valueB}>
             {valueB}
           </span>
