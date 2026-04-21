@@ -333,3 +333,29 @@ test('renders comparison column names alongside result values', () => {
   expect(within(row as HTMLElement).getByText('name')).toBeInTheDocument();
   expect(within(row as HTMLElement).getByText('display_name')).toBeInTheDocument();
 });
+
+test('lets zero-diff mismatch rows fall back to the shared inspect panel', () => {
+  render(
+    <ResultsTable
+      results={[
+        {
+          result_type: 'mismatch',
+          key: ['ZERO-DIFF'],
+          values_a: ['Same'],
+          values_b: ['Same'],
+          duplicate_values_a: [],
+          duplicate_values_b: [],
+          differences: [],
+        },
+      ]}
+      comparisonColumnsA={COMPARISON_COLUMNS_A}
+      comparisonColumnsB={COMPARISON_COLUMNS_B}
+    />,
+  );
+
+  const inspectToggle = screen.getByRole('button', { name: /inspect/i });
+  fireEvent.click(inspectToggle);
+
+  expect(screen.getByText('Paired Values')).toBeInTheDocument();
+  expect(screen.getAllByText('Same').length).toBeGreaterThan(1);
+});

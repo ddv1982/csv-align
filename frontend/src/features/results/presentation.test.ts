@@ -242,3 +242,40 @@ test('shapes result values with comparison column names for shared table and exp
     }),
   ]));
 });
+
+test('falls back to paired-value inspection for zero-diff mismatch rows', () => {
+  const [row] = buildResultRows([
+    {
+      result_type: 'mismatch',
+      key: ['zero-diff'],
+      values_a: ['Same'],
+      values_b: ['Same'],
+      duplicate_values_a: [],
+      duplicate_values_b: [],
+      differences: [],
+    },
+  ], {
+    fileA: ['full_name'],
+    fileB: ['display_name'],
+  });
+
+  expect(row.expandableDetail).toEqual({
+    variant: 'inspection',
+    title: 'Paired Values',
+    summary: '1 row',
+    toggleLabel: 'Inspect',
+    panels: [
+      {
+        label: null,
+        fields: [
+          {
+            columnA: 'full_name',
+            columnB: 'display_name',
+            valueA: 'Same',
+            valueB: 'Same',
+          },
+        ],
+      },
+    ],
+  });
+});

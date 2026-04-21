@@ -321,10 +321,6 @@ function buildExpandableDetail(
     return differenceDetail;
   }
 
-  if (result.result_type === 'mismatch') {
-    return null;
-  }
-
   return buildInspectionDetail(fileAValues, fileBValues);
 }
 

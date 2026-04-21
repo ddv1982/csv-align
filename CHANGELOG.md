@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.26 - 2026-04-21
+
+- Fixed the shared results presentation so zero-diff mismatch rows now fall back to the same paired-value Inspect panel already used for matching and other zero-diff value-bearing rows.
+- Added regression coverage for the shared presentation model, in-app Results table, and standalone HTML export, then prepared the v2.1.26 follow-up patch release by synchronizing version metadata across the documented release files.
+
 ## v2.1.25 - 2026-04-21
 
 - Added a shared expandable inspection panel for matching and other zero-diff result rows so reviewers can open the same File A and File B value context even when no differences are present.

@@ -1,3 +1,4 @@
+import { fireEvent, screen } from '@testing-library/react';
 import { expect, test } from 'vitest';
 import { buildResultsHtmlDocument } from './htmlExport';
 import type { ResultResponse, SummaryResponse } from '../../types/api';
@@ -148,6 +149,54 @@ test('standalone export table count matches the active filter bucket after the e
   duplicateFilter?.click();
 
   expect(resultsCount?.textContent).toBe('1 of 1 rows shown');
+
+  document.body.innerHTML = '';
+});
+
+test('standalone export uses the shared inspect panel for zero-diff mismatch rows', () => {
+  const html = buildResultsHtmlDocument({
+    summary: {
+      total_rows_a: 1,
+      total_rows_b: 1,
+      matches: 0,
+      mismatches: 1,
+      missing_left: 0,
+      missing_right: 0,
+      unkeyed_left: 0,
+      unkeyed_right: 0,
+      duplicates_a: 0,
+      duplicates_b: 0,
+    },
+    fileAName: 'left.csv',
+    fileBName: 'right.csv',
+    comparisonColumnsA: ['name'],
+    comparisonColumnsB: ['display_name'],
+    results: [
+      {
+        result_type: 'mismatch',
+        key: ['zero-diff'],
+        values_a: ['Same'],
+        values_b: ['Same'],
+        duplicate_values_a: [],
+        duplicate_values_b: [],
+        differences: [],
+      },
+    ],
+    initialFilter: 'all',
+  });
+
+  const parsed = new DOMParser().parseFromString(html, 'text/html');
+  const script = parsed.querySelector('script:not([type="application/json"])');
+
+  document.body.innerHTML = parsed.body.innerHTML;
+  // eslint-disable-next-line no-new-func
+  Function(script?.textContent ?? '')();
+
+  const inspectToggle = screen.getByRole('button', { name: /inspect/i });
+  fireEvent.click(inspectToggle);
+
+  expect(document.body.textContent).toContain('Paired Values');
+  expect(document.body.textContent).toContain('Same');
 
   document.body.innerHTML = '';
 });
