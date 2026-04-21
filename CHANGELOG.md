@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.27 - 2026-04-21
+
+- Restored the simpler collapsed Results row presentation so match and mismatch rows once again show the same main-table layout as before while keeping expandable detail panels for paired values and mismatches.
+- Kept the standalone HTML export aligned with the in-app Results view, then prepared the v2.1.27 patch release by synchronizing the documented release metadata files.
+
 ## v2.1.26 - 2026-04-21
 
 - Fixed the shared results presentation so zero-diff mismatch rows now fall back to the same paired-value Inspect panel already used for matching and other zero-diff value-bearing rows.

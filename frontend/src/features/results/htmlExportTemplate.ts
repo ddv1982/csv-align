@@ -259,8 +259,7 @@ ${RESULTS_EXPORT_STYLES}
         return '<div class="value-stack">' + rows.map((row) => (
           '<div class="value-row">' + (row.length > 0
             ? row.map((cell) => (
-              '<div style="display:grid;gap:4px;">'
-                + (cell.column ? '<span class="table-chip kinetic-copy">' + escapeHtml(cell.column) + '</span>' : '')
+              '<div>'
                 + '<span class="kinetic-copy" title="' + escapeHtml(cell.value) + '">' + (cell.value === '' ? '<span class="diff-empty">-</span>' : escapeHtml(cell.value)) + '</span>'
                 + '</div>'
             )).join('')

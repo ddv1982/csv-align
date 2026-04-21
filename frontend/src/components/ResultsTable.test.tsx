@@ -326,12 +326,17 @@ test('shows the current-filter-and-search empty-state copy when rows exist but n
   expect(screen.queryByText('No results match the selected filter')).not.toBeInTheDocument();
 });
 
-test('renders comparison column names alongside result values', () => {
+test('keeps comparison column names out of the collapsed value cells', () => {
   render(<ResultsTable results={RESULTS} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
 
   const row = screen.getByText('Alpha').closest('tr');
-  expect(within(row as HTMLElement).getByText('name')).toBeInTheDocument();
-  expect(within(row as HTMLElement).getByText('display_name')).toBeInTheDocument();
+  expect(within(row as HTMLElement).queryByText('name')).not.toBeInTheDocument();
+  expect(within(row as HTMLElement).queryByText('display_name')).not.toBeInTheDocument();
+
+  fireEvent.click(within(row as HTMLElement).getByRole('button', { name: /inspect/i }));
+
+  expect(screen.getByText('name')).toBeInTheDocument();
+  expect(screen.getByText('display_name')).toBeInTheDocument();
 });
 
 test('lets zero-diff mismatch rows fall back to the shared inspect panel', () => {

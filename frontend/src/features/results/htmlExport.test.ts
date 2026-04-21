@@ -92,7 +92,7 @@ test('buildResultsHtmlDocument embeds the current comparison view state for stan
   expect(html).toContain("row.expandableDetail.variant === 'differences' ? 'diff-grid' : 'detail-stack'");
   expect(html).toContain('field.columnA');
   expect(html).toContain('class="kinetic-glyph-box diff-arrow-box kinetic-muted">-&gt;</div>');
-  expect(html).toContain('cell.column ? \'<span class="table-chip kinetic-copy">\' + escapeHtml(cell.column) + \'</span>\' : \'\'');
+  expect(html).not.toContain('cell.column ? \'<span class="table-chip kinetic-copy">\' + escapeHtml(cell.column) + \'</span>\' : \'\'');
   expect(html).toContain('class="diff-value-label file-a">File A</span>');
   expect(html).toContain("formatDetailValue(field.valueB, 'kinetic-surface-success-muted')");
   expect(html).toContain('row.description ? \'<span class="result-description">\' + escapeHtml(row.description) + \'</span>\' : \'\'');
@@ -127,9 +127,9 @@ test('standalone export table count matches the active filter bucket after the e
   Function(script?.textContent ?? '')();
 
   const resultsCount = document.getElementById('results-count');
+  const resultsBody = document.getElementById('results-body');
   expect(resultsCount?.textContent).toBe('3 of 3 rows shown');
-  expect(document.body.textContent).toContain('name');
-  expect(document.body.textContent).toContain('display_name');
+  expect(resultsBody?.textContent).not.toContain('display_name');
 
   const inspectToggle = (Array.from(document.querySelectorAll('[data-expand-row]')) as HTMLButtonElement[]).find(
     (button) => button.textContent?.includes('Inspect'),
@@ -140,6 +140,8 @@ test('standalone export table count matches the active filter bucket after the e
 
   expect(document.body.textContent).toContain('Paired Values');
   expect(document.body.textContent).toContain('Alice');
+  expect(resultsBody?.textContent).toContain('name');
+  expect(resultsBody?.textContent).toContain('display_name');
 
   const duplicateFilter = (Array.from(document.querySelectorAll('[data-filter]')) as HTMLButtonElement[]).find(
     (button) => button.getAttribute('data-filter') === 'duplicate',

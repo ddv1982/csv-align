@@ -194,12 +194,9 @@ export function ResultsTable({
             className="kinetic-value-row text-[13px]"
           >
             {row.length > 0 ? (
-              <div className="grid gap-2">
+              <div className="grid gap-1">
                 {row.map((cell, cellIndex) => (
-                  <div key={cellIndex} className="grid gap-1">
-                    {cell.column && (
-                      <span className="table-chip kinetic-copy max-w-full break-all">{cell.column}</span>
-                    )}
+                  <div key={cellIndex}>
                     <span className="block truncate" title={cell.value}>
                       {cell.value || '—'}
                     </span>
