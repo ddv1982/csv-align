@@ -25,6 +25,14 @@ interface DetailFieldRowProps {
   field: ResultDetailField;
 }
 
+function formatCollapsedValueRow(row: ResultValueCell[]): string {
+  if (row.length === 0) {
+    return '—';
+  }
+
+  return row.map((cell) => cell.value || '—').join(', ');
+}
+
 function DetailFieldRow({ field }: DetailFieldRowProps) {
   const { columnA, columnB, valueA, valueB } = field;
   const sameColumn = columnA === columnB;
@@ -195,17 +203,9 @@ export function ResultsTable({
             key={rowIndex}
             className="kinetic-value-row text-[13px]"
           >
-            {row.length > 0 ? (
-              <div className="grid gap-1">
-                {row.map((cell, cellIndex) => (
-                  <div key={cellIndex}>
-                    <span className="block truncate" title={cell.value}>
-                      {cell.value || '—'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : '—'}
+            <span className="block truncate" title={formatCollapsedValueRow(row)}>
+              {formatCollapsedValueRow(row)}
+            </span>
           </div>
         ))}
       </div>

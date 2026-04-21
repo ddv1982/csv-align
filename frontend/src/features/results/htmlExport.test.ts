@@ -136,6 +136,7 @@ test('standalone export table count matches the active filter bucket after the e
   const resultsBody = document.getElementById('results-body');
   expect(resultsCount?.textContent).toBe('3 of 3 rows shown');
   expect(resultsBody?.textContent).not.toContain('display_name');
+  expect(resultsBody?.textContent).toContain('Carol, Caroline');
 
   const inspectToggle = (Array.from(document.querySelectorAll('[data-expand-row]')) as HTMLButtonElement[]).find(
     (button) => button.textContent?.includes('Inspect'),
@@ -148,6 +149,7 @@ test('standalone export table count matches the active filter bucket after the e
   expect(document.body.textContent).toContain('Alice');
   expect(resultsBody?.textContent).toContain('name');
   expect(resultsBody?.textContent).toContain('display_name');
+  expect(resultsBody?.textContent).toContain('Carol, Caroline');
 
   const duplicateFilter = (Array.from(document.querySelectorAll('[data-filter]')) as HTMLButtonElement[]).find(
     (button) => button.getAttribute('data-filter') === 'duplicate',

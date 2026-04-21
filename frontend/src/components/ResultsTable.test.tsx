@@ -96,6 +96,40 @@ test('lets matching rows expand paired file values for inspection', () => {
   expect(screen.getAllByText('display_name').length).toBeGreaterThan(0);
 });
 
+test('shows collapsed result values horizontally as comma-separated text', () => {
+  render(
+    <ResultsTable
+      results={[
+        {
+          result_type: 'match',
+          key: ['joined-values'],
+          values_a: ['Alpha', 'Bravo'],
+          values_b: ['Charlie', 'Delta'],
+          duplicate_values_a: [],
+          duplicate_values_b: [],
+          differences: [],
+        },
+      ]}
+      comparisonColumnsA={['first_name', 'nickname']}
+      comparisonColumnsB={['display_name', 'alias']}
+      mappings={[
+        { file_a_column: 'first_name', file_b_column: 'display_name', mapping_type: 'manual' },
+        { file_a_column: 'nickname', file_b_column: 'alias', mapping_type: 'manual' },
+      ]}
+    />, 
+  );
+
+  const row = screen.getByText('joined-values').closest('tr');
+  expect(row).toHaveTextContent('Alpha, Bravo');
+  expect(row).toHaveTextContent('Charlie, Delta');
+
+  fireEvent.click(within(row as HTMLElement).getByRole('button', { name: /inspect/i }));
+
+  expect(screen.getByText('Paired Values')).toBeInTheDocument();
+  expect(screen.getAllByText('Alpha').length).toBeGreaterThan(0);
+  expect(screen.getAllByText('Bravo').length).toBeGreaterThan(0);
+});
+
 test('shows overlapping key and comparison pairs in expanded matched results', () => {
   render(
     <ResultsTable

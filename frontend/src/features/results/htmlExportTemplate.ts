@@ -256,13 +256,17 @@ ${RESULTS_EXPORT_STYLES}
           return '<span class="kinetic-muted" style="font-style: italic;">-</span>';
         }
 
+        function formatCollapsedRow(row) {
+          if (row.length === 0) {
+            return '-';
+          }
+
+          return row.map((cell) => cell.value === '' ? '-' : String(cell.value)).join(', ');
+        }
+
         return '<div class="value-stack">' + rows.map((row) => (
           '<div class="value-row">' + (row.length > 0
-            ? row.map((cell) => (
-              '<div>'
-                + '<span class="kinetic-copy" title="' + escapeHtml(cell.value) + '">' + (cell.value === '' ? '<span class="diff-empty">-</span>' : escapeHtml(cell.value)) + '</span>'
-                + '</div>'
-            )).join('')
+            ? '<span class="kinetic-copy" title="' + escapeHtml(formatCollapsedRow(row)) + '">' + escapeHtml(formatCollapsedRow(row)) + '</span>'
             : '-') + '</div>'
         )).join('') + '</div>';
       }

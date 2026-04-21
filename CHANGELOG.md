@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.32 - 2026-04-21
+
+- Restored the collapsed Results table value cells to a horizontal comma-separated layout so reviewers can scan more values per row while keeping the expanded Inspect detail unchanged.
+- Kept the standalone HTML export aligned with the same collapsed presentation, added dedicated regression coverage for the joined row text, and prepared the v2.1.32 patch release by synchronizing the documented release metadata files.
+
 ## v2.1.31 - 2026-04-21
 
 - Fixed the comparison workflow so a selected key pair can also remain a comparison pair, keeping its values visible in expanded Results rows and standalone HTML exports instead of filtering that pair out before review.
