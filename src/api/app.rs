@@ -8,6 +8,32 @@ use tower_http::services::ServeDir;
 
 use super::{handlers, state::AppState};
 
+pub const CREATE_SESSION_ROUTE: &str = "/api/sessions";
+pub const DELETE_SESSION_ROUTE: &str = "/api/sessions/{session_id}";
+pub const LOAD_CSV_ROUTE: &str = "/api/sessions/{session_id}/files/{file_letter}";
+pub const SUGGEST_MAPPINGS_ROUTE: &str = "/api/sessions/{session_id}/mappings";
+pub const COMPARE_ROUTE: &str = "/api/sessions/{session_id}/compare";
+pub const EXPORT_RESULTS_ROUTE: &str = "/api/sessions/{session_id}/export";
+pub const SAVE_PAIR_ORDER_ROUTE: &str = "/api/sessions/{session_id}/pair-order/save";
+pub const LOAD_PAIR_ORDER_ROUTE: &str = "/api/sessions/{session_id}/pair-order/load";
+pub const SAVE_COMPARISON_SNAPSHOT_ROUTE: &str =
+    "/api/sessions/{session_id}/comparison-snapshot/save";
+pub const LOAD_COMPARISON_SNAPSHOT_ROUTE: &str =
+    "/api/sessions/{session_id}/comparison-snapshot/load";
+
+pub const TRANSPORT_PARITY_ROUTE_PATHS: &[&str] = &[
+    CREATE_SESSION_ROUTE,
+    DELETE_SESSION_ROUTE,
+    LOAD_CSV_ROUTE,
+    SUGGEST_MAPPINGS_ROUTE,
+    COMPARE_ROUTE,
+    EXPORT_RESULTS_ROUTE,
+    SAVE_PAIR_ORDER_ROUTE,
+    LOAD_PAIR_ORDER_ROUTE,
+    SAVE_COMPARISON_SNAPSHOT_ROUTE,
+    LOAD_COMPARISON_SNAPSHOT_ROUTE,
+];
+
 /// Get the path to the built frontend assets directory.
 pub fn frontend_dist_path() -> io::Result<PathBuf> {
     let current_exe = std::env::current_exe()?;
@@ -50,43 +76,22 @@ pub fn frontend_dist_path_from(current_exe: &Path, current_dir: &Path) -> io::Re
 pub fn build_api_router(state: AppState) -> Router {
     Router::new()
         .route("/api/health", get(handlers::health_check))
-        .route("/api/sessions", post(handlers::create_session))
+        .route(CREATE_SESSION_ROUTE, post(handlers::create_session))
+        .route(DELETE_SESSION_ROUTE, delete(handlers::delete_session))
+        .route(LOAD_CSV_ROUTE, post(handlers::load_csv_file))
+        .route(SUGGEST_MAPPINGS_ROUTE, post(handlers::suggest_mappings))
+        .route(COMPARE_ROUTE, post(handlers::compare))
+        .route(SAVE_PAIR_ORDER_ROUTE, post(handlers::save_pair_order))
+        .route(LOAD_PAIR_ORDER_ROUTE, post(handlers::load_pair_order))
         .route(
-            "/api/sessions/{session_id}",
-            delete(handlers::delete_session),
-        )
-        .route(
-            "/api/sessions/{session_id}/files/{file_letter}",
-            post(handlers::load_csv_file),
-        )
-        .route(
-            "/api/sessions/{session_id}/mappings",
-            post(handlers::suggest_mappings),
-        )
-        .route(
-            "/api/sessions/{session_id}/compare",
-            post(handlers::compare),
-        )
-        .route(
-            "/api/sessions/{session_id}/pair-order/save",
-            post(handlers::save_pair_order),
-        )
-        .route(
-            "/api/sessions/{session_id}/pair-order/load",
-            post(handlers::load_pair_order),
-        )
-        .route(
-            "/api/sessions/{session_id}/comparison-snapshot/save",
+            SAVE_COMPARISON_SNAPSHOT_ROUTE,
             post(handlers::save_comparison_snapshot),
         )
         .route(
-            "/api/sessions/{session_id}/comparison-snapshot/load",
+            LOAD_COMPARISON_SNAPSHOT_ROUTE,
             post(handlers::load_comparison_snapshot),
         )
-        .route(
-            "/api/sessions/{session_id}/export",
-            get(handlers::export_csv),
-        )
+        .route(EXPORT_RESULTS_ROUTE, get(handlers::export_csv))
         .with_state(state)
 }
 

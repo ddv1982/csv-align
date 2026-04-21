@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.24 - 2026-04-21
+
+- Tightened release-prep validation by extending the metadata checker to require an explicit expected tag with a matching non-empty changelog entry, backed by integration coverage for both accepted and rejected release states.
+- Preserved browser and Tauri transport parity by centralizing the shared API route templates, then hardened the CSV loading workflow so uploaded filenames stay normalized, empty uploads are rejected clearly, reloaded files clear stale comparison state, and those paths stay covered by regression tests.
+
 ## v2.1.23 - 2026-04-20
 
 - Fixed the tagged release workflow so the final publish step now runs with repository context, allowing GitHub releases to transition cleanly out of draft after successful asset packaging.

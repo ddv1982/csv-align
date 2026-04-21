@@ -8,6 +8,9 @@ import sys
 
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+CHANGELOG_HEADING_PATTERN = re.compile(
+    r"^## (?P<tag>v[^\s]+) - \d{4}-\d{2}-\d{2}$"
+)
 
 
 def read_text(relative_path: str) -> str:
@@ -51,6 +54,39 @@ def normalize_expected_version(expected_tag: str | None, expected_version: str |
             raise ValueError("Expected tag must start with 'v'")
         return expected_tag[1:]
     return expected_version
+
+
+def validate_changelog_entry(expected_version: str) -> None:
+    changelog_path = ROOT / "CHANGELOG.md"
+    if not changelog_path.exists():
+        raise ValueError("CHANGELOG.md was not found")
+
+    expected_tag = f"v{expected_version}"
+    section_lines = []
+    in_target_section = False
+
+    for raw_line in changelog_path.read_text(encoding="utf-8").splitlines():
+        heading_match = CHANGELOG_HEADING_PATTERN.match(raw_line)
+        if heading_match:
+            if in_target_section:
+                break
+            in_target_section = heading_match.group("tag") == expected_tag
+            continue
+
+        if in_target_section:
+            section_lines.append(raw_line)
+
+    if not in_target_section:
+        raise ValueError(
+            f"No CHANGELOG.md section found for tag {expected_tag}. "
+            f"Expected a heading like `## {expected_tag} - YYYY-MM-DD`."
+        )
+
+    if not "\n".join(section_lines).strip():
+        raise ValueError(
+            f"CHANGELOG.md section for tag {expected_tag} is empty. "
+            "Add at least one release note bullet under the heading."
+        )
 
 
 def main() -> int:
@@ -101,6 +137,13 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
+
+    if expected_version:
+        try:
+            validate_changelog_entry(expected_version)
+        except ValueError as error:
+            print(f"error: {error}", file=sys.stderr)
+            return 1
 
     print(f"Release metadata is consistent at version {actual_version}.")
     return 0

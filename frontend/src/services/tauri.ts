@@ -1,6 +1,18 @@
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { open, save } from '@tauri-apps/plugin-dialog';
+import {
+  buildCreateSessionRoute,
+  buildCompareRoute,
+  buildDeleteSessionRoute,
+  buildExportResultsRoute,
+  buildLoadComparisonSnapshotRoute,
+  buildLoadFileRoute,
+  buildLoadPairOrderRoute,
+  buildSaveComparisonSnapshotRoute,
+  buildSavePairOrderRoute,
+  buildSuggestMappingsRoute,
+} from './apiRoutes';
 import { TAURI_COMMANDS } from './tauriCommands';
 import type { SelectedFileSource } from '../types/ui';
 import type {
@@ -86,7 +98,7 @@ export async function createSession(): Promise<SessionResponse> {
     return invoke(TAURI_COMMANDS.createSession);
   }
 
-  return fetchJson('/api/sessions', { method: 'POST' }, 'Failed to create session');
+  return fetchJson(buildCreateSessionRoute(), { method: 'POST' }, 'Failed to create session');
 }
 
 export async function deleteSession(sessionId: string): Promise<void> {
@@ -95,7 +107,7 @@ export async function deleteSession(sessionId: string): Promise<void> {
     return;
   }
 
-  const response = await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' });
+  const response = await fetch(buildDeleteSessionRoute(sessionId), { method: 'DELETE' });
 
   if (!response.ok) {
     throw new Error(await readErrorMessage(response, 'Failed to delete session'));
@@ -131,7 +143,7 @@ export async function loadFile(
     formData.append('file', file);
   }
 
-  return fetchJson(`/api/sessions/${sessionId}/files/${fileLetter}`, {
+  return fetchJson(buildLoadFileRoute(sessionId, fileLetter), {
     method: 'POST',
     body: formData,
   }, 'Failed to load file');
@@ -148,7 +160,7 @@ export async function suggestMappings(
     });
   }
 
-  return postJson(`/api/sessions/${sessionId}/mappings`, request, 'Failed to get mappings');
+  return postJson(buildSuggestMappingsRoute(sessionId), request, 'Failed to get mappings');
 }
 
 export async function compareFiles(
@@ -162,7 +174,7 @@ export async function compareFiles(
     });
   }
 
-  return postJson(`/api/sessions/${sessionId}/compare`, request, 'Failed to compare files');
+  return postJson(buildCompareRoute(sessionId), request, 'Failed to compare files');
 }
 
 export async function exportResults(sessionId: string): Promise<Blob | void> {
@@ -184,7 +196,7 @@ export async function exportResults(sessionId: string): Promise<Blob | void> {
     return;
   }
 
-  return fetchBlob(`/api/sessions/${sessionId}/export`, {
+  return fetchBlob(buildExportResultsRoute(sessionId), {
     method: 'GET',
   }, 'Failed to export results');
 }
@@ -234,7 +246,7 @@ export async function savePairOrder(
     return;
   }
 
-  return fetchBlob(`/api/sessions/${sessionId}/pair-order/save`, {
+  return fetchBlob(buildSavePairOrderRoute(sessionId), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ selection }),
@@ -267,7 +279,7 @@ export async function loadPairOrder(
 
   const contents = await file.text();
 
-  return postJson(`/api/sessions/${sessionId}/pair-order/load`, { contents }, 'Failed to load pair order');
+  return postJson(buildLoadPairOrderRoute(sessionId), { contents }, 'Failed to load pair order');
 }
 
 export async function saveComparisonSnapshot(sessionId: string): Promise<Blob | void> {
@@ -289,7 +301,7 @@ export async function saveComparisonSnapshot(sessionId: string): Promise<Blob | 
     return;
   }
 
-  return fetchBlob(`/api/sessions/${sessionId}/comparison-snapshot/save`, {
+  return fetchBlob(buildSaveComparisonSnapshotRoute(sessionId), {
     method: 'POST',
   }, 'Failed to save comparison snapshot');
 }
@@ -320,7 +332,11 @@ export async function loadComparisonSnapshot(
 
   const contents = await file.text();
 
-  return postJson(`/api/sessions/${sessionId}/comparison-snapshot/load`, { contents }, 'Failed to load comparison snapshot');
+  return postJson(
+    buildLoadComparisonSnapshotRoute(sessionId),
+    { contents },
+    'Failed to load comparison snapshot',
+  );
 }
 
 export { isTauri };

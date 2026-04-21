@@ -30,10 +30,10 @@ Update version metadata in:
 - `frontend/package.json`
 - `frontend/package-lock.json`
 
-Validate the metadata before you commit:
+Validate the metadata before you commit. During release prep, always pin the expected tag so the checker verifies both synced versions and the matching non-empty changelog section:
 
 ```bash
-python3 scripts/check_release_metadata.py
+python3 scripts/check_release_metadata.py --expected-tag v1.0.8
 ```
 
 Add release notes in `CHANGELOG.md` using this exact heading format:

@@ -151,6 +151,9 @@ pub fn apply_csv_to_session(
         session_data.columns_b = columns;
     }
 
+    session_data.comparison_results.clear();
+    session_data.comparison_config = None;
+
     if session_data.csv_a.is_some() && session_data.csv_b.is_some() {
         let col_names_a: Vec<String> = session_data
             .columns_a

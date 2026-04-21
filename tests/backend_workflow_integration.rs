@@ -140,6 +140,23 @@ fn apply_csv_to_session_uses_uploaded_file_base_name_in_response() {
 }
 
 #[test]
+fn apply_csv_to_session_clears_stale_comparison_state_after_file_reload() {
+    let mut session = prepared_snapshot_session();
+    let replacement_csv = csv_loader::load_csv_from_bytes(b"id,full_name\n1,Alicia\n").unwrap();
+
+    let response = apply_csv_to_session(&mut session, FileSide::A, replacement_csv);
+
+    assert_eq!(response.file_letter, FileSide::A);
+    assert!(session.comparison_results.is_empty());
+    assert!(session.comparison_config.is_none());
+    assert!(matches!(
+        export_session_results_snapshot(&session),
+        Err(CsvAlignError::BadInput(message))
+            if message == "No comparison results to export. Run a comparison first."
+    ));
+}
+
+#[test]
 fn comparison_inputs_return_shared_csv_arcs() {
     let mut session = SessionData::new();
 
