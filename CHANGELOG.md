@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.31 - 2026-04-21
+
+- Fixed the comparison workflow so a selected key pair can also remain a comparison pair, keeping its values visible in expanded Results rows and standalone HTML exports instead of filtering that pair out before review.
+- Added dedicated frontend regression coverage for overlap-pair request construction, results wiring, expanded matched-row visibility, and HTML export context, then prepared the v2.1.31 patch release by synchronizing the documented release metadata files.
+
 ## v2.1.30 - 2026-04-21
 
 - Fixed the paired-values detail context so key pairs no longer stay in the review/export comparison-column inputs after compare filtering, preventing expanded match rows from shifting labels and values onto the wrong mapped columns.

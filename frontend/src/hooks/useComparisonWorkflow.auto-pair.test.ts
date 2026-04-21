@@ -146,7 +146,7 @@ test('auto-pairs confident comparison columns using File A order and prepends se
   expect(result.current.state.loading).toBe(false);
 });
 
-test('removes prepended key pairs before sending the comparison request', async () => {
+test('preserves prepended key pairs when sending the comparison request', async () => {
   const { result } = renderHook(() => useComparisonWorkflow());
 
   await waitFor(() => {
@@ -171,9 +171,10 @@ test('removes prepended key pairs before sending the comparison request', async 
   expect(compareFilesMock).toHaveBeenCalledWith('session-1', expect.objectContaining({
     key_columns_a: ['id'],
     key_columns_b: ['record_id'],
-    comparison_columns_a: ['full_name', 'email_address'],
-    comparison_columns_b: ['display_name', 'email'],
+    comparison_columns_a: ['id', 'full_name', 'email_address'],
+    comparison_columns_b: ['record_id', 'display_name', 'email'],
     column_mappings: [
+      { file_a_column: 'id', file_b_column: 'record_id', mapping_type: 'manual', similarity: undefined },
       { file_a_column: 'full_name', file_b_column: 'display_name', mapping_type: 'manual', similarity: undefined },
       { file_a_column: 'email_address', file_b_column: 'email', mapping_type: 'manual', similarity: undefined },
     ],

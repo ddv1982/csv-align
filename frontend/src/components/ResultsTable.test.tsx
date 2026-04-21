@@ -96,6 +96,39 @@ test('lets matching rows expand paired file values for inspection', () => {
   expect(screen.getAllByText('display_name').length).toBeGreaterThan(0);
 });
 
+test('shows overlapping key and comparison pairs in expanded matched results', () => {
+  render(
+    <ResultsTable
+      results={[
+        {
+          result_type: 'match',
+          key: ['42'],
+          values_a: ['42', 'Alice'],
+          values_b: ['42', 'Alice'],
+          duplicate_values_a: [],
+          duplicate_values_b: [],
+          differences: [],
+        },
+      ]}
+      comparisonColumnsA={['id', 'name']}
+      comparisonColumnsB={['record_id', 'display_name']}
+      mappings={[
+        { file_a_column: 'id', file_b_column: 'record_id', mapping_type: 'manual' },
+        { file_a_column: 'name', file_b_column: 'display_name', mapping_type: 'manual' },
+      ]}
+    />,
+  );
+
+  fireEvent.click(screen.getByRole('button', { name: /inspect/i }));
+
+  expect(screen.getAllByText('id').length).toBeGreaterThan(0);
+  expect(screen.getAllByText('record_id').length).toBeGreaterThan(0);
+  expect(screen.getAllByText('name').length).toBeGreaterThan(0);
+  expect(screen.getAllByText('display_name').length).toBeGreaterThan(0);
+  expect(screen.getAllByText('42').length).toBeGreaterThan(0);
+  expect(screen.getAllByText('Alice').length).toBeGreaterThan(0);
+});
+
 test('filters visible rows by search query across keys and values', () => {
   render(<ResultsTable results={RESULTS} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
 

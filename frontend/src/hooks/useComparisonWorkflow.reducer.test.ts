@@ -5,12 +5,11 @@ import { INITIAL_MAPPING_SELECTION } from '../types/ui';
 import {
   INITIAL_WORKFLOW_STATE,
   buildCompareRequestPayload,
-  filterKeyPairsFromComparisonSelection,
   workflowReducer,
 } from './useComparisonWorkflow.reducer';
 
 describe('useComparisonWorkflow reducer', () => {
-  test('buildCompareRequestPayload omits key pairs from comparison columns and retained mappings', () => {
+  test('buildCompareRequestPayload preserves overlapping key and comparison pairs', () => {
     const { request, retainedMappings } = buildCompareRequestPayload(
       ['id'],
       ['record_id'],
@@ -23,23 +22,12 @@ describe('useComparisonWorkflow reducer', () => {
       INITIAL_NORMALIZATION_CONFIG,
     );
 
-    expect(request.comparison_columns_a).toEqual(['name']);
-    expect(request.comparison_columns_b).toEqual(['display_name']);
+    expect(request.comparison_columns_a).toEqual(['id', 'name']);
+    expect(request.comparison_columns_b).toEqual(['record_id', 'display_name']);
     expect(retainedMappings).toEqual([
+      { file_a_column: 'id', file_b_column: 'record_id', mapping_type: 'manual' },
       { file_a_column: 'name', file_b_column: 'display_name', mapping_type: 'manual' },
     ]);
-  });
-
-  test('filterKeyPairsFromComparisonSelection preserves non-key comparison order after leading key pairs', () => {
-    expect(filterKeyPairsFromComparisonSelection(
-      ['id'],
-      ['record_id'],
-      ['id', 'first_name', 'nickname'],
-      ['record_id', 'alias', 'full_name'],
-    )).toEqual({
-      comparisonColumnsA: ['first_name', 'nickname'],
-      comparisonColumnsB: ['alias', 'full_name'],
-    });
   });
 
   test('fileLoaded advances to configure and resets selection state after both files load', () => {

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, type Dispatch } from 'react';
+import { useCallback, type Dispatch } from 'react';
 import { buildResultsHtmlDocument } from '../features/results/htmlExport';
 import { downloadBlob } from '../services/browserDownload';
 import {
@@ -11,7 +11,6 @@ import {
 } from '../services/tauri';
 import type { MappingSelectionState } from '../types/ui';
 import {
-  filterKeyPairsFromComparisonSelection,
   type WorkflowAction,
   type WorkflowState,
 } from './useComparisonWorkflow.reducer';
@@ -33,18 +32,6 @@ export function useWorkflowPersistenceActions({
   failLoading,
   blockSnapshotFollowOnWorkflow,
 }: UseWorkflowPersistenceActionsParams) {
-  const filteredComparisonSelection = useMemo(() => filterKeyPairsFromComparisonSelection(
-    mappingSelection.keyColumnsA,
-    mappingSelection.keyColumnsB,
-    mappingSelection.comparisonColumnsA,
-    mappingSelection.comparisonColumnsB,
-  ), [
-    mappingSelection.comparisonColumnsA,
-    mappingSelection.comparisonColumnsB,
-    mappingSelection.keyColumnsA,
-    mappingSelection.keyColumnsB,
-  ]);
-
   const handleExportCsv = useCallback(async () => {
     if (!state.sessionId) {
       return;
@@ -75,8 +62,8 @@ export function useWorkflowPersistenceActions({
         summary: state.summary,
         fileAName: state.fileA?.name ?? 'File A',
         fileBName: state.fileB?.name ?? 'File B',
-        comparisonColumnsA: filteredComparisonSelection.comparisonColumnsA,
-        comparisonColumnsB: filteredComparisonSelection.comparisonColumnsB,
+        comparisonColumnsA: mappingSelection.comparisonColumnsA,
+        comparisonColumnsB: mappingSelection.comparisonColumnsB,
         mappings: state.mappings,
         results: state.results,
         initialFilter: state.filter,
@@ -92,8 +79,8 @@ export function useWorkflowPersistenceActions({
   }, [
     dispatch,
     failLoading,
-    filteredComparisonSelection.comparisonColumnsA,
-    filteredComparisonSelection.comparisonColumnsB,
+    mappingSelection.comparisonColumnsA,
+    mappingSelection.comparisonColumnsB,
     startLoading,
     state.fileA?.name,
     state.fileB?.name,

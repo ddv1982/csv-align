@@ -438,7 +438,7 @@ test('exports a standalone html review file from the current results state', asy
   expect(result.current.state.loading).toBe(false);
 });
 
-test('exports html with key pairs filtered out of paired-value presentation context', async () => {
+test('preserves overlapping key pairs through compare and html export', async () => {
   compareFilesMock.mockResolvedValueOnce({
     success: true,
     results: [
@@ -508,10 +508,26 @@ test('exports html with key pairs filtered out of paired-value presentation cont
     await result.current.handleExportHtml();
   });
 
-  expect(exportResultsHtmlMock).toHaveBeenCalledWith(expect.stringContaining('"fileAValues":[[{"column":"first_name","value":"Alice"},{"column":"nickname","value":""}]]'));
-  expect(exportResultsHtmlMock).toHaveBeenCalledWith(expect.stringContaining('"fileBValues":[[{"column":"alias","value":"null"},{"column":"full_name","value":"Alice"}]]'));
-  expect(exportResultsHtmlMock).toHaveBeenCalledWith(expect.stringContaining('"columnA":"first_name","columnB":"full_name","valueA":"Alice","valueB":"Alice"'));
-  expect(exportResultsHtmlMock).not.toHaveBeenCalledWith(expect.stringContaining('"column":"id"'));
+  expect(compareFilesMock).toHaveBeenCalledWith('session-1', expect.objectContaining({
+    comparison_columns_a: ['id', 'first_name', 'nickname'],
+    comparison_columns_b: ['record_id', 'alias', 'full_name'],
+    column_mappings: [
+      { file_a_column: 'id', file_b_column: 'record_id', mapping_type: 'manual', similarity: undefined },
+      { file_a_column: 'first_name', file_b_column: 'full_name', mapping_type: 'manual', similarity: undefined },
+      { file_a_column: 'nickname', file_b_column: 'alias', mapping_type: 'manual', similarity: undefined },
+    ],
+  }));
+  expect(result.current.state.mappings).toEqual([
+    { file_a_column: 'id', file_b_column: 'record_id', mapping_type: 'manual' },
+    { file_a_column: 'first_name', file_b_column: 'full_name', mapping_type: 'manual' },
+    { file_a_column: 'nickname', file_b_column: 'alias', mapping_type: 'manual' },
+  ]);
+  expect(exportResultsHtmlMock).toHaveBeenCalledWith(expect.stringContaining('"comparisonColumnsA":["id","first_name","nickname"]'));
+  expect(exportResultsHtmlMock).toHaveBeenCalledWith(expect.stringContaining('"comparisonColumnsB":["record_id","alias","full_name"]'));
+  expect(exportResultsHtmlMock).toHaveBeenCalledWith(expect.stringContaining('"file_a_column":"id","file_b_column":"record_id","mapping_type":"manual"'));
+  expect(exportResultsHtmlMock).toHaveBeenCalledWith(expect.stringContaining('"columnA":"id","columnB":"record_id"'));
+  expect(exportResultsHtmlMock).toHaveBeenCalledWith(expect.stringContaining('"columnA":"first_name","columnB":"full_name"'));
+  expect(exportResultsHtmlMock).toHaveBeenCalledWith(expect.stringContaining('"columnA":"nickname","columnB":"alias"'));
 });
 
 test('keeps public handlers stable across rerenders when their dependencies do not change', async () => {
