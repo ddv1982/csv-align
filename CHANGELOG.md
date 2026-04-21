@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.30 - 2026-04-21
+
+- Fixed the paired-values detail context so key pairs no longer stay in the review/export comparison-column inputs after compare filtering, preventing expanded match rows from shifting labels and values onto the wrong mapped columns.
+- Added frontend workflow regressions plus Rust sample-data-backed coverage for leading key-pair selections with null-equal mapped rows, then prepared the v2.1.30 patch release by synchronizing the documented release metadata files.
+
 ## v2.1.29 - 2026-04-21
 
 - Fixed the paired-values detail context so results review now uses the same non-key comparison columns and retained mappings as the actual compare request, preventing key-pair selections from shifting expanded labels and values.

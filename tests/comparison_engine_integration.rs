@@ -478,7 +478,12 @@ fn test_compare_csv_data_keeps_manual_mapping_alignment_for_null_equal_sample_ro
     let results = compare_csv_data(&csv_a, &csv_b, &config);
     assert_eq!(results.len(), 2);
 
-    match &results[0] {
+    let first_result = results
+        .iter()
+        .find(|result| matches!(result, RowComparisonResult::Match { key, .. } if key == &vec!["1".to_string()]))
+        .expect("expected a match result for key 1");
+
+    match first_result {
         RowComparisonResult::Match {
             values_a, values_b, ..
         } => {
@@ -488,7 +493,12 @@ fn test_compare_csv_data_keeps_manual_mapping_alignment_for_null_equal_sample_ro
         _ => panic!("expected first sample row to stay matched with null-equal values"),
     }
 
-    match &results[1] {
+    let second_result = results
+        .iter()
+        .find(|result| matches!(result, RowComparisonResult::Match { key, .. } if key == &vec!["2".to_string()]))
+        .expect("expected a match result for key 2");
+
+    match second_result {
         RowComparisonResult::Match {
             values_a, values_b, ..
         } => {
