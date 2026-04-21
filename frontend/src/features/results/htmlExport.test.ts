@@ -98,8 +98,10 @@ test('buildResultsHtmlDocument embeds the current comparison view state for stan
   expect(html).toContain('field.columnA');
   expect(html).toContain('class="kinetic-glyph-box diff-arrow-box kinetic-muted">-&gt;</div>');
   expect(html).not.toContain('cell.column ? \'<span class="table-chip kinetic-copy">\' + escapeHtml(cell.column) + \'</span>\' : \'\'');
-  expect(html).toContain('class="diff-value-label file-a">File A</span>');
+  expect(html).toContain('class="diff-value-label ' + "' + fileALabelClass + '" + '">File A</span>');
   expect(html).toContain("formatDetailValue(field.valueB, 'kinetic-surface-success-muted')");
+  expect(html).toContain('const fileALabelClass = isMatch ? \'file-b\' : \'file-a\';');
+  expect(html).toContain("const fileAValueTone = isMatch ? 'kinetic-surface-success-muted' : 'kinetic-surface-danger';");
   expect(html).toContain('row.description ? \'<span class="result-description">\' + escapeHtml(row.description) + \'</span>\' : \'\'');
   expect(html).toContain('color-scheme: dark;');
   expect(html).toContain('--color-kinetic-bg: #050505;');
@@ -251,6 +253,72 @@ test('standalone export keeps paired-value labels aligned to explicit mappings f
   expect(html).toContain('"columnA":"first_name","columnB":"full_name","valueA":"Alice","valueB":"Alice"');
   expect(html).toContain('"columnA":"nickname","columnB":"alias","valueA":"","valueB":"null"');
   expect(html).toContain('"fileBValues":[[{"column":"alias","value":"null"},{"column":"full_name","value":"Alice"}]]');
+});
+
+test('standalone export uses green-green inspection tones for match rows and split tones for mismatches', () => {
+  const html = buildResultsHtmlDocument({
+    summary: {
+      total_rows_a: 2,
+      total_rows_b: 2,
+      matches: 1,
+      mismatches: 1,
+      missing_left: 0,
+      missing_right: 0,
+      unkeyed_left: 0,
+      unkeyed_right: 0,
+      duplicates_a: 0,
+      duplicates_b: 0,
+    },
+    fileAName: 'left.csv',
+    fileBName: 'right.csv',
+    comparisonColumnsA: ['name'],
+    comparisonColumnsB: ['display_name'],
+    mappings: MAPPINGS,
+    results: [
+      {
+        result_type: 'match',
+        key: ['match-tone'],
+        values_a: ['Match Left'],
+        values_b: ['Match Right'],
+        duplicate_values_a: [],
+        duplicate_values_b: [],
+        differences: [],
+      },
+      {
+        result_type: 'mismatch',
+        key: ['mismatch-tone'],
+        values_a: ['Mismatch Left'],
+        values_b: ['Mismatch Right'],
+        duplicate_values_a: [],
+        duplicate_values_b: [],
+        differences: [],
+      },
+    ],
+    initialFilter: 'all',
+  });
+
+  const parsed = new DOMParser().parseFromString(html, 'text/html');
+  const script = parsed.querySelector('script:not([type="application/json"])');
+
+  document.body.innerHTML = parsed.body.innerHTML;
+  // eslint-disable-next-line no-new-func
+  Function(script?.textContent ?? '')();
+
+  let toggles = Array.from(document.querySelectorAll('[data-expand-row]')) as HTMLButtonElement[];
+  toggles[0]?.click();
+
+  let valueBoxes = Array.from(document.querySelectorAll('.diff-value-box'));
+  expect(valueBoxes[0]).toHaveClass('kinetic-surface-success-muted');
+  expect(valueBoxes[1]).toHaveClass('kinetic-surface-success-muted');
+
+  toggles = Array.from(document.querySelectorAll('[data-expand-row]')) as HTMLButtonElement[];
+  toggles[1]?.click();
+
+  valueBoxes = Array.from(document.querySelectorAll('.diff-value-box'));
+  expect(valueBoxes[0]).toHaveClass('kinetic-surface-danger');
+  expect(valueBoxes[1]).toHaveClass('kinetic-surface-success-muted');
+
+  document.body.innerHTML = '';
 });
 
 test('standalone export wraps long collapsed result values instead of forcing a single truncated line', () => {

@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.34 - 2026-04-21
+
+- Refined the matched-row inspection presentation so paired values now keep the same success tone on both sides, making review state clearer without changing mismatch styling.
+- Kept the standalone HTML export aligned with the same inspection tone update, then prepared the v2.1.34 patch release by synchronizing the documented release metadata files.
+
 ## v2.1.33 - 2026-04-21
 
 - Fixed the collapsed Results row value presentation so long joined values now wrap instead of truncating, keeping full match context visible during review.

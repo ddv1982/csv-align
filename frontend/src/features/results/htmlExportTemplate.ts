@@ -275,10 +275,12 @@ ${RESULTS_EXPORT_STYLES}
         return '<span class="diff-value-box kinetic-copy ' + toneClass + '" title="' + escapeHtml(value) + '">' + (value === '' ? '<span class="diff-empty">-</span>' : escapeHtml(value)) + '</span>';
       }
 
-      function renderDetailField(field) {
+      function renderDetailField(field, isMatch) {
         const hasColumnA = Boolean(field.columnA);
         const hasColumnB = Boolean(field.columnB);
         const sameColumn = field.columnA === field.columnB;
+        const fileALabelClass = isMatch ? 'file-b' : 'file-a';
+        const fileAValueTone = isMatch ? 'kinetic-surface-success-muted' : 'kinetic-surface-danger';
 
         return '<div>'
           + ((hasColumnA || hasColumnB)
@@ -289,7 +291,7 @@ ${RESULTS_EXPORT_STYLES}
               + '</header>'
             : '')
           + '<div class="diff-values">'
-          + '<div><span class="diff-value-label file-a">File A</span>' + formatDetailValue(field.valueA, 'kinetic-surface-danger') + '</div>'
+          + '<div><span class="diff-value-label ' + fileALabelClass + '">File A</span>' + formatDetailValue(field.valueA, fileAValueTone) + '</div>'
           + '<div class="kinetic-glyph-box diff-arrow-box kinetic-muted">-&gt;</div>'
           + '<div><span class="diff-value-label file-b">File B</span>' + formatDetailValue(field.valueB, 'kinetic-surface-success-muted') + '</div>'
           + '</div>'
@@ -306,7 +308,7 @@ ${RESULTS_EXPORT_STYLES}
         return '<tr class="details-row"><td colspan="5"><div class="kinetic-panel diff-panel"><div class="diff-panel-header"><span class="diff-panel-icon">+</span><span class="diff-panel-title kinetic-copy">' + escapeHtml(row.expandableDetail.title) + '</span><span class="diff-panel-count">' + escapeHtml(row.expandableDetail.summary) + '</span></div><div class="' + detailGridClass + '">' + row.expandableDetail.panels.map((panel) => (
           '<article class="kinetic-panel diff-card">'
             + (panel.label ? '<p class="kinetic-copy" style="margin:0 0 12px 0;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;">' + escapeHtml(panel.label) + '</p>' : '')
-            + panel.fields.map((field) => renderDetailField(field)).join('')
+            + panel.fields.map((field) => renderDetailField(field, row.resultType === 'match')).join('')
             + '</article>'
         )).join('') + '</div></div></td></tr>';
       }

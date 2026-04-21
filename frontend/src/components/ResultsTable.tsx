@@ -23,6 +23,7 @@ interface ResultsTableProps {
 
 interface DetailFieldRowProps {
   field: ResultDetailField;
+  isMatch: boolean;
 }
 
 function formatCollapsedValueRow(row: ResultValueCell[]): string {
@@ -33,12 +34,16 @@ function formatCollapsedValueRow(row: ResultValueCell[]): string {
   return row.map((cell) => cell.value || '—').join(', ');
 }
 
-function DetailFieldRow({ field }: DetailFieldRowProps) {
+function DetailFieldRow({ field, isMatch }: DetailFieldRowProps) {
   const { columnA, columnB, valueA, valueB } = field;
   const sameColumn = columnA === columnB;
   const headerChipClass = 'table-chip kinetic-copy max-w-full break-all';
   const hasColumnA = Boolean(columnA);
   const hasColumnB = Boolean(columnB);
+  const fileALabelClass = isMatch
+    ? 'text-[color:var(--color-kinetic-success)]'
+    : 'text-[color:var(--color-kinetic-danger)]';
+  const fileAValueClass = isMatch ? 'kinetic-surface-success-muted' : 'kinetic-surface-danger';
 
   return (
     <div>
@@ -54,9 +59,9 @@ function DetailFieldRow({ field }: DetailFieldRowProps) {
         </div>
       )}
       <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-x-2 gap-y-1">
-        <p className="kinetic-mono-label text-[10px] text-[color:var(--color-kinetic-danger)]">File A</p>
+        <p className={`kinetic-mono-label text-[10px] ${fileALabelClass}`}>File A</p>
         <div className="min-w-0 row-start-2">
-          <span className="kinetic-copy kinetic-surface-danger block truncate border px-2.5 py-1.5 font-mono text-sm" title={valueA}>
+          <span className={`kinetic-copy ${fileAValueClass} block truncate border px-2.5 py-1.5 font-mono text-sm`} title={valueA}>
             {valueA || '—'}
           </span>
         </div>
@@ -74,13 +79,13 @@ function DetailFieldRow({ field }: DetailFieldRowProps) {
   );
 }
 
-function DetailPanel({ panel }: { panel: ResultDetailPanel }) {
+function DetailPanel({ panel, isMatch }: { panel: ResultDetailPanel; isMatch: boolean }) {
   return (
     <article className="kinetic-panel p-3.5">
       {panel.label && <p className="kinetic-mono-label kinetic-copy mb-3 text-xs font-semibold">{panel.label}</p>}
       <div className="grid gap-3">
         {panel.fields.map((field, fieldIndex) => (
-          <DetailFieldRow key={fieldIndex} field={field} />
+          <DetailFieldRow key={fieldIndex} field={field} isMatch={isMatch} />
         ))}
       </div>
     </article>
@@ -298,7 +303,7 @@ export function ResultsTable({
                               </div>
                               <div className={`grid gap-3 sm:grid-cols-1 ${row.expandableDetail.variant === 'differences' ? 'lg:grid-cols-2' : ''}`}>
                                 {row.expandableDetail.panels.map((panel, panelIdx) => (
-                                  <DetailPanel key={panel.label ?? panelIdx} panel={panel} />
+                                  <DetailPanel key={panel.label ?? panelIdx} panel={panel} isMatch={row.resultType === 'match'} />
                                 ))}
                               </div>
                             </div>

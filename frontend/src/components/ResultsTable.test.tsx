@@ -96,6 +96,66 @@ test('lets matching rows expand paired file values for inspection', () => {
   expect(screen.getAllByText('display_name').length).toBeGreaterThan(0);
 });
 
+test('uses success styling on both sides for matched inspection rows', () => {
+  render(
+    <ResultsTable
+      results={[
+        {
+          result_type: 'match',
+          key: ['match-tone'],
+          values_a: ['Match Left'],
+          values_b: ['Match Right'],
+          duplicate_values_a: [],
+          duplicate_values_b: [],
+          differences: [],
+        },
+      ]}
+      comparisonColumnsA={['name']}
+      comparisonColumnsB={['display_name']}
+    />,
+  );
+
+  fireEvent.click(screen.getByRole('button', { name: /inspect/i }));
+
+  const fileALabel = screen.getByText('File A');
+  const fileAValue = screen.getAllByTitle('Match Left').find((element) => element.classList.contains('kinetic-surface-success-muted'));
+  const fileBValue = screen.getAllByTitle('Match Right').find((element) => element.classList.contains('kinetic-surface-success-muted'));
+
+  expect(fileALabel).toHaveClass('text-[color:var(--color-kinetic-success)]');
+  expect(fileAValue).toBeTruthy();
+  expect(fileBValue).toBeTruthy();
+});
+
+test('keeps split danger and success styling for mismatched inspection rows', () => {
+  render(
+    <ResultsTable
+      results={[
+        {
+          result_type: 'mismatch',
+          key: ['zero-diff-tone'],
+          values_a: ['Mismatch Left'],
+          values_b: ['Mismatch Right'],
+          duplicate_values_a: [],
+          duplicate_values_b: [],
+          differences: [],
+        },
+      ]}
+      comparisonColumnsA={['name']}
+      comparisonColumnsB={['display_name']}
+    />,
+  );
+
+  fireEvent.click(screen.getByRole('button', { name: /inspect/i }));
+
+  const fileALabel = screen.getByText('File A');
+  const fileAValue = screen.getAllByTitle('Mismatch Left').find((element) => element.classList.contains('kinetic-surface-danger'));
+  const fileBValue = screen.getAllByTitle('Mismatch Right').find((element) => element.classList.contains('kinetic-surface-success-muted'));
+
+  expect(fileALabel).toHaveClass('text-[color:var(--color-kinetic-danger)]');
+  expect(fileAValue).toBeTruthy();
+  expect(fileBValue).toBeTruthy();
+});
+
 test('wraps long collapsed result values instead of truncating them', () => {
   const longFileA = 'AlphaSegmentOne,AlphaSegmentTwo,AlphaSegmentThree,AlphaSegmentFour';
   const longFileB = 'BravoSegmentOne,BravoSegmentTwo,BravoSegmentThree,BravoSegmentFour';
