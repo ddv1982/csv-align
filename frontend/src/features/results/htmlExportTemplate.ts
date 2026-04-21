@@ -282,18 +282,18 @@ ${RESULTS_EXPORT_STYLES}
         const fileALabelClass = isMatch ? 'file-b' : 'file-a';
         const fileAValueTone = isMatch ? 'kinetic-surface-success-muted' : 'kinetic-surface-danger';
 
-        return '<div>'
+        return '<div class="detail-field">'
           + ((hasColumnA || hasColumnB)
             ? '<header class="diff-card-header kinetic-muted">'
               + (hasColumnA ? '<span class="table-chip kinetic-copy">' + escapeHtml(field.columnA) + '</span>' : '')
-              + (!sameColumn && hasColumnA && hasColumnB ? '<span class="kinetic-glyph-box diff-arrow-box kinetic-muted">-&gt;</span>' : '')
+              + (!sameColumn && hasColumnA && hasColumnB ? '<span class="kinetic-glyph-box diff-arrow-box detail-header-arrow kinetic-muted">-&gt;</span>' : '')
               + (!sameColumn && hasColumnB ? '<span class="table-chip kinetic-copy">' + escapeHtml(field.columnB) + '</span>' : '')
               + '</header>'
             : '')
           + '<div class="diff-values">'
-          + '<div><span class="diff-value-label ' + fileALabelClass + '">File A</span>' + formatDetailValue(field.valueA, fileAValueTone) + '</div>'
-          + '<div class="kinetic-glyph-box diff-arrow-box kinetic-muted">-&gt;</div>'
-          + '<div><span class="diff-value-label file-b">File B</span>' + formatDetailValue(field.valueB, 'kinetic-surface-success-muted') + '</div>'
+          + '<div class="diff-value-column"><span class="diff-value-label ' + fileALabelClass + '">File A</span>' + formatDetailValue(field.valueA, fileAValueTone) + '</div>'
+          + '<div class="kinetic-glyph-box diff-arrow-box detail-value-arrow kinetic-muted">-&gt;</div>'
+          + '<div class="diff-value-column"><span class="diff-value-label file-b">File B</span>' + formatDetailValue(field.valueB, 'kinetic-surface-success-muted') + '</div>'
           + '</div>'
           + '</div>';
       }
@@ -307,8 +307,8 @@ ${RESULTS_EXPORT_STYLES}
 
         return '<tr class="details-row"><td colspan="5"><div class="kinetic-panel diff-panel"><div class="diff-panel-header"><span class="diff-panel-icon">+</span><span class="diff-panel-title kinetic-copy">' + escapeHtml(row.expandableDetail.title) + '</span><span class="diff-panel-count">' + escapeHtml(row.expandableDetail.summary) + '</span></div><div class="' + detailGridClass + '">' + row.expandableDetail.panels.map((panel) => (
           '<article class="kinetic-panel diff-card">'
-            + (panel.label ? '<p class="kinetic-copy" style="margin:0 0 12px 0;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;">' + escapeHtml(panel.label) + '</p>' : '')
-            + panel.fields.map((field) => renderDetailField(field, row.resultType === 'match')).join('')
+            + (panel.label ? '<p class="detail-panel-label kinetic-mono-label kinetic-copy">' + escapeHtml(panel.label) + '</p>' : '')
+            + '<div class="detail-card-fields">' + panel.fields.map((field) => renderDetailField(field, row.resultType === 'match')).join('') + '</div>'
             + '</article>'
         )).join('') + '</div></div></td></tr>';
       }

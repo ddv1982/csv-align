@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.35 - 2026-04-21
+
+- Refined the standalone HTML export inspect-row presentation so saved reports now match the app's paired-row inspection spacing and structure more closely.
+- Prepared the v2.1.35 patch release by synchronizing the documented release metadata files and rerunning the documented broad validation suite.
+
 ## v2.1.34 - 2026-04-21
 
 - Refined the matched-row inspection presentation so paired values now keep the same success tone on both sides, making review state clearer without changing mismatch styling.

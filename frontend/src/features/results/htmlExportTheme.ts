@@ -758,6 +758,23 @@ tbody tr + tr td {
   padding: 14px;
 }
 
+.detail-panel-label {
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.detail-card-fields {
+  display: grid;
+  gap: 12px;
+}
+
+.detail-field {
+  min-width: 0;
+}
+
 .diff-card-header {
   display: flex;
   flex-wrap: wrap;
@@ -770,10 +787,19 @@ tbody tr + tr td {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+   flex: 0 0 auto;
+   font-size: 11px;
+}
+
+.detail-header-arrow {
   width: 32px;
   height: 32px;
-  flex: 0 0 auto;
-  font-size: 11px;
+}
+
+.detail-value-arrow {
+  width: 28px;
+  height: 28px;
+  align-self: center;
 }
 
 .diff-values {
@@ -781,6 +807,10 @@ tbody tr + tr td {
   grid-template-columns: minmax(0, 1fr) min-content minmax(0, 1fr);
   gap: 8px;
   align-items: start;
+}
+
+.diff-value-column {
+  min-width: 0;
 }
 
 .diff-value-label {

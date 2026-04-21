@@ -96,12 +96,15 @@ test('buildResultsHtmlDocument embeds the current comparison view state for stan
   expect(html).toContain('row.expandableDetail.summary');
   expect(html).toContain("row.expandableDetail.variant === 'differences' ? 'diff-grid' : 'detail-stack'");
   expect(html).toContain('field.columnA');
-  expect(html).toContain('class="kinetic-glyph-box diff-arrow-box kinetic-muted">-&gt;</div>');
+  expect(html).toContain('class="kinetic-glyph-box diff-arrow-box detail-value-arrow kinetic-muted">-&gt;</div>');
   expect(html).not.toContain('cell.column ? \'<span class="table-chip kinetic-copy">\' + escapeHtml(cell.column) + \'</span>\' : \'\'');
   expect(html).toContain('class="diff-value-label ' + "' + fileALabelClass + '" + '">File A</span>');
   expect(html).toContain("formatDetailValue(field.valueB, 'kinetic-surface-success-muted')");
   expect(html).toContain('const fileALabelClass = isMatch ? \'file-b\' : \'file-a\';');
   expect(html).toContain("const fileAValueTone = isMatch ? 'kinetic-surface-success-muted' : 'kinetic-surface-danger';");
+  expect(html).toContain('class="detail-field"');
+  expect(html).toContain('class="detail-panel-label kinetic-mono-label kinetic-copy"');
+  expect(html).toContain('class="detail-card-fields"');
   expect(html).toContain('row.description ? \'<span class="result-description">\' + escapeHtml(row.description) + \'</span>\' : \'\'');
   expect(html).toContain('color-scheme: dark;');
   expect(html).toContain('--color-kinetic-bg: #050505;');
@@ -109,6 +112,9 @@ test('buildResultsHtmlDocument embeds the current comparison view state for stan
   expect(html).toContain('.summary-file-panel');
   expect(html).toContain('.diff-card');
   expect(html).toContain('.detail-stack');
+  expect(html).toContain('.detail-card-fields');
+  expect(html).toContain('.detail-header-arrow');
+  expect(html).toContain('.detail-value-arrow');
   expect(html).toContain('.section-card-header');
   expect(html).toContain('.status-strip');
 });
@@ -152,6 +158,9 @@ test('standalone export table count matches the active filter bucket after the e
   expect(resultsBody?.textContent).toContain('name');
   expect(resultsBody?.textContent).toContain('display_name');
   expect(resultsBody?.textContent).toContain('Carol, Caroline');
+  expect(resultsBody?.querySelector('.detail-card-fields')).toBeTruthy();
+  expect(resultsBody?.querySelector('.detail-header-arrow')).toBeTruthy();
+  expect(resultsBody?.querySelector('.detail-value-arrow')).toBeTruthy();
 
   const duplicateFilter = (Array.from(document.querySelectorAll('[data-filter]')) as HTMLButtonElement[]).find(
     (button) => button.getAttribute('data-filter') === 'duplicate',
