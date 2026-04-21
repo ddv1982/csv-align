@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.29 - 2026-04-21
+
+- Fixed the paired-values detail context so results review now uses the same non-key comparison columns and retained mappings as the actual compare request, preventing key-pair selections from shifting expanded labels and values.
+- Added frontend workflow and Rust regression coverage for leading key-pair selections with mapped null-equal rows, then prepared the v2.1.29 patch release by synchronizing the documented release metadata files.
+
 ## v2.1.28 - 2026-04-21
 
 - Fixed the paired-values detail so matched and zero-diff rows now keep the correct compare-column labels even when explicit mapping order differs from selected column order and the compared values are null-equal.

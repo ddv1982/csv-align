@@ -5,6 +5,7 @@ import { FileSelectionStep } from './components/app/FileSelectionStep';
 import { LoadingState } from './components/app/LoadingState';
 import { ProgressSteps } from './components/app/ProgressSteps';
 import { ResultsStep } from './components/app/ResultsStep';
+import { filterKeyPairsFromComparisonSelection } from './hooks/useComparisonWorkflow.reducer';
 import { useComparisonWorkflow } from './hooks/useComparisonWorkflow';
 
 function App() {
@@ -34,6 +35,13 @@ function App() {
     handleBackToSelection,
     handleContinueToConfigure,
   } = useComparisonWorkflow();
+
+  const filteredComparisonSelection = filterKeyPairsFromComparisonSelection(
+    mappingSelection.keyColumnsA,
+    mappingSelection.keyColumnsB,
+    mappingSelection.comparisonColumnsA,
+    mappingSelection.comparisonColumnsB,
+  );
 
   return (
     <div className="kinetic-shell flex min-h-screen flex-col bg-[color:var(--color-kinetic-bg)] text-[color:var(--color-kinetic-copy)]">
@@ -76,8 +84,8 @@ function App() {
             summary={state.summary}
             fileAName={state.fileA?.name ?? 'File A'}
             fileBName={state.fileB?.name ?? 'File B'}
-            comparisonColumnsA={mappingSelection.comparisonColumnsA}
-            comparisonColumnsB={mappingSelection.comparisonColumnsB}
+            comparisonColumnsA={filteredComparisonSelection.comparisonColumnsA}
+            comparisonColumnsB={filteredComparisonSelection.comparisonColumnsB}
             mappings={state.mappings}
             filter={state.filter}
             results={state.results}

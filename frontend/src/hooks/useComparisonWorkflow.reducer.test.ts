@@ -5,6 +5,7 @@ import { INITIAL_MAPPING_SELECTION } from '../types/ui';
 import {
   INITIAL_WORKFLOW_STATE,
   buildCompareRequestPayload,
+  filterKeyPairsFromComparisonSelection,
   workflowReducer,
 } from './useComparisonWorkflow.reducer';
 
@@ -27,6 +28,18 @@ describe('useComparisonWorkflow reducer', () => {
     expect(retainedMappings).toEqual([
       { file_a_column: 'name', file_b_column: 'display_name', mapping_type: 'manual' },
     ]);
+  });
+
+  test('filterKeyPairsFromComparisonSelection preserves non-key comparison order after leading key pairs', () => {
+    expect(filterKeyPairsFromComparisonSelection(
+      ['id'],
+      ['record_id'],
+      ['id', 'first_name', 'nickname'],
+      ['record_id', 'alias', 'full_name'],
+    )).toEqual({
+      comparisonColumnsA: ['first_name', 'nickname'],
+      comparisonColumnsB: ['alias', 'full_name'],
+    });
   });
 
   test('fileLoaded advances to configure and resets selection state after both files load', () => {

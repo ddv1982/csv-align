@@ -18,9 +18,16 @@ const {
 vi.mock('./components/MappingConfig', () => ({
   MappingConfig: ({
     normalization,
+    onSelectionChange,
     onCompare,
   }: {
     normalization: ComparisonNormalizationConfig;
+    onSelectionChange: (selection: {
+      keyColumnsA: string[];
+      keyColumnsB: string[];
+      comparisonColumnsA: string[];
+      comparisonColumnsB: string[];
+    }) => void;
     onCompare: (
       keyColumnsA: string[],
       keyColumnsB: string[],
@@ -33,16 +40,38 @@ vi.mock('./components/MappingConfig', () => ({
     <section>
       <h2>Mock Configure</h2>
       <button
+        onClick={() => {
+          onSelectionChange({
+            keyColumnsA: ['id'],
+            keyColumnsB: ['record_id'],
+            comparisonColumnsA: ['id', 'first_name', 'nickname'],
+            comparisonColumnsB: ['record_id', 'alias', 'full_name'],
+          });
+        }}
+      >
+        Choose columns
+      </button>
+      <button
         onClick={() =>
           onCompare(
             ['id'],
-            ['id'],
-            ['name'],
-            ['name'],
+            ['record_id'],
+            ['id', 'first_name', 'nickname'],
+            ['record_id', 'alias', 'full_name'],
             [
               {
-                file_a_column: 'name',
-                file_b_column: 'name',
+                file_a_column: 'id',
+                file_b_column: 'record_id',
+                mapping_type: 'manual',
+              },
+              {
+                file_a_column: 'first_name',
+                file_b_column: 'full_name',
+                mapping_type: 'manual',
+              },
+              {
+                file_a_column: 'nickname',
+                file_b_column: 'alias',
                 mapping_type: 'manual',
               },
             ],
@@ -65,7 +94,18 @@ vi.mock('./components/FilterBar', () => ({
 }));
 
 vi.mock('./components/ResultsTable', () => ({
-  ResultsTable: () => <div>Mock Results Table</div>,
+  ResultsTable: ({
+    comparisonColumnsA,
+    comparisonColumnsB,
+  }: {
+    comparisonColumnsA?: string[];
+    comparisonColumnsB?: string[];
+  }) => (
+    <div>
+      <div>Mock Results Table</div>
+      <div data-testid="results-table-columns">{JSON.stringify({ comparisonColumnsA, comparisonColumnsB })}</div>
+    </div>
+  ),
 }));
 
 import App from './App';
@@ -85,10 +125,11 @@ beforeEach(() => {
   loadFileMock.mockResolvedValue({
     success: true,
     file_letter: 'a',
-    headers: ['id', 'name'],
+    headers: ['id', 'first_name', 'nickname'],
     columns: [
       { index: 0, name: 'id', data_type: 'string' },
-      { index: 1, name: 'name', data_type: 'string' },
+      { index: 1, name: 'first_name', data_type: 'string' },
+      { index: 2, name: 'nickname', data_type: 'string' },
     ],
     row_count: 2,
   });
@@ -98,8 +139,8 @@ beforeEach(() => {
       {
         result_type: 'match',
         key: ['1'],
-        values_a: ['Alice'],
-        values_b: ['Alice'],
+        values_a: ['Alice', ''],
+        values_b: ['null', 'Alice'],
         duplicate_values_a: [],
         duplicate_values_b: [],
         differences: [],
@@ -135,6 +176,7 @@ test('returns from results to configuration', async () => {
 
   await screen.findByRole('heading', { name: 'Mock Configure' });
 
+  fireEvent.click(screen.getByRole('button', { name: 'Choose columns' }));
   fireEvent.click(screen.getByRole('button', { name: 'Run compare' }));
 
   await screen.findByText('Mock Summary');

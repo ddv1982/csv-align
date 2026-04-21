@@ -78,13 +78,12 @@ export function buildCompareRequestPayload(
   normalization: ComparisonNormalizationConfig,
 ): { request: CompareRequest; retainedMappings: MappingDto[] } {
   const keyPairs = new Set(keyColumnsA.map((fileAColumn, index) => `${fileAColumn}::${keyColumnsB[index] ?? ''}`));
-
-  const filteredComparisonPairs = comparisonColumnsA
-    .map((fileAColumn, index) => ({
-      fileAColumn,
-      fileBColumn: comparisonColumnsB[index] ?? '',
-    }))
-    .filter((pair) => !keyPairs.has(`${pair.fileAColumn}::${pair.fileBColumn}`));
+  const filteredComparisonSelection = filterKeyPairsFromComparisonSelection(
+    keyColumnsA,
+    keyColumnsB,
+    comparisonColumnsA,
+    comparisonColumnsB,
+  );
 
   const retainedMappings = columnMappings.filter(
     (mapping) => !keyPairs.has(`${mapping.file_a_column}::${mapping.file_b_column}`),
@@ -94,8 +93,8 @@ export function buildCompareRequestPayload(
     request: {
       key_columns_a: keyColumnsA,
       key_columns_b: keyColumnsB,
-      comparison_columns_a: filteredComparisonPairs.map((pair) => pair.fileAColumn),
-      comparison_columns_b: filteredComparisonPairs.map((pair) => pair.fileBColumn),
+      comparison_columns_a: filteredComparisonSelection.comparisonColumnsA,
+      comparison_columns_b: filteredComparisonSelection.comparisonColumnsB,
       column_mappings: retainedMappings.map((mapping) => ({
         file_a_column: mapping.file_a_column,
         file_b_column: mapping.file_b_column,
@@ -105,6 +104,27 @@ export function buildCompareRequestPayload(
       normalization,
     },
     retainedMappings,
+  };
+}
+
+export function filterKeyPairsFromComparisonSelection(
+  keyColumnsA: string[],
+  keyColumnsB: string[],
+  comparisonColumnsA: string[],
+  comparisonColumnsB: string[],
+): Pick<MappingSelectionState, 'comparisonColumnsA' | 'comparisonColumnsB'> {
+  const keyPairs = new Set(keyColumnsA.map((fileAColumn, index) => `${fileAColumn}::${keyColumnsB[index] ?? ''}`));
+
+  const filteredComparisonPairs = comparisonColumnsA
+    .map((fileAColumn, index) => ({
+      fileAColumn,
+      fileBColumn: comparisonColumnsB[index] ?? '',
+    }))
+    .filter((pair) => !keyPairs.has(`${pair.fileAColumn}::${pair.fileBColumn}`));
+
+  return {
+    comparisonColumnsA: filteredComparisonPairs.map((pair) => pair.fileAColumn),
+    comparisonColumnsB: filteredComparisonPairs.map((pair) => pair.fileBColumn),
   };
 }
 

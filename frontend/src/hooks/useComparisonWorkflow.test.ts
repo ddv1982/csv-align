@@ -438,6 +438,82 @@ test('exports a standalone html review file from the current results state', asy
   expect(result.current.state.loading).toBe(false);
 });
 
+test('exports html with key pairs filtered out of paired-value presentation context', async () => {
+  compareFilesMock.mockResolvedValueOnce({
+    success: true,
+    results: [
+      {
+        result_type: 'match',
+        key: ['1'],
+        values_a: ['Alice', ''],
+        values_b: ['null', 'Alice'],
+        duplicate_values_a: [],
+        duplicate_values_b: [],
+        differences: [],
+      },
+    ],
+    summary: {
+      total_rows_a: 1,
+      total_rows_b: 1,
+      matches: 1,
+      mismatches: 0,
+      missing_left: 0,
+      missing_right: 0,
+      unkeyed_left: 0,
+      unkeyed_right: 0,
+      duplicates_a: 0,
+      duplicates_b: 0,
+    },
+  });
+
+  const { result } = renderHook(() => useComparisonWorkflow());
+
+  await waitFor(() => {
+    expect(result.current.state.sessionId).toBe('session-1');
+  });
+
+  await act(async () => {
+    await result.current.handleFileSelection(FILE_A, 'a');
+    await result.current.handleFileSelection(FILE_B, 'b');
+  });
+
+  await act(async () => {
+    result.current.setMappingSelection({
+      keyColumnsA: ['id'],
+      keyColumnsB: ['record_id'],
+      comparisonColumnsA: ['id', 'first_name', 'nickname'],
+      comparisonColumnsB: ['record_id', 'alias', 'full_name'],
+    });
+
+    await result.current.handleCompare(
+      ['id'],
+      ['record_id'],
+      ['id', 'first_name', 'nickname'],
+      ['record_id', 'alias', 'full_name'],
+      [
+        { file_a_column: 'id', file_b_column: 'record_id', mapping_type: 'manual' },
+        { file_a_column: 'first_name', file_b_column: 'full_name', mapping_type: 'manual' },
+        { file_a_column: 'nickname', file_b_column: 'alias', mapping_type: 'manual' },
+      ],
+      {
+        ...NORMALIZATION,
+        treat_empty_as_null: true,
+        null_tokens: ['null'],
+        null_token_case_insensitive: true,
+      },
+    );
+  });
+
+  await act(async () => {
+    await result.current.handleExportHtml();
+  });
+
+  expect(exportResultsHtmlMock).toHaveBeenCalledWith(expect.stringContaining('"fileAValues":[[{"column":"first_name","value":"Alice"},{"column":"nickname","value":""}]]'));
+  expect(exportResultsHtmlMock).toHaveBeenCalledWith(expect.stringContaining('"fileBValues":[[{"column":"alias","value":"null"},{"column":"full_name","value":"Alice"}]]'));
+  expect(exportResultsHtmlMock).toHaveBeenCalledWith(expect.stringContaining('"columnA":"first_name","columnB":"full_name","valueA":"Alice","valueB":"Alice"'));
+  expect(exportResultsHtmlMock).not.toHaveBeenCalledWith(expect.stringContaining('"column":"id"'));
+});
+
 test('keeps public handlers stable across rerenders when their dependencies do not change', async () => {
   const { result, rerender } = renderHook(() => useComparisonWorkflow());
 

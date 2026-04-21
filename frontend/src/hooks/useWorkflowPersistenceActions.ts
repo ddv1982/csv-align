@@ -1,4 +1,4 @@
-import { useCallback, type Dispatch } from 'react';
+import { useCallback, useMemo, type Dispatch } from 'react';
 import { buildResultsHtmlDocument } from '../features/results/htmlExport';
 import { downloadBlob } from '../services/browserDownload';
 import {
@@ -10,7 +10,11 @@ import {
   savePairOrder,
 } from '../services/tauri';
 import type { MappingSelectionState } from '../types/ui';
-import type { WorkflowAction, WorkflowState } from './useComparisonWorkflow.reducer';
+import {
+  filterKeyPairsFromComparisonSelection,
+  type WorkflowAction,
+  type WorkflowState,
+} from './useComparisonWorkflow.reducer';
 
 interface UseWorkflowPersistenceActionsParams {
   state: WorkflowState['appState'];
@@ -29,6 +33,18 @@ export function useWorkflowPersistenceActions({
   failLoading,
   blockSnapshotFollowOnWorkflow,
 }: UseWorkflowPersistenceActionsParams) {
+  const filteredComparisonSelection = useMemo(() => filterKeyPairsFromComparisonSelection(
+    mappingSelection.keyColumnsA,
+    mappingSelection.keyColumnsB,
+    mappingSelection.comparisonColumnsA,
+    mappingSelection.comparisonColumnsB,
+  ), [
+    mappingSelection.comparisonColumnsA,
+    mappingSelection.comparisonColumnsB,
+    mappingSelection.keyColumnsA,
+    mappingSelection.keyColumnsB,
+  ]);
+
   const handleExportCsv = useCallback(async () => {
     if (!state.sessionId) {
       return;
@@ -59,8 +75,8 @@ export function useWorkflowPersistenceActions({
         summary: state.summary,
         fileAName: state.fileA?.name ?? 'File A',
         fileBName: state.fileB?.name ?? 'File B',
-        comparisonColumnsA: mappingSelection.comparisonColumnsA,
-        comparisonColumnsB: mappingSelection.comparisonColumnsB,
+        comparisonColumnsA: filteredComparisonSelection.comparisonColumnsA,
+        comparisonColumnsB: filteredComparisonSelection.comparisonColumnsB,
         mappings: state.mappings,
         results: state.results,
         initialFilter: state.filter,
@@ -76,8 +92,8 @@ export function useWorkflowPersistenceActions({
   }, [
     dispatch,
     failLoading,
-    mappingSelection.comparisonColumnsA,
-    mappingSelection.comparisonColumnsB,
+    filteredComparisonSelection.comparisonColumnsA,
+    filteredComparisonSelection.comparisonColumnsB,
     startLoading,
     state.fileA?.name,
     state.fileB?.name,
