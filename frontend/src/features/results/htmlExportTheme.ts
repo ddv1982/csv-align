@@ -658,6 +658,12 @@ tbody tr + tr td {
   overflow-wrap: anywhere;
 }
 
+.kinetic-value-text {
+  display: block;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .diff-toggle {
   display: inline-flex;
   align-items: center;

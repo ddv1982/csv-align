@@ -252,3 +252,60 @@ test('standalone export keeps paired-value labels aligned to explicit mappings f
   expect(html).toContain('"columnA":"nickname","columnB":"alias","valueA":"","valueB":"null"');
   expect(html).toContain('"fileBValues":[[{"column":"alias","value":"null"},{"column":"full_name","value":"Alice"}]]');
 });
+
+test('standalone export wraps long collapsed result values instead of forcing a single truncated line', () => {
+  const longFileA = 'AlphaSegmentOne,AlphaSegmentTwo,AlphaSegmentThree,AlphaSegmentFour';
+  const longFileB = 'BravoSegmentOne,BravoSegmentTwo,BravoSegmentThree,BravoSegmentFour';
+
+  const html = buildResultsHtmlDocument({
+    summary: {
+      total_rows_a: 1,
+      total_rows_b: 1,
+      matches: 1,
+      mismatches: 0,
+      missing_left: 0,
+      missing_right: 0,
+      unkeyed_left: 0,
+      unkeyed_right: 0,
+      duplicates_a: 0,
+      duplicates_b: 0,
+    },
+    fileAName: 'left.csv',
+    fileBName: 'right.csv',
+    comparisonColumnsA: ['name', 'nickname'],
+    comparisonColumnsB: ['display_name', 'alias'],
+    mappings: [
+      { file_a_column: 'name', file_b_column: 'display_name', mapping_type: 'manual' },
+      { file_a_column: 'nickname', file_b_column: 'alias', mapping_type: 'manual' },
+    ],
+    results: [
+      {
+        result_type: 'match',
+        key: ['wrapped-values'],
+        values_a: [longFileA, 'Bravo'],
+        values_b: [longFileB, 'Delta'],
+        duplicate_values_a: [],
+        duplicate_values_b: [],
+        differences: [],
+      },
+    ],
+    initialFilter: 'all',
+  });
+
+  expect(html).toContain('.kinetic-value-text {');
+  expect(html).toContain('white-space: normal;');
+  expect(html).toContain('overflow-wrap: anywhere;');
+
+  const parsed = new DOMParser().parseFromString(html, 'text/html');
+  const script = parsed.querySelector('script:not([type="application/json"])');
+
+  document.body.innerHTML = parsed.body.innerHTML;
+  // eslint-disable-next-line no-new-func
+  Function(script?.textContent ?? '')();
+
+  const wrappedValue = document.querySelector(`[title="${CSS.escape(`${longFileA}, Bravo`)}"]`);
+  expect(wrappedValue).toHaveClass('kinetic-value-text');
+  expect(wrappedValue?.textContent).toBe(`${longFileA}, Bravo`);
+
+  document.body.innerHTML = '';
+});

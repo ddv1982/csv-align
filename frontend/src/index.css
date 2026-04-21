@@ -281,6 +281,12 @@
     @apply px-2.5 py-1.5 font-mono leading-5;
   }
 
+  .kinetic-value-text {
+    display: block;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
   .kinetic-empty-glyph {
     border: 1px solid var(--color-kinetic-line);
     font-family: var(--font-mono);

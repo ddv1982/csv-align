@@ -203,7 +203,7 @@ export function ResultsTable({
             key={rowIndex}
             className="kinetic-value-row text-[13px]"
           >
-            <span className="block truncate" title={formatCollapsedValueRow(row)}>
+            <span className="kinetic-value-text" title={formatCollapsedValueRow(row)}>
               {formatCollapsedValueRow(row)}
             </span>
           </div>

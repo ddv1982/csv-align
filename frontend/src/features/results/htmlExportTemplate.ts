@@ -266,7 +266,7 @@ ${RESULTS_EXPORT_STYLES}
 
         return '<div class="value-stack">' + rows.map((row) => (
           '<div class="value-row">' + (row.length > 0
-            ? '<span class="kinetic-copy" title="' + escapeHtml(formatCollapsedRow(row)) + '">' + escapeHtml(formatCollapsedRow(row)) + '</span>'
+            ? '<span class="kinetic-copy kinetic-value-text" title="' + escapeHtml(formatCollapsedRow(row)) + '">' + escapeHtml(formatCollapsedRow(row)) + '</span>'
             : '-') + '</div>'
         )).join('') + '</div>';
       }

@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.33 - 2026-04-21
+
+- Fixed the collapsed Results row value presentation so long joined values now wrap instead of truncating, keeping full match context visible during review.
+- Kept the standalone HTML export aligned with the same wrapped collapsed-value treatment, added regression coverage for both surfaces, and prepared the v2.1.33 patch release by synchronizing the documented release metadata files.
+
 ## v2.1.32 - 2026-04-21
 
 - Restored the collapsed Results table value cells to a horizontal comma-separated layout so reviewers can scan more values per row while keeping the expanded Inspect detail unchanged.

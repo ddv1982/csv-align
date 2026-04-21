@@ -96,15 +96,18 @@ test('lets matching rows expand paired file values for inspection', () => {
   expect(screen.getAllByText('display_name').length).toBeGreaterThan(0);
 });
 
-test('shows collapsed result values horizontally as comma-separated text', () => {
+test('wraps long collapsed result values instead of truncating them', () => {
+  const longFileA = 'AlphaSegmentOne,AlphaSegmentTwo,AlphaSegmentThree,AlphaSegmentFour';
+  const longFileB = 'BravoSegmentOne,BravoSegmentTwo,BravoSegmentThree,BravoSegmentFour';
+
   render(
     <ResultsTable
       results={[
         {
           result_type: 'match',
           key: ['joined-values'],
-          values_a: ['Alpha', 'Bravo'],
-          values_b: ['Charlie', 'Delta'],
+          values_a: [longFileA, 'Bravo'],
+          values_b: [longFileB, 'Delta'],
           duplicate_values_a: [],
           duplicate_values_b: [],
           differences: [],
@@ -116,17 +119,22 @@ test('shows collapsed result values horizontally as comma-separated text', () =>
         { file_a_column: 'first_name', file_b_column: 'display_name', mapping_type: 'manual' },
         { file_a_column: 'nickname', file_b_column: 'alias', mapping_type: 'manual' },
       ]}
-    />, 
+    />,
   );
 
   const row = screen.getByText('joined-values').closest('tr');
-  expect(row).toHaveTextContent('Alpha, Bravo');
-  expect(row).toHaveTextContent('Charlie, Delta');
+  const collapsedFileA = within(row as HTMLElement).getByTitle(`${longFileA}, Bravo`);
+  const collapsedFileB = within(row as HTMLElement).getByTitle(`${longFileB}, Delta`);
+
+  expect(collapsedFileA).toHaveClass('kinetic-value-text');
+  expect(collapsedFileA).not.toHaveClass('truncate');
+  expect(collapsedFileB).toHaveClass('kinetic-value-text');
+  expect(row).toHaveTextContent(`${longFileA}, Bravo`);
+  expect(row).toHaveTextContent(`${longFileB}, Delta`);
 
   fireEvent.click(within(row as HTMLElement).getByRole('button', { name: /inspect/i }));
 
   expect(screen.getByText('Paired Values')).toBeInTheDocument();
-  expect(screen.getAllByText('Alpha').length).toBeGreaterThan(0);
   expect(screen.getAllByText('Bravo').length).toBeGreaterThan(0);
 });
 
