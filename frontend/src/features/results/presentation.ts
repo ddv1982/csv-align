@@ -1,4 +1,4 @@
-import type { CompareResultType, ResultFilter, ResultResponse, SummaryResponse } from '../../types/api';
+import type { CompareResultType, MappingDto, ResultFilter, ResultResponse, SummaryResponse } from '../../types/api';
 
 export type ResultValueCell = {
   column: string | null;
@@ -99,6 +99,17 @@ export type SummaryOverview = {
 type ResultStaticCopy = {
   label: string;
   description: string | null;
+};
+
+type ComparisonColumns = {
+  fileA: string[];
+  fileB: string[];
+  mappings?: MappingDto[];
+};
+
+type InspectionFieldPair = {
+  columnA: string | null;
+  columnB: string | null;
 };
 
 const RESULT_COPY: Record<CompareResultType, ResultStaticCopy> = {
@@ -274,26 +285,88 @@ function buildDifferenceDetail(differences: ResultResponse['differences']): Resu
   };
 }
 
-function buildInspectionDetail(fileAValues: ResultValueCell[][], fileBValues: ResultValueCell[][]): ResultExpandableDetail | null {
+function buildMappedInspectionFieldPairs(comparisonColumns: ComparisonColumns): InspectionFieldPair[] | null {
+  const mappings = comparisonColumns.mappings ?? [];
+
+  if (mappings.length === 0) {
+    return null;
+  }
+
+  const selectedColumnsA = new Set(comparisonColumns.fileA);
+  const selectedColumnsB = new Set(comparisonColumns.fileB);
+  const mappingByColumnA = new Map<string, string>();
+  const usedColumnsB = new Set<string>();
+
+  for (const mapping of mappings) {
+    if (!selectedColumnsA.has(mapping.file_a_column) || !selectedColumnsB.has(mapping.file_b_column)) {
+      continue;
+    }
+
+    if (mappingByColumnA.has(mapping.file_a_column) || usedColumnsB.has(mapping.file_b_column)) {
+      return null;
+    }
+
+    mappingByColumnA.set(mapping.file_a_column, mapping.file_b_column);
+    usedColumnsB.add(mapping.file_b_column);
+  }
+
+  if (mappingByColumnA.size !== comparisonColumns.fileA.length || usedColumnsB.size !== comparisonColumns.fileB.length) {
+    return null;
+  }
+
+  return comparisonColumns.fileA.map((columnA) => ({
+    columnA,
+    columnB: mappingByColumnA.get(columnA) ?? null,
+  }));
+}
+
+function buildInspectionFields(
+  rowA: ResultValueCell[],
+  rowB: ResultValueCell[],
+  mappedFieldPairs: InspectionFieldPair[] | null,
+): ResultDetailField[] {
+  if (!mappedFieldPairs) {
+    const fieldCount = Math.max(rowA.length, rowB.length);
+
+    return Array.from({ length: fieldCount }, (_, fieldIndex) => ({
+      columnA: rowA[fieldIndex]?.column ?? null,
+      columnB: rowB[fieldIndex]?.column ?? null,
+      valueA: rowA[fieldIndex]?.value ?? '',
+      valueB: rowB[fieldIndex]?.value ?? '',
+    }));
+  }
+
+  const valuesByColumnA = new Map(rowA.flatMap((cell) => (cell.column ? [[cell.column, cell.value] as const] : [])));
+  const valuesByColumnB = new Map(rowB.flatMap((cell) => (cell.column ? [[cell.column, cell.value] as const] : [])));
+
+  return mappedFieldPairs.map((fieldPair) => ({
+    columnA: fieldPair.columnA,
+    columnB: fieldPair.columnB,
+    valueA: fieldPair.columnA ? (valuesByColumnA.get(fieldPair.columnA) ?? '') : '',
+    valueB: fieldPair.columnB ? (valuesByColumnB.get(fieldPair.columnB) ?? '') : '',
+  }));
+}
+
+function buildInspectionDetail(
+  fileAValues: ResultValueCell[][],
+  fileBValues: ResultValueCell[][],
+  comparisonColumns: ComparisonColumns,
+): ResultExpandableDetail | null {
   const panelCount = Math.max(fileAValues.length, fileBValues.length);
 
   if (panelCount === 0) {
     return null;
   }
 
+  const mappedFieldPairs = buildMappedInspectionFieldPairs(comparisonColumns);
+
   const panels = Array.from({ length: panelCount }, (_, panelIndex) => {
     const rowA = fileAValues[panelIndex] ?? [];
     const rowB = fileBValues[panelIndex] ?? [];
-    const fieldCount = Math.max(rowA.length, rowB.length);
 
     return {
       label: panelCount > 1 ? `Row ${panelIndex + 1}` : null,
-      fields: Array.from({ length: fieldCount }, (_, fieldIndex) => ({
-        columnA: rowA[fieldIndex]?.column ?? null,
-        columnB: rowB[fieldIndex]?.column ?? null,
-        valueA: rowA[fieldIndex]?.value ?? '',
-        valueB: rowB[fieldIndex]?.value ?? '',
-      })),
+      fields: buildInspectionFields(rowA, rowB, mappedFieldPairs),
     };
   }).filter((panel) => panel.fields.length > 0);
 
@@ -314,6 +387,7 @@ function buildExpandableDetail(
   result: ResultResponse,
   fileAValues: ResultValueCell[][],
   fileBValues: ResultValueCell[][],
+  comparisonColumns: ComparisonColumns,
 ): ResultExpandableDetail | null {
   const differenceDetail = buildDifferenceDetail(result.differences);
 
@@ -321,7 +395,7 @@ function buildExpandableDetail(
     return differenceDetail;
   }
 
-  return buildInspectionDetail(fileAValues, fileBValues);
+  return buildInspectionDetail(fileAValues, fileBValues, comparisonColumns);
 }
 
 function compareResultSortValues(left: string | number, right: string | number): number {
@@ -337,16 +411,13 @@ function compareResultSortValues(left: string | number, right: string | number):
 
 export function buildResultRows(
   results: ResultResponse[],
-  comparisonColumns: {
-    fileA: string[];
-    fileB: string[];
-  } = { fileA: [], fileB: [] },
+  comparisonColumns: ComparisonColumns = { fileA: [], fileB: [], mappings: [] },
 ): ResultRowViewModel[] {
   return results.map((result, index) => {
     const badge = getResultBadge(result.result_type);
     const fileAValues = buildDisplayValueRows(result.duplicate_values_a, result.values_a, comparisonColumns.fileA);
     const fileBValues = buildDisplayValueRows(result.duplicate_values_b, result.values_b, comparisonColumns.fileB);
-    const expandableDetail = buildExpandableDetail(result, fileAValues, fileBValues);
+    const expandableDetail = buildExpandableDetail(result, fileAValues, fileBValues, comparisonColumns);
     const columnSearchText = [comparisonColumns.fileA.join(' '), comparisonColumns.fileB.join(' ')].join(' ');
 
     return {

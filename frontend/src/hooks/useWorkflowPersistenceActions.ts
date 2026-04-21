@@ -61,6 +61,7 @@ export function useWorkflowPersistenceActions({
         fileBName: state.fileB?.name ?? 'File B',
         comparisonColumnsA: mappingSelection.comparisonColumnsA,
         comparisonColumnsB: mappingSelection.comparisonColumnsB,
+        mappings: state.mappings,
         results: state.results,
         initialFilter: state.filter,
       });
@@ -81,6 +82,7 @@ export function useWorkflowPersistenceActions({
     state.fileA?.name,
     state.fileB?.name,
     state.filter,
+    state.mappings,
     state.results,
     state.summary,
   ]);

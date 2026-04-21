@@ -406,6 +406,47 @@ fn test_compare_csv_data_matches_empty_and_null_token_when_configured() {
 }
 
 #[test]
+fn test_compare_csv_data_keeps_match_values_in_selected_order_when_explicit_mapping_order_differs()
+{
+    let csv_a = csv_data(
+        "left.csv",
+        &["id", "first_name", "nickname"],
+        &[&["1", "Alice", ""]],
+    );
+    let csv_b = csv_data(
+        "right.csv",
+        &["id", "alias", "full_name"],
+        &[&["1", "null", "Alice"]],
+    );
+    let config = comparison_config(
+        &["id"],
+        &["id"],
+        &["first_name", "nickname"],
+        &["alias", "full_name"],
+        &[("first_name", "full_name"), ("nickname", "alias")],
+        ComparisonNormalizationConfig {
+            treat_empty_as_null: true,
+            null_tokens: vec!["null".to_string()],
+            null_token_case_insensitive: true,
+            ..ComparisonNormalizationConfig::default()
+        },
+    );
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+    assert_eq!(results.len(), 1);
+
+    match &results[0] {
+        RowComparisonResult::Match {
+            values_a, values_b, ..
+        } => {
+            assert_eq!(values_a, &vec!["Alice".to_string(), "".to_string()]);
+            assert_eq!(values_b, &vec!["null".to_string(), "Alice".to_string()]);
+        }
+        _ => panic!("expected null-equal mapped values to remain a match"),
+    }
+}
+
+#[test]
 fn test_compare_csv_data_matches_case_insensitive_values_when_enabled() {
     let csv_a = CsvData {
         file_path: Some("left.csv".to_string()),

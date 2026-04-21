@@ -78,6 +78,7 @@ function App() {
             fileBName={state.fileB?.name ?? 'File B'}
             comparisonColumnsA={mappingSelection.comparisonColumnsA}
             comparisonColumnsB={mappingSelection.comparisonColumnsB}
+            mappings={state.mappings}
             filter={state.filter}
             results={state.results}
             filteredResults={filteredResults}

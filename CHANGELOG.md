@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.28 - 2026-04-21
+
+- Fixed the paired-values detail so matched and zero-diff rows now keep the correct compare-column labels even when explicit mapping order differs from selected column order and the compared values are null-equal.
+- Added frontend and Rust regression coverage for mapped null-equal comparisons using project-controlled test data, then prepared the v2.1.28 patch release by synchronizing the documented release metadata files.
+
 ## v2.1.27 - 2026-04-21
 
 - Restored the simpler collapsed Results row presentation so match and mismatch rows once again show the same main-table layout as before while keeping expandable detail panels for paired values and mismatches.

@@ -51,6 +51,7 @@ test('shows a save result entry point for live comparison results', () => {
       fileBName="right.csv"
       comparisonColumnsA={['name']}
       comparisonColumnsB={['display_name']}
+      mappings={[]}
       filter="all"
       results={RESULTS}
       filteredResults={RESULTS}
@@ -84,6 +85,7 @@ test('keeps loaded snapshots read-only and exposes a start-new-comparison action
       fileBName="right.csv"
       comparisonColumnsA={['name']}
       comparisonColumnsB={['display_name']}
+      mappings={[]}
       filter="all"
       results={RESULTS}
       filteredResults={RESULTS}

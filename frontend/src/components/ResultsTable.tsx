@@ -1,5 +1,5 @@
 import { Fragment, useDeferredValue, useMemo, useState, useTransition } from 'react';
-import { ResultResponse } from '../types/api';
+import type { MappingDto, ResultResponse } from '../types/api';
 import {
   buildResultRows,
   filterAndSortResultRows,
@@ -18,6 +18,7 @@ interface ResultsTableProps {
   totalResultsCount?: number;
   comparisonColumnsA?: string[];
   comparisonColumnsB?: string[];
+  mappings?: MappingDto[];
 }
 
 interface DetailFieldRowProps {
@@ -120,6 +121,7 @@ export function ResultsTable({
   totalResultsCount = results.length,
   comparisonColumnsA = [],
   comparisonColumnsB = [],
+  mappings = [],
 }: ResultsTableProps) {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -129,8 +131,8 @@ export function ResultsTable({
   const deferredQuery = useDeferredValue(query);
 
   const resultRows = useMemo(
-    () => buildResultRows(results, { fileA: comparisonColumnsA, fileB: comparisonColumnsB }),
-    [comparisonColumnsA, comparisonColumnsB, results],
+    () => buildResultRows(results, { fileA: comparisonColumnsA, fileB: comparisonColumnsB, mappings }),
+    [comparisonColumnsA, comparisonColumnsB, mappings, results],
   );
 
   const visibleResults = useMemo(

@@ -1,7 +1,7 @@
 import { fireEvent, screen } from '@testing-library/react';
 import { expect, test } from 'vitest';
 import { buildResultsHtmlDocument } from './htmlExport';
-import type { ResultResponse, SummaryResponse } from '../../types/api';
+import type { MappingDto, ResultResponse, SummaryResponse } from '../../types/api';
 
 const SUMMARY: SummaryResponse = {
   total_rows_a: 3,
@@ -53,6 +53,10 @@ const RESULTS: ResultResponse[] = [
   },
 ];
 
+const MAPPINGS: MappingDto[] = [
+  { file_a_column: 'name', file_b_column: 'display_name', mapping_type: 'manual' },
+];
+
 test('buildResultsHtmlDocument embeds the current comparison view state for standalone review', () => {
   const html = buildResultsHtmlDocument({
     summary: SUMMARY,
@@ -60,6 +64,7 @@ test('buildResultsHtmlDocument embeds the current comparison view state for stan
     fileBName: 'right.csv',
     comparisonColumnsA: ['name'],
     comparisonColumnsB: ['display_name'],
+    mappings: MAPPINGS,
     results: RESULTS,
     initialFilter: 'duplicate',
   });
@@ -113,6 +118,7 @@ test('standalone export table count matches the active filter bucket after the e
     fileBName: 'right.csv',
     comparisonColumnsA: ['name'],
     comparisonColumnsB: ['display_name'],
+    mappings: MAPPINGS,
     results: RESULTS,
     initialFilter: 'all',
   });
@@ -173,6 +179,7 @@ test('standalone export uses the shared inspect panel for zero-diff mismatch row
     fileBName: 'right.csv',
     comparisonColumnsA: ['name'],
     comparisonColumnsB: ['display_name'],
+    mappings: MAPPINGS,
     results: [
       {
         result_type: 'mismatch',
@@ -201,4 +208,45 @@ test('standalone export uses the shared inspect panel for zero-diff mismatch row
   expect(document.body.textContent).toContain('Same');
 
   document.body.innerHTML = '';
+});
+
+test('standalone export keeps paired-value labels aligned to explicit mappings for null-equal rows', () => {
+  const html = buildResultsHtmlDocument({
+    summary: {
+      total_rows_a: 1,
+      total_rows_b: 1,
+      matches: 1,
+      mismatches: 0,
+      missing_left: 0,
+      missing_right: 0,
+      unkeyed_left: 0,
+      unkeyed_right: 0,
+      duplicates_a: 0,
+      duplicates_b: 0,
+    },
+    fileAName: 'left.csv',
+    fileBName: 'right.csv',
+    comparisonColumnsA: ['first_name', 'nickname'],
+    comparisonColumnsB: ['alias', 'full_name'],
+    mappings: [
+      { file_a_column: 'first_name', file_b_column: 'full_name', mapping_type: 'manual' },
+      { file_a_column: 'nickname', file_b_column: 'alias', mapping_type: 'manual' },
+    ],
+    results: [
+      {
+        result_type: 'match',
+        key: ['mapped-match'],
+        values_a: ['Alice', ''],
+        values_b: ['null', 'Alice'],
+        duplicate_values_a: [],
+        duplicate_values_b: [],
+        differences: [],
+      },
+    ],
+    initialFilter: 'all',
+  });
+
+  expect(html).toContain('"columnA":"first_name","columnB":"full_name","valueA":"Alice","valueB":"Alice"');
+  expect(html).toContain('"columnA":"nickname","columnB":"alias","valueA":"","valueB":"null"');
+  expect(html).toContain('"fileBValues":[[{"column":"alias","value":"null"},{"column":"full_name","value":"Alice"}]]');
 });

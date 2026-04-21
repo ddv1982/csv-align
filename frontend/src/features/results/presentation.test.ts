@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { buildResultRows, filterResults, getResultBadge, getResultDescription, getResultFilterCounts, RESULT_FILTER_OPTIONS } from './presentation';
-import type { ResultResponse } from '../../types/api';
+import type { MappingDto, ResultResponse } from '../../types/api';
 
 const RESULTS: ResultResponse[] = [
   {
@@ -273,6 +273,104 @@ test('falls back to paired-value inspection for zero-diff mismatch rows', () => 
             columnB: 'display_name',
             valueA: 'Same',
             valueB: 'Same',
+          },
+        ],
+      },
+    ],
+  });
+});
+
+test('uses explicit mappings to pair inspection labels when selected column order differs', () => {
+  const mappings: MappingDto[] = [
+    { file_a_column: 'first_name', file_b_column: 'full_name', mapping_type: 'manual' },
+    { file_a_column: 'nickname', file_b_column: 'alias', mapping_type: 'manual' },
+  ];
+
+  const [row] = buildResultRows([
+    {
+      result_type: 'match',
+      key: ['mapped-match'],
+      values_a: ['Alice', ''],
+      values_b: ['null', 'Alice'],
+      duplicate_values_a: [],
+      duplicate_values_b: [],
+      differences: [],
+    },
+  ], {
+    fileA: ['first_name', 'nickname'],
+    fileB: ['alias', 'full_name'],
+    mappings,
+  });
+
+  expect(row.fileAValues).toEqual([[{ column: 'first_name', value: 'Alice' }, { column: 'nickname', value: '' }]]);
+  expect(row.fileBValues).toEqual([[{ column: 'alias', value: 'null' }, { column: 'full_name', value: 'Alice' }]]);
+  expect(row.expandableDetail).toEqual({
+    variant: 'inspection',
+    title: 'Paired Values',
+    summary: '1 row',
+    toggleLabel: 'Inspect',
+    panels: [
+      {
+        label: null,
+        fields: [
+          {
+            columnA: 'first_name',
+            columnB: 'full_name',
+            valueA: 'Alice',
+            valueB: 'Alice',
+          },
+          {
+            columnA: 'nickname',
+            columnB: 'alias',
+            valueA: '',
+            valueB: 'null',
+          },
+        ],
+      },
+    ],
+  });
+});
+
+test('keeps zero-diff mismatch inspection aligned to explicit mappings', () => {
+  const [row] = buildResultRows([
+    {
+      result_type: 'mismatch',
+      key: ['mapped-zero-diff'],
+      values_a: ['Alice', ''],
+      values_b: ['null', 'Alice'],
+      duplicate_values_a: [],
+      duplicate_values_b: [],
+      differences: [],
+    },
+  ], {
+    fileA: ['first_name', 'nickname'],
+    fileB: ['alias', 'full_name'],
+    mappings: [
+      { file_a_column: 'first_name', file_b_column: 'full_name', mapping_type: 'manual' },
+      { file_a_column: 'nickname', file_b_column: 'alias', mapping_type: 'manual' },
+    ],
+  });
+
+  expect(row.expandableDetail).toEqual({
+    variant: 'inspection',
+    title: 'Paired Values',
+    summary: '1 row',
+    toggleLabel: 'Inspect',
+    panels: [
+      {
+        label: null,
+        fields: [
+          {
+            columnA: 'first_name',
+            columnB: 'full_name',
+            valueA: 'Alice',
+            valueB: 'Alice',
+          },
+          {
+            columnA: 'nickname',
+            columnB: 'alias',
+            valueA: '',
+            valueB: 'null',
           },
         ],
       },

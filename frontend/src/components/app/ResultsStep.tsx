@@ -1,7 +1,7 @@
 import { FilterBar } from '../FilterBar';
 import { ResultsTable } from '../ResultsTable';
 import { SummaryStats } from '../SummaryStats';
-import type { ResultFilter, ResultResponse, SummaryResponse } from '../../types/api';
+import type { MappingDto, ResultFilter, ResultResponse, SummaryResponse } from '../../types/api';
 import { CheckDocumentIcon, ExclamationTriangleIcon } from '../icons';
 import { NavButton } from '../ui/NavButton';
 import { SectionCard } from '../ui/SectionCard';
@@ -12,6 +12,7 @@ interface ResultsStepProps {
   fileBName: string;
   comparisonColumnsA: string[];
   comparisonColumnsB: string[];
+  mappings: MappingDto[];
   filter: ResultFilter;
   results: ResultResponse[];
   filteredResults: ResultResponse[];
@@ -30,6 +31,7 @@ export function ResultsStep({
   fileBName,
   comparisonColumnsA,
   comparisonColumnsB,
+  mappings,
   filter,
   results,
   filteredResults,
@@ -97,6 +99,7 @@ export function ResultsStep({
         totalResultsCount={results.length}
         comparisonColumnsA={comparisonColumnsA}
         comparisonColumnsB={comparisonColumnsB}
+        mappings={mappings}
       />
     </div>
   );
