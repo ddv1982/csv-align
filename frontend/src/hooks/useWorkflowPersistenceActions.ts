@@ -59,6 +59,8 @@ export function useWorkflowPersistenceActions({
         summary: state.summary,
         fileAName: state.fileA?.name ?? 'File A',
         fileBName: state.fileB?.name ?? 'File B',
+        comparisonColumnsA: mappingSelection.comparisonColumnsA,
+        comparisonColumnsB: mappingSelection.comparisonColumnsB,
         results: state.results,
         initialFilter: state.filter,
       });
@@ -70,7 +72,18 @@ export function useWorkflowPersistenceActions({
     } catch (error) {
       failLoading(error);
     }
-  }, [dispatch, failLoading, startLoading, state.fileA?.name, state.fileB?.name, state.filter, state.results, state.summary]);
+  }, [
+    dispatch,
+    failLoading,
+    mappingSelection.comparisonColumnsA,
+    mappingSelection.comparisonColumnsB,
+    startLoading,
+    state.fileA?.name,
+    state.fileB?.name,
+    state.filter,
+    state.results,
+    state.summary,
+  ]);
 
   const handleSaveComparisonSnapshot = useCallback(async () => {
     if (!state.sessionId) {

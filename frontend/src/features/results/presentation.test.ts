@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { filterResults, getResultBadge, getResultDescription, getResultFilterCounts, RESULT_FILTER_OPTIONS } from './presentation';
+import { buildResultRows, filterResults, getResultBadge, getResultDescription, getResultFilterCounts, RESULT_FILTER_OPTIONS } from './presentation';
 import type { ResultResponse } from '../../types/api';
 
 const RESULTS: ResultResponse[] = [
@@ -161,4 +161,84 @@ test('uses clearer labels and descriptions for one-sided and ignored results', (
   expect(getResultDescription('missing_right')).toBe('Present only in File A for the selected key.');
   expect(getResultDescription('unkeyed_left')).toBe('Skipped because File B has an unusable selected key for this row.');
   expect(getResultDescription('unkeyed_right')).toBe('Skipped because File A has an unusable selected key for this row.');
+});
+
+test('shapes result values with comparison column names for shared table and export rendering', () => {
+  expect(buildResultRows(RESULTS, {
+    fileA: ['full_name'],
+    fileB: ['display_name'],
+  })).toEqual(expect.arrayContaining([
+    expect.objectContaining({
+      fileAValues: [[{ column: 'full_name', value: 'Alice' }]],
+      fileBValues: [[{ column: 'display_name', value: 'Alice' }]],
+      expandableDetail: expect.objectContaining({
+        title: 'Paired Values',
+        toggleLabel: 'Inspect',
+        panels: [
+          {
+            label: null,
+            fields: [
+              {
+                columnA: 'full_name',
+                columnB: 'display_name',
+                valueA: 'Alice',
+                valueB: 'Alice',
+              },
+            ],
+          },
+        ],
+      }),
+    }),
+    expect.objectContaining({
+      fileAValues: [[{ column: 'full_name', value: 'Evan' }], [{ column: 'full_name', value: 'Evan' }]],
+      fileBValues: [[{ column: 'display_name', value: 'Evan' }]],
+      expandableDetail: expect.objectContaining({
+        title: 'Paired Values',
+        panels: [
+          {
+            label: 'Row 1',
+            fields: [
+              {
+                columnA: 'full_name',
+                columnB: 'display_name',
+                valueA: 'Evan',
+                valueB: 'Evan',
+              },
+            ],
+          },
+          {
+            label: 'Row 2',
+            fields: [
+              {
+                columnA: 'full_name',
+                columnB: null,
+                valueA: 'Evan',
+                valueB: '',
+              },
+            ],
+          },
+        ],
+      }),
+    }),
+    expect.objectContaining({
+      resultType: 'mismatch',
+      expandableDetail: expect.objectContaining({
+        title: 'Value Differences',
+        toggleLabel: '1 diff',
+        panels: [
+          {
+            label: null,
+            fields: [
+              {
+                columnA: 'name',
+                columnB: 'name',
+                valueA: 'Bob',
+                valueB: 'Robert',
+              },
+            ],
+          },
+        ],
+      }),
+    }),
+  ]));
 });

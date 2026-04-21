@@ -1,5 +1,30 @@
 import type { CompareResultType, ResultFilter, ResultResponse, SummaryResponse } from '../../types/api';
 
+export type ResultValueCell = {
+  column: string | null;
+  value: string;
+};
+
+export type ResultDetailField = {
+  columnA: string | null;
+  columnB: string | null;
+  valueA: string;
+  valueB: string;
+};
+
+export type ResultDetailPanel = {
+  label: string | null;
+  fields: ResultDetailField[];
+};
+
+export type ResultExpandableDetail = {
+  variant: 'differences' | 'inspection';
+  title: string;
+  summary: string;
+  toggleLabel: string;
+  panels: ResultDetailPanel[];
+};
+
 type ResultFilterOption = {
   value: ResultFilter;
   label: string;
@@ -37,10 +62,11 @@ export type ResultRowViewModel = {
   badgeTone: ResultBadgeTone;
   description: string | null;
   keyText: string;
-  fileAValues: string[][];
-  fileBValues: string[][];
+  fileAValues: ResultValueCell[][];
+  fileBValues: ResultValueCell[][];
   detailsCount: number;
   differences: ResultResponse['differences'];
+  expandableDetail: ResultExpandableDetail | null;
   searchText: string;
   sortValues: Record<ResultSortColumn, string | number>;
 };
@@ -215,6 +241,93 @@ function getDisplayRows(rows: string[][], fallback: string[]): string[][] {
   return fallback.length > 0 ? [fallback] : [];
 }
 
+function buildDisplayValueRows(rows: string[][], fallback: string[], comparisonColumns: string[]): ResultValueCell[][] {
+  return getDisplayRows(rows, fallback).map((row) => row.map((value, index) => ({
+    column: comparisonColumns[index] ?? null,
+    value,
+  })));
+}
+
+function pluralize(count: number, singular: string): string {
+  return `${count} ${singular}${count === 1 ? '' : 's'}`;
+}
+
+function buildDifferenceDetail(differences: ResultResponse['differences']): ResultExpandableDetail | null {
+  if (differences.length === 0) {
+    return null;
+  }
+
+  return {
+    variant: 'differences',
+    title: 'Value Differences',
+    summary: pluralize(differences.length, 'field'),
+    toggleLabel: `${differences.length} diff${differences.length === 1 ? '' : 's'}`,
+    panels: differences.map((diff) => ({
+      label: null,
+      fields: [{
+        columnA: diff.column_a,
+        columnB: diff.column_b,
+        valueA: diff.value_a,
+        valueB: diff.value_b,
+      }],
+    })),
+  };
+}
+
+function buildInspectionDetail(fileAValues: ResultValueCell[][], fileBValues: ResultValueCell[][]): ResultExpandableDetail | null {
+  const panelCount = Math.max(fileAValues.length, fileBValues.length);
+
+  if (panelCount === 0) {
+    return null;
+  }
+
+  const panels = Array.from({ length: panelCount }, (_, panelIndex) => {
+    const rowA = fileAValues[panelIndex] ?? [];
+    const rowB = fileBValues[panelIndex] ?? [];
+    const fieldCount = Math.max(rowA.length, rowB.length);
+
+    return {
+      label: panelCount > 1 ? `Row ${panelIndex + 1}` : null,
+      fields: Array.from({ length: fieldCount }, (_, fieldIndex) => ({
+        columnA: rowA[fieldIndex]?.column ?? null,
+        columnB: rowB[fieldIndex]?.column ?? null,
+        valueA: rowA[fieldIndex]?.value ?? '',
+        valueB: rowB[fieldIndex]?.value ?? '',
+      })),
+    };
+  }).filter((panel) => panel.fields.length > 0);
+
+  if (panels.length === 0) {
+    return null;
+  }
+
+  return {
+    variant: 'inspection',
+    title: 'Paired Values',
+    summary: pluralize(panels.length, 'row'),
+    toggleLabel: 'Inspect',
+    panels,
+  };
+}
+
+function buildExpandableDetail(
+  result: ResultResponse,
+  fileAValues: ResultValueCell[][],
+  fileBValues: ResultValueCell[][],
+): ResultExpandableDetail | null {
+  const differenceDetail = buildDifferenceDetail(result.differences);
+
+  if (differenceDetail) {
+    return differenceDetail;
+  }
+
+  if (result.result_type === 'mismatch') {
+    return null;
+  }
+
+  return buildInspectionDetail(fileAValues, fileBValues);
+}
+
 function compareResultSortValues(left: string | number, right: string | number): number {
   if (typeof left === 'number' && typeof right === 'number') {
     return left - right;
@@ -226,11 +339,19 @@ function compareResultSortValues(left: string | number, right: string | number):
   });
 }
 
-export function buildResultRows(results: ResultResponse[]): ResultRowViewModel[] {
+export function buildResultRows(
+  results: ResultResponse[],
+  comparisonColumns: {
+    fileA: string[];
+    fileB: string[];
+  } = { fileA: [], fileB: [] },
+): ResultRowViewModel[] {
   return results.map((result, index) => {
     const badge = getResultBadge(result.result_type);
-    const fileAValues = getDisplayRows(result.duplicate_values_a, result.values_a);
-    const fileBValues = getDisplayRows(result.duplicate_values_b, result.values_b);
+    const fileAValues = buildDisplayValueRows(result.duplicate_values_a, result.values_a, comparisonColumns.fileA);
+    const fileBValues = buildDisplayValueRows(result.duplicate_values_b, result.values_b, comparisonColumns.fileB);
+    const expandableDetail = buildExpandableDetail(result, fileAValues, fileBValues);
+    const columnSearchText = [comparisonColumns.fileA.join(' '), comparisonColumns.fileB.join(' ')].join(' ');
 
     return {
       id: `${index}-${result.result_type}-${result.key.join('|')}`,
@@ -246,6 +367,7 @@ export function buildResultRows(results: ResultResponse[]): ResultRowViewModel[]
       fileBValues,
       detailsCount: result.differences.length,
       differences: result.differences,
+      expandableDetail,
       searchText: [
         badge.label,
         result.key.join(' '),
@@ -253,6 +375,7 @@ export function buildResultRows(results: ResultResponse[]): ResultRowViewModel[]
         result.values_b.join(' '),
         result.duplicate_values_a.flat().join(' '),
         result.duplicate_values_b.flat().join(' '),
+        columnSearchText,
         result.differences.flatMap((diff) => [diff.column_a, diff.column_b, diff.value_a, diff.value_b]).join(' '),
       ]
         .join(' ')

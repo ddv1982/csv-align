@@ -10,6 +10,8 @@ interface ResultsStepProps {
   summary: SummaryResponse;
   fileAName: string;
   fileBName: string;
+  comparisonColumnsA: string[];
+  comparisonColumnsB: string[];
   filter: ResultFilter;
   results: ResultResponse[];
   filteredResults: ResultResponse[];
@@ -26,6 +28,8 @@ export function ResultsStep({
   summary,
   fileAName,
   fileBName,
+  comparisonColumnsA,
+  comparisonColumnsB,
   filter,
   results,
   filteredResults,
@@ -88,7 +92,12 @@ export function ResultsStep({
         onExportCsv={onExportCsv}
         onExportHtml={onExportHtml}
       />
-      <ResultsTable results={filteredResults} totalResultsCount={results.length} />
+      <ResultsTable
+        results={filteredResults}
+        totalResultsCount={results.length}
+        comparisonColumnsA={comparisonColumnsA}
+        comparisonColumnsB={comparisonColumnsB}
+      />
     </div>
   );
 }

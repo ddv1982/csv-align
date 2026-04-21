@@ -49,6 +49,8 @@ test('shows a save result entry point for live comparison results', () => {
       summary={SUMMARY}
       fileAName="left.csv"
       fileBName="right.csv"
+      comparisonColumnsA={['name']}
+      comparisonColumnsB={['display_name']}
       filter="all"
       results={RESULTS}
       filteredResults={RESULTS}
@@ -80,6 +82,8 @@ test('keeps loaded snapshots read-only and exposes a start-new-comparison action
       summary={SUMMARY}
       fileAName="left.csv"
       fileBName="right.csv"
+      comparisonColumnsA={['name']}
+      comparisonColumnsB={['display_name']}
       filter="all"
       results={RESULTS}
       filteredResults={RESULTS}

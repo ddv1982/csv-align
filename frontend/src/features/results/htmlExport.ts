@@ -6,6 +6,8 @@ type HtmlExportDocument = {
   generatedAt: string;
   fileAName: string;
   fileBName: string;
+  comparisonColumnsA: string[];
+  comparisonColumnsB: string[];
   summary: SummaryResponse;
   filterOptions: Array<{ value: ResultFilter; label: string; count: number }>;
   initialFilter: ResultFilter;
@@ -23,6 +25,8 @@ function buildHtmlExportDocument(params: {
   summary: SummaryResponse;
   fileAName: string;
   fileBName: string;
+  comparisonColumnsA: string[];
+  comparisonColumnsB: string[];
   results: ResultResponse[];
   initialFilter: ResultFilter;
 }): HtmlExportDocument {
@@ -32,6 +36,8 @@ function buildHtmlExportDocument(params: {
     generatedAt: new Date().toISOString(),
     fileAName: params.fileAName,
     fileBName: params.fileBName,
+    comparisonColumnsA: params.comparisonColumnsA,
+    comparisonColumnsB: params.comparisonColumnsB,
     summary: params.summary,
     filterOptions: RESULT_FILTER_OPTIONS.map((option) => ({
       value: option.value,
@@ -39,7 +45,10 @@ function buildHtmlExportDocument(params: {
       count: counts[option.value],
     })),
     initialFilter: params.initialFilter,
-    rows: buildResultRows(params.results),
+    rows: buildResultRows(params.results, {
+      fileA: params.comparisonColumnsA,
+      fileB: params.comparisonColumnsB,
+    }),
   };
 }
 
@@ -47,6 +56,8 @@ export function buildResultsHtmlDocument(params: {
   summary: SummaryResponse;
   fileAName: string;
   fileBName: string;
+  comparisonColumnsA: string[];
+  comparisonColumnsB: string[];
   results: ResultResponse[];
   initialFilter: ResultFilter;
 }): string {

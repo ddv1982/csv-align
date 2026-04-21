@@ -57,6 +57,8 @@ test('buildResultsHtmlDocument embeds the current comparison view state for stan
     summary: SUMMARY,
     fileAName: 'left.csv',
     fileBName: 'right.csv',
+    comparisonColumnsA: ['name'],
+    comparisonColumnsB: ['display_name'],
     results: RESULTS,
     initialFilter: 'duplicate',
   });
@@ -77,20 +79,28 @@ test('buildResultsHtmlDocument embeds the current comparison view state for stan
   expect(html).toContain('"initialFilter":"duplicate"');
   expect(html).toContain('"label":"Duplicates","count":1');
   expect(html).toContain('"badgeLabel":"Mismatch"');
+  expect(html).toContain('"fileAValues":[[{"column":"name","value":"Bob"}]]');
+  expect(html).toContain('"fileBValues":[[{"column":"display_name","value":"Robert"}]]');
+  expect(html).toContain('"expandableDetail":{"variant":"inspection","title":"Paired Values"');
   expect(html).toContain('"description":"Multiple File A rows share this selected key."');
   expect(html).toContain('data-sort-column="details"');
   expect(html).toContain('data-expand-row=');
-  expect(html).toContain('diff-panel-title kinetic-copy">Value Differences</span>');
-  expect(html).toContain('diff-panel-count">\' + row.differences.length + \'' );
-  expect(html).toContain('class="table-chip kinetic-copy">\' + escapeHtml(diff.column_a) + \'' );
-  expect(html).toContain('class="kinetic-glyph-box diff-arrow-box kinetic-muted">-&gt;</span><span class="table-chip kinetic-copy">\' + escapeHtml(diff.column_b) + \'' );
+  expect(html).toContain('"title":"Value Differences"');
+  expect(html).toContain('row.expandableDetail.title');
+  expect(html).toContain('row.expandableDetail.summary');
+  expect(html).toContain("row.expandableDetail.variant === 'differences' ? 'diff-grid' : 'detail-stack'");
+  expect(html).toContain('field.columnA');
+  expect(html).toContain('class="kinetic-glyph-box diff-arrow-box kinetic-muted">-&gt;</div>');
+  expect(html).toContain('cell.column ? \'<span class="table-chip kinetic-copy">\' + escapeHtml(cell.column) + \'</span>\' : \'\'');
   expect(html).toContain('class="diff-value-label file-a">File A</span>');
-  expect(html).toContain('class="diff-value-box kinetic-copy kinetic-surface-success-muted"');
+  expect(html).toContain("formatDetailValue(field.valueB, 'kinetic-surface-success-muted')");
+  expect(html).toContain('row.description ? \'<span class="result-description">\' + escapeHtml(row.description) + \'</span>\' : \'\'');
   expect(html).toContain('color-scheme: dark;');
   expect(html).toContain('--color-kinetic-bg: #050505;');
   expect(html).toContain('--color-kinetic-success: #6cffbe;');
   expect(html).toContain('.summary-file-panel');
   expect(html).toContain('.diff-card');
+  expect(html).toContain('.detail-stack');
   expect(html).toContain('.section-card-header');
   expect(html).toContain('.status-strip');
 });
@@ -100,6 +110,8 @@ test('standalone export table count matches the active filter bucket after the e
     summary: SUMMARY,
     fileAName: 'left.csv',
     fileBName: 'right.csv',
+    comparisonColumnsA: ['name'],
+    comparisonColumnsB: ['display_name'],
     results: RESULTS,
     initialFilter: 'all',
   });
@@ -115,6 +127,18 @@ test('standalone export table count matches the active filter bucket after the e
 
   const resultsCount = document.getElementById('results-count');
   expect(resultsCount?.textContent).toBe('3 of 3 rows shown');
+  expect(document.body.textContent).toContain('name');
+  expect(document.body.textContent).toContain('display_name');
+
+  const inspectToggle = (Array.from(document.querySelectorAll('[data-expand-row]')) as HTMLButtonElement[]).find(
+    (button) => button.textContent?.includes('Inspect'),
+  );
+
+  expect(inspectToggle).toBeTruthy();
+  inspectToggle?.click();
+
+  expect(document.body.textContent).toContain('Paired Values');
+  expect(document.body.textContent).toContain('Alice');
 
   const duplicateFilter = (Array.from(document.querySelectorAll('[data-filter]')) as HTMLButtonElement[]).find(
     (button) => button.getAttribute('data-filter') === 'duplicate',

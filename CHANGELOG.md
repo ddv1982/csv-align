@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.25 - 2026-04-21
+
+- Added a shared expandable inspection panel for matching and other zero-diff result rows so reviewers can open the same File A and File B value context even when no differences are present.
+- Kept the Results table and standalone HTML export aligned by reusing the same presentation model for paired-value inspection details while preserving the existing mismatch Value Differences behavior.
+
 ## v2.1.24 - 2026-04-21
 
 - Tightened release-prep validation by extending the metadata checker to require an explicit expected tag with a matching non-empty changelog entry, backed by integration coverage for both accepted and rejected release states.

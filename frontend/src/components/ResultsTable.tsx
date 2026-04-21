@@ -3,9 +3,12 @@ import { ResultResponse } from '../types/api';
 import {
   buildResultRows,
   filterAndSortResultRows,
+  type ResultDetailField,
+  type ResultDetailPanel,
   type ResultRowViewModel,
   type ResultSortColumn,
   type ResultSortDirection,
+  type ResultValueCell,
 } from '../features/results/presentation';
 import { ChevronRightIcon, MagnifyingGlassIcon, RectangleStackIcon } from './icons';
 import { SectionCard } from './ui/SectionCard';
@@ -13,41 +16,39 @@ import { SectionCard } from './ui/SectionCard';
 interface ResultsTableProps {
   results: ResultResponse[];
   totalResultsCount?: number;
+  comparisonColumnsA?: string[];
+  comparisonColumnsB?: string[];
 }
 
-interface DiffRowProps {
-  columnA: string;
-  columnB: string;
-  valueA: string;
-  valueB: string;
+interface DetailFieldRowProps {
+  field: ResultDetailField;
 }
 
-function DiffRow({ columnA, columnB, valueA, valueB }: DiffRowProps) {
+function DetailFieldRow({ field }: DetailFieldRowProps) {
+  const { columnA, columnB, valueA, valueB } = field;
   const sameColumn = columnA === columnB;
   const headerChipClass = 'table-chip kinetic-copy max-w-full break-all';
+  const hasColumnA = Boolean(columnA);
+  const hasColumnB = Boolean(columnB);
 
   return (
-    <div className="kinetic-panel p-3.5">
-      <div className="kinetic-muted mb-2.5 flex flex-wrap items-start gap-2 text-xs font-medium">
-        <span className={headerChipClass}>
-          {columnA}
-        </span>
-        {!sameColumn && (
-          <>
+    <div>
+      {(hasColumnA || hasColumnB) && (
+        <div className="kinetic-muted mb-2.5 flex flex-wrap items-start gap-2 text-xs font-medium">
+          {hasColumnA && <span className={headerChipClass}>{columnA}</span>}
+          {!sameColumn && hasColumnA && hasColumnB && (
             <span className="kinetic-glyph-box kinetic-muted h-8 w-8 shrink-0 text-[11px]">
               {'->'}
             </span>
-            <span className={headerChipClass}>
-              {columnB}
-            </span>
-          </>
-        )}
-      </div>
+          )}
+          {!sameColumn && hasColumnB && <span className={headerChipClass}>{columnB}</span>}
+        </div>
+      )}
       <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-x-2 gap-y-1">
         <p className="kinetic-mono-label text-[10px] text-[color:var(--color-kinetic-danger)]">File A</p>
         <div className="min-w-0 row-start-2">
           <span className="kinetic-copy kinetic-surface-danger block truncate border px-2.5 py-1.5 font-mono text-sm" title={valueA}>
-            {valueA}
+            {valueA || '—'}
           </span>
         </div>
         <p className="kinetic-mono-label col-start-3 text-[10px] text-[color:var(--color-kinetic-success)]">File B</p>
@@ -56,10 +57,47 @@ function DiffRow({ columnA, columnB, valueA, valueB }: DiffRowProps) {
         </div>
         <div className="min-w-0 col-start-3 row-start-2">
           <span className="kinetic-copy kinetic-surface-success-muted block truncate border px-2.5 py-1.5 font-mono text-sm" title={valueB}>
-            {valueB}
+            {valueB || '—'}
           </span>
         </div>
       </div>
+    </div>
+  );
+}
+
+function DetailPanel({ panel }: { panel: ResultDetailPanel }) {
+  return (
+    <article className="kinetic-panel p-3.5">
+      {panel.label && <p className="kinetic-mono-label kinetic-copy mb-3 text-xs font-semibold">{panel.label}</p>}
+      <div className="grid gap-3">
+        {panel.fields.map((field, fieldIndex) => (
+          <DetailFieldRow key={fieldIndex} field={field} />
+        ))}
+      </div>
+    </article>
+  );
+}
+
+function DetailCell({ row, isExpanded, onToggle }: { row: ResultRowViewModel; isExpanded: boolean; onToggle: () => void }) {
+  if (!row.expandableDetail) {
+    return <span className={`text-sm ${row.description ? 'kinetic-copy' : 'kinetic-muted'}`}>{row.description ?? '—'}</span>;
+  }
+
+  return (
+    <div className="grid gap-2">
+      <button
+        onClick={onToggle}
+        className={`inline-flex w-fit items-center gap-1.5 border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] transition-colors ${
+          isExpanded
+            ? 'border-[color:var(--color-kinetic-accent)] kinetic-surface-accent-strong text-[color:var(--color-kinetic-copy)]'
+            : 'kinetic-surface-subtle border-[color:var(--color-kinetic-line)] text-[color:var(--color-kinetic-muted)] hover:border-[color:var(--color-kinetic-line-strong)] hover:text-[color:var(--color-kinetic-copy)]'
+          }`}
+        aria-expanded={isExpanded}
+      >
+        {row.expandableDetail.toggleLabel}
+        <ChevronRightIcon className={`h-3.5 w-3.5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+      </button>
+      {row.description && <span className="kinetic-copy text-sm">{row.description}</span>}
     </div>
   );
 }
@@ -77,7 +115,12 @@ function SortGlyph({ state }: { state: 'asc' | 'desc' | 'inactive' }) {
   );
 }
 
-export function ResultsTable({ results, totalResultsCount = results.length }: ResultsTableProps) {
+export function ResultsTable({
+  results,
+  totalResultsCount = results.length,
+  comparisonColumnsA = [],
+  comparisonColumnsB = [],
+}: ResultsTableProps) {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [sortColumn, setSortColumn] = useState<ResultSortColumn | null>(null);
@@ -85,7 +128,10 @@ export function ResultsTable({ results, totalResultsCount = results.length }: Re
   const [isPending, startTransition] = useTransition();
   const deferredQuery = useDeferredValue(query);
 
-  const resultRows = useMemo(() => buildResultRows(results), [results]);
+  const resultRows = useMemo(
+    () => buildResultRows(results, { fileA: comparisonColumnsA, fileB: comparisonColumnsB }),
+    [comparisonColumnsA, comparisonColumnsB, results],
+  );
 
   const visibleResults = useMemo(
     () => filterAndSortResultRows(resultRows, {
@@ -135,7 +181,7 @@ export function ResultsTable({ results, totalResultsCount = results.length }: Re
     );
   };
 
-  const renderValueRows = (rows: string[][]) => {
+  const renderValueRows = (rows: ResultValueCell[][]) => {
     if (rows.length === 0) {
       return <span className="kinetic-muted italic">—</span>;
     }
@@ -147,7 +193,20 @@ export function ResultsTable({ results, totalResultsCount = results.length }: Re
             key={rowIndex}
             className="kinetic-value-row text-[13px]"
           >
-            {row.length > 0 ? row.join(', ') : '—'}
+            {row.length > 0 ? (
+              <div className="grid gap-2">
+                {row.map((cell, cellIndex) => (
+                  <div key={cellIndex} className="grid gap-1">
+                    {cell.column && (
+                      <span className="table-chip kinetic-copy max-w-full break-all">{cell.column}</span>
+                    )}
+                    <span className="block truncate" title={cell.value}>
+                      {cell.value || '—'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : '—'}
           </div>
         ))}
       </div>
@@ -223,28 +282,11 @@ export function ResultsTable({ results, totalResultsCount = results.length }: Re
                         <td className="px-4 py-3.5 align-top">{renderValueRows(row.fileAValues)}</td>
                         <td className="px-4 py-3.5 align-top">{renderValueRows(row.fileBValues)}</td>
                         <td className="px-4 py-3.5 align-top">
-                          {row.detailsCount > 0 ? (
-                            <button
-                              onClick={() => setExpandedRow(isExpanded ? null : row.id)}
-                              className={`inline-flex items-center gap-1.5 border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] transition-colors ${
-                                isExpanded
-                                  ? 'border-[color:var(--color-kinetic-accent)] kinetic-surface-accent-strong text-[color:var(--color-kinetic-copy)]'
-                                  : 'kinetic-surface-subtle border-[color:var(--color-kinetic-line)] text-[color:var(--color-kinetic-muted)] hover:border-[color:var(--color-kinetic-line-strong)] hover:text-[color:var(--color-kinetic-copy)]'
-                                }`}
-                              aria-expanded={isExpanded}
-                            >
-                              {row.detailsCount} diff{row.detailsCount > 1 ? 's' : ''}
-                              <ChevronRightIcon className={`h-3.5 w-3.5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-                            </button>
-                          ) : (
-                            <span className={`text-sm ${row.description ? 'kinetic-copy' : 'kinetic-muted'}`}>
-                              {row.description ?? '—'}
-                            </span>
-                          )}
+                          <DetailCell row={row} isExpanded={isExpanded} onToggle={() => setExpandedRow(isExpanded ? null : row.id)} />
                         </td>
                       </tr>
 
-                      {isExpanded && row.differences.length > 0 && (
+                      {isExpanded && row.expandableDetail && (
                         <tr className="kinetic-surface-subtle">
                           <td colSpan={5} className="px-4 py-4">
                             <div className="kinetic-panel p-4">
@@ -252,20 +294,12 @@ export function ResultsTable({ results, totalResultsCount = results.length }: Re
                                 <span className="kinetic-surface-accent flex h-6 w-6 items-center justify-center border font-mono text-[11px] uppercase">
                                   +
                                 </span>
-                                <p className="kinetic-mono-label kinetic-copy text-xs font-semibold">Value Differences</p>
-                                <span className="kinetic-muted ml-auto text-xs">
-                                  {row.differences.length} field{row.differences.length > 1 ? 's' : ''}
-                                </span>
+                                <p className="kinetic-mono-label kinetic-copy text-xs font-semibold">{row.expandableDetail.title}</p>
+                                <span className="kinetic-muted ml-auto text-xs">{row.expandableDetail.summary}</span>
                               </div>
-                              <div className="grid gap-3 sm:grid-cols-1 lg:grid-cols-2">
-                                {row.differences.map((diff, diffIdx) => (
-                                  <DiffRow
-                                    key={diffIdx}
-                                    columnA={diff.column_a}
-                                    columnB={diff.column_b}
-                                    valueA={diff.value_a}
-                                    valueB={diff.value_b}
-                                  />
+                              <div className={`grid gap-3 sm:grid-cols-1 ${row.expandableDetail.variant === 'differences' ? 'lg:grid-cols-2' : ''}`}>
+                                {row.expandableDetail.panels.map((panel, panelIdx) => (
+                                  <DetailPanel key={panel.label ?? panelIdx} panel={panel} />
                                 ))}
                               </div>
                             </div>

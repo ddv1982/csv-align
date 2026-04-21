@@ -742,6 +742,12 @@ tbody tr + tr td {
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
 
+.detail-stack {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr;
+}
+
 .diff-card {
   padding: 14px;
 }

@@ -49,8 +49,11 @@ const RESULTS: ResultResponse[] = [
   },
 ];
 
+const COMPARISON_COLUMNS_A = ['name'];
+const COMPARISON_COLUMNS_B = ['display_name'];
+
 test('shows clearer labels and explanations for one-sided and ignored rows', () => {
-  render(<ResultsTable results={RESULTS} />);
+  render(<ResultsTable results={RESULTS} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
 
   expect(screen.getByText('Only in File A')).toBeInTheDocument();
   expect(screen.getByText('Ignored in File B')).toBeInTheDocument();
@@ -65,7 +68,7 @@ test('shows clearer labels and explanations for one-sided and ignored rows', () 
 });
 
 test('uses shared theme surface classes for table states instead of hardcoded dark overlays', () => {
-  render(<ResultsTable results={RESULTS} />);
+  render(<ResultsTable results={RESULTS} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
 
   expect(screen.getByText('A-1')).toHaveClass('kinetic-surface-subtle');
 
@@ -77,8 +80,24 @@ test('uses shared theme surface classes for table states instead of hardcoded da
   expect(screen.getByText('Value Differences').previousElementSibling).toHaveClass('kinetic-surface-accent');
 });
 
+test('lets matching rows expand paired file values for inspection', () => {
+  render(<ResultsTable results={RESULTS} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
+
+  const matchRow = screen.getByText('B-2').closest('tr');
+  expect(within(matchRow as HTMLElement).getByRole('button', { name: /inspect/i })).toBeInTheDocument();
+
+  fireEvent.click(within(matchRow as HTMLElement).getByRole('button', { name: /inspect/i }));
+
+  expect(screen.getByText('Paired Values')).toBeInTheDocument();
+  expect(screen.getAllByText('File A').length).toBeGreaterThan(0);
+  expect(screen.getAllByText('File B').length).toBeGreaterThan(0);
+  expect(screen.getAllByText('Alpha').length).toBeGreaterThan(0);
+  expect(screen.getAllByText('Bravo').length).toBeGreaterThan(0);
+  expect(screen.getAllByText('display_name').length).toBeGreaterThan(0);
+});
+
 test('filters visible rows by search query across keys and values', () => {
-  render(<ResultsTable results={RESULTS} />);
+  render(<ResultsTable results={RESULTS} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
 
   const search = screen.getByPlaceholderText('Search keys or values');
   fireEvent.change(search, { target: { value: 'gamma' } });
@@ -90,7 +109,7 @@ test('filters visible rows by search query across keys and values', () => {
 });
 
 test('sorts rows by key when the header is clicked', () => {
-  render(<ResultsTable results={RESULTS} />);
+  render(<ResultsTable results={RESULTS} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
 
   fireEvent.click(screen.getByRole('button', { name: /key/i }));
 
@@ -244,7 +263,7 @@ test('sorts rows by diff count descending when the details header is clicked twi
 });
 
 test('updates the controlled search input value synchronously on each keystroke', () => {
-  render(<ResultsTable results={RESULTS} />);
+  render(<ResultsTable results={RESULTS} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
 
   const search = screen.getByPlaceholderText('Search keys or values');
 
@@ -260,7 +279,7 @@ test('updates the controlled search input value synchronously on each keystroke'
 });
 
 test('updates sort state from the transition-driven header action', () => {
-  render(<ResultsTable results={RESULTS} />);
+  render(<ResultsTable results={RESULTS} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
 
   const keySort = screen.getByRole('button', { name: /key/i });
   const keyHeader = keySort.closest('th');
@@ -273,17 +292,18 @@ test('updates sort state from the transition-driven header action', () => {
 });
 
 test('renders long diff column names with the larger wrapped header treatment', () => {
-  render(<ResultsTable results={RESULTS} />);
+  render(<ResultsTable results={RESULTS} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
 
   fireEvent.click(screen.getByRole('button', { name: /1 diff/i }));
 
-  const columnHeader = screen.getByText('name');
+  const columnHeader = screen.getAllByText('name').find((element) => element.classList.contains('break-all'));
+  expect(columnHeader).toBeTruthy();
   expect(columnHeader).toHaveClass('break-all');
   expect(columnHeader).toHaveClass('table-chip');
 });
 
 test('positions the mismatch diff arrow on the same row as the value boxes', () => {
-  render(<ResultsTable results={RESULTS} />);
+  render(<ResultsTable results={RESULTS} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
 
   fireEvent.click(screen.getByRole('button', { name: /1 diff/i }));
 
@@ -293,15 +313,23 @@ test('positions the mismatch diff arrow on the same row as the value boxes', () 
 });
 
 test('shows the selected-filter empty-state copy when there are zero total results', () => {
-  render(<ResultsTable results={[]} totalResultsCount={0} />);
+  render(<ResultsTable results={[]} totalResultsCount={0} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
 
   expect(screen.getByText('No results match the selected filter')).toBeInTheDocument();
   expect(screen.queryByText('No results match the current filter and search.')).not.toBeInTheDocument();
 });
 
 test('shows the current-filter-and-search empty-state copy when rows exist but none survive filtering', () => {
-  render(<ResultsTable results={[]} totalResultsCount={RESULTS.length} />);
+  render(<ResultsTable results={[]} totalResultsCount={RESULTS.length} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
 
   expect(screen.getByText('No results match the current filter and search.')).toBeInTheDocument();
   expect(screen.queryByText('No results match the selected filter')).not.toBeInTheDocument();
+});
+
+test('renders comparison column names alongside result values', () => {
+  render(<ResultsTable results={RESULTS} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
+
+  const row = screen.getByText('Alpha').closest('tr');
+  expect(within(row as HTMLElement).getByText('name')).toBeInTheDocument();
+  expect(within(row as HTMLElement).getByText('display_name')).toBeInTheDocument();
 });

@@ -257,25 +257,53 @@ ${RESULTS_EXPORT_STYLES}
         }
 
         return '<div class="value-stack">' + rows.map((row) => (
-          '<div class="value-row">' + escapeHtml(row.length > 0 ? row.join(', ') : '-') + '</div>'
+          '<div class="value-row">' + (row.length > 0
+            ? row.map((cell) => (
+              '<div style="display:grid;gap:4px;">'
+                + (cell.column ? '<span class="table-chip kinetic-copy">' + escapeHtml(cell.column) + '</span>' : '')
+                + '<span class="kinetic-copy" title="' + escapeHtml(cell.value) + '">' + (cell.value === '' ? '<span class="diff-empty">-</span>' : escapeHtml(cell.value)) + '</span>'
+                + '</div>'
+            )).join('')
+            : '-') + '</div>'
         )).join('') + '</div>';
       }
 
-      function renderDifferences(row) {
-        if (row.differences.length === 0 || state.expandedRow !== row.id) {
+      function formatDetailValue(value, toneClass) {
+        return '<span class="diff-value-box kinetic-copy ' + toneClass + '" title="' + escapeHtml(value) + '">' + (value === '' ? '<span class="diff-empty">-</span>' : escapeHtml(value)) + '</span>';
+      }
+
+      function renderDetailField(field) {
+        const hasColumnA = Boolean(field.columnA);
+        const hasColumnB = Boolean(field.columnB);
+        const sameColumn = field.columnA === field.columnB;
+
+        return '<div>'
+          + ((hasColumnA || hasColumnB)
+            ? '<header class="diff-card-header kinetic-muted">'
+              + (hasColumnA ? '<span class="table-chip kinetic-copy">' + escapeHtml(field.columnA) + '</span>' : '')
+              + (!sameColumn && hasColumnA && hasColumnB ? '<span class="kinetic-glyph-box diff-arrow-box kinetic-muted">-&gt;</span>' : '')
+              + (!sameColumn && hasColumnB ? '<span class="table-chip kinetic-copy">' + escapeHtml(field.columnB) + '</span>' : '')
+              + '</header>'
+            : '')
+          + '<div class="diff-values">'
+          + '<div><span class="diff-value-label file-a">File A</span>' + formatDetailValue(field.valueA, 'kinetic-surface-danger') + '</div>'
+          + '<div class="kinetic-glyph-box diff-arrow-box kinetic-muted">-&gt;</div>'
+          + '<div><span class="diff-value-label file-b">File B</span>' + formatDetailValue(field.valueB, 'kinetic-surface-success-muted') + '</div>'
+          + '</div>'
+          + '</div>';
+      }
+
+      function renderExpandedDetail(row) {
+        if (!row.expandableDetail || state.expandedRow !== row.id) {
           return '';
         }
 
-        return '<tr class="details-row"><td colspan="5"><div class="kinetic-panel diff-panel"><div class="diff-panel-header"><span class="diff-panel-icon">+</span><span class="diff-panel-title kinetic-copy">Value Differences</span><span class="diff-panel-count">' + row.differences.length + ' field' + (row.differences.length === 1 ? '' : 's') + '</span></div><div class="diff-grid">' + row.differences.map((diff) => (
+        const detailGridClass = row.expandableDetail.variant === 'differences' ? 'diff-grid' : 'detail-stack';
+
+        return '<tr class="details-row"><td colspan="5"><div class="kinetic-panel diff-panel"><div class="diff-panel-header"><span class="diff-panel-icon">+</span><span class="diff-panel-title kinetic-copy">' + escapeHtml(row.expandableDetail.title) + '</span><span class="diff-panel-count">' + escapeHtml(row.expandableDetail.summary) + '</span></div><div class="' + detailGridClass + '">' + row.expandableDetail.panels.map((panel) => (
           '<article class="kinetic-panel diff-card">'
-            + '<header class="diff-card-header kinetic-muted"><span class="table-chip kinetic-copy">' + escapeHtml(diff.column_a) + '</span>'
-            + (diff.column_a === diff.column_b ? '' : '<span class="kinetic-glyph-box diff-arrow-box kinetic-muted">-&gt;</span><span class="table-chip kinetic-copy">' + escapeHtml(diff.column_b) + '</span>')
-            + '</header>'
-            + '<div class="diff-values">'
-            + '<div><span class="diff-value-label file-a">File A</span><span class="diff-value-box kinetic-copy kinetic-surface-danger" title="' + escapeHtml(diff.value_a) + '">' + (diff.value_a === '' ? '<span class="diff-empty">-</span>' : escapeHtml(diff.value_a)) + '</span></div>'
-            + '<div class="kinetic-glyph-box diff-arrow-box kinetic-muted">-&gt;</div>'
-            + '<div><span class="diff-value-label file-b">File B</span><span class="diff-value-box kinetic-copy kinetic-surface-success-muted" title="' + escapeHtml(diff.value_b) + '">' + (diff.value_b === '' ? '<span class="diff-empty">-</span>' : escapeHtml(diff.value_b)) + '</span></div>'
-            + '</div>'
+            + (panel.label ? '<p class="kinetic-copy" style="margin:0 0 12px 0;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;">' + escapeHtml(panel.label) + '</p>' : '')
+            + panel.fields.map((field) => renderDetailField(field)).join('')
             + '</article>'
         )).join('') + '</div></div></td></tr>';
       }
@@ -347,18 +375,21 @@ ${RESULTS_EXPORT_STYLES}
 
         resultsBody.innerHTML = visibleRows.map((row) => {
           const isExpanded = state.expandedRow === row.id;
-          const detailCell = row.detailsCount > 0
-            ? '<button type="button" class="diff-toggle" data-expand-row="' + row.id + '" aria-expanded="' + (isExpanded ? 'true' : 'false') + '">' + row.detailsCount + ' diff' + (row.detailsCount === 1 ? '' : 's') + '<span class="diff-toggle-glyph">&gt;</span></button>'
+          const detailCell = row.expandableDetail
+            ? '<div style="display:grid;gap:8px;">'
+              + '<button type="button" class="diff-toggle" data-expand-row="' + row.id + '" aria-expanded="' + (isExpanded ? 'true' : 'false') + '">' + escapeHtml(row.expandableDetail.toggleLabel) + '<span class="diff-toggle-glyph">&gt;</span></button>'
+              + (row.description ? '<span class="result-description">' + escapeHtml(row.description) + '</span>' : '')
+              + '</div>'
             : '<span class="result-description">' + escapeHtml(row.description || '-') + '</span>';
 
           return '<tr class="' + (isExpanded ? 'kinetic-surface-accent-strong' : 'kinetic-surface-hover') + '">'
             + '<td><span class="badge tone-' + row.badgeTone + '"><span class="badge-dot"></span>' + escapeHtml(row.badge.label) + '</span></td>'
             + '<td><span class="chip kinetic-copy" title="' + escapeHtml(row.keyText) + '">' + escapeHtml(row.keyText) + '</span></td>'
-            + '<td>' + formatValueStack(row.fileAValues) + '</td>'
-            + '<td>' + formatValueStack(row.fileBValues) + '</td>'
-            + '<td>' + detailCell + '</td>'
-            + '</tr>'
-            + renderDifferences(row);
+             + '<td>' + formatValueStack(row.fileAValues) + '</td>'
+             + '<td>' + formatValueStack(row.fileBValues) + '</td>'
+             + '<td>' + detailCell + '</td>'
+             + '</tr>'
+             + renderExpandedDetail(row);
         }).join('');
 
         updateSortButtons();
