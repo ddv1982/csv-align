@@ -152,7 +152,7 @@ test('restores saved selection state from a loaded pair-order file', async () =>
 
 test('keeps the current pair order unchanged when loading fails', async () => {
   const pairOrderFile = new File(['bad'], 'pair-order.txt', { type: 'text/plain' });
-  loadPairOrderMock.mockRejectedValueOnce(new Error('Saved pair order does not match the currently loaded File B columns'));
+  loadPairOrderMock.mockRejectedValueOnce('Saved pair order does not match the currently loaded File B columns');
 
   const { result } = renderHook(() => useComparisonWorkflow());
 

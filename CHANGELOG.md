@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.36 - 2026-04-22
+
+- Fixed the comparison workflow error handling so saved pair-order load failures now preserve the backend's specific mismatch message in the UI instead of falling back to an unexpected error.
+- Added frontend regression coverage for non-`Error` rejection payloads and prepared the v2.1.36 patch release by synchronizing the documented release metadata files before rerunning the documented validation suite.
+
 ## v2.1.35 - 2026-04-21
 
 - Refined the standalone HTML export inspect-row presentation so saved reports now match the app's paired-row inspection spacing and structure more closely.

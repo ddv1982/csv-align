@@ -65,8 +65,34 @@ export const INITIAL_WORKFLOW_STATE: WorkflowState = {
   normalizationConfig: INITIAL_NORMALIZATION_CONFIG,
 };
 
+function readStringError(error: unknown): string | null {
+  if (typeof error === 'string' && error.trim().length > 0) {
+    return error;
+  }
+
+  if (typeof error !== 'object' || error === null) {
+    return null;
+  }
+
+  const candidate = error as { message?: unknown; error?: unknown };
+
+  if (typeof candidate.message === 'string' && candidate.message.trim().length > 0) {
+    return candidate.message;
+  }
+
+  if (typeof candidate.error === 'string' && candidate.error.trim().length > 0) {
+    return candidate.error;
+  }
+
+  return null;
+}
+
 export function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'Unexpected error';
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+
+  return readStringError(error) ?? 'Unexpected error';
 }
 
 export function buildCompareRequestPayload(

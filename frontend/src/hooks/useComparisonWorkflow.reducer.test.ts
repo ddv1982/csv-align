@@ -5,6 +5,7 @@ import { INITIAL_MAPPING_SELECTION } from '../types/ui';
 import {
   INITIAL_WORKFLOW_STATE,
   buildCompareRequestPayload,
+  getErrorMessage,
   workflowReducer,
 } from './useComparisonWorkflow.reducer';
 
@@ -161,6 +162,16 @@ describe('useComparisonWorkflow reducer', () => {
     expect(nextState.appState.mappings).toEqual([
       { file_a_column: 'name', file_b_column: 'display_name', mapping_type: 'fuzzy', similarity: 0.92 },
     ]);
+  });
+
+  test('getErrorMessage preserves non-Error backend messages', () => {
+    expect(getErrorMessage('Saved pair order does not match the currently loaded File B columns')).toBe(
+      'Saved pair order does not match the currently loaded File B columns',
+    );
+
+    expect(getErrorMessage({ error: 'Saved pair order is missing the current comparison columns' })).toBe(
+      'Saved pair order is missing the current comparison columns',
+    );
   });
 
   test('resetWorkflow returns the reducer to its initial state', () => {
