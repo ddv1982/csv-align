@@ -145,6 +145,7 @@ test('loads a saved comparison snapshot into the results workflow state', async 
   expect(result.current.state.fileA).toEqual({
     name: 'left.csv',
     headers: ['id', 'name'],
+    virtualHeaders: [],
     columns: [
       { index: 0, name: 'id', data_type: 'string' },
       { index: 1, name: 'name', data_type: 'string' },

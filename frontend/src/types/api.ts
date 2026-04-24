@@ -25,6 +25,7 @@ export interface FileLoadResponse {
   file_letter: FileLetter;
   file_name: string;
   headers: string[];
+  virtual_headers?: string[];
   columns: ColumnInfo[];
   row_count: number;
 }
@@ -122,6 +123,7 @@ export interface LoadPairOrderResponse {
 export interface ComparisonSnapshotFileResponse {
   name: string;
   headers: string[];
+  virtual_headers?: string[];
   columns: ColumnInfo[];
   row_count: number;
 }

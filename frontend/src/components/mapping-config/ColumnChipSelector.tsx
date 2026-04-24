@@ -1,15 +1,25 @@
 interface ColumnChipSelectorProps {
   title: string;
   columns: string[];
+  virtualColumns?: string[];
   selectedColumns: string[];
   emptyHint?: string;
   onToggle: (column: string) => void;
 }
 
-export function ColumnChipSelector({ title, columns, selectedColumns, emptyHint, onToggle }: ColumnChipSelectorProps) {
+function ColumnChipGroup({ label, columns, selectedColumns, onToggle }: {
+  label?: string;
+  columns: string[];
+  selectedColumns: string[];
+  onToggle: (column: string) => void;
+}) {
+  if (columns.length === 0) {
+    return null;
+  }
+
   return (
-    <div>
-      <h4 className="hud-label mb-3">{title}</h4>
+    <div className="space-y-2">
+      {label && <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--color-kinetic-muted)]">{label}</p>}
       <div className="flex flex-wrap gap-2">
         {columns.map((column) => {
           const isSelected = selectedColumns.includes(column);
@@ -29,6 +39,33 @@ export function ColumnChipSelector({ title, columns, selectedColumns, emptyHint,
             </button>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+export function ColumnChipSelector({ title, columns, virtualColumns = [], selectedColumns, emptyHint, onToggle }: ColumnChipSelectorProps) {
+  const visibleVirtualColumns = virtualColumns.filter((column) => !columns.includes(column));
+  const hasVirtualColumns = visibleVirtualColumns.length > 0;
+
+  return (
+    <div>
+      <h4 className="hud-label mb-3">{title}</h4>
+      <div className="space-y-3">
+        <ColumnChipGroup
+          label={hasVirtualColumns ? 'Physical columns' : undefined}
+          columns={columns}
+          selectedColumns={selectedColumns}
+          onToggle={onToggle}
+        />
+        {hasVirtualColumns && (
+          <ColumnChipGroup
+            label="Virtual JSON fields"
+            columns={visibleVirtualColumns}
+            selectedColumns={selectedColumns}
+            onToggle={onToggle}
+          />
+        )}
       </div>
       {emptyHint && selectedColumns.length === 0 && (
         <p className="mt-2 text-xs text-[color:var(--color-kinetic-muted)]">{emptyHint}</p>

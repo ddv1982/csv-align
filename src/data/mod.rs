@@ -1,5 +1,6 @@
 pub mod csv_loader;
 pub mod export;
+pub mod json_fields;
 pub mod types;
 
 pub use csv_loader::{detect_columns, load_csv, load_csv_from_bytes};

@@ -5,6 +5,7 @@ export type AppStep = 'select' | 'configure' | 'results';
 export interface AppFile {
   name: string;
   headers: string[];
+  virtualHeaders?: string[];
   columns: ColumnInfo[];
   rowCount: number;
 }

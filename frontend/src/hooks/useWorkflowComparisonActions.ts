@@ -35,6 +35,7 @@ export function useWorkflowComparisonActions({
       const fileData = {
         name: getSelectedFileName(file),
         headers: response.headers,
+        virtualHeaders: response.virtual_headers ?? [],
         columns: response.columns,
         rowCount: response.row_count,
       };

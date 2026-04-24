@@ -8,8 +8,9 @@ use crate::backend::requests::{
     PairOrderSelection,
 };
 use crate::backend::session::SessionData;
-use crate::backend::validation::validate_selected_columns;
+use crate::backend::validation::validate_selected_columns_by_physical_or_virtual_source;
 use crate::comparison::engine;
+use crate::data::json_fields::label_has_physical_or_virtual_source;
 use crate::data::types::{
     ColumnInfo, ColumnMapping, ComparisonConfig, ComparisonNormalizationConfig, CsvData,
     MappingKind, MappingType, ResultType, RowComparisonResult, ValueDifference,
@@ -360,7 +361,7 @@ fn validate_saved_selected_columns(
     headers: &[String],
     selected_columns: &[String],
 ) -> Result<(), CsvAlignError> {
-    validate_selected_columns(label, headers, selected_columns)
+    validate_selected_columns_by_physical_or_virtual_source(label, headers, selected_columns)
         .map_err(saved_selection_validation_error)
 }
 
@@ -370,20 +371,14 @@ fn validate_mappings(
     mappings: &[MappingV1],
 ) -> Result<(), CsvAlignError> {
     for mapping in mappings {
-        if !headers_a
-            .iter()
-            .any(|header| header == &mapping.file_a_column)
-        {
+        if !label_has_physical_or_virtual_source(headers_a, &mapping.file_a_column) {
             return Err(CsvAlignError::BadInput(format!(
                 "Saved snapshot mappings reference missing File A column: {}",
                 mapping.file_a_column
             )));
         }
 
-        if !headers_b
-            .iter()
-            .any(|header| header == &mapping.file_b_column)
-        {
+        if !label_has_physical_or_virtual_source(headers_b, &mapping.file_b_column) {
             return Err(CsvAlignError::BadInput(format!(
                 "Saved snapshot mappings reference missing File B column: {}",
                 mapping.file_b_column

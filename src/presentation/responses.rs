@@ -17,6 +17,7 @@ pub struct FileLoadResponse {
     pub file_letter: FileSide,
     pub file_name: String,
     pub headers: Vec<String>,
+    pub virtual_headers: Vec<String>,
     pub columns: Vec<ColumnResponse>,
     pub row_count: usize,
 }
@@ -78,6 +79,7 @@ pub fn file_load_response(
     file_letter: FileSide,
     file_name: String,
     headers: Vec<String>,
+    virtual_headers: Vec<String>,
     columns: &[ColumnInfo],
     row_count: usize,
 ) -> FileLoadResponse {
@@ -86,6 +88,7 @@ pub fn file_load_response(
         file_letter,
         file_name,
         headers,
+        virtual_headers,
         columns: columns.iter().map(ColumnResponse::from).collect(),
         row_count,
     }

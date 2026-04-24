@@ -7,7 +7,8 @@ use crate::backend::error::CsvAlignError;
 use crate::backend::requests::CompareValidationError;
 use crate::backend::requests::{LoadPairOrderResponse, PairOrderSelection};
 use crate::backend::session::SessionData;
-use crate::backend::validation::validate_selected_columns;
+use crate::backend::validation::validate_selected_columns_by_physical_or_virtual_source;
+use crate::data::types::CsvData;
 
 const PAIR_ORDER_FILE_VERSION: u8 = 1;
 
@@ -23,13 +24,13 @@ pub fn save_pair_order_workflow(
     session_data: &SessionData,
     selection: PairOrderSelection,
 ) -> Result<String, CsvAlignError> {
-    let (headers_a, headers_b) = session_headers(session_data)?;
-    validate_selection(headers_a, headers_b, &selection)?;
+    let (csv_a, csv_b) = session_csvs(session_data)?;
+    validate_selection(csv_a, csv_b, &selection)?;
 
     serde_json::to_string_pretty(&PersistedPairOrder {
         version: PAIR_ORDER_FILE_VERSION,
-        headers_a: headers_a.to_vec(),
-        headers_b: headers_b.to_vec(),
+        headers_a: csv_a.headers.clone(),
+        headers_b: csv_b.headers.clone(),
         selection,
     })
     .map_err(|error| CsvAlignError::Internal(format!("Failed to serialize pair order: {error}")))
@@ -52,17 +53,17 @@ pub fn load_pair_order_workflow(
         )));
     }
 
-    let (headers_a, headers_b) = session_headers(session_data)?;
+    let (csv_a, csv_b) = session_csvs(session_data)?;
 
-    if let Some(message) = header_mismatch_message("File A", &persisted.headers_a, headers_a) {
+    if let Some(message) = header_mismatch_message("File A", &persisted.headers_a, &csv_a.headers) {
         return Err(CsvAlignError::BadInput(message));
     }
 
-    if let Some(message) = header_mismatch_message("File B", &persisted.headers_b, headers_b) {
+    if let Some(message) = header_mismatch_message("File B", &persisted.headers_b, &csv_b.headers) {
         return Err(CsvAlignError::BadInput(message));
     }
 
-    validate_selection(headers_a, headers_b, &persisted.selection)?;
+    validate_selection(csv_a, csv_b, &persisted.selection)?;
 
     Ok(LoadPairOrderResponse {
         selection: persisted.selection,
@@ -92,7 +93,7 @@ fn validate_pair_order_version(contents: &str) -> Result<(), CsvAlignError> {
     Ok(())
 }
 
-fn session_headers(session_data: &SessionData) -> Result<(&[String], &[String]), CsvAlignError> {
+fn session_csvs(session_data: &SessionData) -> Result<(&CsvData, &CsvData), CsvAlignError> {
     let csv_a = session_data
         .csv_a
         .as_ref()
@@ -102,32 +103,32 @@ fn session_headers(session_data: &SessionData) -> Result<(&[String], &[String]),
         .as_ref()
         .ok_or_else(|| CsvAlignError::BadInput("File B not selected or loaded".to_string()))?;
 
-    Ok((&csv_a.headers, &csv_b.headers))
+    Ok((csv_a, csv_b))
 }
 
 fn validate_selection(
-    headers_a: &[String],
-    headers_b: &[String],
+    csv_a: &CsvData,
+    csv_b: &CsvData,
     selection: &PairOrderSelection,
 ) -> Result<(), CsvAlignError> {
     validate_saved_selected_columns(
         "Saved key columns for File A",
-        headers_a,
+        &csv_a.headers,
         &selection.key_columns_a,
     )?;
     validate_saved_selected_columns(
         "Saved key columns for File B",
-        headers_b,
+        &csv_b.headers,
         &selection.key_columns_b,
     )?;
     validate_saved_selected_columns(
         "Saved comparison columns for File A",
-        headers_a,
+        &csv_a.headers,
         &selection.comparison_columns_a,
     )?;
     validate_saved_selected_columns(
         "Saved comparison columns for File B",
-        headers_b,
+        &csv_b.headers,
         &selection.comparison_columns_b,
     )?;
 
@@ -139,7 +140,7 @@ fn validate_saved_selected_columns(
     headers: &[String],
     selected_columns: &[String],
 ) -> Result<(), CsvAlignError> {
-    validate_selected_columns(label, headers, selected_columns)
+    validate_selected_columns_by_physical_or_virtual_source(label, headers, selected_columns)
         .map_err(saved_selection_validation_error)
 }
 

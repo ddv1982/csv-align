@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.37 - 2026-04-24
+
+- Added virtual JSON field mapping so object keys stored inside a single CSV cell can be selected in Step 2 and compared against separate columns or other JSON subfields.
+- Preserved saved pair-order and snapshot compatibility for the new dot-notation virtual fields, added dedicated backend and frontend regression coverage in new test files, and prepared the v2.1.37 patch release by synchronizing release metadata.
+
 ## v2.1.36 - 2026-04-22
 
 - Fixed the comparison workflow error handling so saved pair-order load failures now preserve the backend's specific mismatch message in the UI instead of falling back to an unexpected error.

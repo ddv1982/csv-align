@@ -18,6 +18,7 @@ use crate::backend::validation::build_comparison_config;
 use crate::comparison::{engine, mapping};
 use crate::data::{
     csv_loader, export as csv_export,
+    json_fields::discover_virtual_headers,
     types::{ComparisonConfig, CsvData, FileSide, RowComparisonResult},
 };
 use crate::presentation::responses::{
@@ -120,9 +121,17 @@ pub fn load_csv_workflow(
     }
 
     let headers = csv_data.headers.clone();
+    let virtual_headers = discover_virtual_headers(&csv_data);
     let columns = csv_loader::detect_columns(&csv_data);
     let row_count = csv_data.rows.len();
-    let response = file_load_response(file_side, response_file_name, headers, &columns, row_count);
+    let response = file_load_response(
+        file_side,
+        response_file_name,
+        headers,
+        virtual_headers,
+        &columns,
+        row_count,
+    );
 
     Ok(LoadedCsv { csv_data, response })
 }
@@ -139,9 +148,17 @@ pub fn apply_csv_to_session(
         .map(str::to_owned)
         .unwrap_or_default();
     let headers = csv_data.headers.clone();
+    let virtual_headers = discover_virtual_headers(&csv_data);
     let columns = csv_loader::detect_columns(&csv_data);
     let row_count = csv_data.rows.len();
-    let response = file_load_response(file_letter, file_name, headers, &columns, row_count);
+    let response = file_load_response(
+        file_letter,
+        file_name,
+        headers,
+        virtual_headers,
+        &columns,
+        row_count,
+    );
 
     if file_letter == FileSide::A {
         session_data.csv_a = Some(Arc::new(csv_data));

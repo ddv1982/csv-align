@@ -130,6 +130,7 @@ export function MappingConfig({
           <ColumnChipSelector
             title="Row keys in File A"
             columns={fileA.headers}
+            virtualColumns={fileA.virtualHeaders}
             selectedColumns={keyColumnsA}
             emptyHint="Select row keys (defaults to the first column if left empty)"
             onToggle={(column) => updateSelection({ keyColumnsA: toggleColumnSelection(keyColumnsA, column) })}
@@ -137,6 +138,7 @@ export function MappingConfig({
           <ColumnChipSelector
             title="Row keys in File B"
             columns={fileB.headers}
+            virtualColumns={fileB.virtualHeaders}
             selectedColumns={keyColumnsB}
             emptyHint="Select row keys (defaults to the first column if left empty)"
             onToggle={(column) => updateSelection({ keyColumnsB: toggleColumnSelection(keyColumnsB, column) })}
@@ -154,12 +156,14 @@ export function MappingConfig({
           <ColumnChipSelector
             title="File A Columns"
             columns={fileA.headers}
+            virtualColumns={fileA.virtualHeaders}
             selectedColumns={comparisonColumnsA}
             onToggle={(column) => updateSelection({ comparisonColumnsA: toggleColumnSelection(comparisonColumnsA, column) })}
           />
           <ColumnChipSelector
             title="File B Columns"
             columns={fileB.headers}
+            virtualColumns={fileB.virtualHeaders}
             selectedColumns={comparisonColumnsB}
             onToggle={(column) => updateSelection({ comparisonColumnsB: toggleColumnSelection(comparisonColumnsB, column) })}
           />

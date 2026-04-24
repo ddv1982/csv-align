@@ -216,12 +216,14 @@ export function workflowReducer(state: WorkflowState, action: WorkflowAction): W
           fileA: {
             name: action.response.file_a.name,
             headers: action.response.file_a.headers,
+            virtualHeaders: action.response.file_a.virtual_headers ?? [],
             columns: action.response.file_a.columns,
             rowCount: action.response.file_a.row_count,
           },
           fileB: {
             name: action.response.file_b.name,
             headers: action.response.file_b.headers,
+            virtualHeaders: action.response.file_b.virtual_headers ?? [],
             columns: action.response.file_b.columns,
             rowCount: action.response.file_b.row_count,
           },

@@ -1,5 +1,5 @@
 use super::super::data::types::*;
-use super::rows::{extract_columns, get_column_indices, split_rows_by_key_usable};
+use super::rows::{extract_columns, get_column_selections, split_rows_by_key_usable};
 use super::value_compare::find_differences;
 
 /// Compare two CSV datasets based on configuration
@@ -11,30 +11,30 @@ pub fn compare_csv_data(
     let mut results = Vec::new();
 
     // Get column indices for key columns
-    let key_indices_a = get_column_indices(&csv_a.headers, &config.key_columns_a);
-    let key_indices_b = get_column_indices(&csv_b.headers, &config.key_columns_b);
+    let key_selections_a = get_column_selections(&csv_a.headers, &config.key_columns_a);
+    let key_selections_b = get_column_selections(&csv_b.headers, &config.key_columns_b);
 
     // Get column indices for comparison columns
-    let comp_indices_a = get_column_indices(&csv_a.headers, &config.comparison_columns_a);
-    let comp_indices_b = get_column_indices(&csv_b.headers, &config.comparison_columns_b);
+    let comp_selections_a = get_column_selections(&csv_a.headers, &config.comparison_columns_a);
+    let comp_selections_b = get_column_selections(&csv_b.headers, &config.comparison_columns_b);
 
     // Create maps for quick lookup
     let (map_a, nullish_rows_a) =
-        split_rows_by_key_usable(csv_a, &key_indices_a, &config.normalization);
+        split_rows_by_key_usable(csv_a, &key_selections_a, &config.normalization);
     let (map_b, nullish_rows_b) =
-        split_rows_by_key_usable(csv_b, &key_indices_b, &config.normalization);
+        split_rows_by_key_usable(csv_b, &key_selections_b, &config.normalization);
 
     for row_index in nullish_rows_a {
         results.push(RowComparisonResult::UnkeyedRight {
-            key: extract_columns(&csv_a.rows[row_index], &key_indices_a),
-            values_a: extract_columns(&csv_a.rows[row_index], &comp_indices_a),
+            key: extract_columns(&csv_a.rows[row_index], &key_selections_a),
+            values_a: extract_columns(&csv_a.rows[row_index], &comp_selections_a),
         });
     }
 
     for row_index in nullish_rows_b {
         results.push(RowComparisonResult::UnkeyedLeft {
-            key: extract_columns(&csv_b.rows[row_index], &key_indices_b),
-            values_b: extract_columns(&csv_b.rows[row_index], &comp_indices_b),
+            key: extract_columns(&csv_b.rows[row_index], &key_selections_b),
+            values_b: extract_columns(&csv_b.rows[row_index], &comp_selections_b),
         });
     }
 
@@ -55,11 +55,11 @@ pub fn compare_csv_data(
                     // Multiple matches in both files - report explicit duplicates per side once.
                     let values_a: Vec<Vec<String>> = indices_a
                         .iter()
-                        .map(|&i| extract_columns(&csv_a.rows[i], &comp_indices_a))
+                        .map(|&i| extract_columns(&csv_a.rows[i], &comp_selections_a))
                         .collect();
                     let values_b: Vec<Vec<String>> = indices_b
                         .iter()
-                        .map(|&i| extract_columns(&csv_b.rows[i], &comp_indices_b))
+                        .map(|&i| extract_columns(&csv_b.rows[i], &comp_selections_b))
                         .collect();
 
                     results.push(RowComparisonResult::Duplicate {
@@ -71,7 +71,7 @@ pub fn compare_csv_data(
                     // Report duplicates from File A and still compare the first occurrence with File B.
                     let values_a_duplicates: Vec<Vec<String>> = indices_a
                         .iter()
-                        .map(|&i| extract_columns(&csv_a.rows[i], &comp_indices_a))
+                        .map(|&i| extract_columns(&csv_a.rows[i], &comp_selections_a))
                         .collect();
                     results.push(RowComparisonResult::Duplicate {
                         key: key.clone(),
@@ -80,8 +80,8 @@ pub fn compare_csv_data(
                     });
 
                     // Single match in File B - compare with first occurrence in File A
-                    let values_a = extract_columns(&csv_a.rows[indices_a[0]], &comp_indices_a);
-                    let values_b = extract_columns(&csv_b.rows[indices_b[0]], &comp_indices_b);
+                    let values_a = extract_columns(&csv_a.rows[indices_a[0]], &comp_selections_a);
+                    let values_b = extract_columns(&csv_b.rows[indices_b[0]], &comp_selections_b);
 
                     results.push(compare_single_match(
                         key.clone(),
@@ -93,7 +93,7 @@ pub fn compare_csv_data(
             } else {
                 let values_a: Vec<Vec<String>> = indices_a
                     .iter()
-                    .map(|&i| extract_columns(&csv_a.rows[i], &comp_indices_a))
+                    .map(|&i| extract_columns(&csv_a.rows[i], &comp_selections_a))
                     .collect();
                 results.push(RowComparisonResult::Duplicate {
                     key: key.clone(),
@@ -111,7 +111,7 @@ pub fn compare_csv_data(
             // Report duplicates from File B
             let values: Vec<Vec<String>> = indices_b
                 .iter()
-                .map(|&i| extract_columns(&csv_b.rows[i], &comp_indices_b))
+                .map(|&i| extract_columns(&csv_b.rows[i], &comp_selections_b))
                 .collect();
             results.push(RowComparisonResult::Duplicate {
                 key: key.clone(),
@@ -120,8 +120,8 @@ pub fn compare_csv_data(
             });
 
             // Compare the first occurrence in File B with File A
-            let values_a = extract_columns(&csv_a.rows[indices_a[0]], &comp_indices_a);
-            let values_b = extract_columns(&csv_b.rows[indices_b[0]], &comp_indices_b);
+            let values_a = extract_columns(&csv_a.rows[indices_a[0]], &comp_selections_a);
+            let values_b = extract_columns(&csv_b.rows[indices_b[0]], &comp_selections_b);
 
             results.push(compare_single_match(
                 key.clone(),
@@ -135,8 +135,8 @@ pub fn compare_csv_data(
         // Single occurrence in both files or only in File A
         if let Some(indices_b) = map_b.get(key) {
             // Key exists in both files with single occurrences
-            let values_a = extract_columns(&csv_a.rows[indices_a[0]], &comp_indices_a);
-            let values_b = extract_columns(&csv_b.rows[indices_b[0]], &comp_indices_b);
+            let values_a = extract_columns(&csv_a.rows[indices_a[0]], &comp_selections_a);
+            let values_b = extract_columns(&csv_b.rows[indices_b[0]], &comp_selections_b);
 
             results.push(compare_single_match(
                 key.clone(),
@@ -146,7 +146,7 @@ pub fn compare_csv_data(
             ));
         } else {
             // Key only in File A - missing from File B
-            let values_a = extract_columns(&csv_a.rows[indices_a[0]], &comp_indices_a);
+            let values_a = extract_columns(&csv_a.rows[indices_a[0]], &comp_selections_a);
             results.push(RowComparisonResult::MissingRight {
                 key: key.clone(),
                 values_a,
@@ -165,7 +165,7 @@ pub fn compare_csv_data(
             // Report duplicates from File B
             let values: Vec<Vec<String>> = indices_b
                 .iter()
-                .map(|&i| extract_columns(&csv_b.rows[i], &comp_indices_b))
+                .map(|&i| extract_columns(&csv_b.rows[i], &comp_selections_b))
                 .collect();
             results.push(RowComparisonResult::Duplicate {
                 key: key.clone(),
@@ -176,7 +176,7 @@ pub fn compare_csv_data(
         }
 
         // Key only in File B - missing from File A
-        let values_b = extract_columns(&csv_b.rows[indices_b[0]], &comp_indices_b);
+        let values_b = extract_columns(&csv_b.rows[indices_b[0]], &comp_selections_b);
         results.push(RowComparisonResult::MissingLeft {
             key: key.clone(),
             values_b,
