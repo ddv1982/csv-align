@@ -14,6 +14,7 @@ pub struct SessionData {
     pub column_mappings: Vec<ColumnMapping>,
     pub comparison_results: Vec<RowComparisonResult>,
     pub comparison_config: Option<ComparisonConfig>,
+    pub data_revision: u64,
 }
 
 impl SessionData {
@@ -26,7 +27,12 @@ impl SessionData {
             column_mappings: Vec::new(),
             comparison_results: Vec::new(),
             comparison_config: None,
+            data_revision: 0,
         }
+    }
+
+    pub fn advance_data_revision(&mut self) {
+        self.data_revision = self.data_revision.wrapping_add(1);
     }
 }
 

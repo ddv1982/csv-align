@@ -63,6 +63,14 @@ async fn comparison_snapshot_persistence_round_trips_zero_result_comparisons() {
 
     assert_eq!(compare_response.status(), StatusCode::OK);
 
+    let export_response =
+        handlers::export_csv(State(state.clone()), Path(session_id.clone())).await;
+    assert_eq!(export_response.status(), StatusCode::OK);
+    let exported_csv = response_text(export_response).await;
+    assert!(exported_csv.contains("Key: id / record_id"));
+    assert!(exported_csv.contains("File A: full_name"));
+    assert!(exported_csv.contains("File B: display_name"));
+
     let save_response =
         handlers::save_comparison_snapshot(State(state.clone()), Path(session_id.clone())).await;
 

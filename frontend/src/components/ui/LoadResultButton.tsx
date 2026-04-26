@@ -1,4 +1,4 @@
-import { useCallback, useId } from 'react';
+import { useCallback, useId, useRef } from 'react';
 import { isTauri } from '../../services/tauri';
 
 interface LoadResultButtonProps {
@@ -7,6 +7,7 @@ interface LoadResultButtonProps {
 
 export function LoadResultButton({ onLoadResult }: LoadResultButtonProps) {
   const inputId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
   const handleLoadResultChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
     if (selectedFile) {
@@ -14,6 +15,10 @@ export function LoadResultButton({ onLoadResult }: LoadResultButtonProps) {
     }
     event.target.value = '';
   }, [onLoadResult]);
+
+  const openFilePicker = useCallback(() => {
+    inputRef.current?.click();
+  }, []);
 
   const content = (
     <>
@@ -30,12 +35,17 @@ export function LoadResultButton({ onLoadResult }: LoadResultButtonProps) {
     );
   }
 
-    return (
-      <>
-       <label htmlFor={inputId} className="btn btn-ghost mt-3 inline-flex cursor-pointer items-center gap-2">
-         {content}
-       </label>
+  return (
+    <>
+      <button
+        type="button"
+        onClick={openFilePicker}
+        className="btn btn-ghost mt-3 inline-flex items-center gap-2"
+      >
+        {content}
+      </button>
       <input
+        ref={inputRef}
         id={inputId}
         data-testid="load-result-input"
         type="file"

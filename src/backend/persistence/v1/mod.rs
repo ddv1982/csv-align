@@ -10,7 +10,7 @@ use crate::backend::requests::{
 use crate::backend::session::SessionData;
 use crate::backend::validation::validate_selected_columns_by_physical_or_virtual_source;
 use crate::comparison::engine;
-use crate::data::json_fields::label_has_physical_or_virtual_source;
+use crate::data::json_fields::{discover_virtual_headers, label_has_physical_or_virtual_source};
 use crate::data::types::{
     ColumnInfo, ColumnMapping, ComparisonConfig, ComparisonNormalizationConfig, CsvData,
     MappingKind, MappingType, ResultType, RowComparisonResult, ValueDifference,
@@ -37,6 +37,8 @@ pub struct SnapshotV1 {
 pub struct SnapshotFileV1 {
     pub name: String,
     pub headers: Vec<String>,
+    #[serde(default)]
+    pub virtual_headers: Vec<String>,
     pub columns: Vec<ColumnV1>,
     pub row_count: usize,
 }
@@ -159,6 +161,7 @@ impl SnapshotV1 {
         session_data.column_mappings = comparison_config.column_mappings.clone();
         session_data.comparison_results = comparison_results;
         session_data.comparison_config = Some(comparison_config);
+        session_data.advance_data_revision();
 
         Ok(LoadComparisonSnapshotResponse {
             file_a: ComparisonSnapshotFile::from(&self.file_a),
@@ -192,6 +195,7 @@ impl SnapshotFileV1 {
         Self {
             name: display_name(csv.file_path.as_deref(), fallback_name),
             headers: csv.headers.clone(),
+            virtual_headers: discover_virtual_headers(csv),
             columns: columns.iter().map(ColumnV1::from).collect(),
             row_count: csv.rows.len(),
         }
@@ -449,6 +453,7 @@ impl From<&SnapshotFileV1> for ComparisonSnapshotFile {
         Self {
             name: file.name.clone(),
             headers: file.headers.clone(),
+            virtual_headers: file.virtual_headers.clone(),
             columns: file.columns.iter().map(ColumnResponse::from).collect(),
             row_count: file.row_count,
         }

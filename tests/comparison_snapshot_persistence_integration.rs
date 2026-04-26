@@ -92,6 +92,8 @@ async fn comparison_snapshot_persistence_round_trips_through_http_handlers() {
     let saved: serde_json::Value = serde_json::from_str(&contents).unwrap();
     assert_eq!(saved["version"], 2);
     assert_eq!(saved["file_a"]["name"], "left.csv");
+    assert_eq!(saved["file_a"]["virtual_headers"], serde_json::json!([]));
+    assert_eq!(saved["file_b"]["virtual_headers"], serde_json::json!([]));
     assert_eq!(saved["summary"]["mismatches"], 1);
 
     let loaded_session_id = state.create_session();
@@ -105,6 +107,8 @@ async fn comparison_snapshot_persistence_round_trips_through_http_handlers() {
     assert_eq!(load_response.status(), StatusCode::OK);
     let json = response_json(load_response).await;
     assert_eq!(json["file_b"]["name"], "right.csv");
+    assert_eq!(json["file_a"]["virtual_headers"], serde_json::json!([]));
+    assert_eq!(json["file_b"]["virtual_headers"], serde_json::json!([]));
     assert_eq!(json["summary"]["mismatches"], 1);
 
     let export_response = handlers::export_csv(State(state), Path(loaded_session_id)).await;

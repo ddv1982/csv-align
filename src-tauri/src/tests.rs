@@ -1,5 +1,5 @@
 use super::*;
-use csv_align::backend::{CompareRequest, CsvAlignError, MappingRequest};
+use csv_align::backend::{CompareRequest, CsvAlignError, MappingRequest, SuggestMappingsRequest};
 use csv_align::data::types::ComparisonNormalizationConfig;
 use std::sync::Arc;
 use std::{env, fs};
@@ -151,6 +151,25 @@ fn tauri_commands_share_the_backend_session_store() {
         store.with_session(&session_id, |session| session.columns_a.len()),
         None
     );
+}
+
+#[test]
+fn tauri_suggest_mappings_returns_not_found_for_unknown_sessions() {
+    let app = tauri::test::mock_app();
+    app.manage(Arc::new(SessionStore::default()));
+
+    let error = suggest_mappings(
+        app.state::<Arc<SessionStore>>(),
+        "missing-session".to_string(),
+        SuggestMappingsRequest {
+            columns_a: vec!["FirstName".to_string()],
+            columns_b: vec!["first_name".to_string()],
+        },
+    )
+    .unwrap_err();
+
+    assert!(matches!(error, CsvAlignError::NotFound { .. }));
+    assert_eq!(error.to_string(), "Session not found");
 }
 
 #[test]

@@ -303,6 +303,37 @@ describe('transport helpers', () => {
     });
   });
 
+  test('deleteSession treats browser 404 not-found responses as already deleted', async () => {
+    const fetchMock = vi.mocked(globalThis.fetch);
+    fetchMock.mockResolvedValue(jsonResponse({ code: 'not_found', error: 'Session not found' }, { status: 404 }));
+
+    const { deleteSession } = await importTauriModule();
+
+    await expect(deleteSession('missing-session')).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledWith('/api/sessions/missing-session', { method: 'DELETE' });
+  });
+
+  test('deleteSession rejects non-contract browser 404 responses', async () => {
+    const fetchMock = vi.mocked(globalThis.fetch);
+    fetchMock.mockResolvedValue(jsonResponse({ error: 'route not found' }, { status: 404 }));
+
+    const { deleteSession } = await importTauriModule();
+
+    await expect(deleteSession('missing-session')).rejects.toThrow('route not found');
+  });
+
+  test('deleteSession treats Tauri not-found errors as already deleted', async () => {
+    (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
+    invokeMock.mockRejectedValue({ code: 'not_found', error: 'Session not found' });
+
+    const { deleteSession } = await importTauriModule();
+
+    await expect(deleteSession('missing-session')).resolves.toBeUndefined();
+    expect(invokeMock).toHaveBeenCalledWith(TAURI_COMMANDS.deleteSession, {
+      sessionId: 'missing-session',
+    });
+  });
+
   test('suggestMappings invokes the Tauri mapping command when running in Tauri', async () => {
     (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
     invokeMock.mockResolvedValue({ mappings: [] });

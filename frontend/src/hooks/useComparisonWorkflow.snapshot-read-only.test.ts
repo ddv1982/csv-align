@@ -39,6 +39,7 @@ function buildSnapshotResponse() {
     file_a: {
       name: 'left.csv',
       headers: ['id', 'name'],
+      virtual_headers: ['person.id', 'person.name'],
       columns: [
         { index: 0, name: 'id', data_type: 'string' as const },
         { index: 1, name: 'name', data_type: 'string' as const },
@@ -48,6 +49,7 @@ function buildSnapshotResponse() {
     file_b: {
       name: 'right.csv',
       headers: ['record_id', 'display_name'],
+      virtual_headers: ['person.id', 'person.name'],
       columns: [
         { index: 0, name: 'record_id', data_type: 'string' as const },
         { index: 1, name: 'display_name', data_type: 'string' as const },

@@ -30,17 +30,37 @@ import type {
 // Check if we're running in Tauri
 const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
-async function readErrorMessage(response: Response, fallback: string): Promise<string> {
+function isNotFoundError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) {
+    return false;
+  }
+
+  const candidate = error as { code?: unknown; error?: unknown; message?: unknown };
+  return candidate.code === 'not_found'
+    || candidate.error === 'Session not found'
+    || candidate.message === 'Session not found';
+}
+
+type ErrorPayload = { code?: unknown; error?: unknown };
+
+async function readErrorPayload(response: Response): Promise<ErrorPayload | null> {
   try {
-    const payload = await response.json() as { error?: string };
-    if (typeof payload.error === 'string' && payload.error.trim().length > 0) {
-      return payload.error;
-    }
+    return await response.json() as ErrorPayload;
   } catch {
-    // Fall back to the caller-provided message when the response is not JSON.
+    return null;
+  }
+}
+
+function errorMessageFromPayload(payload: ErrorPayload | null, fallback: string): string {
+  if (typeof payload?.error === 'string' && payload.error.trim().length > 0) {
+    return payload.error;
   }
 
   return fallback;
+}
+
+async function readErrorMessage(response: Response, fallback: string): Promise<string> {
+  return errorMessageFromPayload(await readErrorPayload(response), fallback);
 }
 
 async function fetchJson<T>(input: string, init: RequestInit, fallbackError: string): Promise<T> {
@@ -103,11 +123,26 @@ export async function createSession(): Promise<SessionResponse> {
 
 export async function deleteSession(sessionId: string): Promise<void> {
   if (isTauri) {
-    await invoke(TAURI_COMMANDS.deleteSession, { sessionId });
+    try {
+      await invoke(TAURI_COMMANDS.deleteSession, { sessionId });
+    } catch (error) {
+      if (!isNotFoundError(error)) {
+        throw error;
+      }
+    }
     return;
   }
 
   const response = await fetch(buildDeleteSessionRoute(sessionId), { method: 'DELETE' });
+
+  if (response.status === 404) {
+    const payload = await readErrorPayload(response);
+    if (payload?.code === 'not_found' || payload?.error === 'Session not found') {
+      return;
+    }
+
+    throw new Error(errorMessageFromPayload(payload, 'Failed to delete session'));
+  }
 
   if (!response.ok) {
     throw new Error(await readErrorMessage(response, 'Failed to delete session'));

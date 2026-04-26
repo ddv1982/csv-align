@@ -16,11 +16,23 @@ afterEach(() => {
   vi.doUnmock('../../services/tauri');
 });
 
-test('uses a hidden JSON file input in browser mode and forwards the selected file', async () => {
+test('uses a semantic button trigger with a hidden JSON file input in browser mode', async () => {
+  await renderButton(false);
+
+  const trigger = screen.getByRole('button', { name: 'Open saved result' });
+  const input = screen.getByTestId('load-result-input');
+  const clickSpy = vi.spyOn(input, 'click');
+
+  expect(input).toHaveAttribute('accept', '.json,application/json');
+
+  fireEvent.click(trigger);
+  expect(clickSpy).toHaveBeenCalledTimes(1);
+});
+
+test('forwards the selected file in browser mode', async () => {
   const { onLoadResult } = await renderButton(false);
 
   const input = screen.getByTestId('load-result-input');
-  expect(input).toHaveAttribute('accept', '.json,application/json');
 
   fireEvent.change(input, {
     target: {

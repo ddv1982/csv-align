@@ -62,12 +62,14 @@ describe('useComparisonWorkflow reducer', () => {
       file_a: {
         name: 'left.csv',
         headers: ['id'],
+        virtual_headers: [],
         columns: [],
         row_count: 1,
       },
       file_b: {
         name: 'right.csv',
         headers: ['record_id'],
+        virtual_headers: [],
         columns: [],
         row_count: 1,
       },

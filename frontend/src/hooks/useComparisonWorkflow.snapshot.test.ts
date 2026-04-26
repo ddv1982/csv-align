@@ -65,6 +65,7 @@ test('loads a saved comparison snapshot into the results workflow state', async 
     file_a: {
       name: 'left.csv',
       headers: ['id', 'name'],
+      virtual_headers: ['person.id', 'person.name'],
       columns: [
         { index: 0, name: 'id', data_type: 'string' },
         { index: 1, name: 'name', data_type: 'string' },
@@ -74,6 +75,7 @@ test('loads a saved comparison snapshot into the results workflow state', async 
     file_b: {
       name: 'right.csv',
       headers: ['record_id', 'display_name'],
+      virtual_headers: ['person.id', 'person.name'],
       columns: [
         { index: 0, name: 'record_id', data_type: 'string' },
         { index: 1, name: 'display_name', data_type: 'string' },
@@ -145,7 +147,7 @@ test('loads a saved comparison snapshot into the results workflow state', async 
   expect(result.current.state.fileA).toEqual({
     name: 'left.csv',
     headers: ['id', 'name'],
-    virtualHeaders: [],
+    virtualHeaders: ['person.id', 'person.name'],
     columns: [
       { index: 0, name: 'id', data_type: 'string' },
       { index: 1, name: 'name', data_type: 'string' },

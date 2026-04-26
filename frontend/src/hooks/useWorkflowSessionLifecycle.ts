@@ -8,6 +8,17 @@ interface UseWorkflowSessionLifecycleParams {
   setWorkflowError: (error: unknown) => void;
 }
 
+function isSessionNotFoundError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) {
+    return false;
+  }
+
+  const candidate = error as { code?: unknown; error?: unknown; message?: unknown };
+  return candidate.code === 'not_found'
+    || candidate.error === 'Session not found'
+    || candidate.message === 'Session not found';
+}
+
 export function useWorkflowSessionLifecycle({
   state,
   dispatch,
@@ -32,7 +43,13 @@ export function useWorkflowSessionLifecycle({
 
     try {
       if (outgoingSessionId) {
-        await deleteSession(outgoingSessionId);
+        try {
+          await deleteSession(outgoingSessionId);
+        } catch (error) {
+          if (!isSessionNotFoundError(error)) {
+            throw error;
+          }
+        }
       }
       const response = await createSession();
       dispatch({ type: 'sessionCreated', sessionId: response.session_id });

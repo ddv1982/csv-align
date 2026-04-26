@@ -82,6 +82,13 @@ test('renders the kinetic idle styling for the empty dropzone', () => {
   expect(dropzone).toHaveClass('kinetic-dropzone');
 });
 
+test('renders a semantic button trigger for choosing a file in empty state', () => {
+  const onSelect = vi.fn();
+  render(<FileSelector label="File A" file={null} onSelect={onSelect} />);
+
+  expect(screen.getByRole('button', { name: 'Choose a CSV file' })).toBeInTheDocument();
+});
+
 test('supports keyboard activation on the dropzone', () => {
   const onSelect = vi.fn();
   render(<FileSelector label="File A" file={null} onSelect={onSelect} />);
@@ -104,6 +111,24 @@ test('activates the picker from Enter and Space key presses', () => {
   fireEvent.keyDown(dropzone, { key: 'Escape' });
 
   expect(clickSpy).toHaveBeenCalledTimes(2);
+});
+
+test('renders a semantic button trigger for replacing a selected file', () => {
+  const onSelect = vi.fn();
+  render(
+    <FileSelector
+      label="File A"
+      file={{
+        name: 'existing.csv',
+        headers: ['id'],
+        columns: [{ index: 0, name: 'id', data_type: 'string' }],
+        rowCount: 1,
+      }}
+      onSelect={onSelect}
+    />,
+  );
+
+  expect(screen.getByRole('button', { name: 'Choose a different CSV file' })).toBeInTheDocument();
 });
 
 test('picker-cancel does not call onSelect when the file input is cleared', () => {

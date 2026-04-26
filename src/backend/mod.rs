@@ -28,6 +28,7 @@ pub use workflow::{
     comparison_inputs, export_results_for_session, export_results_to_bytes,
     export_session_results_snapshot, load_comparison_snapshot_for_session, load_csv_workflow,
     load_pair_order_for_session, parse_file_side, run_comparison, run_comparison_for_session,
-    save_comparison_snapshot_for_session, save_pair_order_for_session, suggest_mappings_workflow,
-    validate_file_letter, write_export_results,
+    save_comparison_snapshot_for_session, save_pair_order_for_session,
+    suggest_mappings_for_session, suggest_mappings_workflow, validate_file_letter,
+    write_export_results,
 };

@@ -34,6 +34,22 @@ fn create_csv_pair(
 }
 
 #[test]
+fn cleanup_settings_defaults_match_product_normalization_baseline() {
+    let defaults = ComparisonNormalizationConfig::default();
+
+    assert!(defaults.treat_empty_as_null);
+    assert_eq!(defaults.null_tokens, vec!["null", "na", "n/a", "none"]);
+    assert!(defaults.null_token_case_insensitive);
+    assert!(!defaults.case_insensitive);
+    assert!(!defaults.trim_whitespace);
+    assert!(!defaults.date_normalization.enabled);
+    assert_eq!(
+        defaults.date_normalization.formats,
+        vec!["%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%d-%m-%Y", "%m-%d-%Y"]
+    );
+}
+
+#[test]
 fn cleanup_settings_matches_configured_common_null_tokens_beyond_null() {
     let (csv_a, csv_b) = create_csv_pair("NA", "None");
     let config = create_config(ComparisonNormalizationConfig {

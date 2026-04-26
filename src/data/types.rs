@@ -85,12 +85,26 @@ pub struct ComparisonNormalizationConfig {
 impl Default for ComparisonNormalizationConfig {
     fn default() -> Self {
         Self {
-            treat_empty_as_null: false,
-            null_tokens: Vec::new(),
+            treat_empty_as_null: true,
+            null_tokens: vec![
+                "null".to_string(),
+                "na".to_string(),
+                "n/a".to_string(),
+                "none".to_string(),
+            ],
             null_token_case_insensitive: true,
             case_insensitive: false,
             trim_whitespace: false,
-            date_normalization: DateNormalizationConfig::default(),
+            date_normalization: DateNormalizationConfig {
+                enabled: false,
+                formats: vec![
+                    "%Y-%m-%d".to_string(),
+                    "%d/%m/%Y".to_string(),
+                    "%m/%d/%Y".to_string(),
+                    "%d-%m-%Y".to_string(),
+                    "%m-%d-%Y".to_string(),
+                ],
+            },
         }
     }
 }

@@ -141,6 +141,8 @@ pub fn apply_csv_to_session(
     file_letter: FileSide,
     csv_data: CsvData,
 ) -> FileLoadResponse {
+    session_data.advance_data_revision();
+
     let file_name = csv_data
         .file_path
         .as_deref()
@@ -228,6 +230,18 @@ pub fn suggest_mappings_workflow(
     response
 }
 
+pub fn suggest_mappings_for_session(
+    store: &SessionStore,
+    session_id: &str,
+    request: &SuggestMappingsRequest,
+) -> Result<SuggestMappingsResponse, CsvAlignError> {
+    store
+        .with_session_mut(session_id, |session_data| {
+            suggest_mappings_workflow(Some(session_data), request)
+        })
+        .ok_or_else(session_not_found)
+}
+
 pub fn comparison_inputs(
     session_data: &SessionData,
 ) -> Result<(Arc<CsvData>, Arc<CsvData>), CsvAlignError> {
@@ -261,13 +275,45 @@ pub fn run_comparison(
     })
 }
 
+fn write_comparison_if_inputs_current(
+    session_data: &mut SessionData,
+    csv_a: &Arc<CsvData>,
+    csv_b: &Arc<CsvData>,
+    input_revision: u64,
+    execution: CompareExecution,
+) -> Result<(), CsvAlignError> {
+    let inputs_changed = session_data.data_revision != input_revision
+        || !session_data
+            .csv_a
+            .as_ref()
+            .is_some_and(|current| Arc::ptr_eq(current, csv_a))
+        || !session_data
+            .csv_b
+            .as_ref()
+            .is_some_and(|current| Arc::ptr_eq(current, csv_b));
+
+    if inputs_changed {
+        return Err(CsvAlignError::BadInput(
+            "Comparison inputs changed before results could be stored. Run the comparison again."
+                .to_string(),
+        ));
+    }
+
+    session_data.comparison_results = execution.results;
+    session_data.comparison_config = Some(execution.config);
+    Ok(())
+}
+
 pub fn run_comparison_for_session(
     store: &SessionStore,
     session_id: &str,
     request: CompareRequest,
 ) -> Result<CompareResponse, CsvAlignError> {
-    let (csv_a, csv_b) = store
-        .with_session(session_id, comparison_inputs)
+    let (csv_a, csv_b, input_revision) = store
+        .with_session(session_id, |session_data| {
+            let (csv_a, csv_b) = comparison_inputs(session_data)?;
+            Ok::<_, CsvAlignError>((csv_a, csv_b, session_data.data_revision))
+        })
         .ok_or_else(session_not_found)??;
 
     let execution = run_comparison(csv_a.as_ref(), csv_b.as_ref(), request)?;
@@ -275,10 +321,15 @@ pub fn run_comparison_for_session(
 
     store
         .with_session_mut(session_id, |session_data| {
-            session_data.comparison_results = execution.results;
-            session_data.comparison_config = Some(execution.config);
+            write_comparison_if_inputs_current(
+                session_data,
+                &csv_a,
+                &csv_b,
+                input_revision,
+                execution,
+            )
         })
-        .ok_or_else(session_not_found)?;
+        .ok_or_else(session_not_found)??;
 
     Ok(response)
 }
@@ -286,7 +337,7 @@ pub fn run_comparison_for_session(
 pub fn export_session_results_snapshot(
     session_data: &SessionData,
 ) -> Result<(Vec<RowComparisonResult>, Option<ComparisonConfig>), CsvAlignError> {
-    if session_data.comparison_results.is_empty() {
+    if session_data.comparison_config.is_none() {
         return Err(CsvAlignError::BadInput(
             "No comparison results to export. Run a comparison first.".to_string(),
         ));
@@ -369,4 +420,70 @@ pub fn load_comparison_snapshot_for_session(
             load_comparison_snapshot_workflow(session_data, contents)
         })
         .ok_or_else(session_not_found)?
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::backend::requests::MappingRequest;
+    use crate::data::csv_loader;
+    use crate::data::types::ComparisonNormalizationConfig;
+
+    fn compare_request() -> CompareRequest {
+        CompareRequest {
+            key_columns_a: vec!["id".to_string()],
+            key_columns_b: vec!["id".to_string()],
+            comparison_columns_a: vec!["name".to_string()],
+            comparison_columns_b: vec!["name".to_string()],
+            column_mappings: vec![MappingRequest {
+                file_a_column: "name".to_string(),
+                file_b_column: "name".to_string(),
+                mapping_type: "manual".to_string(),
+                similarity: None,
+            }],
+            normalization: ComparisonNormalizationConfig::default(),
+        }
+    }
+
+    #[test]
+    fn stale_comparison_writeback_is_rejected_after_file_replacement() {
+        let mut session = SessionData::new();
+        apply_csv_to_session(
+            &mut session,
+            FileSide::A,
+            csv_loader::load_csv_from_bytes(b"id,name\n1,Alice\n").unwrap(),
+        );
+        apply_csv_to_session(
+            &mut session,
+            FileSide::B,
+            csv_loader::load_csv_from_bytes(b"id,name\n1,Alice\n").unwrap(),
+        );
+
+        let (csv_a, csv_b) = comparison_inputs(&session).unwrap();
+        let input_revision = session.data_revision;
+        let execution = run_comparison(csv_a.as_ref(), csv_b.as_ref(), compare_request()).unwrap();
+
+        apply_csv_to_session(
+            &mut session,
+            FileSide::A,
+            csv_loader::load_csv_from_bytes(b"id,name\n1,Alicia\n").unwrap(),
+        );
+
+        let error = write_comparison_if_inputs_current(
+            &mut session,
+            &csv_a,
+            &csv_b,
+            input_revision,
+            execution,
+        )
+        .unwrap_err();
+
+        assert!(matches!(error, CsvAlignError::BadInput(_)));
+        assert_eq!(
+            error.to_string(),
+            "Comparison inputs changed before results could be stored. Run the comparison again."
+        );
+        assert!(session.comparison_results.is_empty());
+        assert!(session.comparison_config.is_none());
+    }
 }

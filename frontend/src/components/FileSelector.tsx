@@ -39,6 +39,7 @@ interface FileSelectorProps {
 export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
   const inputId = useId();
   const dropzoneRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [selectionError, setSelectionError] = useState<string | null>(null);
 
@@ -131,9 +132,8 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
   }, [handleSelectedFile]);
 
   const openFilePicker = useCallback(() => {
-    const input = document.getElementById(inputId) as HTMLInputElement | null;
-    input?.click();
-  }, [inputId]);
+    fileInputRef.current?.click();
+  }, []);
 
   const handleDropzoneKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'Enter' && event.key !== ' ') {
@@ -209,16 +209,22 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
             </div>
           </details>
 
-          <label className="mt-4 btn btn-secondary w-full text-center cursor-pointer block">
-            <input
-              id={inputId}
-              type="file"
-              accept=".csv"
-              onChange={handleFileChange}
-              className="hidden"
-            />
+          <button
+            type="button"
+            onClick={openFilePicker}
+            className="mt-4 btn btn-secondary block w-full text-center"
+          >
             Choose a different CSV file
-          </label>
+          </button>
+          <input
+            ref={fileInputRef}
+            id={inputId}
+            aria-label="Choose a CSV file"
+            type="file"
+            accept=".csv"
+            onChange={handleFileChange}
+            className="hidden"
+          />
         </div>
       ) : (
         <div
@@ -249,16 +255,18 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
               </p>
               <p className="mb-4 text-sm text-[color:var(--color-kinetic-muted)]">or choose one from this device</p>
 
-              <label className="btn btn-primary cursor-pointer">
-                <input
-                  id={inputId}
-                  type="file"
-                  accept=".csv"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
+              <button type="button" onClick={openFilePicker} className="btn btn-primary">
                 Choose a CSV file
-              </label>
+              </button>
+              <input
+                ref={fileInputRef}
+                id={inputId}
+                aria-label="Choose a CSV file"
+                type="file"
+                accept=".csv"
+                onChange={handleFileChange}
+                className="hidden"
+              />
             </div>
           </div>
       )}

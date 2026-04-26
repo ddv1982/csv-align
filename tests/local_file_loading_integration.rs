@@ -82,6 +82,7 @@ async fn local_file_loading_rejects_missing_multipart_files() {
 
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     let json = response_json(response).await;
+    assert_eq!(json["code"], "bad_input");
     assert_eq!(json["error"], "No file provided");
 }
 

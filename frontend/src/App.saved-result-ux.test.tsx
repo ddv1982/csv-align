@@ -84,6 +84,7 @@ beforeEach(() => {
     file_a: {
       name: 'saved-left.csv',
       headers: ['id', 'name'],
+      virtual_headers: [],
       columns: [
         { index: 0, name: 'id', data_type: 'string' },
         { index: 1, name: 'name', data_type: 'string' },
@@ -93,6 +94,7 @@ beforeEach(() => {
     file_b: {
       name: 'saved-right.csv',
       headers: ['id', 'name'],
+      virtual_headers: [],
       columns: [
         { index: 0, name: 'id', data_type: 'string' },
         { index: 1, name: 'name', data_type: 'string' },

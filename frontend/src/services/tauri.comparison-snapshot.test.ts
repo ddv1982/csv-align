@@ -60,12 +60,14 @@ test('loadComparisonSnapshot reads the selected file and posts its contents in b
     file_a: {
       name: 'left.csv',
       headers: ['id'],
+      virtual_headers: [],
       columns: [{ index: 0, name: 'id', data_type: 'string' }],
       row_count: 1,
     },
     file_b: {
       name: 'right.csv',
       headers: ['record_id'],
+      virtual_headers: [],
       columns: [{ index: 0, name: 'record_id', data_type: 'string' }],
       row_count: 1,
     },

@@ -123,7 +123,7 @@ export interface LoadPairOrderResponse {
 export interface ComparisonSnapshotFileResponse {
   name: string;
   headers: string[];
-  virtual_headers?: string[];
+  virtual_headers: string[];
   columns: ColumnInfo[];
   row_count: number;
 }

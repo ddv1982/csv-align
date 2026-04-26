@@ -227,6 +227,31 @@ async fn response_contracts_suggest_mappings_serializes_exact_and_fuzzy_mappings
 }
 
 #[tokio::test]
+async fn response_contracts_suggest_mappings_returns_not_found_for_missing_sessions() {
+    let state = AppState::new();
+
+    let response = handlers::suggest_mappings(
+        State(state),
+        Path("missing-session".to_string()),
+        Json(SuggestMappingsRequest {
+            columns_a: vec!["FirstName".to_string()],
+            columns_b: vec!["first_name".to_string()],
+        }),
+    )
+    .await;
+
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    let json = response_json(response).await;
+    assert_eq!(
+        json,
+        serde_json::json!({
+            "code": "not_found",
+            "error": "Session not found"
+        })
+    );
+}
+
+#[tokio::test]
 async fn response_contracts_create_and_delete_session_keep_stable_status_and_error_shapes() {
     let state = AppState::new();
 

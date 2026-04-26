@@ -9,7 +9,7 @@ use csv_align::backend::{
     SuggestMappingsRequest, apply_loaded_csv_for_session, export_results_for_session,
     load_comparison_snapshot_for_session, load_csv_workflow, load_pair_order_for_session,
     parse_file_side, run_comparison_for_session, save_comparison_snapshot_for_session,
-    save_pair_order_for_session, suggest_mappings_workflow, validate_file_letter,
+    save_pair_order_for_session, suggest_mappings_for_session, validate_file_letter,
 };
 use csv_align::presentation::responses::{
     CompareResponse, FileLoadResponse, SuggestMappingsResponse,
@@ -92,11 +92,7 @@ pub(crate) fn suggest_mappings(
     session_id: String,
     request: SuggestMappingsRequest,
 ) -> Result<SuggestMappingsResponse, CsvAlignError> {
-    Ok(state
-        .with_session_mut(&session_id, |session_data| {
-            suggest_mappings_workflow(Some(session_data), &request)
-        })
-        .unwrap_or_else(|| suggest_mappings_workflow(None, &request)))
+    suggest_mappings_for_session(state.inner().as_ref(), &session_id, &request)
 }
 
 /// Run comparison

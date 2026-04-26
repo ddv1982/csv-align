@@ -8,14 +8,15 @@ use serde::Serialize;
 use tokio::task;
 
 use super::state::AppState;
+use crate::backend::parse_file_side;
 pub use crate::backend::{CompareRequest, MappingRequest, SessionResponse, SuggestMappingsRequest};
 use crate::backend::{
     CsvAlignError, CsvLoadSource, LoadComparisonSnapshotRequest, LoadPairOrderRequest,
     SavePairOrderRequest, apply_loaded_csv_for_session, export_results_for_session,
     load_comparison_snapshot_for_session, load_csv_workflow, load_pair_order_for_session,
     run_comparison_for_session, save_comparison_snapshot_for_session, save_pair_order_for_session,
+    suggest_mappings_for_session,
 };
-use crate::backend::{parse_file_side, suggest_mappings_workflow};
 
 /// Response for health check
 #[derive(Serialize)]
@@ -24,24 +25,11 @@ pub struct HealthResponse {
     pub version: String,
 }
 
-/// Error response
+/// Typed HTTP error body shape used by csv-align API errors.
 #[derive(Serialize)]
 pub struct ErrorResponse {
+    pub code: String,
     pub error: String,
-}
-
-fn error_response(status: StatusCode, error: impl Into<String>) -> Response {
-    (
-        status,
-        Json(ErrorResponse {
-            error: error.into(),
-        }),
-    )
-        .into_response()
-}
-
-fn bad_request_response(error: impl Into<String>) -> Response {
-    error_response(StatusCode::BAD_REQUEST, error)
 }
 
 fn session_not_found_response() -> Response {
@@ -130,7 +118,7 @@ pub async fn load_csv_file(
 
     let field = match multipart.next_field().await {
         Ok(Some(field)) => field,
-        Ok(None) => return bad_request_response("No file provided"),
+        Ok(None) => return CsvAlignError::BadInput("No file provided".to_string()).into_response(),
         Err(error) => {
             return CsvAlignError::BadInput(format!("Failed to read multipart: {error}"))
                 .into_response();
@@ -184,13 +172,11 @@ pub async fn suggest_mappings(
     Path(session_id): Path<String>,
     Json(request): Json<SuggestMappingsRequest>,
 ) -> Response {
-    let response = state
-        .with_session_mut(&session_id, |session_data| {
-            suggest_mappings_workflow(Some(session_data), &request)
-        })
-        .unwrap_or_else(|| suggest_mappings_workflow(None, &request));
-
-    Json(response).into_response()
+    match suggest_mappings_for_session(state.store.as_ref(), &session_id, &request) {
+        Ok(response) => Json(response).into_response(),
+        Err(CsvAlignError::NotFound { .. }) => session_not_found_response(),
+        Err(error) => error.into_response(),
+    }
 }
 
 /// Run comparison

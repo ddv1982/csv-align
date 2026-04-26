@@ -59,6 +59,8 @@ pub struct LoadPairOrderResponse {
 pub struct ComparisonSnapshotFile {
     pub name: String,
     pub headers: Vec<String>,
+    #[serde(default)]
+    pub virtual_headers: Vec<String>,
     pub columns: Vec<ColumnResponse>,
     pub row_count: usize,
 }
@@ -152,5 +154,36 @@ impl fmt::Display for CompareValidationError {
                 f.write_str(message)
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::CompareRequest;
+
+    #[test]
+    fn compare_request_defaults_normalization_when_omitted() {
+        let request: CompareRequest = serde_json::from_value(serde_json::json!({
+            "key_columns_a": ["id"],
+            "key_columns_b": ["id"],
+            "comparison_columns_a": ["value"],
+            "comparison_columns_b": ["value"],
+            "column_mappings": []
+        }))
+        .expect("compare request should deserialize");
+
+        assert!(request.normalization.treat_empty_as_null);
+        assert_eq!(
+            request.normalization.null_tokens,
+            vec!["null", "na", "n/a", "none"]
+        );
+        assert!(request.normalization.null_token_case_insensitive);
+        assert!(!request.normalization.case_insensitive);
+        assert!(!request.normalization.trim_whitespace);
+        assert_eq!(
+            request.normalization.date_normalization.formats,
+            vec!["%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%d-%m-%Y", "%m-%d-%Y"]
+        );
+        assert!(!request.normalization.date_normalization.enabled);
     }
 }

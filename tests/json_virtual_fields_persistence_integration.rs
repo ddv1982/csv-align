@@ -119,6 +119,14 @@ b,"{""row_key"":""K2"",""score"":7}"
 
     assert_eq!(loaded.selection.key_columns_a, vec!["metrics.row_key"]);
     assert_eq!(loaded.selection.comparison_columns_a, vec!["metrics.score"]);
+    assert_eq!(
+        loaded.file_a.virtual_headers,
+        vec!["metrics.row_key", "metrics.score"]
+    );
+    assert_eq!(
+        loaded.file_b.virtual_headers,
+        vec!["metrics.row_key", "metrics.score"]
+    );
     assert_eq!(loaded.summary.mismatches, 1);
     let mismatch = loaded
         .results

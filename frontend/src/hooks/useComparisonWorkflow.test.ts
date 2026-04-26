@@ -578,6 +578,32 @@ test('keeps public handlers stable across rerenders when their dependencies do n
   expect(result.current.handleContinueToConfigure).toBe(initialHandlers.handleContinueToConfigure);
 });
 
+test('reset creates a replacement session when the outgoing session is already missing', async () => {
+  createSessionMock
+    .mockResolvedValueOnce({ session_id: 'session-1' })
+    .mockResolvedValueOnce({ session_id: 'session-2' });
+  deleteSessionMock.mockRejectedValueOnce({ code: 'not_found', error: 'Session not found' });
+
+  const { result } = renderHook(() => useComparisonWorkflow());
+
+  await waitFor(() => {
+    expect(result.current.state.sessionId).toBe('session-1');
+  });
+
+  await act(async () => {
+    await result.current.handleReset();
+  });
+
+  await waitFor(() => {
+    expect(result.current.state.sessionId).toBe('session-2');
+  });
+
+  expect(deleteSessionMock).toHaveBeenCalledWith('session-1');
+  expect(createSessionMock).toHaveBeenCalledTimes(2);
+  expect(result.current.state.error).toBeNull();
+  expect(result.current.step).toBe('select');
+});
+
 test('surfaces a reset error when deleting the outgoing session fails', async () => {
   createSessionMock.mockResolvedValueOnce({ session_id: 'session-1' });
   deleteSessionMock.mockRejectedValueOnce(new Error('delete failed'));
