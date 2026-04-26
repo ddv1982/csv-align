@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.38 - 2026-04-26
+
+- Fixed session-scoped compare and mapping workflows so stale comparison writes are rejected, missing-session transport calls stay consistent across HTTP and Tauri, and zero-result comparisons can still export and round-trip through saved snapshots.
+- Aligned snapshot metadata and normalization defaults across the backend and frontend, improved reset recovery and accessibility semantics for saved-result/file-picker flows, and reran the documented validation suite before this patch release.
+
 ## v2.1.37 - 2026-04-24
 
 - Added virtual JSON field mapping so object keys stored inside a single CSV cell can be selected in Step 2 and compared against separate columns or other JSON subfields.
