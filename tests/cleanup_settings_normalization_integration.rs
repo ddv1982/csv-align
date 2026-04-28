@@ -34,6 +34,40 @@ fn create_csv_pair(
 }
 
 #[test]
+fn cleanup_settings_apply_to_key_matching() {
+    let csv_a = csv_data("left.csv", &["id", "value"], &[&["  AbC  ", "same"]]);
+    let csv_b = csv_data("right.csv", &["id", "value"], &[&["abc", "same"]]);
+    let config = create_config(ComparisonNormalizationConfig {
+        case_insensitive: true,
+        trim_whitespace: true,
+        ..ComparisonNormalizationConfig::default()
+    });
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    assert!(matches!(results[0], RowComparisonResult::Match { .. }));
+}
+
+#[test]
+fn cleanup_settings_apply_date_normalization_to_key_matching() {
+    let csv_a = csv_data("left.csv", &["id", "value"], &[&["2026-04-13", "same"]]);
+    let csv_b = csv_data("right.csv", &["id", "value"], &[&["13/04/2026", "same"]]);
+    let config = create_config(ComparisonNormalizationConfig {
+        date_normalization: DateNormalizationConfig {
+            enabled: true,
+            formats: vec!["%Y-%m-%d".to_string(), "%d/%m/%Y".to_string()],
+        },
+        ..ComparisonNormalizationConfig::default()
+    });
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    assert!(matches!(results[0], RowComparisonResult::Match { .. }));
+}
+
+#[test]
 fn cleanup_settings_defaults_match_product_normalization_baseline() {
     let defaults = ComparisonNormalizationConfig::default();
 

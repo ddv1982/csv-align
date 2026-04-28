@@ -39,8 +39,14 @@ fn values_match_with_config(
     }
 }
 
-pub(crate) fn value_is_nullish(value: &str, normalization: &ComparisonNormalizationConfig) -> bool {
-    matches!(normalize_value(value, normalization), NormalizedValue::Null)
+pub(crate) fn normalize_key_value(
+    value: &str,
+    normalization: &ComparisonNormalizationConfig,
+) -> Option<String> {
+    match normalize_value(value, normalization) {
+        NormalizedValue::Null => None,
+        NormalizedValue::Text(value) => Some(value),
+    }
 }
 
 fn normalize_value(value: &str, normalization: &ComparisonNormalizationConfig) -> NormalizedValue {

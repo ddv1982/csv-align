@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.39 - 2026-04-28
+
+- Fixed key matching so cleanup rules such as trimming, case-insensitive comparison, and date normalization are applied consistently before rows are matched between CSV files.
+- Prepared the v2.1.39 patch release by synchronizing the documented release metadata files before rerunning the broad release validation suite.
+
 ## v2.1.38 - 2026-04-26
 
 - Fixed session-scoped compare and mapping workflows so stale comparison writes are rejected, missing-session transport calls stay consistent across HTTP and Tauri, and zero-result comparisons can still export and round-trip through saved snapshots.

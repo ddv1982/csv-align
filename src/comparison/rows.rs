@@ -2,7 +2,7 @@ use super::super::data::json_fields::{
     ColumnSelection, extract_selected_columns, resolve_column_selection,
 };
 use super::super::data::types::CsvData;
-use super::value_compare::value_is_nullish;
+use super::value_compare::normalize_key_value;
 use std::collections::HashMap;
 
 use crate::data::types::ComparisonNormalizationConfig;
@@ -26,15 +26,15 @@ pub(super) fn split_rows_by_key_usable(
     let mut nullish_rows = Vec::new();
 
     for (index, row) in csv_data.rows.iter().enumerate() {
-        let key = extract_columns(row, key_selections);
-
-        if key
+        let raw_key = extract_columns(row, key_selections);
+        let Some(key) = raw_key
             .iter()
-            .any(|value| value_is_nullish(value, normalization))
-        {
+            .map(|value| normalize_key_value(value, normalization))
+            .collect::<Option<Vec<_>>>()
+        else {
             nullish_rows.push(index);
             continue;
-        }
+        };
 
         keyed_rows.entry(key).or_insert_with(Vec::new).push(index);
     }
