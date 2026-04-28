@@ -198,6 +198,7 @@ jobs:
     runs-on: ubuntu-22.04
     env:
       TAURI_TARGET: x86_64-unknown-linux-gnu
+      RELEASE_ARTIFACT_NAME: csv-align-linux-x86_64-release-bundle
 
     steps:
       - name: Checkout repository
@@ -254,12 +255,12 @@ jobs:
           rm -rf target/${{ env.TAURI_TARGET }}/release/bundle
           cargo tauri build --target ${{ env.TAURI_TARGET }}
 
-      - name: Upload artifacts (pull requests only)
-        if: github.event_name == 'pull_request'
+      - name: Upload reusable Tauri bundle artifact
         uses: actions/upload-artifact@v4
         with:
-          name: csv-align-linux-x86_64
+          name: ${{ env.RELEASE_ARTIFACT_NAME }}
           path: |
             src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/*.deb
             src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage
-          retention-days: 1
+          if-no-files-found: error
+          retention-days: 7

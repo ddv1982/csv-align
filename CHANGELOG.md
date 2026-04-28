@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.43 - 2026-04-28
+
+- Reworked the release pipeline to reuse the Tauri bundle built by CI: CI now uploads a reusable Linux package artifact, and the tag-triggered release downloads that artifact from the successful CI run for the same commit instead of rebuilding Tauri.
+- Added an explicit artifact-availability check in the release gate, widened release artifact upload globs to match extracted artifact layout, and prepared the v2.1.43 patch release.
+
 ## v2.1.42 - 2026-04-28
 
 - Optimized GitHub Actions costs and throughput by adding concurrency cancellation, path-scoped CI job triggers, shorter-lived PR artifacts, and better Rust cache reuse across CI and release workflows.
