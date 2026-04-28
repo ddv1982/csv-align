@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.44 - 2026-04-28
+
+- Updated GitHub-maintained Actions to newer Node 24-capable majors (`actions/checkout@v6`, `actions/setup-node@v6`, `actions/upload-artifact@v6`, and `actions/download-artifact@v6`) to address the Node 20 deprecation warnings on GitHub-hosted runners.
+- Fixed the release publication steps to pass `--repo ${{ github.repository }}` to `gh release` commands so publish/edit operations no longer depend on a checked-out `.git` directory, then prepared the v2.1.44 patch release.
+
 ## v2.1.43 - 2026-04-28
 
 - Reworked the release pipeline to reuse the Tauri bundle built by CI: CI now uploads a reusable Linux package artifact, and the tag-triggered release downloads that artifact from the successful CI run for the same commit instead of rebuilding Tauri.
