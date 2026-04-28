@@ -47,6 +47,7 @@ fn cleanup_settings_apply_to_key_matching() {
 
     assert_eq!(results.len(), 1);
     assert!(matches!(results[0], RowComparisonResult::Match { .. }));
+    assert_eq!(results[0].key(), ["  AbC  "]);
 }
 
 #[test]
@@ -65,6 +66,7 @@ fn cleanup_settings_apply_date_normalization_to_key_matching() {
 
     assert_eq!(results.len(), 1);
     assert!(matches!(results[0], RowComparisonResult::Match { .. }));
+    assert_eq!(results[0].key(), ["2026-04-13"]);
 }
 
 #[test]
@@ -136,6 +138,7 @@ fn cleanup_settings_apply_numeric_equivalence_to_key_matching() {
 
     assert_eq!(results.len(), 1);
     assert!(matches!(results[0], RowComparisonResult::Match { .. }));
+    assert_eq!(results[0].key(), ["100"]);
 }
 
 #[test]

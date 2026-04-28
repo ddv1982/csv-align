@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.41 - 2026-04-28
+
+- Fixed normalized key matching so cleanup rules still determine row matches internally while comparison results, exports, and API payloads preserve the original CSV key text from the source rows.
+- Added regression assertions that cleanup-enabled key matching keeps the displayed key stable across trim/case, date, and numeric-equivalence scenarios, then prepared the v2.1.41 patch release.
+
 ## v2.1.40 - 2026-04-28
 
 - Added an opt-in comparison cleanup rule that treats equivalent decimal representations such as `100`, `100.0`, and `100.00` as the same value while still reporting genuinely different numbers.

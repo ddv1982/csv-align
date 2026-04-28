@@ -42,61 +42,67 @@ pub fn compare_csv_data(
     let mut processed_keys = std::collections::HashSet::new();
 
     // Process all keys from file A
-    for (key, indices_a) in &map_a {
+    for (key, keyed_rows_a) in &map_a {
         if processed_keys.contains(key) {
             continue;
         }
         processed_keys.insert(key.clone());
 
         // Handle duplicates in File A
-        if indices_a.len() > 1 {
-            if let Some(indices_b) = map_b.get(key) {
-                if indices_b.len() > 1 {
+        if keyed_rows_a.indices.len() > 1 {
+            if let Some(keyed_rows_b) = map_b.get(key) {
+                if keyed_rows_b.indices.len() > 1 {
                     // Multiple matches in both files - report explicit duplicates per side once.
-                    let values_a: Vec<Vec<String>> = indices_a
+                    let values_a: Vec<Vec<String>> = keyed_rows_a
+                        .indices
                         .iter()
                         .map(|&i| extract_columns(&csv_a.rows[i], &comp_selections_a))
                         .collect();
-                    let values_b: Vec<Vec<String>> = indices_b
+                    let values_b: Vec<Vec<String>> = keyed_rows_b
+                        .indices
                         .iter()
                         .map(|&i| extract_columns(&csv_b.rows[i], &comp_selections_b))
                         .collect();
 
                     results.push(RowComparisonResult::Duplicate {
-                        key: key.clone(),
+                        key: keyed_rows_a.display_key.clone(),
                         values_a,
                         values_b,
                     });
                 } else {
                     // Report duplicates from File A and still compare the first occurrence with File B.
-                    let values_a_duplicates: Vec<Vec<String>> = indices_a
+                    let values_a_duplicates: Vec<Vec<String>> = keyed_rows_a
+                        .indices
                         .iter()
                         .map(|&i| extract_columns(&csv_a.rows[i], &comp_selections_a))
                         .collect();
                     results.push(RowComparisonResult::Duplicate {
-                        key: key.clone(),
+                        key: keyed_rows_a.display_key.clone(),
                         values_a: values_a_duplicates,
                         values_b: Vec::new(),
                     });
 
                     // Single match in File B - compare with first occurrence in File A
-                    let values_a = extract_columns(&csv_a.rows[indices_a[0]], &comp_selections_a);
-                    let values_b = extract_columns(&csv_b.rows[indices_b[0]], &comp_selections_b);
+                    let values_a =
+                        extract_columns(&csv_a.rows[keyed_rows_a.indices[0]], &comp_selections_a);
+                    let values_b =
+                        extract_columns(&csv_b.rows[keyed_rows_b.indices[0]], &comp_selections_b);
 
                     results.push(compare_single_match(
-                        key.clone(),
+                        keyed_rows_a.display_key.clone(),
                         values_a,
                         values_b,
                         config,
                     ));
                 }
             } else {
-                let values_a: Vec<Vec<String>> = indices_a
+                let values_a: Vec<Vec<String>> = keyed_rows_a
+                    .indices
                     .iter()
                     .map(|&i| extract_columns(&csv_a.rows[i], &comp_selections_a))
                     .collect();
                 results.push(RowComparisonResult::Duplicate {
-                    key: key.clone(),
+                    key: keyed_rows_a.display_key.clone(),
                     values_a,
                     values_b: Vec::new(),
                 });
@@ -105,26 +111,29 @@ pub fn compare_csv_data(
         }
 
         // Handle duplicates in File B
-        if let Some(indices_b) = map_b.get(key)
-            && indices_b.len() > 1
+        if let Some(keyed_rows_b) = map_b.get(key)
+            && keyed_rows_b.indices.len() > 1
         {
             // Report duplicates from File B
-            let values: Vec<Vec<String>> = indices_b
+            let values: Vec<Vec<String>> = keyed_rows_b
+                .indices
                 .iter()
                 .map(|&i| extract_columns(&csv_b.rows[i], &comp_selections_b))
                 .collect();
             results.push(RowComparisonResult::Duplicate {
-                key: key.clone(),
+                key: keyed_rows_a.display_key.clone(),
                 values_a: Vec::new(),
                 values_b: values,
             });
 
             // Compare the first occurrence in File B with File A
-            let values_a = extract_columns(&csv_a.rows[indices_a[0]], &comp_selections_a);
-            let values_b = extract_columns(&csv_b.rows[indices_b[0]], &comp_selections_b);
+            let values_a =
+                extract_columns(&csv_a.rows[keyed_rows_a.indices[0]], &comp_selections_a);
+            let values_b =
+                extract_columns(&csv_b.rows[keyed_rows_b.indices[0]], &comp_selections_b);
 
             results.push(compare_single_match(
-                key.clone(),
+                keyed_rows_a.display_key.clone(),
                 values_a,
                 values_b,
                 config,
@@ -133,42 +142,46 @@ pub fn compare_csv_data(
         }
 
         // Single occurrence in both files or only in File A
-        if let Some(indices_b) = map_b.get(key) {
+        if let Some(keyed_rows_b) = map_b.get(key) {
             // Key exists in both files with single occurrences
-            let values_a = extract_columns(&csv_a.rows[indices_a[0]], &comp_selections_a);
-            let values_b = extract_columns(&csv_b.rows[indices_b[0]], &comp_selections_b);
+            let values_a =
+                extract_columns(&csv_a.rows[keyed_rows_a.indices[0]], &comp_selections_a);
+            let values_b =
+                extract_columns(&csv_b.rows[keyed_rows_b.indices[0]], &comp_selections_b);
 
             results.push(compare_single_match(
-                key.clone(),
+                keyed_rows_a.display_key.clone(),
                 values_a,
                 values_b,
                 config,
             ));
         } else {
             // Key only in File A - missing from File B
-            let values_a = extract_columns(&csv_a.rows[indices_a[0]], &comp_selections_a);
+            let values_a =
+                extract_columns(&csv_a.rows[keyed_rows_a.indices[0]], &comp_selections_a);
             results.push(RowComparisonResult::MissingRight {
-                key: key.clone(),
+                key: keyed_rows_a.display_key.clone(),
                 values_a,
             });
         }
     }
 
     // Process keys only in File B
-    for (key, indices_b) in &map_b {
+    for (key, keyed_rows_b) in &map_b {
         if processed_keys.contains(key) {
             continue;
         }
 
         // Handle duplicates in File B (already processed in the main loop)
-        if indices_b.len() > 1 {
+        if keyed_rows_b.indices.len() > 1 {
             // Report duplicates from File B
-            let values: Vec<Vec<String>> = indices_b
+            let values: Vec<Vec<String>> = keyed_rows_b
+                .indices
                 .iter()
                 .map(|&i| extract_columns(&csv_b.rows[i], &comp_selections_b))
                 .collect();
             results.push(RowComparisonResult::Duplicate {
-                key: key.clone(),
+                key: keyed_rows_b.display_key.clone(),
                 values_a: Vec::new(),
                 values_b: values,
             });
@@ -176,9 +189,9 @@ pub fn compare_csv_data(
         }
 
         // Key only in File B - missing from File A
-        let values_b = extract_columns(&csv_b.rows[indices_b[0]], &comp_selections_b);
+        let values_b = extract_columns(&csv_b.rows[keyed_rows_b.indices[0]], &comp_selections_b);
         results.push(RowComparisonResult::MissingLeft {
-            key: key.clone(),
+            key: keyed_rows_b.display_key.clone(),
             values_b,
         });
     }
