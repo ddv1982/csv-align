@@ -135,8 +135,8 @@ jobs:
         working-directory: frontend
         run: npm run build
 
-  test-tauri-wrapper:
-    name: Test Tauri Wrapper
+  build-tauri:
+    name: Build Tauri
     needs: [changes, test, validate-release-metadata, test-frontend]
     if: |
       always() &&
@@ -144,57 +144,6 @@ jobs:
       (needs.test.result == 'success' || needs.test.result == 'skipped') &&
       needs.validate-release-metadata.result == 'success' &&
       (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped')
-    runs-on: ubuntu-22.04
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Setup Rust cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: |
-            . -> target
-            src-tauri -> src-tauri/target
-          key: tauri-wrapper-${{ runner.os }}
-
-      - name: Install Tauri test dependencies (Ubuntu)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Build frontend
-        working-directory: frontend
-        run: npm run build
-
-      - name: Run Tauri wrapper tests
-        working-directory: src-tauri
-        run: cargo test
-
-  build-tauri:
-    name: Build Tauri
-    needs: [changes, test, validate-release-metadata, test-frontend, test-tauri-wrapper]
-    if: |
-      always() &&
-      needs.changes.outputs.run_tauri_ci == 'true' &&
-      (needs.test.result == 'success' || needs.test.result == 'skipped') &&
-      needs.validate-release-metadata.result == 'success' &&
-      (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped') &&
-      needs.test-tauri-wrapper.result == 'success'
     runs-on: ubuntu-22.04
     env:
       TAURI_TARGET: x86_64-unknown-linux-gnu
@@ -245,6 +194,10 @@ jobs:
             . -> target
             src-tauri -> src-tauri/target
           key: tauri-build-${{ runner.os }}-${{ env.TAURI_TARGET }}
+
+      - name: Run Tauri wrapper tests
+        working-directory: src-tauri
+        run: cargo test
 
       - name: Install Tauri CLI
         run: cargo install tauri-cli --locked --version "^2"

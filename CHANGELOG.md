@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.46 - 2026-04-28
+
+- Simplified CI by folding the former standalone `test-tauri-wrapper` job into `build-tauri`, so the Tauri Linux dependency setup, frontend install/build, and Rust cache warming happen once before wrapper tests and packaging.
+- Kept the safety gates intact by running `cargo test` in `src-tauri` before `cargo tauri build`, then prepared the v2.1.46 patch release.
+
 ## v2.1.45 - 2026-04-28
 
 - Moved the Tauri frontend/backend command-name registry helper out of `src-tauri/src/main.rs` into a dedicated `src-tauri/src/test_support.rs` module so runtime code stays separate from test-only support code.
