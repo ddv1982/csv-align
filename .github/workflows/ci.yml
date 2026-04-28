@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -15,7 +19,10 @@ jobs:
     name: Detect changed files
     runs-on: ubuntu-22.04
     outputs:
+      run_frontend_ci: ${{ steps.filter.outputs.run_frontend_ci }}
       run_full_ci: ${{ steps.filter.outputs.run_full_ci }}
+      run_rust_ci: ${{ steps.filter.outputs.run_rust_ci }}
+      run_tauri_ci: ${{ steps.filter.outputs.run_tauri_ci }}
 
     steps:
       - name: Checkout repository
@@ -32,43 +39,46 @@ jobs:
               - '**'
               - '!**/*.md'
               - '!LICENSE'
+            run_rust_ci:
+              - '.github/workflows/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+              - 'scripts/**'
+              - 'src/**'
+              - 'tests/**'
+            run_frontend_ci:
+              - '.github/workflows/**'
+              - 'frontend/**'
+            run_tauri_ci:
+              - '.github/workflows/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+              - 'src/**'
+              - 'src-tauri/**'
+              - 'frontend/**'
 
   test:
     name: Test
     needs: changes
-    if: needs.changes.outputs.run_full_ci == 'true'
+    if: needs.changes.outputs.run_rust_ci == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-22.04, macos-latest]
-        
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Free disk space (Ubuntu)
-        if: matrix.os == 'ubuntu-22.04'
-        run: |
-          echo "Disk usage before cleanup:"
-          df -h
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
-          sudo apt-get clean
-          echo "Disk usage after cleanup:"
-          df -h
-
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache cargo dependencies
-        uses: actions/cache@v4
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+          workspaces: |
+            . -> target
+          key: rust-${{ runner.os }}-root
 
       - name: Run Rust tests
         run: cargo test --verbose
@@ -95,9 +105,9 @@ jobs:
   test-frontend:
     name: Test Frontend
     needs: changes
-    if: needs.changes.outputs.run_full_ci == 'true'
+    if: needs.changes.outputs.run_frontend_ci == 'true'
     runs-on: ubuntu-22.04
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -127,8 +137,13 @@ jobs:
 
   test-tauri-wrapper:
     name: Test Tauri Wrapper
-    needs: [changes, validate-release-metadata, test-frontend]
-    if: needs.changes.outputs.run_full_ci == 'true'
+    needs: [changes, test, validate-release-metadata, test-frontend]
+    if: |
+      always() &&
+      needs.changes.outputs.run_tauri_ci == 'true' &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped') &&
+      needs.validate-release-metadata.result == 'success' &&
+      (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped')
     runs-on: ubuntu-22.04
 
     steps:
@@ -137,6 +152,14 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+            src-tauri -> src-tauri/target
+          key: tauri-wrapper-${{ runner.os }}
 
       - name: Install Tauri test dependencies (Ubuntu)
         run: |
@@ -165,21 +188,22 @@ jobs:
   build-tauri:
     name: Build Tauri
     needs: [changes, test, validate-release-metadata, test-frontend, test-tauri-wrapper]
-    if: needs.changes.outputs.run_full_ci == 'true'
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-22.04
-            target: x86_64-unknown-linux-gnu
-            
+    if: |
+      always() &&
+      needs.changes.outputs.run_tauri_ci == 'true' &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped') &&
+      needs.validate-release-metadata.result == 'success' &&
+      (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped') &&
+      needs.test-tauri-wrapper.result == 'success'
+    runs-on: ubuntu-22.04
+    env:
+      TAURI_TARGET: x86_64-unknown-linux-gnu
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Free disk space (Ubuntu)
-        if: matrix.os == 'ubuntu-22.04'
         run: |
           echo "Disk usage before cleanup:"
           df -h
@@ -191,10 +215,9 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: ${{ env.TAURI_TARGET }}
 
       - name: Install dependencies (Ubuntu)
-        if: matrix.os == 'ubuntu-22.04'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
@@ -220,23 +243,23 @@ jobs:
           workspaces: |
             . -> target
             src-tauri -> src-tauri/target
-          key: tauri-${{ matrix.os }}-${{ matrix.target }}
+          key: tauri-build-${{ runner.os }}-${{ env.TAURI_TARGET }}
 
       - name: Install Tauri CLI
-        run: cargo install tauri-cli --locked --version "^2" --force
+        run: cargo install tauri-cli --locked --version "^2"
 
       - name: Build Tauri app
         working-directory: src-tauri
         run: |
-          rm -rf target/${{ matrix.target }}/release/bundle
-          cargo tauri build --target ${{ matrix.target }}
+          rm -rf target/${{ env.TAURI_TARGET }}/release/bundle
+          cargo tauri build --target ${{ env.TAURI_TARGET }}
 
-      - name: Upload artifacts (Linux)
-        if: matrix.os == 'ubuntu-22.04'
+      - name: Upload artifacts (pull requests only)
+        if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: csv-align-linux-x86_64
           path: |
             src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/*.deb
             src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage
-          retention-days: 7
+          retention-days: 1

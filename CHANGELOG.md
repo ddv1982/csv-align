@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.42 - 2026-04-28
+
+- Optimized GitHub Actions costs and throughput by adding concurrency cancellation, path-scoped CI job triggers, shorter-lived PR artifacts, and better Rust cache reuse across CI and release workflows.
+- Simplified the release workflow so tagged releases wait for the matching successful CI run on `main` before packaging instead of rerunning the full validation matrix, then prepared the v2.1.42 patch release.
+
 ## v2.1.41 - 2026-04-28
 
 - Fixed normalized key matching so cleanup rules still determine row matches internally while comparison results, exports, and API payloads preserve the original CSV key text from the source rows.
