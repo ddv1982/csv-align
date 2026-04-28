@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.45 - 2026-04-28
+
+- Moved the Tauri frontend/backend command-name registry helper out of `src-tauri/src/main.rs` into a dedicated `src-tauri/src/test_support.rs` module so runtime code stays separate from test-only support code.
+- Kept the frontend/backend command parity test coverage intact by importing the helper from the new test-support module, then prepared the v2.1.45 patch release.
+
 ## v2.1.44 - 2026-04-28
 
 - Updated GitHub-maintained Actions to newer Node 24-capable majors (`actions/checkout@v6`, `actions/setup-node@v6`, `actions/upload-artifact@v6`, and `actions/download-artifact@v6`) to address the Node 20 deprecation warnings on GitHub-hosted runners.
