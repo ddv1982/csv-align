@@ -79,6 +79,8 @@ pub struct ComparisonNormalizationConfig {
     pub null_token_case_insensitive: bool,
     pub case_insensitive: bool,
     pub trim_whitespace: bool,
+    #[serde(default)]
+    pub numeric_equivalence: bool,
     pub date_normalization: DateNormalizationConfig,
 }
 
@@ -95,6 +97,7 @@ impl Default for ComparisonNormalizationConfig {
             null_token_case_insensitive: true,
             case_insensitive: false,
             trim_whitespace: false,
+            numeric_equivalence: false,
             date_normalization: DateNormalizationConfig {
                 enabled: false,
                 formats: vec![

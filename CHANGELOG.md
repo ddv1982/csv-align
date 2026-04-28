@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.40 - 2026-04-28
+
+- Added an opt-in comparison cleanup rule that treats equivalent decimal representations such as `100`, `100.0`, and `100.00` as the same value while still reporting genuinely different numbers.
+- Exposed the numeric equivalence option in the Cleanup panel, kept it disabled by default for compatibility, added backend/frontend regression coverage, and prepared the v2.1.40 patch release.
+
 ## v2.1.39 - 2026-04-28
 
 - Fixed key matching so cleanup rules such as trimming, case-insensitive comparison, and date normalization are applied consistently before rows are matched between CSV files.

@@ -76,11 +76,66 @@ fn cleanup_settings_defaults_match_product_normalization_baseline() {
     assert!(defaults.null_token_case_insensitive);
     assert!(!defaults.case_insensitive);
     assert!(!defaults.trim_whitespace);
+    assert!(!defaults.numeric_equivalence);
     assert!(!defaults.date_normalization.enabled);
     assert_eq!(
         defaults.date_normalization.formats,
         vec!["%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%d-%m-%Y", "%m-%d-%Y"]
     );
+}
+
+#[test]
+fn cleanup_settings_match_equivalent_decimal_numbers_when_enabled() {
+    let (csv_a, csv_b) = create_csv_pair("100", "100.0");
+    let config = create_config(ComparisonNormalizationConfig {
+        numeric_equivalence: true,
+        ..ComparisonNormalizationConfig::default()
+    });
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    assert!(matches!(results[0], RowComparisonResult::Match { .. }));
+}
+
+#[test]
+fn cleanup_settings_report_different_decimal_numbers_when_enabled() {
+    let (csv_a, csv_b) = create_csv_pair("100", "100.01");
+    let config = create_config(ComparisonNormalizationConfig {
+        numeric_equivalence: true,
+        ..ComparisonNormalizationConfig::default()
+    });
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    assert!(matches!(results[0], RowComparisonResult::Mismatch { .. }));
+}
+
+#[test]
+fn cleanup_settings_keep_decimal_formatting_different_by_default() {
+    let (csv_a, csv_b) = create_csv_pair("0100.00", "+100.0");
+    let config = create_config(ComparisonNormalizationConfig::default());
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    assert!(matches!(results[0], RowComparisonResult::Mismatch { .. }));
+}
+
+#[test]
+fn cleanup_settings_apply_numeric_equivalence_to_key_matching() {
+    let csv_a = csv_data("left.csv", &["id", "value"], &[&["100", "same"]]);
+    let csv_b = csv_data("right.csv", &["id", "value"], &[&["100.0", "same"]]);
+    let config = create_config(ComparisonNormalizationConfig {
+        numeric_equivalence: true,
+        ..ComparisonNormalizationConfig::default()
+    });
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    assert!(matches!(results[0], RowComparisonResult::Match { .. }));
 }
 
 #[test]

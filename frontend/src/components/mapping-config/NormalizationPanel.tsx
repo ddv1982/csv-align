@@ -76,6 +76,16 @@ export function NormalizationPanel({ normalization, onChange, onDateChange }: No
             />
             Ignore extra spaces at the start or end of a value
           </label>
+
+          <label className="flex items-center gap-3 text-sm text-[color:var(--color-kinetic-copy)]">
+            <input
+              type="checkbox"
+              checked={normalization.numeric_equivalence}
+              onChange={(event) => onChange({ numeric_equivalence: event.target.checked })}
+              className="h-4 w-4 border-[color:var(--color-kinetic-line)] bg-transparent text-[color:var(--color-kinetic-accent)]"
+            />
+            Match equivalent numbers with or without decimals
+          </label>
         </div>
 
         <div className="space-y-2">

@@ -71,6 +71,12 @@ fn normalize_value(value: &str, normalization: &ComparisonNormalizationConfig) -
         normalized = parsed_date;
     }
 
+    if normalization.numeric_equivalence
+        && let Some(parsed_number) = normalize_numeric_value(&normalized)
+    {
+        normalized = parsed_number;
+    }
+
     if normalization.case_insensitive {
         normalized = normalized.to_lowercase();
     }
@@ -106,6 +112,44 @@ fn normalize_date_value(value: &str, config: &DateNormalizationConfig) -> Option
     }
 
     None
+}
+
+fn normalize_numeric_value(value: &str) -> Option<String> {
+    let (is_negative, unsigned) = match value.strip_prefix('-') {
+        Some(rest) => (true, rest),
+        None => (false, value.strip_prefix('+').unwrap_or(value)),
+    };
+
+    if unsigned.is_empty() || unsigned.chars().filter(|ch| *ch == '.').count() > 1 {
+        return None;
+    }
+
+    let (integer_part, fractional_part) = unsigned.split_once('.').unwrap_or((unsigned, ""));
+    if integer_part.is_empty() && fractional_part.is_empty() {
+        return None;
+    }
+
+    if !integer_part.chars().all(|ch| ch.is_ascii_digit())
+        || !fractional_part.chars().all(|ch| ch.is_ascii_digit())
+    {
+        return None;
+    }
+
+    let integer = integer_part.trim_start_matches('0');
+    let integer = if integer.is_empty() { "0" } else { integer };
+    let fractional = fractional_part.trim_end_matches('0');
+
+    let number = if fractional.is_empty() {
+        integer.to_string()
+    } else {
+        format!("{integer}.{fractional}")
+    };
+
+    if is_negative && number != "0" {
+        Some(format!("-{number}"))
+    } else {
+        Some(number)
+    }
 }
 
 pub(super) fn find_differences(

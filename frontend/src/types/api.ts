@@ -66,6 +66,7 @@ export interface ComparisonNormalizationConfig {
   null_token_case_insensitive: boolean;
   case_insensitive: boolean;
   trim_whitespace: boolean;
+  numeric_equivalence: boolean;
   date_normalization: DateNormalizationConfig;
 }
 

@@ -30,6 +30,7 @@ const emptySelection: MappingSelectionState = {
 function renderMappingConfig(overrides: Partial<{
   selection: MappingSelectionState;
   onSelectionChange: (selection: MappingSelectionState) => void;
+  onNormalizationChange: Parameters<typeof MappingConfig>[0]['onNormalizationChange'];
   onCompare: Parameters<typeof MappingConfig>[0]['onCompare'];
 }> = {}) {
   return render(
@@ -39,7 +40,7 @@ function renderMappingConfig(overrides: Partial<{
       selection={overrides.selection ?? emptySelection}
       normalization={INITIAL_NORMALIZATION_CONFIG}
       onSelectionChange={overrides.onSelectionChange ?? (() => undefined)}
-      onNormalizationChange={() => undefined}
+      onNormalizationChange={overrides.onNormalizationChange ?? (() => undefined)}
       onCompare={overrides.onCompare ?? (() => undefined)}
       onSavePairOrder={() => undefined}
       onLoadPairOrder={() => undefined}
@@ -47,6 +48,19 @@ function renderMappingConfig(overrides: Partial<{
     />
   );
 }
+
+test('allows users to enable equivalent number cleanup', () => {
+  const onNormalizationChange = vi.fn();
+
+  renderMappingConfig({ onNormalizationChange });
+
+  fireEvent.click(screen.getByLabelText('Match equivalent numbers with or without decimals'));
+
+  expect(onNormalizationChange).toHaveBeenCalledWith({
+    ...INITIAL_NORMALIZATION_CONFIG,
+    numeric_equivalence: true,
+  });
+});
 
 test('shows physical columns and virtual JSON fields in mapping selectors', () => {
   renderMappingConfig();

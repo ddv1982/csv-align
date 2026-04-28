@@ -14,6 +14,7 @@ export const INITIAL_NORMALIZATION_CONFIG: ComparisonNormalizationConfig = {
   null_token_case_insensitive: true,
   case_insensitive: false,
   trim_whitespace: false,
+  numeric_equivalence: false,
   date_normalization: {
     enabled: false,
     formats: INITIAL_DATE_NORMALIZATION_FORMATS,
