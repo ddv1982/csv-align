@@ -41,7 +41,7 @@ test('shows the simplified cleanup copy and labels', () => {
   expect(screen.getByRole('heading', { name: 'Comparison cleanup rules' })).toBeInTheDocument();
   expect(screen.getByLabelText('Treat blank cells as missing')).toBeInTheDocument();
   expect(screen.getByText('Also treat these values as missing')).toBeInTheDocument();
-  expect(screen.getByLabelText('Round numeric values before comparing')).toBeInTheDocument();
+  expect(screen.getByLabelText('Round numeric values to a chosen number of decimal places before comparing')).toBeInTheDocument();
   expect(screen.getByLabelText('Match dates written in different formats')).toBeInTheDocument();
   expect(screen.getByText('Select the same number of row keys in both files to enable auto-pair.')).toBeInTheDocument();
 });
@@ -49,7 +49,7 @@ test('shows the simplified cleanup copy and labels', () => {
 test('disables decimal-place input until rounding is enabled', () => {
   renderMappingConfig();
 
-  expect(screen.getByLabelText('Decimal digits to remove')).toBeDisabled();
+  expect(screen.getByLabelText('Decimal places')).toBeDisabled();
 });
 
 test('shows save, load, and copy actions inside the pair-order box', () => {

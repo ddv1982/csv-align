@@ -104,13 +104,13 @@ export function NormalizationPanel({
               onChange={(event) => onDecimalRoundingChange({ enabled: event.target.checked })}
               className="h-4 w-4 border-[color:var(--color-kinetic-line)] bg-transparent text-[color:var(--color-kinetic-accent)]"
             />
-            Round numeric values before comparing
+            Round numeric values to a chosen number of decimal places before comparing
           </label>
           <p className="text-sm text-[color:var(--color-kinetic-muted)]">
-            Choose how many decimal digits to remove from the right. Rounded values will also appear in results and exports.
+            Choose how many decimal places to keep. Use 0 for whole numbers. Rounded values will also appear in results and exports.
           </p>
           <label className="block text-sm font-medium text-[color:var(--color-kinetic-copy)]" htmlFor="decimal-rounding-places">
-            Decimal digits to remove
+            Decimal places
           </label>
           <input
             id="decimal-rounding-places"

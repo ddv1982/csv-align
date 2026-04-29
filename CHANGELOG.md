@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.49 - 2026-04-29
+
+- Updated the decimal-rounding cleanup copy to use user-facing `decimal places` language, clarifying that `0` means whole-number rounding and that rounded values also appear in results and exports.
+- Kept the existing rounding behavior unchanged, refreshed the UI regression assertions for the new wording, and prepared the v2.1.49 patch release.
+
 ## v2.1.48 - 2026-04-29
 
 - Fixed decimal rounding semantics so the cleanup setting now removes the configured count of digits from the right side of the decimal part, matching examples such as `100.22` -> `100` for a setting of `2`.
