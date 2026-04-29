@@ -49,7 +49,7 @@ test('shows the simplified cleanup copy and labels', () => {
 test('disables decimal-place input until rounding is enabled', () => {
   renderMappingConfig();
 
-  expect(screen.getByLabelText('Decimal places')).toBeDisabled();
+  expect(screen.getByLabelText('Decimal digits to remove')).toBeDisabled();
 });
 
 test('shows save, load, and copy actions inside the pair-order box', () => {

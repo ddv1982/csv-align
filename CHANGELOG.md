@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.48 - 2026-04-29
+
+- Fixed decimal rounding semantics so the cleanup setting now removes the configured count of digits from the right side of the decimal part, matching examples such as `100.22` -> `100` for a setting of `2`.
+- Clarified the cleanup UI copy to describe “decimal digits to remove,” added regression coverage for the corrected rule, and prepared the v2.1.48 patch release.
+
 ## v2.1.47 - 2026-04-29
 
 - Added a separate decimal-rounding cleanup option so users can round numeric keys and compared values to a chosen precision before matching, including whole-number rounding such as `100.6` -> `101`.

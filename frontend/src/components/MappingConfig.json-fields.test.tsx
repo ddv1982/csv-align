@@ -93,7 +93,7 @@ test('lets users change decimal rounding precision', () => {
     },
   });
 
-  fireEvent.change(screen.getByLabelText('Decimal places'), { target: { value: '2' } });
+  fireEvent.change(screen.getByLabelText('Decimal digits to remove'), { target: { value: '2' } });
 
   expect(onNormalizationChange).toHaveBeenLastCalledWith({
     ...INITIAL_NORMALIZATION_CONFIG,

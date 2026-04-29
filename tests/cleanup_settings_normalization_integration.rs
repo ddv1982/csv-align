@@ -225,6 +225,56 @@ fn cleanup_settings_round_numbers_and_trim_unnecessary_zeroes() {
 }
 
 #[test]
+fn cleanup_settings_remove_decimal_digits_from_the_right_when_rounding_is_configured() {
+    let (csv_a, csv_b) = create_csv_pair("100.22", "100");
+    let config = create_config(ComparisonNormalizationConfig {
+        decimal_rounding: DecimalRoundingConfig {
+            enabled: true,
+            decimals: 2,
+        },
+        ..ComparisonNormalizationConfig::default()
+    });
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    match &results[0] {
+        RowComparisonResult::Match {
+            values_a, values_b, ..
+        } => {
+            assert_eq!(values_a, &vec!["100".to_string()]);
+            assert_eq!(values_b, &vec!["100".to_string()]);
+        }
+        other => panic!("expected two decimal digits to be removed, got {other:?}"),
+    }
+}
+
+#[test]
+fn cleanup_settings_keep_remaining_decimal_digits_after_removing_configured_count() {
+    let (csv_a, csv_b) = create_csv_pair("100.234", "100.2");
+    let config = create_config(ComparisonNormalizationConfig {
+        decimal_rounding: DecimalRoundingConfig {
+            enabled: true,
+            decimals: 2,
+        },
+        ..ComparisonNormalizationConfig::default()
+    });
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    match &results[0] {
+        RowComparisonResult::Match {
+            values_a, values_b, ..
+        } => {
+            assert_eq!(values_a, &vec!["100.2".to_string()]);
+            assert_eq!(values_b, &vec!["100.2".to_string()]);
+        }
+        other => panic!("expected only two decimal digits to be removed, got {other:?}"),
+    }
+}
+
+#[test]
 fn cleanup_settings_round_trimmed_numeric_values_for_display_when_whitespace_cleanup_is_enabled() {
     let csv_a = csv_data("left.csv", &["id", "value"], &[&[" 100.4 ", " 100.4 "]]);
     let csv_b = csv_data("right.csv", &["id", "value"], &[&["100.49", "100.49"]]);

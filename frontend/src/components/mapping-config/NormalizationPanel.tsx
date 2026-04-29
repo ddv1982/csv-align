@@ -107,10 +107,10 @@ export function NormalizationPanel({
             Round numeric values before comparing
           </label>
           <p className="text-sm text-[color:var(--color-kinetic-muted)]">
-            Choose how many decimal places to keep. Rounded values will also appear in results and exports.
+            Choose how many decimal digits to remove from the right. Rounded values will also appear in results and exports.
           </p>
           <label className="block text-sm font-medium text-[color:var(--color-kinetic-copy)]" htmlFor="decimal-rounding-places">
-            Decimal places
+            Decimal digits to remove
           </label>
           <input
             id="decimal-rounding-places"
