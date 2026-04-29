@@ -29,6 +29,7 @@ const emptySelection: MappingSelectionState = {
 
 function renderMappingConfig(overrides: Partial<{
   selection: MappingSelectionState;
+  normalization: Parameters<typeof MappingConfig>[0]['normalization'];
   onSelectionChange: (selection: MappingSelectionState) => void;
   onNormalizationChange: Parameters<typeof MappingConfig>[0]['onNormalizationChange'];
   onCompare: Parameters<typeof MappingConfig>[0]['onCompare'];
@@ -38,7 +39,7 @@ function renderMappingConfig(overrides: Partial<{
       fileA={fileA}
       fileB={fileB}
       selection={overrides.selection ?? emptySelection}
-      normalization={INITIAL_NORMALIZATION_CONFIG}
+      normalization={overrides.normalization ?? INITIAL_NORMALIZATION_CONFIG}
       onSelectionChange={overrides.onSelectionChange ?? (() => undefined)}
       onNormalizationChange={overrides.onNormalizationChange ?? (() => undefined)}
       onCompare={overrides.onCompare ?? (() => undefined)}
@@ -59,6 +60,47 @@ test('allows users to enable equivalent number cleanup', () => {
   expect(onNormalizationChange).toHaveBeenCalledWith({
     ...INITIAL_NORMALIZATION_CONFIG,
     numeric_equivalence: true,
+  });
+});
+
+test('allows users to enable decimal rounding cleanup', () => {
+  const onNormalizationChange = vi.fn();
+
+  renderMappingConfig({ onNormalizationChange });
+
+  fireEvent.click(screen.getByLabelText('Round numeric values before comparing'));
+
+  expect(onNormalizationChange).toHaveBeenCalledWith({
+    ...INITIAL_NORMALIZATION_CONFIG,
+    decimal_rounding: {
+      ...INITIAL_NORMALIZATION_CONFIG.decimal_rounding,
+      enabled: true,
+    },
+  });
+});
+
+test('lets users change decimal rounding precision', () => {
+  const onNormalizationChange = vi.fn();
+
+  renderMappingConfig({
+    onNormalizationChange,
+    normalization: {
+      ...INITIAL_NORMALIZATION_CONFIG,
+      decimal_rounding: {
+        enabled: true,
+        decimals: 0,
+      },
+    },
+  });
+
+  fireEvent.change(screen.getByLabelText('Decimal places'), { target: { value: '2' } });
+
+  expect(onNormalizationChange).toHaveBeenLastCalledWith({
+    ...INITIAL_NORMALIZATION_CONFIG,
+    decimal_rounding: {
+      enabled: true,
+      decimals: 2,
+    },
   });
 });
 

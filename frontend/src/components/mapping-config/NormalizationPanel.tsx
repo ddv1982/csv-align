@@ -2,13 +2,21 @@ import type { ComparisonNormalizationConfig } from '../../types/api';
 import { PencilSquareIcon } from '../icons';
 import { SectionCard } from '../ui/SectionCard';
 
+const MAX_DECIMAL_ROUNDING_PLACES = 15;
+
 interface NormalizationPanelProps {
   normalization: ComparisonNormalizationConfig;
   onChange: (updates: Partial<ComparisonNormalizationConfig>) => void;
   onDateChange: (updates: Partial<ComparisonNormalizationConfig['date_normalization']>) => void;
+  onDecimalRoundingChange: (updates: Partial<ComparisonNormalizationConfig['decimal_rounding']>) => void;
 }
 
-export function NormalizationPanel({ normalization, onChange, onDateChange }: NormalizationPanelProps) {
+export function NormalizationPanel({
+  normalization,
+  onChange,
+  onDateChange,
+  onDecimalRoundingChange,
+}: NormalizationPanelProps) {
   return (
     <SectionCard
       eyebrow="Cleanup"
@@ -86,6 +94,43 @@ export function NormalizationPanel({ normalization, onChange, onDateChange }: No
             />
             Match equivalent numbers with or without decimals
           </label>
+        </div>
+
+        <div className="space-y-2">
+          <label className="flex items-center gap-3 text-sm text-[color:var(--color-kinetic-copy)]">
+            <input
+              type="checkbox"
+              checked={normalization.decimal_rounding.enabled}
+              onChange={(event) => onDecimalRoundingChange({ enabled: event.target.checked })}
+              className="h-4 w-4 border-[color:var(--color-kinetic-line)] bg-transparent text-[color:var(--color-kinetic-accent)]"
+            />
+            Round numeric values before comparing
+          </label>
+          <p className="text-sm text-[color:var(--color-kinetic-muted)]">
+            Choose how many decimal places to keep. Rounded values will also appear in results and exports.
+          </p>
+          <label className="block text-sm font-medium text-[color:var(--color-kinetic-copy)]" htmlFor="decimal-rounding-places">
+            Decimal places
+          </label>
+          <input
+            id="decimal-rounding-places"
+            type="number"
+            min={0}
+            max={MAX_DECIMAL_ROUNDING_PLACES}
+            step={1}
+            inputMode="numeric"
+            value={normalization.decimal_rounding.decimals}
+            disabled={!normalization.decimal_rounding.enabled}
+            onChange={(event) => {
+              const parsed = Number.parseInt(event.target.value, 10);
+              onDecimalRoundingChange({
+                decimals: Number.isNaN(parsed) || parsed < 0
+                  ? 0
+                  : Math.min(parsed, MAX_DECIMAL_ROUNDING_PLACES),
+              });
+            }}
+            className="input max-w-32 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+          />
         </div>
 
         <div className="space-y-2">

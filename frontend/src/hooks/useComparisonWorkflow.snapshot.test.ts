@@ -102,6 +102,11 @@ test('loads a saved comparison snapshot into the results workflow state', async 
       null_token_case_insensitive: true,
       case_insensitive: true,
       trim_whitespace: true,
+      numeric_equivalence: false,
+      decimal_rounding: {
+        enabled: false,
+        decimals: 0,
+      },
       date_normalization: {
         enabled: false,
         formats: [],

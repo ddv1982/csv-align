@@ -68,6 +68,16 @@ export function MappingConfig({
     });
   };
 
+  const updateDecimalRounding = (updates: Partial<ComparisonNormalizationConfig['decimal_rounding']>) => {
+    onNormalizationChange({
+      ...normalization,
+      decimal_rounding: {
+        ...normalization.decimal_rounding,
+        ...updates,
+      },
+    });
+  };
+
   const hasManualPairSelection =
     comparisonColumnsA.length > 0 &&
     comparisonColumnsB.length > 0 &&
@@ -118,7 +128,12 @@ export function MappingConfig({
 
   return (
     <div className="space-y-6">
-      <NormalizationPanel normalization={normalization} onChange={updateNormalization} onDateChange={updateDateNormalization} />
+      <NormalizationPanel
+        normalization={normalization}
+        onChange={updateNormalization}
+        onDateChange={updateDateNormalization}
+        onDecimalRoundingChange={updateDecimalRounding}
+      />
 
       <SectionCard
         eyebrow="Keys"

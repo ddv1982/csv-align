@@ -72,6 +72,13 @@ pub struct DateNormalizationConfig {
     pub formats: Vec<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+pub struct DecimalRoundingConfig {
+    pub enabled: bool,
+    #[serde(default)]
+    pub decimals: u32,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ComparisonNormalizationConfig {
     pub treat_empty_as_null: bool,
@@ -81,6 +88,8 @@ pub struct ComparisonNormalizationConfig {
     pub trim_whitespace: bool,
     #[serde(default)]
     pub numeric_equivalence: bool,
+    #[serde(default)]
+    pub decimal_rounding: DecimalRoundingConfig,
     pub date_normalization: DateNormalizationConfig,
 }
 
@@ -98,6 +107,10 @@ impl Default for ComparisonNormalizationConfig {
             case_insensitive: false,
             trim_whitespace: false,
             numeric_equivalence: false,
+            decimal_rounding: DecimalRoundingConfig {
+                enabled: false,
+                decimals: 0,
+            },
             date_normalization: DateNormalizationConfig {
                 enabled: false,
                 formats: vec![

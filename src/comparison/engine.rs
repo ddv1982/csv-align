@@ -1,6 +1,6 @@
 use super::super::data::types::*;
 use super::rows::{extract_columns, get_column_selections, split_rows_by_key_usable};
-use super::value_compare::find_differences;
+use super::value_compare::{find_differences, normalize_display_value};
 
 /// Compare two CSV datasets based on configuration
 pub fn compare_csv_data(
@@ -26,15 +26,27 @@ pub fn compare_csv_data(
 
     for row_index in nullish_rows_a {
         results.push(RowComparisonResult::UnkeyedRight {
-            key: extract_columns(&csv_a.rows[row_index], &key_selections_a),
-            values_a: extract_columns(&csv_a.rows[row_index], &comp_selections_a),
+            key: display_values(
+                extract_columns(&csv_a.rows[row_index], &key_selections_a),
+                &config.normalization,
+            ),
+            values_a: display_values(
+                extract_columns(&csv_a.rows[row_index], &comp_selections_a),
+                &config.normalization,
+            ),
         });
     }
 
     for row_index in nullish_rows_b {
         results.push(RowComparisonResult::UnkeyedLeft {
-            key: extract_columns(&csv_b.rows[row_index], &key_selections_b),
-            values_b: extract_columns(&csv_b.rows[row_index], &comp_selections_b),
+            key: display_values(
+                extract_columns(&csv_b.rows[row_index], &key_selections_b),
+                &config.normalization,
+            ),
+            values_b: display_values(
+                extract_columns(&csv_b.rows[row_index], &comp_selections_b),
+                &config.normalization,
+            ),
         });
     }
 
@@ -56,12 +68,22 @@ pub fn compare_csv_data(
                     let values_a: Vec<Vec<String>> = keyed_rows_a
                         .indices
                         .iter()
-                        .map(|&i| extract_columns(&csv_a.rows[i], &comp_selections_a))
+                        .map(|&i| {
+                            display_values(
+                                extract_columns(&csv_a.rows[i], &comp_selections_a),
+                                &config.normalization,
+                            )
+                        })
                         .collect();
                     let values_b: Vec<Vec<String>> = keyed_rows_b
                         .indices
                         .iter()
-                        .map(|&i| extract_columns(&csv_b.rows[i], &comp_selections_b))
+                        .map(|&i| {
+                            display_values(
+                                extract_columns(&csv_b.rows[i], &comp_selections_b),
+                                &config.normalization,
+                            )
+                        })
                         .collect();
 
                     results.push(RowComparisonResult::Duplicate {
@@ -74,7 +96,12 @@ pub fn compare_csv_data(
                     let values_a_duplicates: Vec<Vec<String>> = keyed_rows_a
                         .indices
                         .iter()
-                        .map(|&i| extract_columns(&csv_a.rows[i], &comp_selections_a))
+                        .map(|&i| {
+                            display_values(
+                                extract_columns(&csv_a.rows[i], &comp_selections_a),
+                                &config.normalization,
+                            )
+                        })
                         .collect();
                     results.push(RowComparisonResult::Duplicate {
                         key: keyed_rows_a.display_key.clone(),
@@ -99,7 +126,12 @@ pub fn compare_csv_data(
                 let values_a: Vec<Vec<String>> = keyed_rows_a
                     .indices
                     .iter()
-                    .map(|&i| extract_columns(&csv_a.rows[i], &comp_selections_a))
+                    .map(|&i| {
+                        display_values(
+                            extract_columns(&csv_a.rows[i], &comp_selections_a),
+                            &config.normalization,
+                        )
+                    })
                     .collect();
                 results.push(RowComparisonResult::Duplicate {
                     key: keyed_rows_a.display_key.clone(),
@@ -118,7 +150,12 @@ pub fn compare_csv_data(
             let values: Vec<Vec<String>> = keyed_rows_b
                 .indices
                 .iter()
-                .map(|&i| extract_columns(&csv_b.rows[i], &comp_selections_b))
+                .map(|&i| {
+                    display_values(
+                        extract_columns(&csv_b.rows[i], &comp_selections_b),
+                        &config.normalization,
+                    )
+                })
                 .collect();
             results.push(RowComparisonResult::Duplicate {
                 key: keyed_rows_a.display_key.clone(),
@@ -161,7 +198,7 @@ pub fn compare_csv_data(
                 extract_columns(&csv_a.rows[keyed_rows_a.indices[0]], &comp_selections_a);
             results.push(RowComparisonResult::MissingRight {
                 key: keyed_rows_a.display_key.clone(),
-                values_a,
+                values_a: display_values(values_a, &config.normalization),
             });
         }
     }
@@ -178,7 +215,12 @@ pub fn compare_csv_data(
             let values: Vec<Vec<String>> = keyed_rows_b
                 .indices
                 .iter()
-                .map(|&i| extract_columns(&csv_b.rows[i], &comp_selections_b))
+                .map(|&i| {
+                    display_values(
+                        extract_columns(&csv_b.rows[i], &comp_selections_b),
+                        &config.normalization,
+                    )
+                })
                 .collect();
             results.push(RowComparisonResult::Duplicate {
                 key: keyed_rows_b.display_key.clone(),
@@ -192,11 +234,21 @@ pub fn compare_csv_data(
         let values_b = extract_columns(&csv_b.rows[keyed_rows_b.indices[0]], &comp_selections_b);
         results.push(RowComparisonResult::MissingLeft {
             key: keyed_rows_b.display_key.clone(),
-            values_b,
+            values_b: display_values(values_b, &config.normalization),
         });
     }
 
     results
+}
+
+fn display_values(
+    values: Vec<String>,
+    normalization: &ComparisonNormalizationConfig,
+) -> Vec<String> {
+    values
+        .into_iter()
+        .map(|value| normalize_display_value(&value, normalization))
+        .collect()
 }
 
 fn compare_single_match(
@@ -205,6 +257,8 @@ fn compare_single_match(
     values_b: Vec<String>,
     config: &ComparisonConfig,
 ) -> RowComparisonResult {
+    let display_values_a = display_values(values_a.clone(), &config.normalization);
+    let display_values_b = display_values(values_b.clone(), &config.normalization);
     let differences = find_differences(
         &config.comparison_columns_a,
         &config.comparison_columns_b,
@@ -217,14 +271,14 @@ fn compare_single_match(
     if differences.is_empty() {
         RowComparisonResult::Match {
             key,
-            values_a,
-            values_b,
+            values_a: display_values_a,
+            values_b: display_values_b,
         }
     } else {
         RowComparisonResult::Mismatch {
             key,
-            values_a,
-            values_b,
+            values_a: display_values_a,
+            values_b: display_values_b,
             differences,
         }
     }

@@ -15,6 +15,10 @@ export const INITIAL_NORMALIZATION_CONFIG: ComparisonNormalizationConfig = {
   case_insensitive: false,
   trim_whitespace: false,
   numeric_equivalence: false,
+  decimal_rounding: {
+    enabled: false,
+    decimals: 0,
+  },
   date_normalization: {
     enabled: false,
     formats: INITIAL_DATE_NORMALIZATION_FORMATS,

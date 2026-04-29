@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.47 - 2026-04-29
+
+- Added a separate decimal-rounding cleanup option so users can round numeric keys and compared values to a chosen precision before matching, including whole-number rounding such as `100.6` -> `101`.
+- Kept the feature opt-in and disabled by default, surfaced the rounded values in results/exports, added backend/frontend regression coverage, and prepared the v2.1.47 patch release.
+
 ## v2.1.46 - 2026-04-28
 
 - Simplified CI by folding the former standalone `test-tauri-wrapper` job into `build-tauri`, so the Tauri Linux dependency setup, frontend install/build, and Rust cache warming happen once before wrapper tests and packaging.

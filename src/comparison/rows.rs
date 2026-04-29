@@ -2,7 +2,7 @@ use super::super::data::json_fields::{
     ColumnSelection, extract_selected_columns, resolve_column_selection,
 };
 use super::super::data::types::CsvData;
-use super::value_compare::normalize_key_value;
+use super::value_compare::{normalize_display_value, normalize_key_value};
 use std::collections::HashMap;
 
 use crate::data::types::ComparisonNormalizationConfig;
@@ -45,7 +45,10 @@ pub(super) fn split_rows_by_key_usable(
             .entry(normalized_key)
             .and_modify(|entry: &mut KeyedRows| entry.indices.push(index))
             .or_insert_with(|| KeyedRows {
-                display_key: raw_key,
+                display_key: raw_key
+                    .iter()
+                    .map(|value| normalize_display_value(value, normalization))
+                    .collect(),
                 indices: vec![index],
             });
     }

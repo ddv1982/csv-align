@@ -181,6 +181,8 @@ mod tests {
         assert!(!request.normalization.case_insensitive);
         assert!(!request.normalization.trim_whitespace);
         assert!(!request.normalization.numeric_equivalence);
+        assert!(!request.normalization.decimal_rounding.enabled);
+        assert_eq!(request.normalization.decimal_rounding.decimals, 0);
         assert_eq!(
             request.normalization.date_normalization.formats,
             vec!["%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%d-%m-%Y", "%m-%d-%Y"]

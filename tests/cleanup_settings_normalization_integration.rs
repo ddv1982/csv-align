@@ -2,7 +2,8 @@ mod common;
 
 use csv_align::comparison::engine::compare_csv_data;
 use csv_align::data::types::{
-    ComparisonNormalizationConfig, DateNormalizationConfig, RowComparisonResult,
+    ComparisonNormalizationConfig, DateNormalizationConfig, DecimalRoundingConfig,
+    RowComparisonResult,
 };
 
 use common::{comparison_config, csv_data};
@@ -79,6 +80,13 @@ fn cleanup_settings_defaults_match_product_normalization_baseline() {
     assert!(!defaults.case_insensitive);
     assert!(!defaults.trim_whitespace);
     assert!(!defaults.numeric_equivalence);
+    assert_eq!(
+        defaults.decimal_rounding,
+        DecimalRoundingConfig {
+            enabled: false,
+            decimals: 0,
+        }
+    );
     assert!(!defaults.date_normalization.enabled);
     assert_eq!(
         defaults.date_normalization.formats,
@@ -139,6 +147,111 @@ fn cleanup_settings_apply_numeric_equivalence_to_key_matching() {
     assert_eq!(results.len(), 1);
     assert!(matches!(results[0], RowComparisonResult::Match { .. }));
     assert_eq!(results[0].key(), ["100"]);
+}
+
+#[test]
+fn cleanup_settings_round_numbers_for_comparison_display_and_difference_output() {
+    let (csv_a, csv_b) = create_csv_pair("100.4", "100.6");
+    let config = create_config(ComparisonNormalizationConfig {
+        decimal_rounding: DecimalRoundingConfig {
+            enabled: true,
+            decimals: 0,
+        },
+        ..ComparisonNormalizationConfig::default()
+    });
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    match &results[0] {
+        RowComparisonResult::Mismatch {
+            values_a,
+            values_b,
+            differences,
+            ..
+        } => {
+            assert_eq!(values_a, &vec!["100".to_string()]);
+            assert_eq!(values_b, &vec!["101".to_string()]);
+            assert_eq!(differences.len(), 1);
+            assert_eq!(differences[0].value_a, "100");
+            assert_eq!(differences[0].value_b, "101");
+        }
+        other => panic!("expected mismatch after rounded display values, got {other:?}"),
+    }
+}
+
+#[test]
+fn cleanup_settings_round_numbers_for_key_matching_and_display() {
+    let csv_a = csv_data("left.csv", &["id", "value"], &[&["100.4", "same"]]);
+    let csv_b = csv_data("right.csv", &["id", "value"], &[&["100.49", "same"]]);
+    let config = create_config(ComparisonNormalizationConfig {
+        decimal_rounding: DecimalRoundingConfig {
+            enabled: true,
+            decimals: 0,
+        },
+        ..ComparisonNormalizationConfig::default()
+    });
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    assert!(matches!(results[0], RowComparisonResult::Match { .. }));
+    assert_eq!(results[0].key(), ["100"]);
+}
+
+#[test]
+fn cleanup_settings_round_numbers_and_trim_unnecessary_zeroes() {
+    let (csv_a, csv_b) = create_csv_pair("100", "100.000");
+    let config = create_config(ComparisonNormalizationConfig {
+        decimal_rounding: DecimalRoundingConfig {
+            enabled: true,
+            decimals: 2,
+        },
+        ..ComparisonNormalizationConfig::default()
+    });
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    match &results[0] {
+        RowComparisonResult::Match {
+            values_a, values_b, ..
+        } => {
+            assert_eq!(values_a, &vec!["100".to_string()]);
+            assert_eq!(values_b, &vec!["100".to_string()]);
+        }
+        other => panic!("expected rounded values to stay trimmed, got {other:?}"),
+    }
+}
+
+#[test]
+fn cleanup_settings_round_trimmed_numeric_values_for_display_when_whitespace_cleanup_is_enabled() {
+    let csv_a = csv_data("left.csv", &["id", "value"], &[&[" 100.4 ", " 100.4 "]]);
+    let csv_b = csv_data("right.csv", &["id", "value"], &[&["100.49", "100.49"]]);
+    let config = create_config(ComparisonNormalizationConfig {
+        trim_whitespace: true,
+        decimal_rounding: DecimalRoundingConfig {
+            enabled: true,
+            decimals: 0,
+        },
+        ..ComparisonNormalizationConfig::default()
+    });
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    match &results[0] {
+        RowComparisonResult::Match {
+            key,
+            values_a,
+            values_b,
+        } => {
+            assert_eq!(key, &vec!["100".to_string()]);
+            assert_eq!(values_a, &vec!["100".to_string()]);
+            assert_eq!(values_b, &vec!["100".to_string()]);
+        }
+        other => panic!("expected rounded trimmed values to display cleanly, got {other:?}"),
+    }
 }
 
 #[test]

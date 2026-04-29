@@ -9,6 +9,10 @@ test('uses the intended default cleanup normalization baseline', () => {
   expect(INITIAL_NORMALIZATION_CONFIG.case_insensitive).toBe(false);
   expect(INITIAL_NORMALIZATION_CONFIG.trim_whitespace).toBe(false);
   expect(INITIAL_NORMALIZATION_CONFIG.numeric_equivalence).toBe(false);
+  expect(INITIAL_NORMALIZATION_CONFIG.decimal_rounding).toEqual({
+    enabled: false,
+    decimals: 0,
+  });
   expect(INITIAL_NORMALIZATION_CONFIG.date_normalization.enabled).toBe(false);
   expect(INITIAL_NORMALIZATION_CONFIG.date_normalization.formats).toEqual([
     '%Y-%m-%d',

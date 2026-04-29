@@ -60,6 +60,11 @@ export interface DateNormalizationConfig {
   formats: string[];
 }
 
+export interface DecimalRoundingConfig {
+  enabled: boolean;
+  decimals: number;
+}
+
 export interface ComparisonNormalizationConfig {
   treat_empty_as_null: boolean;
   null_tokens: string[];
@@ -67,6 +72,7 @@ export interface ComparisonNormalizationConfig {
   case_insensitive: boolean;
   trim_whitespace: boolean;
   numeric_equivalence: boolean;
+  decimal_rounding: DecimalRoundingConfig;
   date_normalization: DateNormalizationConfig;
 }
 

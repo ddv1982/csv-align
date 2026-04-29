@@ -108,15 +108,20 @@ beforeEach(() => {
       comparison_columns_b: ['name'],
     },
     mappings: [],
-    normalization: {
-      treat_empty_as_null: false,
-      null_tokens: [],
-      null_token_case_insensitive: true,
-      case_insensitive: false,
-      trim_whitespace: true,
-      date_normalization: {
-        enabled: false,
-        formats: [],
+      normalization: {
+        treat_empty_as_null: false,
+        null_tokens: [],
+        null_token_case_insensitive: true,
+        case_insensitive: false,
+        trim_whitespace: true,
+        numeric_equivalence: false,
+        decimal_rounding: {
+          enabled: false,
+          decimals: 0,
+        },
+        date_normalization: {
+          enabled: false,
+          formats: [],
       },
     },
     results: [
