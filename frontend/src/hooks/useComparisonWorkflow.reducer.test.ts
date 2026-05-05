@@ -57,6 +57,58 @@ describe('useComparisonWorkflow reducer', () => {
     expect(nextState.normalizationConfig).toEqual(INITIAL_NORMALIZATION_CONFIG);
   });
 
+  test('fileLoaded clears stale comparison artifacts when replacing a file', () => {
+    const nextState = workflowReducer({
+      ...INITIAL_WORKFLOW_STATE,
+      step: 'results',
+      mappingSelection: {
+        keyColumnsA: ['id'],
+        keyColumnsB: ['record_id'],
+        comparisonColumnsA: ['name'],
+        comparisonColumnsB: ['display_name'],
+      },
+      normalizationConfig: {
+        ...INITIAL_NORMALIZATION_CONFIG,
+        case_insensitive: true,
+      },
+      appState: {
+        ...INITIAL_WORKFLOW_STATE.appState,
+        sessionId: 'session-1',
+        fileA: { name: 'old-left.csv', headers: ['id', 'name'], columns: [], rowCount: 1 },
+        fileB: { name: 'right.csv', headers: ['record_id', 'display_name'], columns: [], rowCount: 1 },
+        mappings: [{ file_a_column: 'name', file_b_column: 'display_name', mapping_type: 'manual' }],
+        results: [{ result_type: 'match', key: ['1'], values_a: ['Alice'], values_b: ['Alice'], duplicate_values_a: [], duplicate_values_b: [], differences: [] }],
+        summary: {
+          total_rows_a: 1,
+          total_rows_b: 1,
+          matches: 1,
+          mismatches: 0,
+          missing_left: 0,
+          missing_right: 0,
+          unkeyed_left: 0,
+          unkeyed_right: 0,
+          duplicates_a: 0,
+          duplicates_b: 0,
+        },
+        filter: 'match',
+      },
+    }, {
+      type: 'fileLoaded',
+      fileLetter: 'a',
+      fileData: { name: 'new-left.csv', headers: ['id', 'name'], columns: [], rowCount: 2 },
+    });
+
+    expect(nextState.step).toBe('configure');
+    expect(nextState.appState.fileA?.name).toBe('new-left.csv');
+    expect(nextState.appState.fileB?.name).toBe('right.csv');
+    expect(nextState.appState.mappings).toEqual([]);
+    expect(nextState.appState.results).toEqual([]);
+    expect(nextState.appState.summary).toBeNull();
+    expect(nextState.appState.filter).toBe('all');
+    expect(nextState.mappingSelection).toEqual(INITIAL_MAPPING_SELECTION);
+    expect(nextState.normalizationConfig).toEqual(INITIAL_NORMALIZATION_CONFIG);
+  });
+
   test('snapshotLoaded enters read-only results mode', () => {
     const snapshot: LoadComparisonSnapshotResponse = {
       file_a: {

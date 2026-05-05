@@ -73,6 +73,17 @@ const NORMALIZATION: ComparisonNormalizationConfig = {
   case_insensitive: true,
 };
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+
+  return { promise, resolve, reject };
+}
+
 beforeEach(() => {
   compareFilesMock.mockReset();
   createSessionMock.mockReset();
@@ -341,6 +352,211 @@ test('submits comparisons, updates filtered results, and resets with a fresh ses
   expect(result.current.state.filter).toBe('all');
   expect(result.current.mappingSelection).toEqual(INITIAL_MAPPING_SELECTION);
   expect(result.current.normalizationConfig).toEqual(INITIAL_NORMALIZATION_CONFIG);
+});
+
+test('ignores a stale file load response after reset creates a new session', async () => {
+  createSessionMock
+    .mockResolvedValueOnce({ session_id: 'session-1' })
+    .mockResolvedValueOnce({ session_id: 'session-2' });
+  const fileLoad = deferred<{
+    success: boolean;
+    file_letter: 'a';
+    headers: string[];
+    columns: typeof FILE_COLUMNS;
+    row_count: number;
+  }>();
+  loadFileMock.mockReturnValueOnce(fileLoad.promise);
+
+  const { result } = renderHook(() => useComparisonWorkflow());
+
+  await waitFor(() => {
+    expect(result.current.state.sessionId).toBe('session-1');
+  });
+
+  let pendingLoad!: Promise<void>;
+  act(() => {
+    pendingLoad = result.current.handleFileSelection(FILE_A, 'a');
+  });
+
+  await waitFor(() => {
+    expect(loadFileMock).toHaveBeenCalledWith('session-1', FILE_A, 'a');
+  });
+
+  await act(async () => {
+    await result.current.handleReset();
+  });
+
+  await waitFor(() => {
+    expect(result.current.state.sessionId).toBe('session-2');
+  });
+
+  await act(async () => {
+    fileLoad.resolve({
+      success: true,
+      file_letter: 'a',
+      headers: ['id', 'name'],
+      columns: FILE_COLUMNS,
+      row_count: 99,
+    });
+    await pendingLoad;
+  });
+
+  expect(result.current.state.sessionId).toBe('session-2');
+  expect(result.current.state.fileA).toBeNull();
+  expect(result.current.step).toBe('select');
+});
+
+test('ignores an older same-session file load after a newer file load starts', async () => {
+  const firstLoad = deferred<{
+    success: boolean;
+    file_letter: 'a';
+    headers: string[];
+    columns: typeof FILE_COLUMNS;
+    row_count: number;
+  }>();
+  const secondLoad = deferred<{
+    success: boolean;
+    file_letter: 'a';
+    headers: string[];
+    columns: typeof FILE_COLUMNS;
+    row_count: number;
+  }>();
+  const newerFile = new File(['id,name\n2,Bob'], 'new-left.csv', { type: 'text/csv' });
+  loadFileMock
+    .mockReturnValueOnce(firstLoad.promise)
+    .mockReturnValueOnce(secondLoad.promise);
+
+  const { result } = renderHook(() => useComparisonWorkflow());
+
+  await waitFor(() => {
+    expect(result.current.state.sessionId).toBe('session-1');
+  });
+
+  let firstPending!: Promise<void>;
+  let secondPending!: Promise<void>;
+  act(() => {
+    firstPending = result.current.handleFileSelection(FILE_A, 'a');
+    secondPending = result.current.handleFileSelection(newerFile, 'a');
+  });
+
+  await waitFor(() => {
+    expect(loadFileMock).toHaveBeenCalledTimes(2);
+  });
+
+  await act(async () => {
+    secondLoad.resolve({
+      success: true,
+      file_letter: 'a',
+      headers: ['id', 'name'],
+      columns: FILE_COLUMNS,
+      row_count: 2,
+    });
+    await secondPending;
+  });
+
+  expect(result.current.state.fileA).toMatchObject({
+    name: 'new-left.csv',
+    rowCount: 2,
+  });
+
+  await act(async () => {
+    firstLoad.resolve({
+      success: true,
+      file_letter: 'a',
+      headers: ['id', 'name'],
+      columns: FILE_COLUMNS,
+      row_count: 99,
+    });
+    await firstPending;
+  });
+
+  expect(result.current.state.fileA).toMatchObject({
+    name: 'new-left.csv',
+    rowCount: 2,
+  });
+});
+
+test('ignores a stale compare response after reset creates a new session', async () => {
+  createSessionMock
+    .mockResolvedValueOnce({ session_id: 'session-1' })
+    .mockResolvedValueOnce({ session_id: 'session-2' });
+
+  const { result } = renderHook(() => useComparisonWorkflow());
+
+  await waitFor(() => {
+    expect(result.current.state.sessionId).toBe('session-1');
+  });
+
+  await act(async () => {
+    await result.current.handleFileSelection(FILE_A, 'a');
+    await result.current.handleFileSelection(FILE_B, 'b');
+  });
+
+  await waitFor(() => {
+    expect(result.current.step).toBe('configure');
+  });
+
+  const compare = deferred<Awaited<ReturnType<typeof compareFilesMock>>>();
+  compareFilesMock.mockReturnValueOnce(compare.promise);
+
+  let pendingCompare!: Promise<void>;
+  act(() => {
+    pendingCompare = result.current.handleCompare(
+      ['id'],
+      ['id'],
+      ['name'],
+      ['name'],
+      COLUMN_MAPPINGS,
+      NORMALIZATION,
+    );
+  });
+
+  await waitFor(() => {
+    expect(compareFilesMock).toHaveBeenLastCalledWith('session-1', expect.any(Object));
+  });
+
+  await act(async () => {
+    await result.current.handleReset();
+  });
+
+  await waitFor(() => {
+    expect(result.current.state.sessionId).toBe('session-2');
+  });
+
+  await act(async () => {
+    compare.resolve({
+      success: true,
+      results: [
+        {
+          result_type: 'match',
+          key: ['1'],
+          values_a: ['Alice'],
+          values_b: ['Alice'],
+          duplicate_values_a: [],
+          duplicate_values_b: [],
+          differences: [],
+        },
+      ],
+      summary: {
+        total_rows_a: 1,
+        total_rows_b: 1,
+        matches: 1,
+        mismatches: 0,
+        missing_left: 0,
+        missing_right: 0,
+        unkeyed_left: 0,
+        unkeyed_right: 0,
+        duplicates_a: 0,
+        duplicates_b: 0,
+      },
+    });
+    await pendingCompare;
+  });
+
+  expect(result.current.state.sessionId).toBe('session-2');
+  expect(result.current.state.results).toEqual([]);
+  expect(result.current.state.summary).toBeNull();
+  expect(result.current.step).toBe('select');
 });
 
 test('keeps the workflow on configure and clears loading when compare fails', async () => {

@@ -13,7 +13,15 @@ interface UseWorkflowComparisonActionsParams {
   startLoading: (clearError?: boolean) => void;
   failLoading: (error: unknown) => void;
   blockSnapshotFollowOnWorkflow: () => boolean;
+  beginWorkflowRequest: (sessionId: string | null, invalidatesExisting?: boolean) => WorkflowRequestToken;
+  isCurrentWorkflowRequest: (token: WorkflowRequestToken) => boolean;
 }
+
+type WorkflowRequestToken = {
+  sessionId: string | null;
+  generation: number;
+  mutation: number;
+};
 
 export function useWorkflowComparisonActions({
   state,
@@ -22,16 +30,26 @@ export function useWorkflowComparisonActions({
   startLoading,
   failLoading,
   blockSnapshotFollowOnWorkflow,
+  beginWorkflowRequest,
+  isCurrentWorkflowRequest,
 }: UseWorkflowComparisonActionsParams) {
   const handleFileSelection = useCallback(async (file: SelectedFileSource, fileLetter: 'a' | 'b') => {
     if (!state.sessionId) {
       return;
     }
 
+    if (blockSnapshotFollowOnWorkflow()) {
+      return;
+    }
+
+    const token = beginWorkflowRequest(state.sessionId, true);
     startLoading();
 
     try {
       const response = await loadFile(state.sessionId, file, fileLetter);
+      if (!isCurrentWorkflowRequest(token)) {
+        return;
+      }
       const fileData = {
         name: getSelectedFileName(file),
         headers: response.headers,
@@ -42,9 +60,19 @@ export function useWorkflowComparisonActions({
 
       dispatch({ type: 'fileLoaded', fileLetter, fileData });
     } catch (error) {
-      failLoading(error);
+      if (isCurrentWorkflowRequest(token)) {
+        failLoading(error);
+      }
     }
-  }, [dispatch, failLoading, startLoading, state.sessionId]);
+  }, [
+    beginWorkflowRequest,
+    blockSnapshotFollowOnWorkflow,
+    dispatch,
+    failLoading,
+    isCurrentWorkflowRequest,
+    startLoading,
+    state.sessionId,
+  ]);
 
   const handleCompare = useCallback(async (
     keyColumnsA: string[],
@@ -72,9 +100,13 @@ export function useWorkflowComparisonActions({
     );
 
     startLoading();
+    const token = beginWorkflowRequest(state.sessionId, true);
 
     try {
       const response = await compareFiles(state.sessionId, request);
+      if (!isCurrentWorkflowRequest(token)) {
+        return;
+      }
 
       dispatch({
         type: 'compareSucceeded',
@@ -83,9 +115,19 @@ export function useWorkflowComparisonActions({
         summary: response.summary,
       });
     } catch (error) {
-      failLoading(error);
+      if (isCurrentWorkflowRequest(token)) {
+        failLoading(error);
+      }
     }
-  }, [blockSnapshotFollowOnWorkflow, dispatch, failLoading, startLoading, state.sessionId]);
+  }, [
+    beginWorkflowRequest,
+    blockSnapshotFollowOnWorkflow,
+    dispatch,
+    failLoading,
+    isCurrentWorkflowRequest,
+    startLoading,
+    state.sessionId,
+  ]);
 
   const handleAutoPairComparisonColumns = useCallback(async (leadingSide: FileLetter) => {
     if (!state.sessionId || !state.fileA || !state.fileB) {
@@ -109,12 +151,16 @@ export function useWorkflowComparisonActions({
     }
 
     startLoading();
+    const token = beginWorkflowRequest(state.sessionId, true);
 
     try {
       const response = await suggestMappings(state.sessionId, {
         columns_a: state.fileA.headers,
         columns_b: state.fileB.headers,
       });
+      if (!isCurrentWorkflowRequest(token)) {
+        return;
+      }
       const comparisonSelection = buildAutoPairSelection({
         fileAHeaders: state.fileA.headers,
         fileBHeaders: state.fileB.headers,
@@ -147,9 +193,22 @@ export function useWorkflowComparisonActions({
         },
       });
     } catch (error) {
-      failLoading(error);
+      if (isCurrentWorkflowRequest(token)) {
+        failLoading(error);
+      }
     }
-  }, [blockSnapshotFollowOnWorkflow, dispatch, failLoading, mappingSelection, startLoading, state.fileA, state.fileB, state.sessionId]);
+  }, [
+    beginWorkflowRequest,
+    blockSnapshotFollowOnWorkflow,
+    dispatch,
+    failLoading,
+    isCurrentWorkflowRequest,
+    mappingSelection,
+    startLoading,
+    state.fileA,
+    state.fileB,
+    state.sessionId,
+  ]);
 
   return {
     handleFileSelection,

@@ -6,7 +6,16 @@ interface UseWorkflowSessionLifecycleParams {
   state: WorkflowState['appState'];
   dispatch: Dispatch<WorkflowAction>;
   setWorkflowError: (error: unknown) => void;
+  beginWorkflowRequest: (sessionId: string | null, invalidatesExisting?: boolean) => WorkflowRequestToken;
+  isCurrentWorkflowRequest: (token: WorkflowRequestToken) => boolean;
+  advanceWorkflowGeneration: () => void;
 }
+
+type WorkflowRequestToken = {
+  sessionId: string | null;
+  generation: number;
+  mutation: number;
+};
 
 function isSessionNotFoundError(error: unknown): boolean {
   if (typeof error !== 'object' || error === null) {
@@ -23,22 +32,32 @@ export function useWorkflowSessionLifecycle({
   state,
   dispatch,
   setWorkflowError,
+  beginWorkflowRequest,
+  isCurrentWorkflowRequest,
+  advanceWorkflowGeneration,
 }: UseWorkflowSessionLifecycleParams) {
   useEffect(() => {
     async function initSession() {
+      const token = beginWorkflowRequest(null);
       try {
         const response = await createSession();
-        dispatch({ type: 'sessionCreated', sessionId: response.session_id });
+        if (isCurrentWorkflowRequest(token)) {
+          dispatch({ type: 'sessionCreated', sessionId: response.session_id });
+        }
       } catch (error) {
-        setWorkflowError(error);
+        if (isCurrentWorkflowRequest(token)) {
+          setWorkflowError(error);
+        }
       }
     }
 
     void initSession();
-  }, [dispatch, setWorkflowError]);
+  }, [beginWorkflowRequest, dispatch, isCurrentWorkflowRequest, setWorkflowError]);
 
   const handleReset = useCallback(async () => {
     const outgoingSessionId = state.sessionId;
+    advanceWorkflowGeneration();
+    const token = beginWorkflowRequest(null);
     dispatch({ type: 'resetWorkflow' });
 
     try {
@@ -52,11 +71,22 @@ export function useWorkflowSessionLifecycle({
         }
       }
       const response = await createSession();
-      dispatch({ type: 'sessionCreated', sessionId: response.session_id });
+      if (isCurrentWorkflowRequest(token)) {
+        dispatch({ type: 'sessionCreated', sessionId: response.session_id });
+      }
     } catch (error) {
-      setWorkflowError(error);
+      if (isCurrentWorkflowRequest(token)) {
+        setWorkflowError(error);
+      }
     }
-  }, [dispatch, setWorkflowError, state.sessionId]);
+  }, [
+    advanceWorkflowGeneration,
+    beginWorkflowRequest,
+    dispatch,
+    isCurrentWorkflowRequest,
+    setWorkflowError,
+    state.sessionId,
+  ]);
 
   return { handleReset };
 }

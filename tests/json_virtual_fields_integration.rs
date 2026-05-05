@@ -145,6 +145,133 @@ fn exact_physical_header_names_win_over_dot_notation_parsing() {
 }
 
 #[test]
+fn virtual_json_fields_escape_dotted_object_keys() {
+    let loaded = load_csv_workflow(
+        "a",
+        Some("metrics.csv".to_string()),
+        CsvLoadSource::Bytes(
+            br#"id,metrics
+1,"{""customer.id"":""flat-a"",""customer"":{""id"":""nested-a""}}"
+"#
+            .to_vec(),
+        ),
+    )
+    .unwrap();
+
+    assert_eq!(
+        loaded.response.virtual_headers,
+        vec![
+            "metrics.customer",
+            "metrics.customer.id",
+            "metrics.customer\\.id",
+        ]
+    );
+}
+
+#[test]
+fn comparison_distinguishes_dotted_json_keys_from_nested_paths() {
+    let csv_a = csv_loader::load_csv_from_bytes(
+        br#"id,metrics
+1,"{""customer.id"":""flat-a"",""customer"":{""id"":""nested-a""}}"
+"#,
+    )
+    .unwrap();
+    let csv_b = csv_loader::load_csv_from_bytes(
+        br#"id,metrics
+1,"{""customer.id"":""flat-b"",""customer"":{""id"":""nested-b""}}"
+"#,
+    )
+    .unwrap();
+
+    let execution = run_comparison(
+        &csv_a,
+        &csv_b,
+        CompareRequest {
+            key_columns_a: vec!["id".to_string()],
+            key_columns_b: vec!["id".to_string()],
+            comparison_columns_a: vec![
+                "metrics.customer\\.id".to_string(),
+                "metrics.customer.id".to_string(),
+            ],
+            comparison_columns_b: vec![
+                "metrics.customer\\.id".to_string(),
+                "metrics.customer.id".to_string(),
+            ],
+            column_mappings: Vec::new(),
+            normalization: ComparisonNormalizationConfig::default(),
+        },
+    )
+    .unwrap();
+
+    let result = &execution.response.results[0];
+    assert_eq!(result.values_a, vec!["flat-a", "nested-a"]);
+    assert_eq!(result.values_b, vec!["flat-b", "nested-b"]);
+    assert_eq!(result.differences[0].column_a, "metrics.customer\\.id");
+    assert_eq!(result.differences[1].column_a, "metrics.customer.id");
+}
+
+#[test]
+fn virtual_json_fields_use_explicit_source_separator_when_physical_headers_share_prefixes() {
+    let loaded = load_csv_workflow(
+        "a",
+        Some("metrics.csv".to_string()),
+        CsvLoadSource::Bytes(
+            br#"id,metrics,metrics.customer
+1,"{""customer"":{""id"":""from-metrics""}}","{""id"":""from-prefixed-header""}"
+"#
+            .to_vec(),
+        ),
+    )
+    .unwrap();
+
+    assert_eq!(
+        loaded.response.virtual_headers,
+        vec![
+            "metrics#customer",
+            "metrics#customer.id",
+            "metrics.customer#id"
+        ]
+    );
+
+    let csv_a = csv_loader::load_csv_from_bytes(
+        br#"id,metrics,metrics.customer
+1,"{""customer"":{""id"":""from-metrics-a""}}","{""id"":""from-prefixed-a""}"
+"#,
+    )
+    .unwrap();
+    let csv_b = csv_loader::load_csv_from_bytes(
+        br#"id,metrics,metrics.customer
+1,"{""customer"":{""id"":""from-metrics-b""}}","{""id"":""from-prefixed-b""}"
+"#,
+    )
+    .unwrap();
+
+    let execution = run_comparison(
+        &csv_a,
+        &csv_b,
+        CompareRequest {
+            key_columns_a: vec!["id".to_string()],
+            key_columns_b: vec!["id".to_string()],
+            comparison_columns_a: vec![
+                "metrics#customer.id".to_string(),
+                "metrics.customer#id".to_string(),
+            ],
+            comparison_columns_b: vec![
+                "metrics#customer.id".to_string(),
+                "metrics.customer#id".to_string(),
+            ],
+            column_mappings: Vec::new(),
+            normalization: ComparisonNormalizationConfig::default(),
+        },
+    )
+    .unwrap();
+
+    let result = &execution.response.results[0];
+    assert_eq!(result.values_a, vec!["from-metrics-a", "from-prefixed-a"]);
+    assert_eq!(result.values_b, vec!["from-metrics-b", "from-prefixed-b"]);
+}
+
+#[test]
 fn virtual_field_validation_rejects_undiscovered_json_paths() {
     let csv_a = csv_loader::load_csv_from_bytes(
         br#"id,metrics

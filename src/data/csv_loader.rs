@@ -1,6 +1,7 @@
 use super::types::{ColumnDataType, ColumnInfo, CsvData};
 use csv::ReaderBuilder;
 use encoding_rs_io::DecodeReaderBytesBuilder;
+use std::collections::HashSet;
 use std::error::Error;
 use std::fmt;
 use std::fs::File;
@@ -39,6 +40,7 @@ fn parse_csv_text(csv_data: &str) -> Result<CsvData, Box<dyn Error>> {
         .from_reader(Cursor::new(csv_data.as_bytes()));
 
     let headers: Vec<String> = reader.headers()?.iter().map(|h| h.to_string()).collect();
+    validate_unique_headers(&headers)?;
 
     let mut rows = Vec::new();
     for result in reader.records() {
@@ -90,6 +92,43 @@ impl fmt::Display for MalformedRowError {
 }
 
 impl Error for MalformedRowError {}
+
+fn validate_unique_headers(headers: &[String]) -> Result<(), Box<dyn Error>> {
+    let mut seen = HashSet::new();
+    let mut duplicates = Vec::new();
+
+    for header in headers {
+        if !seen.insert(header.as_str()) && !duplicates.iter().any(|duplicate| duplicate == header)
+        {
+            duplicates.push(header.clone());
+        }
+    }
+
+    if duplicates.is_empty() {
+        Ok(())
+    } else {
+        Err(Box::new(DuplicateHeaderError {
+            headers: duplicates,
+        }))
+    }
+}
+
+#[derive(Debug)]
+struct DuplicateHeaderError {
+    headers: Vec<String>,
+}
+
+impl fmt::Display for DuplicateHeaderError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Duplicate CSV headers are not supported: {}",
+            self.headers.join(", ")
+        )
+    }
+}
+
+impl Error for DuplicateHeaderError {}
 
 fn detect_delimiter(csv_data: &str) -> u8 {
     let first_row = csv_data

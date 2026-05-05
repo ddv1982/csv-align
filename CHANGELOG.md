@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.50 - 2026-05-05
+
+- Fixed workflow state recovery so replacing files or resetting during in-flight work no longer lets stale results, mappings, filters, or older async responses overwrite the current session.
+- Rejected duplicate CSV headers and made virtual JSON field labels unambiguous for dotted object keys and dotted physical header prefixes, then prepared the v2.1.50 patch release.
+
 ## v2.1.49 - 2026-04-29
 
 - Updated the decimal-rounding cleanup copy to use user-facing `decimal places` language, clarifying that `0` means whole-number rounding and that rounded values also appear in results and exports.

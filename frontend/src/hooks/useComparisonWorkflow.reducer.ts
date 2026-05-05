@@ -161,24 +161,23 @@ export function workflowReducer(state: WorkflowState, action: WorkflowAction): W
       const nextAppState: AppState = {
         ...state.appState,
         [action.fileLetter === 'a' ? 'fileA' : 'fileB']: action.fileData,
+        mappings: [],
+        results: [],
+        summary: null,
+        snapshotReadOnly: false,
+        filter: 'all',
         loading: false,
       };
-      const shouldAdvance = Boolean(
+      const hasBothFiles = Boolean(
         nextAppState.fileA
-        && nextAppState.fileB
-        && nextAppState.results.length === 0
-        && nextAppState.summary === null
-        && state.step === 'select',
+        && nextAppState.fileB,
       );
 
       return {
-        appState: {
-          ...nextAppState,
-          ...(shouldAdvance ? { mappings: [] } : {}),
-        },
-        step: shouldAdvance ? 'configure' : state.step,
-        mappingSelection: shouldAdvance ? INITIAL_MAPPING_SELECTION : state.mappingSelection,
-        normalizationConfig: shouldAdvance ? INITIAL_NORMALIZATION_CONFIG : state.normalizationConfig,
+        appState: nextAppState,
+        step: hasBothFiles ? 'configure' : 'select',
+        mappingSelection: INITIAL_MAPPING_SELECTION,
+        normalizationConfig: INITIAL_NORMALIZATION_CONFIG,
       };
     }
     case 'compareSucceeded':

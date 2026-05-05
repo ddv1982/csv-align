@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useReducer } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { filterResults } from '../features/results/presentation';
 import type { ComparisonNormalizationConfig } from '../types/api';
 import type { MappingSelectionState } from '../types/ui';
@@ -17,6 +17,37 @@ export function useComparisonWorkflow() {
   const [workflowState, dispatch] = useReducer(workflowReducer, INITIAL_WORKFLOW_STATE);
 
   const { appState: state, step, mappingSelection, normalizationConfig } = workflowState;
+  const currentSessionIdRef = useRef<string | null>(state.sessionId);
+  const workflowGenerationRef = useRef(0);
+  const workflowMutationRef = useRef(0);
+
+  useEffect(() => {
+    currentSessionIdRef.current = state.sessionId;
+  }, [state.sessionId]);
+
+  const beginWorkflowRequest = useCallback((sessionId: string | null, invalidatesExisting = false) => {
+    if (invalidatesExisting) {
+      workflowMutationRef.current += 1;
+    }
+
+    return {
+      sessionId,
+      generation: workflowGenerationRef.current,
+      mutation: workflowMutationRef.current,
+    };
+  }, []);
+
+  const isCurrentWorkflowRequest = useCallback((token: { sessionId: string | null; generation: number; mutation: number }) => (
+    workflowGenerationRef.current === token.generation
+    && workflowMutationRef.current === token.mutation
+    && (token.sessionId === null || currentSessionIdRef.current === token.sessionId)
+  ), []);
+
+  const advanceWorkflowGeneration = useCallback(() => {
+    workflowGenerationRef.current += 1;
+    workflowMutationRef.current += 1;
+    currentSessionIdRef.current = null;
+  }, []);
 
   const startLoading = useCallback((clearError = true) => {
     dispatch({ type: 'loadingStarted', clearError });
@@ -43,6 +74,9 @@ export function useComparisonWorkflow() {
     state,
     dispatch,
     setWorkflowError,
+    beginWorkflowRequest,
+    isCurrentWorkflowRequest,
+    advanceWorkflowGeneration,
   });
 
   const {
@@ -56,6 +90,8 @@ export function useComparisonWorkflow() {
     startLoading,
     failLoading,
     blockSnapshotFollowOnWorkflow,
+    beginWorkflowRequest,
+    isCurrentWorkflowRequest,
   });
 
   const {
@@ -72,6 +108,8 @@ export function useComparisonWorkflow() {
     startLoading,
     failLoading,
     blockSnapshotFollowOnWorkflow,
+    beginWorkflowRequest,
+    isCurrentWorkflowRequest,
   });
 
   const {

@@ -64,6 +64,17 @@ fn load_csv_from_bytes_rejects_rows_with_missing_columns() {
 }
 
 #[test]
+fn load_csv_from_bytes_rejects_duplicate_headers() {
+    let error = load_csv_from_bytes(b"id,name,name\n1,Alice,Alicia\n")
+        .expect_err("duplicate headers should fail");
+
+    assert_eq!(
+        error.to_string(),
+        "Duplicate CSV headers are not supported: name"
+    );
+}
+
+#[test]
 fn detect_columns_infers_common_types() {
     let csv_data = CsvData {
         file_path: None,

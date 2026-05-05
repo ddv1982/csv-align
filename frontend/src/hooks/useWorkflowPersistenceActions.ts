@@ -22,7 +22,15 @@ interface UseWorkflowPersistenceActionsParams {
   startLoading: (clearError?: boolean) => void;
   failLoading: (error: unknown) => void;
   blockSnapshotFollowOnWorkflow: () => boolean;
+  beginWorkflowRequest: (sessionId: string | null, invalidatesExisting?: boolean) => WorkflowRequestToken;
+  isCurrentWorkflowRequest: (token: WorkflowRequestToken) => boolean;
 }
+
+type WorkflowRequestToken = {
+  sessionId: string | null;
+  generation: number;
+  mutation: number;
+};
 
 export function useWorkflowPersistenceActions({
   state,
@@ -31,24 +39,32 @@ export function useWorkflowPersistenceActions({
   startLoading,
   failLoading,
   blockSnapshotFollowOnWorkflow,
+  beginWorkflowRequest,
+  isCurrentWorkflowRequest,
 }: UseWorkflowPersistenceActionsParams) {
   const handleExportCsv = useCallback(async () => {
     if (!state.sessionId) {
       return;
     }
 
+    const token = beginWorkflowRequest(state.sessionId);
     startLoading(false);
 
     try {
       const blob = await exportResults(state.sessionId);
+      if (!isCurrentWorkflowRequest(token)) {
+        return;
+      }
       if (blob) {
         downloadBlob(blob, 'comparison-results.csv');
       }
       dispatch({ type: 'downloadCompleted' });
     } catch (error) {
-      failLoading(error);
+      if (isCurrentWorkflowRequest(token)) {
+        failLoading(error);
+      }
     }
-  }, [dispatch, failLoading, startLoading, state.sessionId]);
+  }, [beginWorkflowRequest, dispatch, failLoading, isCurrentWorkflowRequest, startLoading, state.sessionId]);
 
   const handleExportHtml = useCallback(async () => {
     if (state.summary === null) {
@@ -56,6 +72,7 @@ export function useWorkflowPersistenceActions({
     }
 
     startLoading(false);
+    const token = beginWorkflowRequest(state.sessionId);
 
     try {
       const htmlDocument = buildResultsHtmlDocument({
@@ -69,16 +86,23 @@ export function useWorkflowPersistenceActions({
         initialFilter: state.filter,
       });
       const blob = await exportResultsHtml(htmlDocument);
+      if (!isCurrentWorkflowRequest(token)) {
+        return;
+      }
       if (blob) {
         downloadBlob(blob, 'comparison-results.html');
       }
       dispatch({ type: 'downloadCompleted' });
     } catch (error) {
-      failLoading(error);
+      if (isCurrentWorkflowRequest(token)) {
+        failLoading(error);
+      }
     }
   }, [
+    beginWorkflowRequest,
     dispatch,
     failLoading,
+    isCurrentWorkflowRequest,
     mappingSelection.comparisonColumnsA,
     mappingSelection.comparisonColumnsB,
     startLoading,
@@ -96,17 +120,23 @@ export function useWorkflowPersistenceActions({
     }
 
     startLoading();
+    const token = beginWorkflowRequest(state.sessionId);
 
     try {
       const blob = await saveComparisonSnapshot(state.sessionId);
+      if (!isCurrentWorkflowRequest(token)) {
+        return;
+      }
       if (blob) {
         downloadBlob(blob, 'comparison-snapshot.json');
       }
       dispatch({ type: 'downloadCompleted' });
     } catch (error) {
-      failLoading(error);
+      if (isCurrentWorkflowRequest(token)) {
+        failLoading(error);
+      }
     }
-  }, [dispatch, failLoading, startLoading, state.sessionId]);
+  }, [beginWorkflowRequest, dispatch, failLoading, isCurrentWorkflowRequest, startLoading, state.sessionId]);
 
   const handleLoadComparisonSnapshot = useCallback(async (file?: File) => {
     if (!state.sessionId) {
@@ -114,9 +144,13 @@ export function useWorkflowPersistenceActions({
     }
 
     startLoading();
+    const token = beginWorkflowRequest(state.sessionId, true);
 
     try {
       const response = await loadComparisonSnapshot(state.sessionId, file);
+      if (!isCurrentWorkflowRequest(token)) {
+        return;
+      }
       if (response) {
         dispatch({ type: 'snapshotLoaded', response });
         return;
@@ -124,9 +158,11 @@ export function useWorkflowPersistenceActions({
 
       dispatch({ type: 'downloadCompleted' });
     } catch (error) {
-      failLoading(error);
+      if (isCurrentWorkflowRequest(token)) {
+        failLoading(error);
+      }
     }
-  }, [dispatch, failLoading, startLoading, state.sessionId]);
+  }, [beginWorkflowRequest, dispatch, failLoading, isCurrentWorkflowRequest, startLoading, state.sessionId]);
 
   const handleSavePairOrder = useCallback(async () => {
     if (!state.sessionId) {
@@ -138,6 +174,7 @@ export function useWorkflowPersistenceActions({
     }
 
     startLoading();
+    const token = beginWorkflowRequest(state.sessionId, true);
 
     try {
       const blob = await savePairOrder(state.sessionId, {
@@ -146,6 +183,9 @@ export function useWorkflowPersistenceActions({
         comparison_columns_a: mappingSelection.comparisonColumnsA,
         comparison_columns_b: mappingSelection.comparisonColumnsB,
       });
+      if (!isCurrentWorkflowRequest(token)) {
+        return;
+      }
 
       if (blob) {
         downloadBlob(blob, 'pair-order.txt');
@@ -153,9 +193,20 @@ export function useWorkflowPersistenceActions({
 
       dispatch({ type: 'downloadCompleted' });
     } catch (error) {
-      failLoading(error);
+      if (isCurrentWorkflowRequest(token)) {
+        failLoading(error);
+      }
     }
-  }, [blockSnapshotFollowOnWorkflow, dispatch, failLoading, mappingSelection, startLoading, state.sessionId]);
+  }, [
+    beginWorkflowRequest,
+    blockSnapshotFollowOnWorkflow,
+    dispatch,
+    failLoading,
+    isCurrentWorkflowRequest,
+    mappingSelection,
+    startLoading,
+    state.sessionId,
+  ]);
 
   const handleLoadPairOrder = useCallback(async (file?: File) => {
     if (!state.sessionId) {
@@ -167,9 +218,13 @@ export function useWorkflowPersistenceActions({
     }
 
     startLoading();
+    const token = beginWorkflowRequest(state.sessionId);
 
     try {
       const response = await loadPairOrder(state.sessionId, file);
+      if (!isCurrentWorkflowRequest(token)) {
+        return;
+      }
       if (response) {
         dispatch({
           type: 'pairOrderLoaded',
@@ -185,9 +240,19 @@ export function useWorkflowPersistenceActions({
 
       dispatch({ type: 'downloadCompleted' });
     } catch (error) {
-      failLoading(error);
+      if (isCurrentWorkflowRequest(token)) {
+        failLoading(error);
+      }
     }
-  }, [blockSnapshotFollowOnWorkflow, dispatch, failLoading, startLoading, state.sessionId]);
+  }, [
+    beginWorkflowRequest,
+    blockSnapshotFollowOnWorkflow,
+    dispatch,
+    failLoading,
+    isCurrentWorkflowRequest,
+    startLoading,
+    state.sessionId,
+  ]);
 
   return {
     handleExportCsv,
