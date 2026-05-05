@@ -20,7 +20,10 @@ describe('useComparisonWorkflow reducer', () => {
         { file_a_column: 'id', file_b_column: 'record_id', mapping_type: 'manual' },
         { file_a_column: 'name', file_b_column: 'display_name', mapping_type: 'manual' },
       ],
-      INITIAL_NORMALIZATION_CONFIG,
+      {
+        ...INITIAL_NORMALIZATION_CONFIG,
+        flexible_key_matching: true,
+      },
     );
 
     expect(request.comparison_columns_a).toEqual(['id', 'name']);
@@ -29,6 +32,7 @@ describe('useComparisonWorkflow reducer', () => {
       { file_a_column: 'id', file_b_column: 'record_id', mapping_type: 'manual' },
       { file_a_column: 'name', file_b_column: 'display_name', mapping_type: 'manual' },
     ]);
+    expect(request.normalization?.flexible_key_matching).toBe(true);
   });
 
   test('fileLoaded advances to configure and resets selection state after both files load', () => {

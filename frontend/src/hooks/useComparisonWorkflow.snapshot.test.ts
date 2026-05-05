@@ -100,6 +100,7 @@ test('loads a saved comparison snapshot into the results workflow state', async 
       treat_empty_as_null: true,
       null_tokens: ['n/a'],
       null_token_case_insensitive: true,
+      flexible_key_matching: false,
       case_insensitive: true,
       trim_whitespace: true,
       numeric_equivalence: false,

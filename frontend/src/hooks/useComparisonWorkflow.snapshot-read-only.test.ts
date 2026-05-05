@@ -74,6 +74,7 @@ function buildSnapshotResponse() {
         treat_empty_as_null: true,
         null_tokens: [],
         null_token_case_insensitive: true,
+        flexible_key_matching: false,
         case_insensitive: true,
         trim_whitespace: true,
         numeric_equivalence: false,

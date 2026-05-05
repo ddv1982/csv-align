@@ -6,6 +6,7 @@ test('uses the intended default cleanup normalization baseline', () => {
   expect(INITIAL_NORMALIZATION_CONFIG.null_tokens).toEqual(['null', 'na', 'n/a', 'none']);
   expect(INITIAL_NORMALIZATION_CONFIG.null_tokens).not.toContain('-');
   expect(INITIAL_NORMALIZATION_CONFIG.null_token_case_insensitive).toBe(true);
+  expect(INITIAL_NORMALIZATION_CONFIG.flexible_key_matching).toBe(false);
   expect(INITIAL_NORMALIZATION_CONFIG.case_insensitive).toBe(false);
   expect(INITIAL_NORMALIZATION_CONFIG.trim_whitespace).toBe(false);
   expect(INITIAL_NORMALIZATION_CONFIG.numeric_equivalence).toBe(false);

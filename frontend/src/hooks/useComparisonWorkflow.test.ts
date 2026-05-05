@@ -70,6 +70,7 @@ const COLUMN_MAPPINGS: MappingDto[] = [
 
 const NORMALIZATION: ComparisonNormalizationConfig = {
   ...INITIAL_NORMALIZATION_CONFIG,
+  flexible_key_matching: true,
   case_insensitive: true,
 };
 

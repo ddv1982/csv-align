@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.51 - 2026-05-05
+
+- Added opt-in flexible key matching so `**` can bridge variable key segments across CSV files while preserving default exact-key behavior when disabled.
+- Fixed flexible wildcard matching to maximize paired rows before applying deterministic preferences, support overlapping wildcard patterns on both sides, and prepared the v2.1.51 patch release.
+
 ## v2.1.50 - 2026-05-05
 
 - Fixed workflow state recovery so replacing files or resetting during in-flight work no longer lets stale results, mappings, filters, or older async responses overwrite the current session.

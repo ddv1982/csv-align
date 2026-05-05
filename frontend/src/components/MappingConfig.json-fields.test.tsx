@@ -63,6 +63,19 @@ test('allows users to enable equivalent number cleanup', () => {
   });
 });
 
+test('allows users to enable flexible row-key wildcard matching', () => {
+  const onNormalizationChange = vi.fn();
+
+  renderMappingConfig({ onNormalizationChange });
+
+  fireEvent.click(screen.getByLabelText('Enable ** wildcard matching for row keys'));
+
+  expect(onNormalizationChange).toHaveBeenCalledWith({
+    ...INITIAL_NORMALIZATION_CONFIG,
+    flexible_key_matching: true,
+  });
+});
+
 test('allows users to enable decimal rounding cleanup', () => {
   const onNormalizationChange = vi.fn();
 

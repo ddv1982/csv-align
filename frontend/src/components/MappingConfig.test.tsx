@@ -35,10 +35,16 @@ function renderMappingConfig(normalization: ComparisonNormalizationConfig = INIT
   );
 }
 
-test('shows the simplified cleanup copy and labels', () => {
+test('shows grouped comparison rules and labels', () => {
   renderMappingConfig();
 
-  expect(screen.getByRole('heading', { name: 'Comparison cleanup rules' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Comparison rules' })).toBeInTheDocument();
+  expect(screen.getByText('Row-key matching')).toBeInTheDocument();
+  expect(screen.getByText('Missing values')).toBeInTheDocument();
+  expect(screen.getByText('Text and numbers')).toBeInTheDocument();
+  expect(screen.getByText('Dates')).toBeInTheDocument();
+  expect(screen.getByLabelText('Enable ** wildcard matching for row keys')).toBeInTheDocument();
+  expect(screen.getByLabelText('Enable ** wildcard matching for row keys')).not.toBeChecked();
   expect(screen.getByLabelText('Treat blank cells as missing')).toBeInTheDocument();
   expect(screen.getByText('Also treat these values as missing')).toBeInTheDocument();
   expect(screen.getByLabelText('Round numeric values to a chosen number of decimal places before comparing')).toBeInTheDocument();

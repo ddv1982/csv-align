@@ -1,14 +1,57 @@
+import type { ReactNode } from 'react';
 import type { ComparisonNormalizationConfig } from '../../types/api';
 import { PencilSquareIcon } from '../icons';
 import { SectionCard } from '../ui/SectionCard';
 
 const MAX_DECIMAL_ROUNDING_PLACES = 15;
+const CHECKBOX_CLASS = 'h-4 w-4 border-[color:var(--color-kinetic-line)] bg-transparent text-[color:var(--color-kinetic-accent)]';
 
 interface NormalizationPanelProps {
   normalization: ComparisonNormalizationConfig;
   onChange: (updates: Partial<ComparisonNormalizationConfig>) => void;
   onDateChange: (updates: Partial<ComparisonNormalizationConfig['date_normalization']>) => void;
   onDecimalRoundingChange: (updates: Partial<ComparisonNormalizationConfig['decimal_rounding']>) => void;
+}
+
+interface RuleGroupProps {
+  title: string;
+  description?: string;
+  children: ReactNode;
+}
+
+function RuleGroup({ title, description, children }: RuleGroupProps) {
+  return (
+    <fieldset className="rounded-2xl border border-[color:var(--color-kinetic-line)]/70 p-4">
+      <legend className="px-1 text-sm font-semibold text-[color:var(--color-kinetic-copy)]">{title}</legend>
+      {description ? <p className="mt-1 text-sm text-[color:var(--color-kinetic-muted)]">{description}</p> : null}
+      <div className="mt-3 space-y-3">{children}</div>
+    </fieldset>
+  );
+}
+
+interface CheckboxRuleProps {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label: string;
+  helpText?: string;
+}
+
+function CheckboxRule({ checked, onChange, label, helpText }: CheckboxRuleProps) {
+  return (
+    <label className="flex items-start gap-3 text-sm text-[color:var(--color-kinetic-copy)]">
+      <input
+        type="checkbox"
+        aria-label={label}
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className={`${CHECKBOX_CLASS} mt-0.5`}
+      />
+      <span>
+        <span className="block">{label}</span>
+        {helpText ? <span className="mt-1 block text-[color:var(--color-kinetic-muted)]">{helpText}</span> : null}
+      </span>
+    </label>
+  );
 }
 
 export function NormalizationPanel({
@@ -19,130 +62,119 @@ export function NormalizationPanel({
 }: NormalizationPanelProps) {
   return (
     <SectionCard
-      eyebrow="Cleanup"
-      title="Comparison cleanup rules"
-      description="Use optional cleanup rules when the same values are formatted differently between files."
+      eyebrow="Rules"
+      title="Comparison rules"
+      description="Tune how row keys are matched and how formatted values are cleaned up before comparison."
       icon={<PencilSquareIcon className="h-5 w-5" />}
       className="p-6"
     >
       <div className="space-y-4">
-        <label className="flex items-center gap-3 text-sm text-[color:var(--color-kinetic-copy)]">
-          <input
-            type="checkbox"
+        <RuleGroup
+          title="Row-key matching"
+          description="Exact key matching stays on unless you explicitly enable wildcard matching."
+        >
+          <CheckboxRule
+            checked={normalization.flexible_key_matching}
+            onChange={(checked) => onChange({ flexible_key_matching: checked })}
+            label="Enable ** wildcard matching for row keys"
+            helpText="Use this when row keys include prefixes, suffixes, or generated IDs. Example: INV-** can match INV-001."
+          />
+        </RuleGroup>
+
+        <RuleGroup title="Missing values">
+          <CheckboxRule
             checked={normalization.treat_empty_as_null}
-            onChange={(event) => onChange({ treat_empty_as_null: event.target.checked })}
-            className="h-4 w-4 border-[color:var(--color-kinetic-line)] bg-transparent text-[color:var(--color-kinetic-accent)]"
+            onChange={(checked) => onChange({ treat_empty_as_null: checked })}
+            label="Treat blank cells as missing"
           />
-          Treat blank cells as missing
-        </label>
 
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-[color:var(--color-kinetic-copy)]">Also treat these values as missing</label>
-          <p className="text-sm text-[color:var(--color-kinetic-muted)]">Enter exact values such as `null`, `n/a`, or `unknown`, separated by commas.</p>
-          <input
-            type="text"
-            value={normalization.null_tokens.join(', ')}
-            onChange={(event) => {
-              const tokens = event.target.value
-                .split(',')
-                .map((token) => token.trim())
-                .filter((token) => token.length > 0);
-
-              onChange({ null_tokens: tokens });
-            }}
-            placeholder="null"
-            className="input px-3 py-2 text-sm"
-          />
-          <label className="flex items-center gap-3 text-sm text-[color:var(--color-kinetic-copy)]">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-[color:var(--color-kinetic-copy)]">Also treat these values as missing</label>
+            <p className="text-sm text-[color:var(--color-kinetic-muted)]">Enter exact values such as `null`, `n/a`, or `unknown`, separated by commas.</p>
             <input
-              type="checkbox"
-              checked={normalization.null_token_case_insensitive}
-              onChange={(event) => onChange({ null_token_case_insensitive: event.target.checked })}
-              className="h-4 w-4 border-[color:var(--color-kinetic-line)] bg-transparent text-[color:var(--color-kinetic-accent)]"
+              type="text"
+              value={normalization.null_tokens.join(', ')}
+              onChange={(event) => {
+                const tokens = event.target.value
+                  .split(',')
+                  .map((token) => token.trim())
+                  .filter((token) => token.length > 0);
+
+                onChange({ null_tokens: tokens });
+              }}
+              placeholder="null"
+              className="input px-3 py-2 text-sm"
             />
-            Ignore letter case for those values
-          </label>
-        </div>
+          </div>
 
-        <div className="grid gap-3 md:grid-cols-2">
-          <label className="flex items-center gap-3 text-sm text-[color:var(--color-kinetic-copy)]">
-            <input
-              type="checkbox"
+          <CheckboxRule
+            checked={normalization.null_token_case_insensitive}
+            onChange={(checked) => onChange({ null_token_case_insensitive: checked })}
+            label="Ignore letter case for those values"
+          />
+        </RuleGroup>
+
+        <RuleGroup title="Text and numbers">
+          <div className="grid gap-3 md:grid-cols-2">
+            <CheckboxRule
               checked={normalization.case_insensitive}
-              onChange={(event) => onChange({ case_insensitive: event.target.checked })}
-              className="h-4 w-4 border-[color:var(--color-kinetic-line)] bg-transparent text-[color:var(--color-kinetic-accent)]"
+              onChange={(checked) => onChange({ case_insensitive: checked })}
+              label="Ignore letter case"
             />
-            Ignore letter case
-          </label>
 
-          <label className="flex items-center gap-3 text-sm text-[color:var(--color-kinetic-copy)]">
-            <input
-              type="checkbox"
+            <CheckboxRule
               checked={normalization.trim_whitespace}
-              onChange={(event) => onChange({ trim_whitespace: event.target.checked })}
-              className="h-4 w-4 border-[color:var(--color-kinetic-line)] bg-transparent text-[color:var(--color-kinetic-accent)]"
+              onChange={(checked) => onChange({ trim_whitespace: checked })}
+              label="Ignore extra spaces at the start or end of a value"
             />
-            Ignore extra spaces at the start or end of a value
-          </label>
 
-          <label className="flex items-center gap-3 text-sm text-[color:var(--color-kinetic-copy)]">
-            <input
-              type="checkbox"
+            <CheckboxRule
               checked={normalization.numeric_equivalence}
-              onChange={(event) => onChange({ numeric_equivalence: event.target.checked })}
-              className="h-4 w-4 border-[color:var(--color-kinetic-line)] bg-transparent text-[color:var(--color-kinetic-accent)]"
+              onChange={(checked) => onChange({ numeric_equivalence: checked })}
+              label="Match equivalent numbers with or without decimals"
             />
-            Match equivalent numbers with or without decimals
-          </label>
-        </div>
+          </div>
 
-        <div className="space-y-2">
-          <label className="flex items-center gap-3 text-sm text-[color:var(--color-kinetic-copy)]">
-            <input
-              type="checkbox"
+          <div className="space-y-2">
+            <CheckboxRule
               checked={normalization.decimal_rounding.enabled}
-              onChange={(event) => onDecimalRoundingChange({ enabled: event.target.checked })}
-              className="h-4 w-4 border-[color:var(--color-kinetic-line)] bg-transparent text-[color:var(--color-kinetic-accent)]"
+              onChange={(checked) => onDecimalRoundingChange({ enabled: checked })}
+              label="Round numeric values to a chosen number of decimal places before comparing"
             />
-            Round numeric values to a chosen number of decimal places before comparing
-          </label>
-          <p className="text-sm text-[color:var(--color-kinetic-muted)]">
-            Choose how many decimal places to keep. Use 0 for whole numbers. Rounded values will also appear in results and exports.
-          </p>
-          <label className="block text-sm font-medium text-[color:var(--color-kinetic-copy)]" htmlFor="decimal-rounding-places">
-            Decimal places
-          </label>
-          <input
-            id="decimal-rounding-places"
-            type="number"
-            min={0}
-            max={MAX_DECIMAL_ROUNDING_PLACES}
-            step={1}
-            inputMode="numeric"
-            value={normalization.decimal_rounding.decimals}
-            disabled={!normalization.decimal_rounding.enabled}
-            onChange={(event) => {
-              const parsed = Number.parseInt(event.target.value, 10);
-              onDecimalRoundingChange({
-                decimals: Number.isNaN(parsed) || parsed < 0
-                  ? 0
-                  : Math.min(parsed, MAX_DECIMAL_ROUNDING_PLACES),
-              });
-            }}
-            className="input max-w-32 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="flex items-center gap-3 text-sm text-[color:var(--color-kinetic-copy)]">
+            <p className="text-sm text-[color:var(--color-kinetic-muted)]">
+              Choose how many decimal places to keep. Use 0 for whole numbers. Rounded values will also appear in results and exports.
+            </p>
+            <label className="block text-sm font-medium text-[color:var(--color-kinetic-copy)]" htmlFor="decimal-rounding-places">
+              Decimal places
+            </label>
             <input
-              type="checkbox"
-              checked={normalization.date_normalization.enabled}
-              onChange={(event) => onDateChange({ enabled: event.target.checked })}
-              className="h-4 w-4 border-[color:var(--color-kinetic-line)] bg-transparent text-[color:var(--color-kinetic-accent)]"
+              id="decimal-rounding-places"
+              type="number"
+              min={0}
+              max={MAX_DECIMAL_ROUNDING_PLACES}
+              step={1}
+              inputMode="numeric"
+              value={normalization.decimal_rounding.decimals}
+              disabled={!normalization.decimal_rounding.enabled}
+              onChange={(event) => {
+                const parsed = Number.parseInt(event.target.value, 10);
+                onDecimalRoundingChange({
+                  decimals: Number.isNaN(parsed) || parsed < 0
+                    ? 0
+                    : Math.min(parsed, MAX_DECIMAL_ROUNDING_PLACES),
+                });
+              }}
+              className="input max-w-32 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
             />
-            Match dates written in different formats
-          </label>
+          </div>
+        </RuleGroup>
+
+        <RuleGroup title="Dates">
+          <CheckboxRule
+            checked={normalization.date_normalization.enabled}
+            onChange={(checked) => onDateChange({ enabled: checked })}
+            label="Match dates written in different formats"
+          />
           <p className="text-sm text-[color:var(--color-kinetic-muted)]">Leave this off unless the same dates appear in different formats across the two files.</p>
 
           <details className="group kinetic-panel px-4 py-3">
@@ -168,7 +200,7 @@ export function NormalizationPanel({
               />
             </div>
           </details>
-        </div>
+        </RuleGroup>
       </div>
     </SectionCard>
   );

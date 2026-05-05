@@ -77,7 +77,10 @@ async fn comparison_snapshot_persistence_round_trips_through_http_handlers() {
                 mapping_type: "manual".to_string(),
                 similarity: None,
             }],
-            normalization: ComparisonNormalizationConfig::default(),
+            normalization: ComparisonNormalizationConfig {
+                flexible_key_matching: true,
+                ..ComparisonNormalizationConfig::default()
+            },
         }),
     )
     .await;
@@ -94,6 +97,7 @@ async fn comparison_snapshot_persistence_round_trips_through_http_handlers() {
     assert_eq!(saved["file_a"]["name"], "left.csv");
     assert_eq!(saved["file_a"]["virtual_headers"], serde_json::json!([]));
     assert_eq!(saved["file_b"]["virtual_headers"], serde_json::json!([]));
+    assert_eq!(saved["normalization"]["flexible_key_matching"], true);
     assert_eq!(saved["summary"]["mismatches"], 1);
 
     let loaded_session_id = state.create_session();
@@ -109,12 +113,75 @@ async fn comparison_snapshot_persistence_round_trips_through_http_handlers() {
     assert_eq!(json["file_b"]["name"], "right.csv");
     assert_eq!(json["file_a"]["virtual_headers"], serde_json::json!([]));
     assert_eq!(json["file_b"]["virtual_headers"], serde_json::json!([]));
+    assert_eq!(json["normalization"]["flexible_key_matching"], true);
     assert_eq!(json["summary"]["mismatches"], 1);
 
     let export_response = handlers::export_csv(State(state), Path(loaded_session_id)).await;
     assert_eq!(export_response.status(), StatusCode::OK);
     let exported = response_text(export_response).await;
     assert!(exported.contains("Mismatch,2,Bob,Robert"));
+}
+
+#[tokio::test]
+async fn comparison_snapshot_persistence_defaults_missing_flexible_key_matching_to_false() {
+    let state = AppState::new();
+    let session_id = state.create_session();
+
+    let contents = serde_json::json!({
+        "version": 2,
+        "file_a": {
+            "name": "left.csv",
+            "headers": ["id"],
+            "columns": [{ "index": 0, "name": "id", "data_type": "string" }],
+            "row_count": 1
+        },
+        "file_b": {
+            "name": "right.csv",
+            "headers": ["record_id"],
+            "columns": [{ "index": 0, "name": "record_id", "data_type": "string" }],
+            "row_count": 1
+        },
+        "selection": {
+            "key_columns_a": ["id"],
+            "key_columns_b": ["record_id"],
+            "comparison_columns_a": ["id"],
+            "comparison_columns_b": ["record_id"]
+        },
+        "mappings": [],
+        "normalization": {
+            "treat_empty_as_null": false,
+            "null_tokens": [],
+            "null_token_case_insensitive": true,
+            "case_insensitive": false,
+            "trim_whitespace": false,
+            "date_normalization": { "enabled": false, "formats": [] }
+        },
+        "results": [],
+        "summary": {
+            "total_rows_a": 1,
+            "total_rows_b": 1,
+            "matches": 0,
+            "mismatches": 0,
+            "missing_left": 0,
+            "missing_right": 0,
+            "unkeyed_left": 0,
+            "unkeyed_right": 0,
+            "duplicates_a": 0,
+            "duplicates_b": 0
+        }
+    })
+    .to_string();
+
+    let load_response = handlers::load_comparison_snapshot(
+        State(state),
+        Path(session_id),
+        Json(LoadComparisonSnapshotRequest { contents }),
+    )
+    .await;
+
+    assert_eq!(load_response.status(), StatusCode::OK);
+    let json = response_json(load_response).await;
+    assert_eq!(json["normalization"]["flexible_key_matching"], false);
 }
 
 #[tokio::test]

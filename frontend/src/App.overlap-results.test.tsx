@@ -65,6 +65,7 @@ vi.mock('./hooks/useComparisonWorkflow', () => ({
         treat_empty_as_null: false,
         null_tokens: [],
         null_token_case_insensitive: false,
+        flexible_key_matching: false,
         case_insensitive: false,
         trim_whitespace: false,
         numeric_equivalence: false,

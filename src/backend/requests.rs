@@ -178,6 +178,7 @@ mod tests {
             vec!["null", "na", "n/a", "none"]
         );
         assert!(request.normalization.null_token_case_insensitive);
+        assert!(!request.normalization.flexible_key_matching);
         assert!(!request.normalization.case_insensitive);
         assert!(!request.normalization.trim_whitespace);
         assert!(!request.normalization.numeric_equivalence);
@@ -188,5 +189,29 @@ mod tests {
             vec!["%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%d-%m-%Y", "%m-%d-%Y"]
         );
         assert!(!request.normalization.date_normalization.enabled);
+    }
+
+    #[test]
+    fn compare_request_defaults_flexible_key_matching_when_field_is_omitted() {
+        let request: CompareRequest = serde_json::from_value(serde_json::json!({
+            "key_columns_a": ["id"],
+            "key_columns_b": ["id"],
+            "comparison_columns_a": ["value"],
+            "comparison_columns_b": ["value"],
+            "column_mappings": [],
+            "normalization": {
+                "treat_empty_as_null": true,
+                "null_tokens": ["null"],
+                "null_token_case_insensitive": true,
+                "case_insensitive": false,
+                "trim_whitespace": false,
+                "numeric_equivalence": false,
+                "decimal_rounding": { "enabled": false, "decimals": 0 },
+                "date_normalization": { "enabled": false, "formats": [] }
+            }
+        }))
+        .expect("compare request should deserialize without flexible_key_matching");
+
+        assert!(!request.normalization.flexible_key_matching);
     }
 }

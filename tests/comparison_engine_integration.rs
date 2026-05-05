@@ -586,3 +586,427 @@ fn test_compare_csv_data_matches_default_normalized_month_name_dates_without_cus
     assert_eq!(results.len(), 1);
     assert!(matches!(results[0], RowComparisonResult::Match { .. }));
 }
+
+fn create_flexible_key_test_config(flexible_key_matching: bool) -> ComparisonConfig {
+    comparison_config(
+        &["id"],
+        &["id"],
+        &["value"],
+        &["value"],
+        &[("value", "value")],
+        ComparisonNormalizationConfig {
+            flexible_key_matching,
+            ..ComparisonNormalizationConfig::default()
+        },
+    )
+}
+
+#[test]
+fn test_compare_csv_data_keeps_double_asterisk_literal_when_flexible_key_matching_is_off() {
+    let csv_a = csv_data("left.csv", &["id", "value"], &[&["INV-**", "same"]]);
+    let csv_b = csv_data("right.csv", &["id", "value"], &[&["INV-001", "same"]]);
+    let config = create_flexible_key_test_config(false);
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 2);
+    assert!(
+        results
+            .iter()
+            .any(|result| matches!(result, RowComparisonResult::MissingRight { key, .. } if key == &vec!["INV-**".to_string()]))
+    );
+    assert!(
+        results
+            .iter()
+            .any(|result| matches!(result, RowComparisonResult::MissingLeft { key, .. } if key == &vec!["INV-001".to_string()]))
+    );
+}
+
+#[test]
+fn test_compare_csv_data_matches_file_a_double_asterisk_key_when_enabled() {
+    let csv_a = csv_data("left.csv", &["id", "value"], &[&["INV-**", "same"]]);
+    let csv_b = csv_data("right.csv", &["id", "value"], &[&["INV-001", "same"]]);
+    let config = create_flexible_key_test_config(true);
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    assert!(
+        matches!(&results[0], RowComparisonResult::Match { key, .. } if key == &vec!["INV-**".to_string()])
+    );
+}
+
+#[test]
+fn test_compare_csv_data_keeps_single_asterisk_literal_when_flexible_key_matching_is_enabled() {
+    let csv_a = csv_data("left.csv", &["id", "value"], &[&["INV-*", "same"]]);
+    let csv_b = csv_data("right.csv", &["id", "value"], &[&["INV-001", "same"]]);
+    let config = create_flexible_key_test_config(true);
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 2);
+    assert!(
+        results
+            .iter()
+            .any(|result| matches!(result, RowComparisonResult::MissingRight { key, .. } if key == &vec!["INV-*".to_string()]))
+    );
+    assert!(
+        results
+            .iter()
+            .any(|result| matches!(result, RowComparisonResult::MissingLeft { key, .. } if key == &vec!["INV-001".to_string()]))
+    );
+}
+
+#[test]
+fn test_compare_csv_data_double_asterisk_matches_zero_characters() {
+    let csv_a = csv_data("left.csv", &["id", "value"], &[&["INV-**", "same"]]);
+    let csv_b = csv_data("right.csv", &["id", "value"], &[&["INV-", "same"]]);
+    let config = create_flexible_key_test_config(true);
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    assert!(
+        matches!(&results[0], RowComparisonResult::Match { key, .. } if key == &vec!["INV-**".to_string()])
+    );
+}
+
+#[test]
+fn test_compare_csv_data_matches_infix_double_asterisk_patterns() {
+    let csv_a = csv_data("left.csv", &["id", "value"], &[&["A**C", "same"]]);
+    let csv_b = csv_data("right.csv", &["id", "value"], &[&["ABC", "same"]]);
+    let config = create_flexible_key_test_config(true);
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    assert!(
+        matches!(&results[0], RowComparisonResult::Match { key, .. } if key == &vec!["A**C".to_string()])
+    );
+}
+
+#[test]
+fn test_compare_csv_data_matches_file_b_double_asterisk_key_when_enabled() {
+    let csv_a = csv_data("left.csv", &["id", "value"], &[&["CUSTOMER-NL", "same"]]);
+    let csv_b = csv_data("right.csv", &["id", "value"], &[&["**-NL", "same"]]);
+    let config = create_flexible_key_test_config(true);
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    assert!(
+        matches!(&results[0], RowComparisonResult::Match { key, .. } if key == &vec!["CUSTOMER-NL".to_string()])
+    );
+}
+
+#[test]
+fn test_compare_csv_data_matches_when_both_sides_contain_double_asterisk_patterns() {
+    let csv_a = csv_data("left.csv", &["id", "value"], &[&["INV-2026-**", "same"]]);
+    let csv_b = csv_data(
+        "right.csv",
+        &["id", "value"],
+        &[&["INV-2026-**-001", "same"]],
+    );
+    let config = create_flexible_key_test_config(true);
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    assert!(
+        matches!(&results[0], RowComparisonResult::Match { key, .. } if key == &vec!["INV-2026-**".to_string()])
+    );
+}
+
+#[test]
+fn test_compare_csv_data_matches_overlapping_double_asterisk_patterns_on_both_sides() {
+    let csv_a = csv_data("left.csv", &["id", "value"], &[&["INV-**-A", "same"]]);
+    let csv_b = csv_data("right.csv", &["id", "value"], &[&["INV-B-**", "same"]]);
+    let config = create_flexible_key_test_config(true);
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    assert!(
+        matches!(&results[0], RowComparisonResult::Match { key, .. } if key == &vec!["INV-**-A".to_string()])
+    );
+}
+
+#[test]
+fn test_compare_csv_data_matches_double_asterisk_in_multi_column_keys() {
+    let csv_a = csv_data(
+        "left.csv",
+        &["region", "id", "value"],
+        &[&["EU", "INV-**", "same"]],
+    );
+    let csv_b = csv_data(
+        "right.csv",
+        &["region", "id", "value"],
+        &[&["EU", "INV-123", "same"], &["US", "INV-123", "same"]],
+    );
+    let config = comparison_config(
+        &["region", "id"],
+        &["region", "id"],
+        &["value"],
+        &["value"],
+        &[("value", "value")],
+        ComparisonNormalizationConfig {
+            flexible_key_matching: true,
+            ..ComparisonNormalizationConfig::default()
+        },
+    );
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 2);
+    assert!(
+        results
+            .iter()
+            .any(|result| matches!(result, RowComparisonResult::Match { key, .. } if key == &vec!["EU".to_string(), "INV-**".to_string()]))
+    );
+    assert!(
+        results
+            .iter()
+            .any(|result| matches!(result, RowComparisonResult::MissingLeft { key, .. } if key == &vec!["US".to_string(), "INV-123".to_string()]))
+    );
+}
+
+#[test]
+fn test_compare_csv_data_normalizes_keys_before_double_asterisk_matching() {
+    let csv_a = csv_data("left.csv", &["id", "value"], &[&["  inv-**  ", "same"]]);
+    let csv_b = csv_data("right.csv", &["id", "value"], &[&["INV-001", "same"]]);
+    let config = comparison_config(
+        &["id"],
+        &["id"],
+        &["value"],
+        &["value"],
+        &[("value", "value")],
+        ComparisonNormalizationConfig {
+            flexible_key_matching: true,
+            trim_whitespace: true,
+            case_insensitive: true,
+            ..ComparisonNormalizationConfig::default()
+        },
+    );
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    assert!(
+        matches!(&results[0], RowComparisonResult::Match { key, .. } if key == &vec!["  inv-**  ".to_string()])
+    );
+}
+
+#[test]
+fn test_compare_csv_data_prefers_exact_key_before_flexible_candidates() {
+    let csv_a = csv_data("left.csv", &["id", "value"], &[&["INV-**", "exact"]]);
+    let csv_b = csv_data(
+        "right.csv",
+        &["id", "value"],
+        &[&["INV-001", "wildcard"], &["INV-**", "exact"]],
+    );
+    let config = create_flexible_key_test_config(true);
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 2);
+    assert!(
+        results
+            .iter()
+            .any(|result| matches!(result, RowComparisonResult::Match { key, .. } if key == &vec!["INV-**".to_string()]))
+    );
+    assert!(
+        results
+            .iter()
+            .any(|result| matches!(result, RowComparisonResult::MissingLeft { key, .. } if key == &vec!["INV-001".to_string()]))
+    );
+}
+
+#[test]
+fn test_compare_csv_data_uses_deterministic_specificity_for_ambiguous_flexible_keys() {
+    let csv_a = csv_data(
+        "left.csv",
+        &["id", "value"],
+        &[&["INV-**", "broad"], &["INV-2026-**", "specific"]],
+    );
+    let csv_b = csv_data(
+        "right.csv",
+        &["id", "value"],
+        &[&["INV-2026-001", "specific"]],
+    );
+    let config = create_flexible_key_test_config(true);
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 2);
+    assert!(
+        results
+            .iter()
+            .any(|result| matches!(result, RowComparisonResult::Match { key, .. } if key == &vec!["INV-2026-**".to_string()]))
+    );
+    assert!(
+        results
+            .iter()
+            .any(|result| matches!(result, RowComparisonResult::MissingRight { key, .. } if key == &vec!["INV-**".to_string()]))
+    );
+}
+
+#[test]
+fn test_compare_csv_data_maximizes_flexible_key_match_count_before_row_order() {
+    let csv_a = csv_data(
+        "left.csv",
+        &["id", "value"],
+        &[&["A**", "broad"], &["**1", "one"]],
+    );
+    let csv_b = csv_data(
+        "right.csv",
+        &["id", "value"],
+        &[&["A1", "one"], &["A2", "broad"]],
+    );
+    let config = create_flexible_key_test_config(true);
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 2);
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::Match {
+                key,
+                values_a,
+                values_b,
+            } if key == &vec!["A**".to_string()]
+                && values_a == &vec!["broad".to_string()]
+                && values_b == &vec!["broad".to_string()]
+        )
+    }));
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::Match {
+                key,
+                values_a,
+                values_b,
+            } if key == &vec!["**1".to_string()]
+                && values_a == &vec!["one".to_string()]
+                && values_b == &vec!["one".to_string()]
+        )
+    }));
+}
+
+#[test]
+fn test_compare_csv_data_maximizes_flexible_keys_before_exact_wildcard_preference() {
+    let csv_a = csv_data(
+        "left.csv",
+        &["id", "value"],
+        &[&["A**", "broad"], &["A1", "one"]],
+    );
+    let csv_b = csv_data(
+        "right.csv",
+        &["id", "value"],
+        &[&["A**", "one"], &["A2", "broad"]],
+    );
+    let config = create_flexible_key_test_config(true);
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 2);
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::Match {
+                key,
+                values_a,
+                values_b,
+            } if key == &vec!["A**".to_string()]
+                && values_a == &vec!["broad".to_string()]
+                && values_b == &vec!["broad".to_string()]
+        )
+    }));
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::Match {
+                key,
+                values_a,
+                values_b,
+            } if key == &vec!["A1".to_string()]
+                && values_a == &vec!["one".to_string()]
+                && values_b == &vec!["one".to_string()]
+        )
+    }));
+}
+
+#[test]
+fn test_compare_csv_data_uses_global_preference_after_maximizing_flexible_matches() {
+    let csv_a = csv_data(
+        "left.csv",
+        &["id", "value"],
+        &[&["**A", "short"], &["A**", "long"]],
+    );
+    let csv_b = csv_data(
+        "right.csv",
+        &["id", "value"],
+        &[&["AA", "short"], &["AAA", "long"]],
+    );
+    let config = create_flexible_key_test_config(true);
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 2);
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::Match {
+                key,
+                values_a,
+                values_b,
+            } if key == &vec!["**A".to_string()]
+                && values_a == &vec!["short".to_string()]
+                && values_b == &vec!["short".to_string()]
+        )
+    }));
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::Match {
+                key,
+                values_a,
+                values_b,
+            } if key == &vec!["A**".to_string()]
+                && values_a == &vec!["long".to_string()]
+                && values_b == &vec!["long".to_string()]
+        )
+    }));
+}
+
+#[test]
+fn test_compare_csv_data_ties_equally_specific_wildcard_matches_by_row_order_not_concrete_length() {
+    let csv_a = csv_data("left.csv", &["id", "value"], &[&["INV-**", "expected"]]);
+    let csv_b = csv_data(
+        "right.csv",
+        &["id", "value"],
+        &[&["INV-1", "expected"], &["INV-2026-000000", "later"]],
+    );
+    let config = create_flexible_key_test_config(true);
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 2);
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::Match {
+                key,
+                values_a,
+                values_b,
+            } if key == &vec!["INV-**".to_string()]
+                && values_a == &vec!["expected".to_string()]
+                && values_b == &vec!["expected".to_string()]
+        )
+    }));
+    assert!(
+        results
+            .iter()
+            .any(|result| matches!(result, RowComparisonResult::MissingLeft { key, .. } if key == &vec!["INV-2026-000000".to_string()]))
+    );
+}

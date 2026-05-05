@@ -84,6 +84,8 @@ pub struct ComparisonNormalizationConfig {
     pub treat_empty_as_null: bool,
     pub null_tokens: Vec<String>,
     pub null_token_case_insensitive: bool,
+    #[serde(default)]
+    pub flexible_key_matching: bool,
     pub case_insensitive: bool,
     pub trim_whitespace: bool,
     #[serde(default)]
@@ -104,6 +106,7 @@ impl Default for ComparisonNormalizationConfig {
                 "none".to_string(),
             ],
             null_token_case_insensitive: true,
+            flexible_key_matching: false,
             case_insensitive: false,
             trim_whitespace: false,
             numeric_equivalence: false,
