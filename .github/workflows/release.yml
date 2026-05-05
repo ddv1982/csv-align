@@ -40,7 +40,7 @@ jobs:
           TAGGED_SHA: ${{ github.sha }}
           RELEASE_ARTIFACT_NAME: ${{ env.RELEASE_ARTIFACT_NAME }}
         run: |
-          deadline=$((SECONDS + 1800))
+          deadline=$((SECONDS + 3600))
 
           while [ "$SECONDS" -lt "$deadline" ]; do
             run_json="$(gh api "repos/${REPOSITORY}/actions/runs?head_sha=${TAGGED_SHA}&event=push&per_page=20")"
