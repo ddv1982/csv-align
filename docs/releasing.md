@@ -80,6 +80,30 @@ Configure these GitHub Actions secrets before pushing a release tag:
 
 Use a Team App Store Connect API key suitable for notarization. The workflow decodes `APPLE_API_PRIVATE_KEY` during the macOS release job and passes the generated `AuthKey_<APPLE_API_KEY>.p8` path to Tauri.
 
+## Debian release prerequisites
+
+The CI workflow signs Linux `.deb` packages on `push` builds for `main` before uploading the reusable Tauri bundle artifact. Pull request builds still package Linux artifacts without signing because repository secrets and variables are not required for PR validation.
+
+Configure these GitHub Actions secrets before the release-producing `main` push, not just before publishing release tags:
+
+- `DEB_SIGNING_PRIVATE_KEY` — single-line base64-encoded ASCII-armored GPG private key dedicated to Debian package signing
+- `DEB_SIGNING_KEY_FINGERPRINT` — full fingerprint for the Debian signing key
+- `DEB_SIGNING_KEY_PASSPHRASE` — passphrase for the Debian signing key; if the key is intentionally unprotected, document that exception before enabling release signing
+
+Configure this GitHub Actions repository variable for release-time verification:
+
+- `DEB_SIGNING_PUBLIC_KEY` — single-line base64-encoded ASCII-armored GPG public key matching `DEB_SIGNING_KEY_FINGERPRINT`
+
+The `.deb` signature is embedded with `dpkg-sig --sign builder`. Missing signing inputs, missing `.deb` packages, fingerprint mismatches, signing failures, and verification failures stop CI before the reusable artifact is uploaded. The release workflow does not re-sign or rebuild Linux packages; it imports the public key and runs `dpkg-sig --verify-role builder` before uploading the downloaded `.deb` assets to GitHub Releases.
+
+Maintainers can verify a downloaded release asset locally after importing the public key:
+
+```bash
+dpkg-sig --verify-role builder path/to/csv-align_*.deb
+```
+
+Apt repository metadata signing is out of scope unless CSV Align starts publishing an apt repository.
+
 ## GitHub Actions behavior
 
 Pushing a tag matching `v*` triggers the release workflow.

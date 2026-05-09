@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.60 - 2026-05-09
+
+- Added CI-time Debian `.deb` signing with a dedicated GPG key, verifying signed Linux packages before the reusable release artifact is uploaded.
+- Added release-side `.deb` signature verification and documented the Debian signing secrets, public-key variable, and maintainer verification flow.
+
 ## v2.1.59 - 2026-05-09
 
 - Improved the in-app and standalone HTML report KEY column so multi-part row keys render as stacked compact chips instead of a cramped truncated line.

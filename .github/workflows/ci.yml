@@ -239,6 +239,94 @@ jobs:
           rm -rf target/${{ env.TAURI_TARGET }}/release/bundle
           cargo tauri build --target ${{ env.TAURI_TARGET }}
 
+      - name: Install Debian signing tools
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-sig gnupg
+
+      - name: Sign Debian packages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          DEB_SIGNING_PRIVATE_KEY: ${{ secrets.DEB_SIGNING_PRIVATE_KEY }}
+          DEB_SIGNING_KEY_FINGERPRINT: ${{ secrets.DEB_SIGNING_KEY_FINGERPRINT }}
+          DEB_SIGNING_KEY_PASSPHRASE: ${{ secrets.DEB_SIGNING_KEY_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+
+          missing=()
+          [ -n "${DEB_SIGNING_PRIVATE_KEY}" ] || missing+=("DEB_SIGNING_PRIVATE_KEY")
+          [ -n "${DEB_SIGNING_KEY_FINGERPRINT}" ] || missing+=("DEB_SIGNING_KEY_FINGERPRINT")
+
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "Required Debian signing secrets are missing: ${missing[*]}" >&2
+            exit 1
+          fi
+
+          deb_dir="src-tauri/target/${TAURI_TARGET}/release/bundle/deb"
+          shopt -s nullglob
+          deb_packages=("${deb_dir}"/*.deb)
+
+          if [ ${#deb_packages[@]} -eq 0 ]; then
+            echo "No Debian packages found in ${deb_dir}." >&2
+            exit 1
+          fi
+
+          gnupg_home="$(mktemp -d)"
+          key_file="$(mktemp)"
+          passphrase_file=""
+          verification_keyring=""
+          cleanup() {
+            rm -rf "${gnupg_home}"
+            rm -f "${key_file}"
+            if [ -n "${passphrase_file}" ]; then
+              rm -f "${passphrase_file}"
+            fi
+            if [ -n "${verification_keyring}" ]; then
+              rm -f "${verification_keyring}"
+            fi
+          }
+          trap cleanup EXIT
+
+          chmod 700 "${gnupg_home}"
+          export GNUPGHOME="${gnupg_home}"
+          echo allow-loopback-pinentry > "${GNUPGHOME}/gpg-agent.conf"
+          gpgconf --kill gpg-agent || true
+
+          printf '%s' "${DEB_SIGNING_PRIVATE_KEY}" | base64 --decode > "${key_file}"
+          gpg --batch --import "${key_file}"
+
+          expected_fingerprint="$(printf '%s' "${DEB_SIGNING_KEY_FINGERPRINT}" | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')"
+          imported_fingerprint="$(gpg --batch --with-colons --fingerprint "${expected_fingerprint}" | awk -F: '$1 == "fpr" { print toupper($10); exit }')"
+
+          if [ "${imported_fingerprint}" != "${expected_fingerprint}" ]; then
+            echo "Imported Debian signing key fingerprint did not match DEB_SIGNING_KEY_FINGERPRINT." >&2
+            exit 1
+          fi
+
+          dpkg_sig_options=(--gpgoptions "--batch --pinentry-mode loopback")
+          if [ -n "${DEB_SIGNING_KEY_PASSPHRASE}" ]; then
+            passphrase_file="$(mktemp)"
+            chmod 600 "${passphrase_file}"
+            printf '%s' "${DEB_SIGNING_KEY_PASSPHRASE}" > "${passphrase_file}"
+            dpkg_sig_options+=(--passphrase-file "${passphrase_file}")
+          else
+            echo "DEB_SIGNING_KEY_PASSPHRASE is not set; signing will only work for an intentionally unprotected key."
+          fi
+
+          for deb in "${deb_packages[@]}"; do
+            echo "Signing ${deb}"
+            dpkg-sig "${dpkg_sig_options[@]}" --sign builder -k "${expected_fingerprint}" "${deb}"
+          done
+
+          verification_keyring="$(mktemp)"
+          gpg --batch --export "${expected_fingerprint}" > "${verification_keyring}"
+
+          for deb in "${deb_packages[@]}"; do
+            echo "Verifying ${deb}"
+            dpkg-sig --gpgoptions "--no-default-keyring --keyring ${verification_keyring}" --verify-role builder "${deb}"
+          done
+
       - name: Upload reusable Tauri bundle artifact
         uses: actions/upload-artifact@v6
         with:

@@ -202,6 +202,69 @@ jobs:
       - name: Inspect downloaded release artifacts
         run: ls -R release-artifacts
 
+      - name: Install Debian signature verification tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-sig gnupg
+
+      - name: Verify Debian package signatures
+        env:
+          DEB_SIGNING_PUBLIC_KEY: ${{ vars.DEB_SIGNING_PUBLIC_KEY }}
+          DEB_SIGNING_KEY_FINGERPRINT: ${{ secrets.DEB_SIGNING_KEY_FINGERPRINT }}
+        run: |
+          set -euo pipefail
+
+          missing=()
+          [ -n "${DEB_SIGNING_PUBLIC_KEY}" ] || missing+=("DEB_SIGNING_PUBLIC_KEY repository variable")
+          [ -n "${DEB_SIGNING_KEY_FINGERPRINT}" ] || missing+=("DEB_SIGNING_KEY_FINGERPRINT")
+
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "Required Debian signature verification inputs are missing: ${missing[*]}" >&2
+            exit 1
+          fi
+
+          shopt -s globstar nullglob
+          deb_packages=(release-artifacts/**/*.deb)
+
+          if [ ${#deb_packages[@]} -eq 0 ]; then
+            echo "No Debian packages found under release-artifacts." >&2
+            exit 1
+          fi
+
+          gnupg_home="$(mktemp -d)"
+          public_key_file="$(mktemp)"
+          verification_keyring=""
+          cleanup() {
+            rm -rf "${gnupg_home}"
+            rm -f "${public_key_file}"
+            if [ -n "${verification_keyring}" ]; then
+              rm -f "${verification_keyring}"
+            fi
+          }
+          trap cleanup EXIT
+
+          chmod 700 "${gnupg_home}"
+          export GNUPGHOME="${gnupg_home}"
+
+          printf '%s' "${DEB_SIGNING_PUBLIC_KEY}" | base64 --decode > "${public_key_file}"
+          gpg --batch --import "${public_key_file}"
+
+          expected_fingerprint="$(printf '%s' "${DEB_SIGNING_KEY_FINGERPRINT}" | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')"
+          imported_fingerprint="$(gpg --batch --with-colons --fingerprint "${expected_fingerprint}" | awk -F: '$1 == "fpr" { print toupper($10); exit }')"
+
+          if [ "${imported_fingerprint}" != "${expected_fingerprint}" ]; then
+            echo "Imported Debian signing public key fingerprint did not match DEB_SIGNING_KEY_FINGERPRINT." >&2
+            exit 1
+          fi
+
+          verification_keyring="$(mktemp)"
+          gpg --batch --export "${expected_fingerprint}" > "${verification_keyring}"
+
+          for deb in "${deb_packages[@]}"; do
+            echo "Verifying ${deb}"
+            dpkg-sig --gpgoptions "--no-default-keyring --keyring ${verification_keyring}" --verify-role builder "${deb}"
+          done
+
       - name: Upload Linux packages
         uses: softprops/action-gh-release@v2
         with:
