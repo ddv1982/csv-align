@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.55 - 2026-05-09
+
+- Reworked the HTML results export to share the app results styling surface, keeping reports visually aligned with in-app cards, filters, summary stats, tables, badges, and detail panels.
+- Captured the active app theme in exported HTML reports while preserving standalone filtering, search, sorting, expandable details, and browser/Tauri export delivery.
+
 ## v2.1.54 - 2026-05-09
 
 - Switched macOS release notarization in CI to require App Store Connect API key authentication, removing the Apple ID/app-specific-password fallback path.

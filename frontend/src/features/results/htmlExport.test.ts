@@ -1,6 +1,6 @@
 import { fireEvent, screen } from '@testing-library/react';
 import { expect, test } from 'vitest';
-import { buildResultsHtmlDocument } from './htmlExport';
+import { buildResultsHtmlDocument, normalizeHtmlExportTheme } from './htmlExport';
 import type { MappingDto, ResultResponse, SummaryResponse } from '../../types/api';
 
 const SUMMARY: SummaryResponse = {
@@ -70,6 +70,7 @@ test('buildResultsHtmlDocument embeds the current comparison view state for stan
   });
 
   expect(html).toContain('<!DOCTYPE html>');
+  expect(html).toContain('<html lang="en" data-theme="cyan">');
   expect(html).toContain('<title>left.csv vs right.csv comparison results</title>');
   expect(html).toContain('Step 3 · Results');
   expect(html).toContain('<h1><span class="kinetic-copy">Comparison Summary</span></h1>');
@@ -83,18 +84,21 @@ test('buildResultsHtmlDocument embeds the current comparison view state for stan
   expect(html).toContain('How each comparable row was classified.');
   expect(html).toContain('Duplicate keys detected');
   expect(html).toContain('"initialFilter":"duplicate"');
-  expect(html).toContain('"label":"Duplicates","count":1');
+  expect(html).toContain('"label":"Duplicates","count":1,"tone":"duplicate"');
   expect(html).toContain('"badgeLabel":"Mismatch"');
   expect(html).toContain('"fileAValues":[[{"column":"name","value":"Bob"}]]');
   expect(html).toContain('"fileBValues":[[{"column":"display_name","value":"Robert"}]]');
   expect(html).toContain('"expandableDetail":{"variant":"inspection","title":"Paired Values"');
   expect(html).toContain('"description":"Multiple File A rows share this selected key."');
   expect(html).toContain('data-sort-column="details"');
+  expect(html).toContain('<table id="results-table" class="results-table">');
   expect(html).toContain('data-expand-row=');
   expect(html).toContain('"title":"Value Differences"');
   expect(html).toContain('row.expandableDetail.title');
   expect(html).toContain('row.expandableDetail.summary');
-  expect(html).toContain("row.expandableDetail.variant === 'differences' ? 'diff-grid' : 'detail-stack'");
+  expect(html).toContain('row.expandableDetail.variant === \'differences\' ? \'diff-grid\' : \'detail-stack\'');
+  expect(html).toContain('option.tone || \'neutral\'');
+  expect(html).not.toContain('getFilterDotStyle');
   expect(html).toContain('field.columnA');
   expect(html).toContain('class="kinetic-glyph-box diff-arrow-box detail-value-arrow kinetic-muted">-&gt;</div>');
   expect(html).not.toContain('cell.column ? \'<span class="table-chip kinetic-copy">\' + escapeHtml(cell.column) + \'</span>\' : \'\'');
@@ -117,6 +121,43 @@ test('buildResultsHtmlDocument embeds the current comparison view state for stan
   expect(html).toContain('.detail-value-arrow');
   expect(html).toContain('.section-card-header');
   expect(html).toContain('.status-strip');
+});
+
+test('normalizes the exported theme to the shared standalone theme set', () => {
+  expect(normalizeHtmlExportTheme('cyan')).toBe('cyan');
+  expect(normalizeHtmlExportTheme('lime')).toBe('lime');
+  expect(normalizeHtmlExportTheme('magenta')).toBe('magenta');
+  expect(normalizeHtmlExportTheme('amber')).toBe('amber');
+  expect(normalizeHtmlExportTheme('dark')).toBe('cyan');
+  expect(normalizeHtmlExportTheme(undefined)).toBe('cyan');
+
+  const themedHtml = buildResultsHtmlDocument({
+    summary: SUMMARY,
+    fileAName: 'left.csv',
+    fileBName: 'right.csv',
+    comparisonColumnsA: ['name'],
+    comparisonColumnsB: ['display_name'],
+    mappings: MAPPINGS,
+    results: RESULTS,
+    initialFilter: 'all',
+    theme: 'magenta',
+  });
+  const fallbackHtml = buildResultsHtmlDocument({
+    summary: SUMMARY,
+    fileAName: 'left.csv',
+    fileBName: 'right.csv',
+    comparisonColumnsA: ['name'],
+    comparisonColumnsB: ['display_name'],
+    mappings: MAPPINGS,
+    results: RESULTS,
+    initialFilter: 'all',
+    theme: 'unsupported-theme',
+  });
+
+  expect(themedHtml).toContain('<html lang="en" data-theme="magenta">');
+  expect(themedHtml).toContain('"theme":"magenta"');
+  expect(fallbackHtml).toContain('<html lang="en" data-theme="cyan">');
+  expect(fallbackHtml).toContain('"theme":"cyan"');
 });
 
 test('standalone export table count matches the active filter bucket after the embedded script runs', () => {
@@ -167,6 +208,7 @@ test('standalone export table count matches the active filter bucket after the e
   );
 
   expect(duplicateFilter).toBeTruthy();
+  expect(duplicateFilter?.querySelector('.filter-dot')).toHaveClass('tone-duplicate');
   duplicateFilter?.click();
 
   expect(resultsCount?.textContent).toBe('1 of 1 rows shown');

@@ -25,10 +25,20 @@ export type ResultExpandableDetail = {
   panels: ResultDetailPanel[];
 };
 
+export type ResultFilterTone =
+  | 'neutral'
+  | 'match'
+  | 'mismatch'
+  | 'missing-left'
+  | 'missing-right'
+  | 'unkeyed-left'
+  | 'unkeyed-right'
+  | 'duplicate';
+
 type ResultFilterOption = {
   value: ResultFilter;
   label: string;
-  accent: string;
+  tone: ResultFilterTone;
 };
 
 export type ResultBadge = {
@@ -159,14 +169,14 @@ const DUPLICATE_BADGE: ResultBadge = {
 };
 
 export const RESULT_FILTER_OPTIONS: ResultFilterOption[] = [
-  { value: 'all', label: 'All', accent: 'bg-gray-400 dark:bg-gray-500' },
-  { value: 'match', label: 'Matches', accent: 'bg-emerald-500 dark:bg-emerald-400' },
-  { value: 'mismatch', label: 'Mismatches', accent: 'bg-amber-500 dark:bg-amber-400' },
-  { value: 'missing_left', label: RESULT_COPY.missing_left.label, accent: 'bg-sky-500 dark:bg-sky-400' },
-  { value: 'missing_right', label: RESULT_COPY.missing_right.label, accent: 'bg-violet-500 dark:bg-violet-400' },
-  { value: 'unkeyed_left', label: RESULT_COPY.unkeyed_left.label, accent: 'bg-rose-500 dark:bg-rose-400' },
-  { value: 'unkeyed_right', label: RESULT_COPY.unkeyed_right.label, accent: 'bg-fuchsia-500 dark:bg-fuchsia-400' },
-  { value: 'duplicate', label: 'Duplicates', accent: DUPLICATE_BADGE.dot },
+  { value: 'all', label: 'All', tone: 'neutral' },
+  { value: 'match', label: 'Matches', tone: 'match' },
+  { value: 'mismatch', label: 'Mismatches', tone: 'mismatch' },
+  { value: 'missing_left', label: RESULT_COPY.missing_left.label, tone: 'missing-left' },
+  { value: 'missing_right', label: RESULT_COPY.missing_right.label, tone: 'missing-right' },
+  { value: 'unkeyed_left', label: RESULT_COPY.unkeyed_left.label, tone: 'unkeyed-left' },
+  { value: 'unkeyed_right', label: RESULT_COPY.unkeyed_right.label, tone: 'unkeyed-right' },
+  { value: 'duplicate', label: 'Duplicates', tone: 'duplicate' },
 ];
 
 export function getResultLabel(resultType: CompareResultType): string {

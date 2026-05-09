@@ -63,8 +63,12 @@ test('shows clearer labels and explanations for one-sided and ignored rows', () 
   expect(screen.queryByText('Unkeyed Left')).not.toBeInTheDocument();
 
   const fileAOnlyBadge = screen.getByText('Only in File A').closest('span');
+  expect(fileAOnlyBadge).toHaveClass('badge');
+  expect(fileAOnlyBadge).toHaveClass('tone-missing-right');
   expect(fileAOnlyBadge).toHaveClass('whitespace-nowrap');
   expect(fileAOnlyBadge).toHaveClass('w-fit');
+  expect(fileAOnlyBadge?.querySelector('.badge-dot')).toBeTruthy();
+  expect(screen.getByRole('table')).toHaveClass('results-table');
 });
 
 test('uses shared theme surface classes for table states instead of hardcoded dark overlays', () => {

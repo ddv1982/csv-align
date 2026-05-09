@@ -144,6 +144,19 @@ test('returns the expected badges for standard and duplicate result types', () =
   });
 });
 
+test('exposes shared semantic tones for filter chips', () => {
+  expect(RESULT_FILTER_OPTIONS.map(({ value, tone }) => [value, tone])).toEqual([
+    ['all', 'neutral'],
+    ['match', 'match'],
+    ['mismatch', 'mismatch'],
+    ['missing_left', 'missing-left'],
+    ['missing_right', 'missing-right'],
+    ['unkeyed_left', 'unkeyed-left'],
+    ['unkeyed_right', 'unkeyed-right'],
+    ['duplicate', 'duplicate'],
+  ]);
+});
+
 test('uses clearer labels and descriptions for one-sided and ignored results', () => {
   expect(RESULT_FILTER_OPTIONS.find((option) => option.value === 'missing_left')).toMatchObject({
     label: 'Only in File B',

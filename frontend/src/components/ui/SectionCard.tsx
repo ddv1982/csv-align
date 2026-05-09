@@ -63,24 +63,24 @@ export function SectionCard({
 
   return (
     <section
-      className={`card p-5 ${className ?? ''}`.trim()}
+      className={`card section-card p-5 ${className ?? ''}`.trim()}
     >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-3">
+      <div className="section-card-header flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="section-card-heading flex items-start gap-3">
           <div
-            className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center border font-mono text-sm uppercase tracking-[0.18em] ${toneClasses.iconWrap}`}
+            className={`section-card-icon mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center border font-mono text-sm uppercase tracking-[0.18em] ${toneClasses.iconWrap}`}
           >
             {icon}
           </div>
-          <div>
+          <div className="section-card-copy">
             <p className={`hud-label ${toneClasses.eyebrow}`}>{eyebrow}</p>
             <HeadingTag className={`mt-1 text-sm font-semibold uppercase tracking-[0.14em] ${toneClasses.title}`}>{title}</HeadingTag>
             {description && <p className={`mt-1 text-sm leading-6 ${toneClasses.description}`}>{description}</p>}
           </div>
         </div>
-        {action && <div className="shrink-0">{action}</div>}
+        {action && <div className="section-card-action shrink-0">{action}</div>}
       </div>
-      {hasBody && <div className="mt-5">{children}</div>}
+      {hasBody && <div className="section-card-body mt-5">{children}</div>}
     </section>
   );
 }

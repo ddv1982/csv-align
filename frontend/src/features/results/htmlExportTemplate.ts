@@ -1,13 +1,16 @@
 import type { ResultFilter, SummaryResponse } from '../../types/api';
-import { buildSummaryOverview, type ResultRowViewModel, type SummaryBannerViewModel, type SummaryStatViewModel } from './presentation';
+import { buildSummaryOverview, type ResultFilterTone, type ResultRowViewModel, type SummaryBannerViewModel, type SummaryStatViewModel } from './presentation';
 import { RESULTS_EXPORT_STYLES } from './htmlExportTheme';
+
+type HtmlExportTheme = 'cyan' | 'lime' | 'magenta' | 'amber';
 
 type HtmlExportDocument = {
   generatedAt: string;
+  theme: HtmlExportTheme;
   fileAName: string;
   fileBName: string;
   summary: SummaryResponse;
-  filterOptions: Array<{ value: ResultFilter; label: string; count: number }>;
+  filterOptions: Array<{ value: ResultFilter; label: string; count: number; tone: ResultFilterTone }>;
   initialFilter: ResultFilter;
   rows: ResultRowViewModel[];
 };
@@ -64,7 +67,7 @@ export function renderResultsHtmlDocument(data: HtmlExportDocument, serializedDa
   const { comparableTotal, matchPercent, comparableStats, infoBanners } = buildSummaryOverview(data.summary);
 
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="${data.theme}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -169,7 +172,7 @@ ${RESULTS_EXPORT_STYLES}
             </div>
 
             <div class="table-wrap">
-              <table id="results-table">
+              <table id="results-table" class="results-table">
                 <thead>
                   <tr>
                     <th class="kinetic-table-head" aria-sort="none"><button type="button" class="sort-button" data-sort-column="type">Type <span class="sort-glyph" aria-hidden="true"><span data-sort-dir="asc">▲</span><span data-sort-dir="desc">▼</span></span></button></th>
@@ -231,24 +234,6 @@ ${RESULTS_EXPORT_STYLES}
           numeric: true,
           sensitivity: 'base',
         });
-      }
-
-      function getFilterDotStyle(filterValue) {
-        switch (filterValue) {
-          case 'match':
-            return 'style="color: var(--color-kinetic-success);"';
-          case 'mismatch':
-          case 'duplicate':
-            return 'style="color: var(--color-kinetic-warning);"';
-          case 'missing_left':
-          case 'unkeyed_left':
-            return 'style="color: var(--color-kinetic-accent);"';
-          case 'missing_right':
-          case 'unkeyed_right':
-            return 'style="color: var(--color-kinetic-danger);"';
-          default:
-            return 'style="color: var(--color-kinetic-muted);"';
-        }
       }
 
       function formatValueStack(rows) {
@@ -349,7 +334,7 @@ ${RESULTS_EXPORT_STYLES}
 
       function renderFilters() {
         filterRow.innerHTML = data.filterOptions.map((option) => (
-          '<button type="button" class="filter-button' + (state.filter === option.value ? ' active' : '') + '" data-filter="' + option.value + '" aria-pressed="' + (state.filter === option.value ? 'true' : 'false') + '"><span class="filter-dot" ' + getFilterDotStyle(option.value) + '></span>' + escapeHtml(option.label) + '<span class="filter-count">' + option.count + '</span></button>'
+          '<button type="button" class="filter-button' + (state.filter === option.value ? ' active' : '') + '" data-filter="' + option.value + '" aria-pressed="' + (state.filter === option.value ? 'true' : 'false') + '"><span class="filter-dot tone-' + escapeHtml(option.tone || 'neutral') + '"></span>' + escapeHtml(option.label) + '<span class="filter-count">' + option.count + '</span></button>'
         )).join('');
       }
 
@@ -387,7 +372,7 @@ ${RESULTS_EXPORT_STYLES}
               + '</div>'
             : '<span class="result-description">' + escapeHtml(row.description || '-') + '</span>';
 
-          return '<tr class="' + (isExpanded ? 'kinetic-surface-accent-strong' : 'kinetic-surface-hover') + '">'
+          return '<tr class="' + (isExpanded ? 'kinetic-surface-accent-strong' : 'kinetic-surface-hover') + '" data-result-tone="' + escapeHtml(row.badgeTone) + '">'
             + '<td><span class="badge tone-' + row.badgeTone + '"><span class="badge-dot"></span>' + escapeHtml(row.badge.label) + '</span></td>'
             + '<td><span class="chip kinetic-copy" title="' + escapeHtml(row.keyText) + '">' + escapeHtml(row.keyText) + '</span></td>'
              + '<td>' + formatValueStack(row.fileAValues) + '</td>'

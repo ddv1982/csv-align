@@ -50,7 +50,9 @@ test('keeps summary chips on kinetic bordered surfaces', () => {
 
   expect(matchesCard).toBeTruthy();
   expect(ignoredBanner).toBeTruthy();
+  expect(matchesCard).toHaveClass('summary-stat');
   expect(matchesCard).toHaveClass('kinetic-tone-success');
+  expect(ignoredBanner).toHaveClass('summary-banner');
   expect(ignoredBanner).toHaveClass('kinetic-tone-accent');
 });
 

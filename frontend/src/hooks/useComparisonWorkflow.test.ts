@@ -98,6 +98,7 @@ beforeEach(() => {
   saveComparisonSnapshotMock.mockReset();
   savePairOrderMock.mockReset();
   suggestMappingsMock.mockReset();
+  delete document.documentElement.dataset.theme;
 
   createSessionMock.mockResolvedValue({ session_id: 'session-1' });
   deleteSessionMock.mockResolvedValue(undefined);
@@ -616,6 +617,7 @@ test('sets an export error and clears loading when csv export fails', async () =
 });
 
 test('exports a standalone html review file from the current results state', async () => {
+  document.documentElement.dataset.theme = 'amber';
   exportResultsHtmlMock.mockResolvedValue(new Blob(['<html></html>'], { type: 'text/html' }));
 
   const { result } = renderHook(() => useComparisonWorkflow());
@@ -650,6 +652,8 @@ test('exports a standalone html review file from the current results state', asy
 
   expect(exportResultsHtmlMock).toHaveBeenCalledWith(expect.stringContaining('<!DOCTYPE html>'));
   expect(exportResultsHtmlMock).toHaveBeenCalledWith(expect.stringContaining('left.csv vs right.csv comparison results'));
+  expect(exportResultsHtmlMock).toHaveBeenCalledWith(expect.stringContaining('<html lang="en" data-theme="amber">'));
+  expect(exportResultsHtmlMock).toHaveBeenCalledWith(expect.stringContaining('"theme":"amber"'));
   expect(exportResultsHtmlMock).toHaveBeenCalledWith(expect.stringContaining('"initialFilter":"duplicate"'));
   expect(downloadBlobMock).toHaveBeenCalledWith(expect.any(Blob), 'comparison-results.html');
   expect(result.current.state.loading).toBe(false);

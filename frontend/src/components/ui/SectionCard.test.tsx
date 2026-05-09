@@ -3,7 +3,7 @@ import { expect, test } from 'vitest';
 import { SectionCard } from './SectionCard';
 
 test('renders eyebrow, title, description, action, and children', () => {
-  render(
+  const { container } = render(
     <SectionCard
       eyebrow="Step 2 · Configure"
       title="Manual column pairing"
@@ -21,6 +21,13 @@ test('renders eyebrow, title, description, action, and children', () => {
   expect(screen.getByRole('button', { name: 'Save pair order' })).toBeInTheDocument();
   expect(screen.getByText('Card body')).toBeInTheDocument();
   expect(screen.getByTestId('section-card-icon')).toBeInTheDocument();
+  expect(container.firstElementChild).toHaveClass('section-card');
+  expect(container.querySelector('.section-card-header')).not.toBeNull();
+  expect(container.querySelector('.section-card-heading')).not.toBeNull();
+  expect(container.querySelector('.section-card-icon')).not.toBeNull();
+  expect(container.querySelector('.section-card-copy')).not.toBeNull();
+  expect(container.querySelector('.section-card-action')).not.toBeNull();
+  expect(container.querySelector('.section-card-body')).not.toBeNull();
 });
 
 test('supports alternate heading levels and the info tone', () => {

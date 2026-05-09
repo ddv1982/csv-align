@@ -43,13 +43,20 @@ test('uses a minimal solid active style and subtle hover-ready styling for resul
   expect(activeFilter).toBeTruthy();
   expect(inactiveFilter).toBeTruthy();
 
-  // Active pill uses the extracted KINETIC filter-chip variant.
+  // Active pill uses the shared semantic filter surface plus extracted KINETIC variant.
   expect(activeFilter).toHaveAttribute('aria-pressed', 'true');
+  expect(activeFilter).toHaveClass('filter-button');
+  expect(activeFilter).toHaveClass('active');
   expect(activeFilter).toHaveClass('kinetic-filter-chip-active');
+  expect(activeFilter?.querySelector('.filter-dot')).toHaveClass('tone-match');
+  expect(activeFilter?.querySelector('.filter-count')).toHaveClass('kinetic-filter-count-active');
 
-  // Inactive pill uses the extracted neutral filter-chip variant.
+  // Inactive pill uses the shared semantic filter surface plus neutral KINETIC variant.
   expect(inactiveFilter).toHaveAttribute('aria-pressed', 'false');
+  expect(inactiveFilter).toHaveClass('filter-button');
   expect(inactiveFilter).toHaveClass('kinetic-filter-chip');
+  expect(inactiveFilter?.querySelector('.filter-dot')).toHaveClass('tone-missing-left');
+  expect(inactiveFilter?.querySelector('.filter-count')).toHaveClass('kinetic-filter-count');
 
   fireEvent.click(inactiveFilter!);
   expect(onFilterChange).toHaveBeenCalledWith('missing_left');
@@ -73,7 +80,9 @@ test('gives the export button an accessible label', () => {
   const csvButton = screen.getByRole('button', { name: 'Export comparison results as CSV' });
 
   expect(htmlButton).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Export comparison results as CSV' })).toBeInTheDocument();
+  expect(csvButton).toBeInTheDocument();
+  expect(htmlButton).toHaveClass('btn-primary');
+  expect(csvButton).toHaveClass('btn-primary');
 
   fireEvent.click(htmlButton);
   fireEvent.click(csvButton);

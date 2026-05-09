@@ -25,7 +25,7 @@ export function FilterBar({ filter, results, onFilterChange, onExportCsv, onExpo
         <div className="flex shrink-0 flex-wrap gap-3">
           <button
             onClick={onExportHtml}
-            className="btn btn-secondary shrink-0"
+            className="btn btn-primary shrink-0"
             aria-label="Export comparison results as HTML"
           >
             <ArrowDownTrayIcon className="h-4 w-4" />
@@ -43,7 +43,7 @@ export function FilterBar({ filter, results, onFilterChange, onExportCsv, onExpo
       }
     >
       <div>
-        <div className="flex flex-wrap gap-2">
+        <div className="filter-row flex flex-wrap gap-2">
           {RESULT_FILTER_OPTIONS.map((f) => {
             const isActive = filter === f.value;
             return (
@@ -51,23 +51,23 @@ export function FilterBar({ filter, results, onFilterChange, onExportCsv, onExpo
                 key={f.value}
                 onClick={() => onFilterChange(f.value)}
                 aria-pressed={isActive}
-                className={`inline-flex items-center gap-2 px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                   isActive
-                    ? 'kinetic-filter-chip-active'
+                className={`filter-button inline-flex items-center gap-2 px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'active kinetic-filter-chip-active'
                     : 'kinetic-filter-chip'
-                  }`}
+                }`}
               >
                 <span
-                  className={`h-2 w-2 border ${f.accent}`}
+                  className={`filter-dot h-2 w-2 border tone-${f.tone}`}
                   aria-hidden="true"
                 />
                 {f.label}
                 <span
-                  className={`px-2 py-0.5 text-xs font-semibold tabular-nums ${
-                     isActive
+                  className={`filter-count px-2 py-0.5 text-xs font-semibold tabular-nums ${
+                    isActive
                       ? 'kinetic-filter-count-active'
                       : 'kinetic-filter-count'
-                    }`}
+                  }`}
                 >
                   {counts[f.value]}
                 </span>

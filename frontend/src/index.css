@@ -3,6 +3,7 @@
 @import "@fontsource/space-grotesk";
 @import "@fontsource/fraunces";
 @import "tailwindcss";
+@import "./features/results/resultsSurface.css" layer(components);
 
 @theme {
   --font-sans: "Space Grotesk", system-ui, sans-serif;

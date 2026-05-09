@@ -1,16 +1,21 @@
 import type { MappingDto, ResultFilter, ResultResponse, SummaryResponse } from '../../types/api';
-import { RESULT_FILTER_OPTIONS, buildResultRows, getResultFilterCounts } from './presentation';
+import { RESULT_FILTER_OPTIONS, buildResultRows, getResultFilterCounts, type ResultFilterTone } from './presentation';
 import { renderResultsHtmlDocument } from './htmlExportTemplate';
+
+type HtmlExportTheme = 'cyan' | 'lime' | 'magenta' | 'amber';
+
+const HTML_EXPORT_THEMES: readonly HtmlExportTheme[] = ['cyan', 'lime', 'magenta', 'amber'];
 
 type HtmlExportDocument = {
   generatedAt: string;
+  theme: HtmlExportTheme;
   fileAName: string;
   fileBName: string;
   comparisonColumnsA: string[];
   comparisonColumnsB: string[];
   mappings: MappingDto[];
   summary: SummaryResponse;
-  filterOptions: Array<{ value: ResultFilter; label: string; count: number }>;
+  filterOptions: Array<{ value: ResultFilter; label: string; count: number; tone: ResultFilterTone }>;
   initialFilter: ResultFilter;
   rows: ReturnType<typeof buildResultRows>;
 };
@@ -22,6 +27,10 @@ function escapeJsonForHtml(value: unknown): string {
     .replace(/&/g, '\\u0026');
 }
 
+export function normalizeHtmlExportTheme(rawTheme: string | undefined | null): HtmlExportTheme {
+  return HTML_EXPORT_THEMES.includes(rawTheme as HtmlExportTheme) ? (rawTheme as HtmlExportTheme) : 'cyan';
+}
+
 function buildHtmlExportDocument(params: {
   summary: SummaryResponse;
   fileAName: string;
@@ -31,11 +40,13 @@ function buildHtmlExportDocument(params: {
   mappings: MappingDto[];
   results: ResultResponse[];
   initialFilter: ResultFilter;
+  theme?: string | null;
 }): HtmlExportDocument {
   const counts = getResultFilterCounts(params.results);
 
   return {
     generatedAt: new Date().toISOString(),
+    theme: normalizeHtmlExportTheme(params.theme),
     fileAName: params.fileAName,
     fileBName: params.fileBName,
     comparisonColumnsA: params.comparisonColumnsA,
@@ -46,6 +57,7 @@ function buildHtmlExportDocument(params: {
       value: option.value,
       label: option.label,
       count: counts[option.value],
+      tone: option.tone,
     })),
     initialFilter: params.initialFilter,
     rows: buildResultRows(params.results, {
@@ -65,6 +77,7 @@ export function buildResultsHtmlDocument(params: {
   mappings: MappingDto[];
   results: ResultResponse[];
   initialFilter: ResultFilter;
+  theme?: string | null;
 }): string {
   const exportDocument = buildHtmlExportDocument(params);
   return renderResultsHtmlDocument(exportDocument, escapeJsonForHtml(exportDocument));

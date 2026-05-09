@@ -75,6 +75,7 @@ export function useWorkflowPersistenceActions({
     const token = beginWorkflowRequest(state.sessionId);
 
     try {
+      const activeTheme = typeof document === 'undefined' ? undefined : document.documentElement.dataset.theme;
       const htmlDocument = buildResultsHtmlDocument({
         summary: state.summary,
         fileAName: state.fileA?.name ?? 'File A',
@@ -84,6 +85,7 @@ export function useWorkflowPersistenceActions({
         mappings: state.mappings,
         results: state.results,
         initialFilter: state.filter,
+        theme: activeTheme,
       });
       const blob = await exportResultsHtml(htmlDocument);
       if (!isCurrentWorkflowRequest(token)) {
