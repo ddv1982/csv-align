@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.csvalign.desktop</id>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <name>CSV Align</name>
+  <summary>CSV file comparison tool</summary>
+  <description>
+    <p>CSV Align compares two CSV files, highlights matching and differing rows, supports configurable column mapping, and exports comparison results.</p>
+  </description>
+  <launchable type="desktop-id">CSV Align.desktop</launchable>
+  <provides>
+    <binary>csv-align</binary>
+  </provides>
+  <url type="homepage">https://github.com/ddv1982/csv-align</url>
+  <developer id="com.csvalign">
+    <name>Douwe de Vries</name>
+  </developer>
+  <releases>
+    <release version="2.1.60" date="2026-05-09" />
+  </releases>
+</component>

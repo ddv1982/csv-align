@@ -29,9 +29,15 @@
     ],
     "longDescription": "A modern application to compare CSV files with visual difference highlighting, filtering, and export capabilities.",
     "shortDescription": "CSV File Comparison Tool",
+    "license": "MIT",
+    "licenseFile": "../LICENSE",
     "linux": {
       "deb": {
-        "depends": []
+        "depends": [],
+        "files": {
+          "/usr/share/doc/csv-align/copyright": "debian/copyright",
+          "/usr/share/metainfo/com.csvalign.desktop.metainfo.xml": "appstream/com.csvalign.desktop.metainfo.xml"
+        }
       },
       "rpm": {
         "depends": []
