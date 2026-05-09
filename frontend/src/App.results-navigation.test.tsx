@@ -168,7 +168,7 @@ test('returns from results to configuration', async () => {
     expect(createSessionMock).toHaveBeenCalledTimes(1);
   });
 
-  expect(screen.getByRole('heading', { name: 'Choose the two CSV files' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Select two local CSV files' })).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole('button', { name: 'Select File A' }));
   await screen.findByRole('button', { name: 'Select File B' });
@@ -208,7 +208,7 @@ test('clicking unlocked step numbers in the stepper navigates between steps', as
 
   // On Configure, Step 1 (select) is clickable to go back.
   fireEvent.click(screen.getByRole('button', { name: /Go to step 1:/ }));
-  await screen.findByRole('heading', { name: 'Choose the two CSV files' });
+  await screen.findByRole('heading', { name: 'Select two local CSV files' });
 
   // Step 2 (configure) is now clickable to go forward.
   fireEvent.click(screen.getByRole('button', { name: /Go to step 2:/ }));
@@ -219,7 +219,7 @@ test('clicking unlocked step numbers in the stepper navigates between steps', as
 
   // From Results: jump back to Step 1 directly via the stepper.
   fireEvent.click(screen.getByRole('button', { name: /Go to step 1:/ }));
-  await screen.findByRole('heading', { name: 'Choose the two CSV files' });
+  await screen.findByRole('heading', { name: 'Select two local CSV files' });
 
   // Step 3 (results) is still unlocked because the summary persists.
   fireEvent.click(screen.getByRole('button', { name: /Go to step 3:/ }));

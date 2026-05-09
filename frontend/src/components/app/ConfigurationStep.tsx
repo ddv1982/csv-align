@@ -2,13 +2,19 @@ import { MappingConfig } from '../MappingConfig';
 import type { ComparisonNormalizationConfig, FileLetter, MappingDto } from '../../types/api';
 import type { AppFile, MappingSelectionState } from '../../types/ui';
 import { NavButton } from '../ui/NavButton';
+import { StepIntroCard } from '../ui/StepIntroCard';
 
 function FileOverview({ label, name, rowCount, columnCount, headers }: { label: string; name: string; rowCount: number; columnCount: number; headers: string[] }) {
   return (
     <section className="surface-panel p-4">
-      <div className="min-w-0">
-        <p className="hud-label">{label}</p>
-        <h3 className="mt-1 truncate text-sm font-semibold uppercase tracking-[0.14em] text-app-text">{name}</h3>
+      <div className="flex items-start gap-3">
+        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border font-mono text-sm font-bold ${label === 'File A' ? 'tone-accent-strong' : 'tone-success-strong'}`}>
+          {label === 'File A' ? 'A' : 'B'}
+        </span>
+        <div className="min-w-0">
+          <p className="hud-label">{label}</p>
+          <h3 className="mt-1 truncate text-sm font-semibold tracking-tight text-app-text">{name}</h3>
+        </div>
       </div>
       <div className="mt-3 flex flex-wrap gap-2 text-xs text-app-muted">
         <span className="table-chip">{rowCount} rows</span>
@@ -65,24 +71,22 @@ export function ConfigurationStep({
 }: ConfigurationStepProps) {
   return (
     <div className="animate-fade-in space-y-6">
-      <div className="card p-4 sm:p-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="hud-label">Configure</p>
-            <h2 className="mt-1 text-lg font-semibold uppercase tracking-[0.14em] text-app-text">Set row keys and comparison pairs</h2>
-          </div>
-          <div className="shrink-0">
-            <NavButton direction="back" onClick={onBack}>
-              Back to file selection
-            </NavButton>
-          </div>
-        </div>
-
-        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      <StepIntroCard
+        eyebrow="Step 2 · Configure"
+        title="Configure row keys and comparison pairs"
+        description="Choose how rows line up, then select the columns whose values should be compared."
+        action={
+          <NavButton direction="back" onClick={onBack}>
+            Back to file selection
+          </NavButton>
+        }
+        actionClassName="shrink-0"
+      >
+        <div className="grid gap-4 border-t border-app-border p-5 sm:p-6 lg:grid-cols-2">
           <FileOverview label="File A" name={fileA.name} rowCount={fileA.rowCount} columnCount={fileA.headers.length} headers={fileA.headers} />
           <FileOverview label="File B" name={fileB.name} rowCount={fileB.rowCount} columnCount={fileB.headers.length} headers={fileB.headers} />
         </div>
-      </div>
+      </StepIntroCard>
 
       <MappingConfig
         fileA={fileA}

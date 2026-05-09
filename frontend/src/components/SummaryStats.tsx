@@ -14,8 +14,8 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
 
   return (
     <SectionCard
-      eyebrow="Step 3 · Results"
-      title={<span className="text-lg">Comparison Summary</span>}
+      eyebrow="Summary"
+      title={<span className="text-lg">Comparison summary</span>}
       headingLevel="h3"
       description="Review the overall match quality before drilling into filtered result rows."
       className="overflow-hidden"

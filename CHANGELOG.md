@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.58 - 2026-05-09
+
+- Fixed the file selection dropzone accessibility semantics so the drag-and-drop area no longer nests an interactive button while preserving the real local CSV picker control.
+- Reduced repeated frontend step panel markup with shared intro/action primitives, aligned the Tailwind v4 result-surface token ownership, and prepared the v2.1.58 patch release.
+
 ## v2.1.57 - 2026-05-09
 
 - Fixed exported HTML comparison detail panels so File A, arrow, and File B values keep the same readable side-by-side layout as the in-app results view, including long sensitive values.

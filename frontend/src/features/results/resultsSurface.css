@@ -1,32 +1,3 @@
-:root,
-[data-theme="dark"] {
-  color-scheme: dark;
-  --app-accent: #3b82f6;
-  --app-highlight: #60a5fa;
-}
-
-html {
-  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-  --font-mono: "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", ui-monospace, monospace;
-  --font-display: var(--font-sans);
-  --color-app-bg: #030712;
-  --color-app-panel: #111827;
-  --color-app-panel-muted: #0f172a;
-  --color-app-border: rgba(55, 65, 81, 0.9);
-  --color-app-border-strong: rgba(107, 114, 128, 0.95);
-  --color-app-text: #f3f4f6;
-  --color-app-muted: #9ca3af;
-  --color-app-accent: var(--app-accent);
-  --color-app-highlight: var(--app-highlight);
-  --color-app-danger: #f87171;
-  --color-app-success: #34d399;
-  --color-app-warning: #fbbf24;
-  --color-app-header: rgba(3, 7, 18, 0.82);
-  --color-app-overlay: rgba(17, 24, 39, 0.72);
-  --color-app-overlay-strong: rgba(31, 41, 55, 0.78);
-  --color-app-grid: transparent;
-}
-
 .bg-app-bg {
   background-color: var(--color-app-bg);
 }
@@ -136,6 +107,15 @@ html {
   padding: 12px 16px;
 }
 
+.saved-result-panel {
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(107, 114, 128, 0.48);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(31, 41, 55, 0.82), rgba(17, 24, 39, 0.68));
+  padding: 16px;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -164,14 +144,14 @@ html {
 }
 
 .btn-primary {
-  border-color: #2563eb;
-  background: #2563eb;
+  border-color: var(--color-primary-600);
+  background: var(--color-primary-600);
   color: #fff;
 }
 
 .btn-primary:hover {
-  border-color: #1d4ed8;
-  background: #1d4ed8;
+  border-color: var(--color-primary-700);
+  background: var(--color-primary-700);
 }
 
 .btn-secondary,
@@ -188,41 +168,42 @@ html {
 }
 
 .btn-success {
-  border-color: #059669;
-  background: #059669;
+  border-color: var(--color-success-dark);
+  background: var(--color-success-dark);
   color: #fff;
 }
 
 .btn-success:hover {
-  border-color: #047857;
-  background: #047857;
+  border-color: color-mix(in srgb, var(--color-success-dark) 84%, black);
+  background: color-mix(in srgb, var(--color-success-dark) 84%, black);
 }
 
 .btn-danger {
-  border-color: #dc2626;
-  background: #dc2626;
+  border-color: var(--color-danger-dark);
+  background: var(--color-danger-dark);
   color: #fff;
 }
 
 .btn-danger:hover {
-  border-color: #b91c1c;
-  background: #b91c1c;
+  border-color: color-mix(in srgb, var(--color-danger-dark) 84%, black);
+  background: color-mix(in srgb, var(--color-danger-dark) 84%, black);
 }
 
 .file-dropzone {
-  border-color: var(--color-app-border);
+  border-color: var(--color-app-border-strong);
   border-radius: 12px;
-  background: rgba(17, 24, 39, 0.72);
+  background: var(--color-app-overlay);
 }
 
 .file-dropzone:hover {
-  border-color: var(--color-app-border-strong);
-  background: rgba(31, 41, 55, 0.62);
+  border-color: color-mix(in srgb, var(--color-app-highlight) 72%, transparent);
+  background: var(--color-app-overlay-strong);
 }
 
 .file-dropzone-active {
-  border-color: rgba(96, 165, 250, 0.75);
-  background: rgba(59, 130, 246, 0.12);
+  border-color: color-mix(in srgb, var(--color-app-highlight) 90%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-app-accent) 12%, transparent);
 }
 
 @media (min-width: 640px) {
@@ -242,6 +223,16 @@ html {
   box-shadow: 0 12px 30px -24px rgba(0, 0, 0, 0.75);
 }
 
+.step-intro-card,
+.file-selector-card {
+  background: linear-gradient(180deg, rgba(17, 24, 39, 0.9), rgba(15, 23, 42, 0.86));
+  box-shadow: 0 14px 34px -26px rgba(0, 0, 0, 0.85);
+}
+
+.file-selector-card {
+  overflow: hidden;
+}
+
 .surface-panel::after,
 .card::after {
   content: none;
@@ -255,7 +246,7 @@ html {
 
 .app-progress-fill {
   border-radius: 999px;
-  background: linear-gradient(90deg, #60a5fa, #3b82f6, #2563eb);
+  background: linear-gradient(90deg, var(--color-primary-400), var(--color-primary-500), var(--color-primary-600));
 }
 
 .app-surface-subtle {
@@ -274,7 +265,7 @@ html {
 .app-surface-accent {
   border-color: rgba(96, 165, 250, 0.42);
   background: rgba(59, 130, 246, 0.15);
-  color: #bfdbfe;
+  color: var(--color-primary-200);
 }
 
 .app-surface-accent-strong {
@@ -293,7 +284,7 @@ html {
 }
 
 .app-surface-success {
-  color: #a7f3d0;
+  color: var(--color-success-light);
 }
 
 .icon-frame {
@@ -332,7 +323,7 @@ html {
 .tone-success-strong {
   border-color: rgba(52, 211, 153, 0.38);
   background: rgba(16, 185, 129, 0.16);
-  color: #a7f3d0;
+  color: var(--color-success-light);
 }
 
 .tone-warning {
@@ -343,7 +334,7 @@ html {
 .tone-warning-strong {
   border-color: rgba(251, 191, 36, 0.42);
   background: rgba(245, 158, 11, 0.17);
-  color: #fde68a;
+  color: var(--color-warning-light);
 }
 
 .tone-accent,
@@ -356,7 +347,7 @@ html {
 .tone-highlight-strong {
   border-color: rgba(96, 165, 250, 0.42);
   background: rgba(59, 130, 246, 0.16);
-  color: #bfdbfe;
+  color: var(--color-primary-200);
 }
 
 .tone-danger {
@@ -367,7 +358,7 @@ html {
 .tone-danger-strong {
   border-color: rgba(248, 113, 113, 0.42);
   background: rgba(239, 68, 68, 0.16);
-  color: #fecaca;
+  color: var(--color-danger-light);
 }
 
 .section-card-header {
@@ -581,8 +572,8 @@ html {
 
 .filter-button.active,
 .filter-button[aria-pressed="true"] {
-  border-color: #2563eb;
-  background: #2563eb;
+  border-color: var(--color-primary-600);
+  background: var(--color-primary-600);
   color: #fff;
 }
 
@@ -626,7 +617,7 @@ html {
 .filter-dot.tone-unkeyed-left,
 .badge.tone-missing-left,
 .badge.tone-unkeyed-left {
-  color: #93c5fd;
+  color: var(--color-primary-300);
 }
 
 .filter-dot.tone-missing-right,
@@ -654,8 +645,8 @@ html {
 }
 
 .filter-chip-active {
-  border-color: #2563eb;
-  background: #2563eb;
+  border-color: var(--color-primary-600);
+  background: var(--color-primary-600);
   color: #fff;
 }
 
@@ -856,7 +847,7 @@ html {
   border: 1px solid rgba(96, 165, 250, 0.42);
   border-radius: 6px;
   background: rgba(59, 130, 246, 0.15);
-  color: #bfdbfe;
+  color: var(--color-primary-200);
   font-size: 11px;
 }
 
@@ -1013,6 +1004,13 @@ html {
   color: var(--color-app-muted);
   font-family: var(--font-sans);
   font-size: 18px;
+}
+
+.file-selector-card .empty-state-icon {
+  margin-bottom: 18px;
+  border-width: 1px;
+  border-style: solid;
+  background: rgba(55, 65, 81, 0.54);
 }
 
 .status-strip {

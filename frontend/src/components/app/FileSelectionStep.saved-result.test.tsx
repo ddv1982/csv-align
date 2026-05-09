@@ -36,7 +36,7 @@ afterEach(() => {
 test('shows load result copy and forwards the selected snapshot file in browser mode', async () => {
   const { onFileSelect, onLoadResult } = await renderStep(false);
 
-  expect(screen.getByText('Open a saved result to review its findings in read-only mode.')).toBeInTheDocument();
+  expect(screen.getByText('Load a comparison snapshot to reopen the results in read-only mode.')).toBeInTheDocument();
 
   fireEvent.change(screen.getByTestId('load-result-input'), {
     target: {

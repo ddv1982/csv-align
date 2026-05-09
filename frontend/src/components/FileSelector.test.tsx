@@ -63,7 +63,7 @@ test('accepts dropped files with an uppercase .CSV extension', () => {
   const onSelect = vi.fn();
   render(<FileSelector label="File A" file={null} onSelect={onSelect} />);
 
-  fireEvent.drop(screen.getByText('Drag a CSV file here').closest('div') as HTMLElement, {
+  fireEvent.drop(screen.getByTestId('file-selector-dropzone-a'), {
     dataTransfer: {
       files: [new File(['id,name\n1,Alice'], 'UPPERCASE.CSV', { type: '' })],
     },
@@ -77,7 +77,7 @@ test('renders the dark app idle styling for the empty dropzone', () => {
   const onSelect = vi.fn();
   render(<FileSelector label="File A" file={null} onSelect={onSelect} />);
 
-  const dropzone = screen.getByText('Drag a CSV file here').closest('div')?.parentElement;
+  const dropzone = screen.getByTestId('file-selector-dropzone-a');
 
   expect(dropzone).toHaveClass('file-dropzone');
 });
@@ -86,31 +86,31 @@ test('renders a semantic button trigger for choosing a file in empty state', () 
   const onSelect = vi.fn();
   render(<FileSelector label="File A" file={null} onSelect={onSelect} />);
 
-  expect(screen.getByRole('button', { name: 'Choose a CSV file' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Choose Local CSV' })).toBeInTheDocument();
 });
 
-test('supports keyboard activation on the dropzone', () => {
+test('keeps the empty dropzone non-interactive', () => {
   const onSelect = vi.fn();
   render(<FileSelector label="File A" file={null} onSelect={onSelect} />);
 
-  const dropzone = screen.getByRole('button', { name: 'File A file selector' });
-  expect(dropzone).toHaveAttribute('tabindex', '0');
-  expect(dropzone).toHaveAttribute('title', 'Choose a CSV file for File A');
+  const dropzone = screen.getByTestId('file-selector-dropzone-a');
+
+  expect(dropzone).not.toHaveAttribute('role', 'button');
+  expect(dropzone).not.toHaveAttribute('tabindex');
+  expect(screen.queryByRole('button', { name: 'File A file selector' })).not.toBeInTheDocument();
 });
 
-test('activates the picker from Enter and Space key presses', () => {
+test('activates the picker from the real button trigger', () => {
   const onSelect = vi.fn();
   render(<FileSelector label="File A" file={null} onSelect={onSelect} />);
 
-  const dropzone = screen.getByRole('button', { name: 'File A file selector' });
+  const button = screen.getByRole('button', { name: 'Choose Local CSV' });
   const input = screen.getByLabelText('Choose a CSV file', { selector: 'input' });
   const clickSpy = vi.spyOn(input, 'click');
 
-  fireEvent.keyDown(dropzone, { key: 'Enter' });
-  fireEvent.keyDown(dropzone, { key: ' ' });
-  fireEvent.keyDown(dropzone, { key: 'Escape' });
+  fireEvent.click(button);
 
-  expect(clickSpy).toHaveBeenCalledTimes(2);
+  expect(clickSpy).toHaveBeenCalledTimes(1);
 });
 
 test('renders a semantic button trigger for replacing a selected file', () => {
@@ -151,7 +151,7 @@ test('drag-leave-resets-hover styling without calling onSelect', () => {
   const onSelect = vi.fn();
   render(<FileSelector label="File A" file={null} onSelect={onSelect} />);
 
-  const dropzone = screen.getByRole('button', { name: 'File A file selector' });
+  const dropzone = screen.getByTestId('file-selector-dropzone-a');
 
   fireEvent.dragOver(dropzone);
   expect(dropzone).toHaveClass('file-dropzone-active');
@@ -174,7 +174,7 @@ test('accepts a Tauri path drop when the window drop lands inside the selector',
 
   render(<FileSelector label="File A" file={null} onSelect={onSelect} />);
 
-  const dropzone = screen.getByRole('button', { name: 'File A file selector' });
+  const dropzone = screen.getByTestId('file-selector-dropzone-a');
   vi.spyOn(dropzone, 'getBoundingClientRect').mockReturnValue({
     x: 0,
     y: 0,
@@ -206,7 +206,7 @@ test('ignores a Tauri path drop when the window drop lands outside the selector 
 
   render(<FileSelector label="File A" file={null} onSelect={onSelect} />);
 
-  const dropzone = screen.getByRole('button', { name: 'File A file selector' });
+  const dropzone = screen.getByTestId('file-selector-dropzone-a');
   vi.spyOn(dropzone, 'getBoundingClientRect').mockReturnValue({
     x: 0,
     y: 0,

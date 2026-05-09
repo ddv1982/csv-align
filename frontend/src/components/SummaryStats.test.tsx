@@ -63,7 +63,7 @@ test('renders icon-based section markers while keeping A/B identifiers for file-
     />,
   );
 
-  const heading = screen.getByRole('heading', { level: 3, name: 'Comparison Summary' });
+  const heading = screen.getByRole('heading', { level: 3, name: 'Comparison summary' });
   const resultsSection = heading.closest('section');
   const fileAOnlyCard = screen.getByText('Only in File A').closest('.summary-stat');
   const fileBOnlyCard = screen.getByText('Only in File B').closest('.summary-stat');

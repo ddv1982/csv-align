@@ -1,4 +1,5 @@
 import { useCallback, useId, useRef } from 'react';
+import { DocumentArrowUpIcon } from '../icons';
 import { isTauri } from '../../services/tauri';
 
 interface LoadResultButtonProps {
@@ -22,14 +23,14 @@ export function LoadResultButton({ onLoadResult }: LoadResultButtonProps) {
 
   const content = (
     <>
-      <span aria-hidden="true">[[</span>
+      <DocumentArrowUpIcon className="h-4 w-4" />
       Open saved result
     </>
   );
 
   if (isTauri) {
     return (
-      <button type="button" onClick={() => onLoadResult()} className="btn btn-ghost mt-3 inline-flex items-center gap-2">
+      <button type="button" onClick={() => onLoadResult()} className="btn btn-secondary mt-3 inline-flex items-center gap-2">
         {content}
       </button>
     );
@@ -40,7 +41,7 @@ export function LoadResultButton({ onLoadResult }: LoadResultButtonProps) {
       <button
         type="button"
         onClick={openFilePicker}
-        className="btn btn-ghost mt-3 inline-flex items-center gap-2"
+        className="btn btn-secondary mt-3 inline-flex items-center gap-2"
       >
         {content}
       </button>

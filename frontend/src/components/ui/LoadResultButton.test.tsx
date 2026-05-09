@@ -6,9 +6,9 @@ async function renderButton(isTauri: boolean, onLoadResult = vi.fn()) {
   vi.doMock('../../services/tauri', () => ({ isTauri }));
 
   const { LoadResultButton } = await import('./LoadResultButton');
-  render(<LoadResultButton onLoadResult={onLoadResult} />);
+  const renderResult = render(<LoadResultButton onLoadResult={onLoadResult} />);
 
-  return { onLoadResult };
+  return { onLoadResult, ...renderResult };
 }
 
 afterEach(() => {
@@ -54,8 +54,9 @@ test('triggers loading directly in tauri mode without rendering a file input', a
   expect(onLoadResult).toHaveBeenCalledWith();
 });
 
-test('renders text glyph content instead of an svg icon', async () => {
+test('renders an svg icon inside the saved-result action', async () => {
   await renderButton(false);
 
-  expect(screen.getByText('[[')).toBeInTheDocument();
+  const trigger = screen.getByRole('button', { name: 'Open saved result' });
+  expect(trigger.querySelector('svg')).not.toBeNull();
 });

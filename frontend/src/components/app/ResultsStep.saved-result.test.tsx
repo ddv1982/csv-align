@@ -68,7 +68,11 @@ test('shows a save result entry point for live comparison results', () => {
   expect(screen.getByText('Save this result for later review')).toBeInTheDocument();
   expect(screen.getByText('Save a snapshot of this comparison to reopen the same results later in read-only mode.')).toBeInTheDocument();
 
-  fireEvent.click(screen.getByRole('button', { name: 'Save result' }));
+  const saveButton = screen.getByRole('button', { name: 'Save result' });
+  expect(saveButton.querySelector('svg')).toBeInTheDocument();
+  expect(saveButton).not.toHaveTextContent('##');
+
+  fireEvent.click(saveButton);
   expect(onSaveResult).toHaveBeenCalledTimes(1);
 
   fireEvent.click(screen.getByRole('button', { name: 'Back to configuration' }));
@@ -107,6 +111,10 @@ test('keeps loaded snapshots read-only and exposes a start-new-comparison action
   expect(screen.queryByRole('button', { name: 'Save result' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Back to configuration' })).not.toBeInTheDocument();
 
-  fireEvent.click(screen.getByRole('button', { name: 'Start new comparison' }));
+  const startNewButton = screen.getByRole('button', { name: 'Start new comparison' });
+  expect(startNewButton.querySelector('svg')).toBeInTheDocument();
+  expect(startNewButton).not.toHaveTextContent('++');
+
+  fireEvent.click(startNewButton);
   expect(onStartNewComparison).toHaveBeenCalledTimes(1);
 });

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { CheckDocumentIcon, DocumentArrowUpIcon } from './icons';
 import { listenForTauriDragDrop } from '../services/tauri';
 import { ColumnInfo } from '../types/api';
 import type { SelectedFileSource } from '../types/ui';
@@ -42,6 +43,8 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [selectionError, setSelectionError] = useState<string | null>(null);
+  const fileLetter = label === 'File A' ? 'A' : 'B';
+  const fileToneClass = label === 'File A' ? 'tone-accent-strong' : 'tone-success-strong';
 
   const handleSelectedFile = useCallback((selectedFile?: SelectedFileSource) => {
     if (!selectedFile) {
@@ -135,24 +138,11 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
     fileInputRef.current?.click();
   }, []);
 
-  const handleDropzoneKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== 'Enter' && event.key !== ' ') {
-      return;
-    }
-
-    event.preventDefault();
-    openFilePicker();
-  }, [openFilePicker]);
-
   return (
-    <div className="card p-6">
-      <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold uppercase tracking-[0.14em] text-app-text">
-        <span className={`flex h-7 w-7 items-center justify-center border font-mono text-sm font-bold ${
-           label === 'File A'
-            ? 'tone-accent-strong'
-            : 'tone-success-strong'
-         }`}>
-          {label === 'File A' ? 'A' : 'B'}
+    <div className="card file-selector-card p-5 sm:p-6">
+      <h3 className="mb-5 flex items-center gap-2 text-lg font-semibold tracking-tight text-app-text">
+        <span className={`flex h-7 w-7 items-center justify-center rounded-full border font-mono text-sm font-bold ${fileToneClass}`}>
+          {fileLetter}
         </span>
         {label}
       </h3>
@@ -160,25 +150,25 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
       {file ? (
         <div className="animate-slide-up">
           <div className="surface-panel flex items-center gap-3 p-4">
-            <div className="flex h-10 w-10 items-center justify-center border border-app-border-strong font-mono text-xs uppercase tracking-[0.18em] text-app-accent">
-              CSV
+            <div className={`flex h-11 w-11 items-center justify-center rounded-xl border ${fileToneClass}`}>
+              <CheckDocumentIcon className="h-5 w-5" />
             </div>
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="truncate font-medium text-app-text">{file.name}</p>
               <p className="text-sm text-app-muted">
                 {file.rowCount} rows • {file.headers.length} columns
               </p>
             </div>
-            <div className="tone-success-strong flex h-8 w-8 items-center justify-center border font-mono text-xs uppercase">
+            <div className="tone-success-strong flex h-8 w-8 items-center justify-center rounded-full border font-mono text-xs uppercase">
               OK
             </div>
           </div>
 
-          <details className="surface-panel mt-4 px-4 py-3 group">
+          <details className="surface-panel group mt-4 px-4 py-3">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 marker:hidden">
               <div>
                 <p className="hud-label">Details</p>
-                <p className="mt-1 text-sm font-medium uppercase tracking-[0.14em] text-app-text">View rows, columns, and headers</p>
+                <p className="mt-1 text-sm font-medium text-app-text">View rows, columns, and headers</p>
               </div>
               <span aria-hidden="true" className="font-mono text-sm text-app-muted transition-transform group-open:rotate-90">▸</span>
             </summary>
@@ -212,7 +202,7 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
           <button
             type="button"
             onClick={openFilePicker}
-            className="mt-4 btn btn-secondary block w-full text-center"
+            className="btn btn-secondary mt-4 block w-full text-center"
           >
             Choose a different CSV file
           </button>
@@ -229,50 +219,47 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
       ) : (
         <div
           ref={dropzoneRef}
+          data-testid={`file-selector-dropzone-${fileLetter.toLowerCase()}`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          onKeyDown={handleDropzoneKeyDown}
-          role="button"
-          tabIndex={0}
-          aria-label={`${label} file selector`}
-          title={`Choose a CSV file for ${label}`}
-          className={`border p-8 text-center transition-all duration-200 ${
+          aria-label={`${label} CSV dropzone`}
+          className={`border border-dashed p-8 text-center transition-all duration-200 ${
              isDragging
               ? 'file-dropzone-active'
               : 'file-dropzone'
             }`}
-          >
-            <div className="flex flex-col items-center">
-              <div className={`empty-state-icon ${
-                isDragging ? 'border-app-accent text-app-accent' : 'border-app-border text-app-muted'
-              }`}>
-                IN
-              </div>
-
-              <p className="mb-1 text-lg font-medium uppercase tracking-[0.14em] text-app-text">
-                {isDragging ? 'Drop the CSV file here' : 'Drag a CSV file here'}
-              </p>
-              <p className="mb-4 text-sm text-app-muted">or choose one from this device</p>
-
-              <button type="button" onClick={openFilePicker} className="btn btn-primary">
-                Choose a CSV file
-              </button>
-              <input
-                ref={fileInputRef}
-                id={inputId}
-                aria-label="Choose a CSV file"
-                type="file"
-                accept=".csv"
-                onChange={handleFileChange}
-                className="hidden"
-              />
+        >
+          <div className="flex flex-col items-center">
+            <div className={`empty-state-icon ${
+              isDragging ? 'border-app-accent text-app-accent' : 'border-app-border text-app-muted'
+            }`}>
+              <DocumentArrowUpIcon className="h-8 w-8" />
             </div>
+
+            <p className="mb-1 text-lg font-semibold tracking-tight text-app-text">
+              {isDragging ? 'Drop the CSV file here' : 'Drag & drop a local CSV file to choose it'}
+            </p>
+            <p className="mb-4 text-sm text-app-muted">or choose one from this device</p>
+
+            <button type="button" onClick={openFilePicker} className="btn btn-primary">
+              Choose Local CSV
+            </button>
+            <input
+              ref={fileInputRef}
+              id={inputId}
+              aria-label="Choose a CSV file"
+              type="file"
+              accept=".csv"
+              onChange={handleFileChange}
+              className="hidden"
+            />
           </div>
+        </div>
       )}
 
       {selectionError && (
-        <p className="tone-danger-strong mt-3 border px-3 py-2 text-sm font-medium">{selectionError}</p>
+        <p className="tone-danger-strong mt-3 rounded-lg border px-3 py-2 text-sm font-medium">{selectionError}</p>
       )}
     </div>
   );
