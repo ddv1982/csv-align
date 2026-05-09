@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.52 - 2026-05-09
+
+- Restored macOS release asset publishing for tagged releases, building both Apple Silicon and Intel Tauri DMGs while keeping the regular CI package reuse path Linux-only.
+- Required configured Apple signing and notarization credentials before publishing a release, so the restored macOS jobs fail clearly if App Store Connect access or secrets are still invalid.
+
 ## v2.1.51 - 2026-05-05
 
 - Added opt-in flexible key matching so `**` can bridge variable key segments across CSV files while preserving default exact-key behavior when disabled.
