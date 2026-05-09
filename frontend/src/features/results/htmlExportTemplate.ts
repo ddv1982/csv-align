@@ -297,6 +297,17 @@ ${RESULTS_EXPORT_STYLES}
         )).join('') + '</div>';
       }
 
+      function renderKeyChip(row) {
+        const keyParts = Array.isArray(row.keyParts) && row.keyParts.length > 0
+          ? row.keyParts
+          : (row.result && Array.isArray(row.result.key) && row.result.key.length > 0 ? row.result.key : ['—']);
+        const title = row.keyText || '—';
+
+        return '<span class="key-chip chip app-text app-surface-subtle max-w-full border border-app-border px-2.5 py-1 font-mono text-sm font-semibold" title="' + escapeHtml(title) + '">' + keyParts.map((part) => (
+          '<span class="key-chip-part">' + escapeHtml(part === '' ? '—' : part) + '</span>'
+        )).join('') + '</span>';
+      }
+
       function formatDetailValue(value, toneClass) {
         return '<span class="diff-value-box app-text ' + toneClass + ' block truncate border px-2.5 py-1.5 font-mono text-sm" title="' + escapeHtml(value) + '">' + (value === '' ? '<span class="diff-empty">—</span>' : escapeHtml(value)) + '</span>';
       }
@@ -420,7 +431,7 @@ ${RESULTS_EXPORT_STYLES}
 
           return '<tr class="transition-colors ' + (isExpanded ? 'app-surface-accent-strong' : 'bg-transparent app-surface-hover') + '" data-result-tone="' + escapeHtml(row.badgeTone) + '">'
             + '<td class="px-4 py-3.5 align-top"><span class="badge tone-' + row.badgeTone + ' inline-flex w-fit items-center gap-1.5 whitespace-nowrap border px-2.5 py-1 text-xs font-medium uppercase tracking-[0.12em]"><span class="badge-dot h-1.5 w-1.5 shrink-0" aria-hidden="true"></span>' + escapeHtml(row.badge.label) + '</span></td>'
-            + '<td class="px-4 py-3.5 align-top"><span class="chip app-text app-surface-subtle inline-block max-w-full truncate border border-app-border px-2.5 py-1 font-mono text-sm font-semibold" title="' + escapeHtml(row.keyText) + '">' + escapeHtml(row.keyText) + '</span></td>'
+            + '<td class="px-4 py-3.5 align-top">' + renderKeyChip(row) + '</td>'
             + '<td class="px-4 py-3.5 align-top">' + formatValueStack(row.fileAValues) + '</td>'
             + '<td class="px-4 py-3.5 align-top">' + formatValueStack(row.fileBValues) + '</td>'
             + '<td class="px-4 py-3.5 align-top">' + detailCell + '</td>'

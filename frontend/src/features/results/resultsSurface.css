@@ -761,6 +761,19 @@
   font-weight: 600;
 }
 
+.key-chip {
+  display: inline-grid;
+  gap: 4px;
+  max-width: 100%;
+  white-space: normal;
+}
+
+.key-chip-part {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .result-value-stack,
 .value-stack {
   display: grid;

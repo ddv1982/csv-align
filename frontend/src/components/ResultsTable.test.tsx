@@ -74,7 +74,7 @@ test('shows clearer labels and explanations for one-sided and ignored rows', () 
 test('uses shared semantic classes for table states instead of hardcoded dark overlays', () => {
   render(<ResultsTable results={RESULTS} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
 
-  expect(screen.getByText('A-1')).toHaveClass('chip');
+  expect(screen.getByText('A-1').closest('.chip')).toHaveClass('chip');
 
   const diffToggle = screen.getByRole('button', { name: /1 diff/i });
   expect(diffToggle).toHaveClass('diff-toggle');
@@ -82,6 +82,37 @@ test('uses shared semantic classes for table states instead of hardcoded dark ov
   fireEvent.click(diffToggle);
 
   expect(screen.getByText('Value Differences').previousElementSibling).toHaveClass('diff-panel-icon');
+});
+
+test('stacks multi-part keys inside the compact key chip', () => {
+  render(
+    <ResultsTable
+      results={[
+        {
+          result_type: 'match',
+          key: ['71', '7'],
+          values_a: ['Alice'],
+          values_b: ['Alice'],
+          duplicate_values_a: [],
+          duplicate_values_b: [],
+          differences: [],
+        },
+      ]}
+      comparisonColumnsA={['name']}
+      comparisonColumnsB={['display_name']}
+    />,
+  );
+
+  const keyChip = screen.getByTitle('71, 7');
+  expect(keyChip).toHaveClass('key-chip');
+  expect(keyChip).toHaveClass('chip');
+  expect(keyChip).not.toHaveClass('truncate');
+
+  const parts = Array.from(keyChip.querySelectorAll('.key-chip-part'));
+  expect(parts).toHaveLength(2);
+  expect(parts.map((part) => part.textContent)).toEqual(['71', '7']);
+  expect(within(keyChip).getByText('71')).toBeInTheDocument();
+  expect(within(keyChip).getByText('7')).toBeInTheDocument();
 });
 
 test('lets matching rows expand paired file values for inspection', () => {

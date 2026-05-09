@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.59 - 2026-05-09
+
+- Improved the in-app and standalone HTML report KEY column so multi-part row keys render as stacked compact chips instead of a cramped truncated line.
+- Added regression coverage for app/export key-chip parity and export-side key escaping, then prepared the v2.1.59 patch release.
+
 ## v2.1.58 - 2026-05-09
 
 - Fixed the file selection dropzone accessibility semantics so the drag-and-drop area no longer nests an interactive button while preserving the real local CSV picker control.

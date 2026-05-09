@@ -92,6 +92,20 @@ function DetailPanel({ panel, isMatch }: { panel: ResultDetailPanel; isMatch: bo
   );
 }
 
+function KeyChip({ row }: { row: ResultRowViewModel }) {
+  const keyParts = row.keyParts.length > 0 ? row.keyParts : ['—'];
+
+  return (
+    <span className="key-chip chip app-text app-surface-subtle max-w-full border border-app-border px-2.5 py-1 font-mono text-sm font-semibold" title={row.keyText || '—'}>
+      {keyParts.map((part, index) => (
+        <span key={`${index}-${part}`} className="key-chip-part">
+          {part || '—'}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 function DetailCell({ row, isExpanded, onToggle }: { row: ResultRowViewModel; isExpanded: boolean; onToggle: () => void }) {
   if (!row.expandableDetail) {
     return <span className={`text-sm ${row.description ? 'app-text' : 'app-muted'}`}>{row.description ?? '—'}</span>;
@@ -279,9 +293,7 @@ export function ResultsTable({
                           </span>
                         </td>
                         <td className="px-4 py-3.5 align-top">
-                          <span className="chip app-text app-surface-subtle inline-block max-w-full truncate border border-app-border px-2.5 py-1 font-mono text-sm font-semibold" title={row.keyText}>
-                            {row.keyText}
-                          </span>
+                          <KeyChip row={row} />
                         </td>
                         <td className="px-4 py-3.5 align-top">{renderValueRows(row.fileAValues)}</td>
                         <td className="px-4 py-3.5 align-top">{renderValueRows(row.fileBValues)}</td>

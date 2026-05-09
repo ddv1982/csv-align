@@ -72,6 +72,7 @@ export type ResultRowViewModel = {
   badgeTone: ResultBadgeTone;
   description: string | null;
   keyText: string;
+  keyParts: string[];
   fileAValues: ResultValueCell[][];
   fileBValues: ResultValueCell[][];
   detailsCount: number;
@@ -440,6 +441,7 @@ export function buildResultRows(
       badgeTone: getResultBadgeTone(result.result_type),
       description: getResultDescription(result.result_type),
       keyText: result.key.join(', '),
+      keyParts: [...result.key],
       fileAValues,
       fileBValues,
       detailsCount: result.differences.length,

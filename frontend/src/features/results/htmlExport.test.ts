@@ -169,6 +169,117 @@ test('normalizes every exported theme input to the single dark report theme', ()
   expect(fallbackHtml).not.toContain('"theme":"cyan"');
 });
 
+test('standalone export stacks multi-part keys inside the compact key chip after the embedded script runs', () => {
+  const html = buildResultsHtmlDocument({
+    summary: {
+      total_rows_a: 1,
+      total_rows_b: 1,
+      matches: 1,
+      mismatches: 0,
+      missing_left: 0,
+      missing_right: 0,
+      unkeyed_left: 0,
+      unkeyed_right: 0,
+      duplicates_a: 0,
+      duplicates_b: 0,
+    },
+    fileAName: 'left.csv',
+    fileBName: 'right.csv',
+    comparisonColumnsA: ['name'],
+    comparisonColumnsB: ['display_name'],
+    mappings: MAPPINGS,
+    results: [
+      {
+        result_type: 'match',
+        key: ['71', '7'],
+        values_a: ['Alice'],
+        values_b: ['Alice'],
+        duplicate_values_a: [],
+        duplicate_values_b: [],
+        differences: [],
+      },
+    ],
+    initialFilter: 'all',
+  });
+
+  expect(html).toContain('"keyParts":["71","7"]');
+  expect(html).toContain('.key-chip {');
+  expect(html).toContain('.key-chip-part {');
+
+  const parsed = new DOMParser().parseFromString(html, 'text/html');
+  const script = parsed.querySelector('script:not([type="application/json"])');
+
+  document.body.innerHTML = parsed.body.innerHTML;
+  // eslint-disable-next-line no-new-func
+  Function(script?.textContent ?? '')();
+
+  const resultsBody = document.getElementById('results-body');
+  const keyChip = resultsBody?.querySelector('.key-chip');
+  expect(keyChip).toBeTruthy();
+  expect(keyChip).toHaveClass('chip');
+  expect(keyChip).not.toHaveClass('truncate');
+  expect(keyChip).toHaveAttribute('title', '71, 7');
+
+  const parts = Array.from(keyChip?.querySelectorAll('.key-chip-part') ?? []);
+  expect(parts).toHaveLength(2);
+  expect(parts.map((part) => part.textContent)).toEqual(['71', '7']);
+
+  document.body.innerHTML = '';
+});
+
+test('standalone export escapes key-chip parts before inserting table HTML', () => {
+  const unsafeKeyPart = '<img src=x onerror=alert(1)>';
+  const unsafeAttributePart = '" onclick="alert(1)';
+  const html = buildResultsHtmlDocument({
+    summary: {
+      total_rows_a: 1,
+      total_rows_b: 1,
+      matches: 1,
+      mismatches: 0,
+      missing_left: 0,
+      missing_right: 0,
+      unkeyed_left: 0,
+      unkeyed_right: 0,
+      duplicates_a: 0,
+      duplicates_b: 0,
+    },
+    fileAName: 'left.csv',
+    fileBName: 'right.csv',
+    comparisonColumnsA: ['name'],
+    comparisonColumnsB: ['display_name'],
+    mappings: MAPPINGS,
+    results: [
+      {
+        result_type: 'match',
+        key: [unsafeKeyPart, unsafeAttributePart],
+        values_a: ['Alice'],
+        values_b: ['Alice'],
+        duplicate_values_a: [],
+        duplicate_values_b: [],
+        differences: [],
+      },
+    ],
+    initialFilter: 'all',
+  });
+
+  const parsed = new DOMParser().parseFromString(html, 'text/html');
+  const script = parsed.querySelector('script:not([type="application/json"])');
+
+  document.body.innerHTML = parsed.body.innerHTML;
+  // eslint-disable-next-line no-new-func
+  Function(script?.textContent ?? '')();
+
+  const keyChip = document.querySelector('.key-chip');
+  const parts = Array.from(keyChip?.querySelectorAll('.key-chip-part') ?? []);
+  expect(parts.map((part) => part.textContent)).toEqual([unsafeKeyPart, unsafeAttributePart]);
+  expect(keyChip).toHaveAttribute('title', `${unsafeKeyPart}, ${unsafeAttributePart}`);
+  expect(keyChip?.querySelector('img')).toBeNull();
+  expect(keyChip?.querySelector('[onerror]')).toBeNull();
+  expect(keyChip?.querySelector('[onclick]')).toBeNull();
+
+  document.body.innerHTML = '';
+});
+
 test('standalone export table count matches the active filter bucket after the embedded script runs', () => {
   const html = buildResultsHtmlDocument({
     summary: SUMMARY,
