@@ -273,17 +273,19 @@ jobs:
           fi
 
           gnupg_home="$(mktemp -d)"
+          verification_home="$(mktemp -d)"
           key_file="$(mktemp)"
           passphrase_file=""
-          verification_keyring=""
+          public_key_file=""
           cleanup() {
             rm -rf "${gnupg_home}"
+            rm -rf "${verification_home}"
             rm -f "${key_file}"
             if [ -n "${passphrase_file}" ]; then
               rm -f "${passphrase_file}"
             fi
-            if [ -n "${verification_keyring}" ]; then
-              rm -f "${verification_keyring}"
+            if [ -n "${public_key_file}" ]; then
+              rm -f "${public_key_file}"
             fi
           }
           trap cleanup EXIT
@@ -304,27 +306,29 @@ jobs:
             exit 1
           fi
 
-          dpkg_sig_options=(--gpgoptions "--batch --pinentry-mode loopback")
+          gpg_options="--batch --pinentry-mode loopback"
           if [ -n "${DEB_SIGNING_KEY_PASSPHRASE}" ]; then
             passphrase_file="$(mktemp)"
             chmod 600 "${passphrase_file}"
             printf '%s' "${DEB_SIGNING_KEY_PASSPHRASE}" > "${passphrase_file}"
-            dpkg_sig_options+=(--passphrase-file "${passphrase_file}")
+            gpg_options="${gpg_options} --passphrase-file ${passphrase_file}"
           else
             echo "DEB_SIGNING_KEY_PASSPHRASE is not set; signing will only work for an intentionally unprotected key."
           fi
 
           for deb in "${deb_packages[@]}"; do
             echo "Signing ${deb}"
-            dpkg-sig "${dpkg_sig_options[@]}" --sign builder -k "${expected_fingerprint}" "${deb}"
+            dpkg-sig -g "${gpg_options}" --sign builder -k "${expected_fingerprint}" "${deb}"
           done
 
-          verification_keyring="$(mktemp)"
-          gpg --batch --export "${expected_fingerprint}" > "${verification_keyring}"
+          public_key_file="$(mktemp)"
+          gpg --batch --armor --export "${expected_fingerprint}" > "${public_key_file}"
+          chmod 700 "${verification_home}"
+          GNUPGHOME="${verification_home}" gpg --batch --import "${public_key_file}"
 
           for deb in "${deb_packages[@]}"; do
             echo "Verifying ${deb}"
-            dpkg-sig --gpgoptions "--no-default-keyring --keyring ${verification_keyring}" --verify-role builder "${deb}"
+            GNUPGHOME="${verification_home}" dpkg-sig --verify-role builder "${deb}"
           done
 
       - name: Upload reusable Tauri bundle artifact

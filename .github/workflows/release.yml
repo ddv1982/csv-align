@@ -232,13 +232,15 @@ jobs:
           fi
 
           gnupg_home="$(mktemp -d)"
+          verification_home="$(mktemp -d)"
           public_key_file="$(mktemp)"
-          verification_keyring=""
+          expected_public_key_file=""
           cleanup() {
             rm -rf "${gnupg_home}"
+            rm -rf "${verification_home}"
             rm -f "${public_key_file}"
-            if [ -n "${verification_keyring}" ]; then
-              rm -f "${verification_keyring}"
+            if [ -n "${expected_public_key_file}" ]; then
+              rm -f "${expected_public_key_file}"
             fi
           }
           trap cleanup EXIT
@@ -257,12 +259,14 @@ jobs:
             exit 1
           fi
 
-          verification_keyring="$(mktemp)"
-          gpg --batch --export "${expected_fingerprint}" > "${verification_keyring}"
+          expected_public_key_file="$(mktemp)"
+          gpg --batch --armor --export "${expected_fingerprint}" > "${expected_public_key_file}"
+          chmod 700 "${verification_home}"
+          GNUPGHOME="${verification_home}" gpg --batch --import "${expected_public_key_file}"
 
           for deb in "${deb_packages[@]}"; do
             echo "Verifying ${deb}"
-            dpkg-sig --gpgoptions "--no-default-keyring --keyring ${verification_keyring}" --verify-role builder "${deb}"
+            GNUPGHOME="${verification_home}" dpkg-sig --verify-role builder "${deb}"
           done
 
       - name: Upload Linux packages
