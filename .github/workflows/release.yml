@@ -235,12 +235,16 @@ jobs:
           verification_home="$(mktemp -d)"
           public_key_file="$(mktemp)"
           expected_public_key_file=""
+          safe_deb_file=""
           cleanup() {
             rm -rf "${gnupg_home}"
             rm -rf "${verification_home}"
             rm -f "${public_key_file}"
             if [ -n "${expected_public_key_file}" ]; then
               rm -f "${expected_public_key_file}"
+            fi
+            if [ -n "${safe_deb_file}" ]; then
+              rm -f "${safe_deb_file}"
             fi
           }
           trap cleanup EXIT
@@ -266,7 +270,16 @@ jobs:
 
           for deb in "${deb_packages[@]}"; do
             echo "Verifying ${deb}"
-            GNUPGHOME="${verification_home}" dpkg-sig --verify-role builder "${deb}"
+            deb_basename="$(basename "${deb}")"
+            safe_basename="$(printf '%s' "${deb_basename}" | tr ' ' '_' | tr -cd '[:alnum:]_.-')"
+            safe_deb_file="${RUNNER_TEMP:-/tmp}/${safe_basename}"
+            if [ -e "${safe_deb_file}" ]; then
+              safe_deb_file="${RUNNER_TEMP:-/tmp}/verify-${RANDOM}-${safe_basename}"
+            fi
+            cp "${deb}" "${safe_deb_file}"
+            GNUPGHOME="${verification_home}" dpkg-sig --verify-role builder "${safe_deb_file}"
+            rm -f "${safe_deb_file}"
+            safe_deb_file=""
           done
 
       - name: Upload Linux packages

@@ -277,6 +277,7 @@ jobs:
           key_file="$(mktemp)"
           passphrase_file=""
           public_key_file=""
+          safe_deb_file=""
           cleanup() {
             rm -rf "${gnupg_home}"
             rm -rf "${verification_home}"
@@ -286,6 +287,9 @@ jobs:
             fi
             if [ -n "${public_key_file}" ]; then
               rm -f "${public_key_file}"
+            fi
+            if [ -n "${safe_deb_file}" ]; then
+              rm -f "${safe_deb_file}"
             fi
           }
           trap cleanup EXIT
@@ -316,19 +320,26 @@ jobs:
             echo "DEB_SIGNING_KEY_PASSPHRASE is not set; signing will only work for an intentionally unprotected key."
           fi
 
-          for deb in "${deb_packages[@]}"; do
-            echo "Signing ${deb}"
-            dpkg-sig -g "${gpg_options}" --sign builder -k "${expected_fingerprint}" "${deb}"
-          done
-
           public_key_file="$(mktemp)"
           gpg --batch --armor --export "${expected_fingerprint}" > "${public_key_file}"
           chmod 700 "${verification_home}"
           GNUPGHOME="${verification_home}" gpg --batch --import "${public_key_file}"
 
           for deb in "${deb_packages[@]}"; do
+            echo "Signing ${deb}"
+            deb_dirname="$(dirname "${deb}")"
+            deb_basename="$(basename "${deb}")"
+            safe_basename="$(printf '%s' "${deb_basename}" | tr ' ' '_' | tr -cd '[:alnum:]_.-')"
+            safe_deb_file="${deb_dirname}/${safe_basename}"
+            if [ "${safe_deb_file}" = "${deb}" ] || [ -e "${safe_deb_file}" ]; then
+              safe_deb_file="${deb_dirname}/signing-${RANDOM}-${safe_basename}"
+            fi
+            mv "${deb}" "${safe_deb_file}"
+            dpkg-sig -g "${gpg_options}" --sign builder -k "${expected_fingerprint}" "${safe_deb_file}"
             echo "Verifying ${deb}"
-            GNUPGHOME="${verification_home}" dpkg-sig --verify-role builder "${deb}"
+            GNUPGHOME="${verification_home}" dpkg-sig --verify-role builder "${safe_deb_file}"
+            mv "${safe_deb_file}" "${deb}"
+            safe_deb_file=""
           done
 
       - name: Upload reusable Tauri bundle artifact
