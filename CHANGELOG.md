@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.63 - 2026-05-09
+
+- Fixed the tagged release Linux asset job so it checks out the repository before running the Debian package metadata validator.
+- Re-ran the Debian metadata gate release path after the v2.1.62 workflow exposed the missing checkout in the release-only job.
+
 ## v2.1.62 - 2026-05-09
 
 - Added a Debian package artifact validator that extracts `.deb` files and gates AppStream MIT license, desktop launchable, binary, copyright, and desktop-entry metadata before release publishing.
