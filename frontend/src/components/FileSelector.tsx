@@ -146,11 +146,11 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
 
   return (
     <div className="card p-6">
-      <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold uppercase tracking-[0.14em] text-[color:var(--color-kinetic-copy)]">
+      <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold uppercase tracking-[0.14em] text-app-text">
         <span className={`flex h-7 w-7 items-center justify-center border font-mono text-sm font-bold ${
            label === 'File A'
-            ? 'kinetic-tone-accent-strong'
-            : 'kinetic-tone-success-strong'
+            ? 'tone-accent-strong'
+            : 'tone-success-strong'
          }`}>
           {label === 'File A' ? 'A' : 'B'}
         </span>
@@ -159,39 +159,39 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
 
       {file ? (
         <div className="animate-slide-up">
-          <div className="kinetic-panel flex items-center gap-3 p-4">
-            <div className="flex h-10 w-10 items-center justify-center border border-[color:var(--color-kinetic-line-strong)] font-mono text-xs uppercase tracking-[0.18em] text-[color:var(--color-kinetic-accent)]">
+          <div className="surface-panel flex items-center gap-3 p-4">
+            <div className="flex h-10 w-10 items-center justify-center border border-app-border-strong font-mono text-xs uppercase tracking-[0.18em] text-app-accent">
               CSV
             </div>
             <div className="flex-1 min-w-0">
-              <p className="truncate font-medium text-[color:var(--color-kinetic-copy)]">{file.name}</p>
-              <p className="text-sm text-[color:var(--color-kinetic-muted)]">
+              <p className="truncate font-medium text-app-text">{file.name}</p>
+              <p className="text-sm text-app-muted">
                 {file.rowCount} rows • {file.headers.length} columns
               </p>
             </div>
-            <div className="kinetic-tone-success-strong flex h-8 w-8 items-center justify-center border font-mono text-xs uppercase">
+            <div className="tone-success-strong flex h-8 w-8 items-center justify-center border font-mono text-xs uppercase">
               OK
             </div>
           </div>
 
-          <details className="kinetic-panel mt-4 px-4 py-3 group">
+          <details className="surface-panel mt-4 px-4 py-3 group">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 marker:hidden">
               <div>
                 <p className="hud-label">Details</p>
-                <p className="mt-1 text-sm font-medium uppercase tracking-[0.14em] text-[color:var(--color-kinetic-copy)]">View rows, columns, and headers</p>
+                <p className="mt-1 text-sm font-medium uppercase tracking-[0.14em] text-app-text">View rows, columns, and headers</p>
               </div>
-              <span aria-hidden="true" className="font-mono text-sm text-[color:var(--color-kinetic-muted)] transition-transform group-open:rotate-90">▸</span>
+              <span aria-hidden="true" className="font-mono text-sm text-app-muted transition-transform group-open:rotate-90">▸</span>
             </summary>
 
             <div className="mt-4 space-y-4">
               <dl className="grid gap-3 sm:grid-cols-2">
-                <div className="kinetic-frame px-3 py-2">
+                <div className="app-frame px-3 py-2">
                   <dt className="hud-label">Rows</dt>
-                  <dd className="mt-1 font-mono text-sm text-[color:var(--color-kinetic-copy)]">{file.rowCount}</dd>
+                  <dd className="mt-1 font-mono text-sm text-app-text">{file.rowCount}</dd>
                 </div>
-                <div className="kinetic-frame px-3 py-2">
+                <div className="app-frame px-3 py-2">
                   <dt className="hud-label">Columns</dt>
-                  <dd className="mt-1 font-mono text-sm text-[color:var(--color-kinetic-copy)]">{file.headers.length}</dd>
+                  <dd className="mt-1 font-mono text-sm text-app-text">{file.headers.length}</dd>
                 </div>
               </dl>
 
@@ -201,7 +201,7 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
                   {file.columns.map((col) => (
                     <span key={col.name} className="table-chip">
                       {col.name}
-                      <span className="ml-2 text-[color:var(--color-kinetic-muted)]">[{col.data_type}]</span>
+                      <span className="ml-2 text-app-muted">[{col.data_type}]</span>
                     </span>
                   ))}
                 </div>
@@ -239,21 +239,21 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
           title={`Choose a CSV file for ${label}`}
           className={`border p-8 text-center transition-all duration-200 ${
              isDragging
-              ? 'kinetic-dropzone-active'
-              : 'kinetic-dropzone'
+              ? 'file-dropzone-active'
+              : 'file-dropzone'
             }`}
           >
             <div className="flex flex-col items-center">
-              <div className={`kinetic-empty-glyph ${
-                isDragging ? 'border-[color:var(--color-kinetic-accent)] text-[color:var(--color-kinetic-accent)]' : 'border-[color:var(--color-kinetic-line)] text-[color:var(--color-kinetic-muted)]'
+              <div className={`empty-state-icon ${
+                isDragging ? 'border-app-accent text-app-accent' : 'border-app-border text-app-muted'
               }`}>
                 IN
               </div>
 
-              <p className="mb-1 text-lg font-medium uppercase tracking-[0.14em] text-[color:var(--color-kinetic-copy)]">
+              <p className="mb-1 text-lg font-medium uppercase tracking-[0.14em] text-app-text">
                 {isDragging ? 'Drop the CSV file here' : 'Drag a CSV file here'}
               </p>
-              <p className="mb-4 text-sm text-[color:var(--color-kinetic-muted)]">or choose one from this device</p>
+              <p className="mb-4 text-sm text-app-muted">or choose one from this device</p>
 
               <button type="button" onClick={openFilePicker} className="btn btn-primary">
                 Choose a CSV file
@@ -272,7 +272,7 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
       )}
 
       {selectionError && (
-        <p className="kinetic-tone-danger-strong mt-3 border px-3 py-2 text-sm font-medium">{selectionError}</p>
+        <p className="tone-danger-strong mt-3 border px-3 py-2 text-sm font-medium">{selectionError}</p>
       )}
     </div>
   );

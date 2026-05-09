@@ -53,8 +53,8 @@ export function FilterBar({ filter, results, onFilterChange, onExportCsv, onExpo
                 aria-pressed={isActive}
                 className={`filter-button inline-flex items-center gap-2 px-3.5 py-1.5 text-sm font-medium transition-colors ${
                   isActive
-                    ? 'active kinetic-filter-chip-active'
-                    : 'kinetic-filter-chip'
+                    ? 'active filter-chip-active'
+                    : 'filter-chip'
                 }`}
               >
                 <span
@@ -65,8 +65,8 @@ export function FilterBar({ filter, results, onFilterChange, onExportCsv, onExpo
                 <span
                   className={`filter-count px-2 py-0.5 text-xs font-semibold tabular-nums ${
                     isActive
-                      ? 'kinetic-filter-count-active'
-                      : 'kinetic-filter-count'
+                      ? 'filter-count-active'
+                      : 'filter-count'
                   }`}
                 >
                   {counts[f.value]}

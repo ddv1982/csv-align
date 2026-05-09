@@ -37,21 +37,21 @@ function formatCollapsedValueRow(row: ResultValueCell[]): string {
 function DetailFieldRow({ field, isMatch }: DetailFieldRowProps) {
   const { columnA, columnB, valueA, valueB } = field;
   const sameColumn = columnA === columnB;
-  const headerChipClass = 'table-chip kinetic-copy max-w-full break-all';
+  const headerChipClass = 'table-chip app-text max-w-full break-all';
   const hasColumnA = Boolean(columnA);
   const hasColumnB = Boolean(columnB);
   const fileALabelClass = isMatch
-    ? 'text-[color:var(--color-kinetic-success)]'
-    : 'text-[color:var(--color-kinetic-danger)]';
-  const fileAValueClass = isMatch ? 'kinetic-surface-success-muted' : 'kinetic-surface-danger';
+    ? 'text-app-success'
+    : 'text-app-danger';
+  const fileAValueClass = isMatch ? 'app-surface-success-muted' : 'app-surface-danger';
 
   return (
     <div className="detail-field">
       {(hasColumnA || hasColumnB) && (
-        <div className="diff-card-header kinetic-muted mb-2.5 flex flex-wrap items-start gap-2 text-xs font-medium">
+        <div className="diff-card-header app-muted mb-2.5 flex flex-wrap items-start gap-2 text-xs font-medium">
           {hasColumnA && <span className={headerChipClass}>{columnA}</span>}
           {!sameColumn && hasColumnA && hasColumnB && (
-            <span className="kinetic-glyph-box diff-arrow-box detail-header-arrow kinetic-muted h-8 w-8 shrink-0 text-[11px]">
+            <span className="icon-frame diff-arrow-box detail-header-arrow app-muted h-8 w-8 shrink-0 text-[11px]">
               {'->'}
             </span>
           )}
@@ -59,18 +59,18 @@ function DetailFieldRow({ field, isMatch }: DetailFieldRowProps) {
         </div>
       )}
       <div className="diff-values grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-x-2 gap-y-1">
-        <p className={`diff-value-label file-a kinetic-mono-label text-[10px] ${fileALabelClass}`}>File A</p>
+        <p className={`diff-value-label file-a meta-label text-[10px] ${fileALabelClass}`}>File A</p>
         <div className="diff-value-column min-w-0 row-start-2">
-          <span className={`diff-value-box kinetic-copy ${fileAValueClass} block truncate border px-2.5 py-1.5 font-mono text-sm`} title={valueA}>
+          <span className={`diff-value-box app-text ${fileAValueClass} block truncate border px-2.5 py-1.5 font-mono text-sm`} title={valueA}>
             {valueA || '—'}
           </span>
         </div>
-        <p className="diff-value-label file-b kinetic-mono-label col-start-3 text-[10px] text-[color:var(--color-kinetic-success)]">File B</p>
-        <div className="kinetic-glyph-box diff-arrow-box detail-value-arrow kinetic-muted row-start-2 self-center h-7 w-7 shrink-0 text-[11px]">
+        <p className="diff-value-label file-b meta-label col-start-3 text-[10px] text-app-success">File B</p>
+        <div className="icon-frame diff-arrow-box detail-value-arrow app-muted row-start-2 self-center h-7 w-7 shrink-0 text-[11px]">
           {'->'}
         </div>
         <div className="diff-value-column min-w-0 col-start-3 row-start-2">
-          <span className="diff-value-box kinetic-copy kinetic-surface-success-muted block truncate border px-2.5 py-1.5 font-mono text-sm" title={valueB}>
+          <span className="diff-value-box app-text app-surface-success-muted block truncate border px-2.5 py-1.5 font-mono text-sm" title={valueB}>
             {valueB || '—'}
           </span>
         </div>
@@ -81,8 +81,8 @@ function DetailFieldRow({ field, isMatch }: DetailFieldRowProps) {
 
 function DetailPanel({ panel, isMatch }: { panel: ResultDetailPanel; isMatch: boolean }) {
   return (
-    <article className="kinetic-panel diff-card p-3.5">
-      {panel.label && <p className="detail-panel-label kinetic-mono-label kinetic-copy mb-3 text-xs font-semibold">{panel.label}</p>}
+    <article className="surface-panel diff-card p-3.5">
+      {panel.label && <p className="detail-panel-label meta-label app-text mb-3 text-xs font-semibold">{panel.label}</p>}
       <div className="detail-card-fields grid gap-3">
         {panel.fields.map((field, fieldIndex) => (
           <DetailFieldRow key={fieldIndex} field={field} isMatch={isMatch} />
@@ -94,7 +94,7 @@ function DetailPanel({ panel, isMatch }: { panel: ResultDetailPanel; isMatch: bo
 
 function DetailCell({ row, isExpanded, onToggle }: { row: ResultRowViewModel; isExpanded: boolean; onToggle: () => void }) {
   if (!row.expandableDetail) {
-    return <span className={`text-sm ${row.description ? 'kinetic-copy' : 'kinetic-muted'}`}>{row.description ?? '—'}</span>;
+    return <span className={`text-sm ${row.description ? 'app-text' : 'app-muted'}`}>{row.description ?? '—'}</span>;
   }
 
   return (
@@ -103,23 +103,23 @@ function DetailCell({ row, isExpanded, onToggle }: { row: ResultRowViewModel; is
         onClick={onToggle}
         className={`diff-toggle inline-flex w-fit items-center gap-1.5 border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] transition-colors ${
           isExpanded
-            ? 'border-[color:var(--color-kinetic-accent)] kinetic-surface-accent-strong text-[color:var(--color-kinetic-copy)]'
-            : 'kinetic-surface-subtle border-[color:var(--color-kinetic-line)] text-[color:var(--color-kinetic-muted)] hover:border-[color:var(--color-kinetic-line-strong)] hover:text-[color:var(--color-kinetic-copy)]'
+            ? 'border-app-accent app-surface-accent-strong text-app-text'
+            : 'app-surface-subtle border-app-border text-app-muted hover:border-app-border-strong hover:text-app-text'
         }`}
         aria-expanded={isExpanded}
       >
         {row.expandableDetail.toggleLabel}
         <ChevronRightIcon className={`diff-toggle-glyph h-3.5 w-3.5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
       </button>
-      {row.description && <span className="kinetic-copy text-sm">{row.description}</span>}
+      {row.description && <span className="app-text text-sm">{row.description}</span>}
     </div>
   );
 }
 
 function SortGlyph({ state }: { state: 'asc' | 'desc' | 'inactive' }) {
   const baseClass = 'block leading-none text-[8px]';
-  const upClass = state === 'asc' ? 'text-[color:var(--color-kinetic-accent)]' : 'text-[color:var(--color-kinetic-muted)]';
-  const downClass = state === 'desc' ? 'text-[color:var(--color-kinetic-accent)]' : 'text-[color:var(--color-kinetic-muted)]';
+  const upClass = state === 'asc' ? 'text-app-accent' : 'text-app-muted';
+  const downClass = state === 'desc' ? 'text-app-accent' : 'text-app-muted';
 
   return (
     <span className="sort-glyph ml-1 flex flex-col items-center" aria-hidden="true">
@@ -185,8 +185,8 @@ export function ResultsTable({
           onClick={() => handleSort(column)}
           className={`sort-button group inline-flex items-center text-left transition-colors ${
             isActive
-              ? 'active kinetic-copy'
-              : 'kinetic-muted hover:text-[color:var(--color-kinetic-copy)]'
+              ? 'active app-text'
+              : 'app-muted hover:text-app-text'
           }`}
         >
           {label}
@@ -198,17 +198,17 @@ export function ResultsTable({
 
   const renderValueRows = (rows: ResultValueCell[][]) => {
     if (rows.length === 0) {
-      return <span className="kinetic-muted italic">—</span>;
+      return <span className="app-muted italic">—</span>;
     }
 
     return (
-      <div className="kinetic-value-stack value-stack kinetic-copy">
+      <div className="result-value-stack value-stack app-text">
         {rows.map((row, rowIndex) => (
           <div
             key={rowIndex}
-            className="kinetic-value-row value-row text-[13px]"
+            className="result-value-row value-row text-[13px]"
           >
-            <span className="kinetic-value-text" title={formatCollapsedValueRow(row)}>
+            <span className="result-value-text" title={formatCollapsedValueRow(row)}>
               {formatCollapsedValueRow(row)}
             </span>
           </div>
@@ -220,8 +220,8 @@ export function ResultsTable({
   if (totalResultsCount === 0) {
     return (
       <div className="card p-12 text-center">
-        <div className="kinetic-empty-glyph kinetic-muted">0X</div>
-        <p className="kinetic-muted">No results match the selected filter</p>
+        <div className="empty-state-icon app-muted">0X</div>
+        <p className="app-muted">No results match the selected filter</p>
       </div>
     );
   }
@@ -236,7 +236,7 @@ export function ResultsTable({
       action={
         <label className="relative block w-full sm:max-w-xs">
           <span className="sr-only">Search result values</span>
-          <MagnifyingGlassIcon className="kinetic-muted pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+          <MagnifyingGlassIcon className="app-muted pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
           <input
             type="search"
             value={query}
@@ -250,28 +250,28 @@ export function ResultsTable({
       <div>
         {visibleResults.length === 0 ? (
           <div className="p-12 text-center">
-            <div className="kinetic-empty-glyph kinetic-muted">NS</div>
-            <p className="kinetic-muted">No results match the current filter and search.</p>
+            <div className="empty-state-icon app-muted">NS</div>
+            <p className="app-muted">No results match the current filter and search.</p>
           </div>
         ) : (
           <div className="table-wrap overflow-x-auto">
             <table className="results-table w-full">
-              <thead className="kinetic-surface-subtle border-b border-[color:var(--color-kinetic-line)]">
+              <thead className="app-surface-subtle border-b border-app-border">
                 <tr>
-                  {renderSortHeader('Type', 'type', 'kinetic-table-head w-40 min-w-[11rem] px-4 py-3 text-left')}
-                  {renderSortHeader('Key', 'key', 'kinetic-table-head px-4 py-3 text-left')}
-                  {renderSortHeader('File A Values', 'fileA', 'kinetic-table-head px-4 py-3 text-left')}
-                  {renderSortHeader('File B Values', 'fileB', 'kinetic-table-head px-4 py-3 text-left')}
-                  {renderSortHeader('Details', 'details', 'kinetic-table-head w-32 px-4 py-3 text-left')}
+                  {renderSortHeader('Type', 'type', 'table-head w-40 min-w-[11rem] px-4 py-3 text-left')}
+                  {renderSortHeader('Key', 'key', 'table-head px-4 py-3 text-left')}
+                  {renderSortHeader('File A Values', 'fileA', 'table-head px-4 py-3 text-left')}
+                  {renderSortHeader('File B Values', 'fileB', 'table-head px-4 py-3 text-left')}
+                  {renderSortHeader('Details', 'details', 'table-head w-32 px-4 py-3 text-left')}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[color:var(--color-kinetic-line)]">
+              <tbody className="divide-y divide-app-border">
                 {visibleResults.map((row: ResultRowViewModel) => {
                   const isExpanded = expandedRow === row.id;
 
                   return (
                     <Fragment key={row.id}>
-                      <tr className={`transition-colors ${isExpanded ? 'kinetic-surface-accent-strong' : 'bg-transparent kinetic-surface-hover'}`} data-result-tone={row.badgeTone}>
+                      <tr className={`transition-colors ${isExpanded ? 'app-surface-accent-strong' : 'bg-transparent app-surface-hover'}`} data-result-tone={row.badgeTone}>
                         <td className="px-4 py-3.5 align-top">
                           <span className={`badge tone-${row.badgeTone} inline-flex w-fit items-center gap-1.5 whitespace-nowrap border px-2.5 py-1 text-xs font-medium uppercase tracking-[0.12em] ${row.badge.bg} ${row.badge.text}`}>
                             <span className={`badge-dot h-1.5 w-1.5 shrink-0 ${row.badge.dot}`} aria-hidden="true" />
@@ -279,7 +279,7 @@ export function ResultsTable({
                           </span>
                         </td>
                         <td className="px-4 py-3.5 align-top">
-                          <span className="chip kinetic-copy kinetic-surface-subtle inline-block max-w-full truncate border border-[color:var(--color-kinetic-line)] px-2.5 py-1 font-mono text-sm font-semibold" title={row.keyText}>
+                          <span className="chip app-text app-surface-subtle inline-block max-w-full truncate border border-app-border px-2.5 py-1 font-mono text-sm font-semibold" title={row.keyText}>
                             {row.keyText}
                           </span>
                         </td>
@@ -291,15 +291,15 @@ export function ResultsTable({
                       </tr>
 
                       {isExpanded && row.expandableDetail && (
-                        <tr className="details-row kinetic-surface-subtle">
+                        <tr className="details-row app-surface-subtle">
                           <td colSpan={5} className="px-4 py-4">
-                            <div className="kinetic-panel diff-panel p-4">
+                            <div className="surface-panel diff-panel p-4">
                               <div className="diff-panel-header mb-3 flex items-center gap-2">
-                                <span className="diff-panel-icon kinetic-surface-accent flex h-6 w-6 items-center justify-center border font-mono text-[11px] uppercase">
+                                <span className="diff-panel-icon app-surface-accent flex h-6 w-6 items-center justify-center border font-mono text-[11px] uppercase">
                                   +
                                 </span>
-                                <p className="diff-panel-title kinetic-mono-label kinetic-copy text-xs font-semibold">{row.expandableDetail.title}</p>
-                                <span className="diff-panel-count kinetic-muted ml-auto text-xs">{row.expandableDetail.summary}</span>
+                                <p className="diff-panel-title meta-label app-text text-xs font-semibold">{row.expandableDetail.title}</p>
+                                <span className="diff-panel-count app-muted ml-auto text-xs">{row.expandableDetail.summary}</span>
                               </div>
                               <div className={`grid gap-3 sm:grid-cols-1 ${row.expandableDetail.variant === 'differences' ? 'diff-grid lg:grid-cols-2' : 'detail-stack'}`}>
                                 {row.expandableDetail.panels.map((panel, panelIdx) => (
@@ -318,14 +318,14 @@ export function ResultsTable({
           </div>
         )}
         {isPending && (
-          <div className="kinetic-muted kinetic-surface-subtle border-t border-[color:var(--color-kinetic-line)] px-4 py-2 text-right text-xs">
+          <div className="app-muted app-surface-subtle border-t border-app-border px-4 py-2 text-right text-xs">
             Updating results…
           </div>
         )}
 
         {visibleResults.length > 50 && (
-          <div className="kinetic-surface-subtle border-t border-[color:var(--color-kinetic-line)] px-4 py-3 text-center">
-            <p className="kinetic-muted text-sm">Showing {visibleResults.length} results. Use filters, search, or sorting to narrow down.</p>
+          <div className="app-surface-subtle border-t border-app-border px-4 py-3 text-center">
+            <p className="app-muted text-sm">Showing {visibleResults.length} results. Use filters, search, or sorting to narrow down.</p>
           </div>
         )}
       </div>

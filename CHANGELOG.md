@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.56 - 2026-05-09
+
+- Renamed the restored dark design-system primitives away from KINETIC terminology, moving app colors into semantic Tailwind v4 `@theme` tokens and neutral shared surface classes.
+- Kept the HTML results report visually aligned with the in-app comparison view by sharing the same dark result-surface CSS, buttons, cards, filters, tables, and detail-panel styling.
+
 ## v2.1.55 - 2026-05-09
 
 - Reworked the HTML results export to share the app results styling surface, keeping reports visually aligned with in-app cards, filters, summary stats, tables, badges, and detail panels.

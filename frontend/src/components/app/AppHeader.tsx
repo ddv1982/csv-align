@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import appLogo from '../../assets/icon.svg';
 import { ArrowRightIcon } from '../icons';
 import { openNewAppWindow } from '../../services/appWindows';
 
@@ -19,41 +20,42 @@ export function AppHeader({ onReset }: AppHeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-30 border-b border-[color:var(--color-kinetic-line)] bg-[color:var(--color-kinetic-header)] shadow-[0_10px_24px_rgba(0,0,0,0.2)] backdrop-blur-md">
+    <header className="sticky top-0 z-30 border-b border-gray-800 bg-gray-950/80 backdrop-blur-sm">
       <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-center gap-4">
           <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg ring-1 ring-white/10">
+              <img src={appLogo} alt="" className="h-full w-full object-cover" />
+            </div>
             <div className="min-w-0">
-              <h1 className="display-title truncate text-3xl text-[color:var(--color-kinetic-copy)] sm:text-[2.2rem]">
-                <span className="kinetic-stroke">CSV</span> ALIGN
+              <h1 className="truncate text-base font-semibold tracking-tight text-gray-50">
+                CSV Align
               </h1>
-              <p className="mt-1 truncate text-sm text-[color:var(--color-kinetic-muted)]">
-                Compare two local CSV files, tune cleanup, and review row-level drift.
+              <p className="truncate text-xs text-gray-400">
+                Compare CSV files with ease
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-            <div className="kinetic-utility-cluster">
-              <button
-                onClick={() => void handleOpenNewWindow()}
-                className="btn btn-ghost"
-                type="button"
-                title="Open CSV Align in a new window"
-              >
-                <ArrowRightIcon className="h-4 w-4" />
-                New window
-              </button>
+          <div className="ml-auto flex flex-wrap items-center gap-2 border-l border-gray-800 pl-3">
+            <button
+              onClick={() => void handleOpenNewWindow()}
+              className="btn btn-secondary"
+              type="button"
+              title="Open CSV Align in a new window"
+            >
+              <ArrowRightIcon className="h-4 w-4 -rotate-45" />
+              New window
+            </button>
 
-              <button onClick={onReset} className="btn btn-ghost" type="button">
-                Reset
-              </button>
-            </div>
+            <button onClick={onReset} className="btn btn-secondary" type="button">
+              Reset
+            </button>
           </div>
         </div>
 
         {openWindowError && (
-          <p className="mt-3 border border-[rgba(255,122,122,0.45)] bg-[rgba(255,122,122,0.08)] px-3 py-2 text-sm text-[color:var(--color-kinetic-danger)]" role="alert">
+          <p className="mt-2 text-sm text-red-400" role="alert">
             {openWindowError}
           </p>
         )}

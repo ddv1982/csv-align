@@ -1,435 +1,86 @@
-@import "@fontsource/bebas-neue";
-@import "@fontsource/jetbrains-mono";
-@import "@fontsource/space-grotesk";
-@import "@fontsource/fraunces";
 @import "tailwindcss";
 @import "./features/results/resultsSurface.css" layer(components);
 
+/* Tailwind v4 CSS-first configuration. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
-  --font-sans: "Space Grotesk", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
-  --font-display: "Bebas Neue", Impact, sans-serif;
-  --font-serif: "Fraunces", Georgia, serif;
+  --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", ui-monospace, monospace;
+  --font-display: var(--font-sans);
+
+  --color-app-bg: #030712;
+  --color-app-panel: #111827;
+  --color-app-panel-muted: #0f172a;
+  --color-app-border: rgba(55, 65, 81, 0.9);
+  --color-app-border-strong: rgba(107, 114, 128, 0.95);
+  --color-app-text: #f3f4f6;
+  --color-app-muted: #9ca3af;
+  --color-app-accent: #3b82f6;
+  --color-app-highlight: #60a5fa;
+  --color-app-danger: #f87171;
+  --color-app-success: #34d399;
+  --color-app-warning: #fbbf24;
+  --color-app-header: rgba(3, 7, 18, 0.82);
+  --color-app-overlay: rgba(17, 24, 39, 0.72);
+  --color-app-overlay-strong: rgba(31, 41, 55, 0.78);
+  --color-app-grid: transparent;
+
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+  --color-primary-950: #172554;
+
+  --color-success: #10b981;
+  --color-success-light: #d1fae5;
+  --color-success-dark: #059669;
+
+  --color-warning: #f59e0b;
+  --color-warning-light: #fef3c7;
+  --color-warning-dark: #d97706;
+
+  --color-danger: #ef4444;
+  --color-danger-light: #fee2e2;
+  --color-danger-dark: #dc2626;
+
+  --color-info: #3b82f6;
+  --color-info-light: #dbeafe;
+  --color-info-dark: #2563eb;
 }
 
 @layer base {
-  :root,
-  [data-theme="cyan"] {
-    --k-accent: #06b6d4;
-    --k-highlight: #bef264;
-  }
-
-  [data-theme="lime"] {
-    --k-accent: #bef264;
-    --k-highlight: #06b6d4;
-  }
-
-  [data-theme="magenta"] {
-    --k-accent: #e879f9;
-    --k-highlight: #fbbf24;
-  }
-
-  [data-theme="amber"] {
-    --k-accent: #fbbf24;
-    --k-highlight: #06b6d4;
-  }
-
   html {
-    --color-kinetic-bg: #050505;
-    --color-kinetic-panel: #090909;
-    --color-kinetic-panel-2: #111111;
-    --color-kinetic-line: rgba(151, 177, 204, 0.18);
-    --color-kinetic-line-strong: rgba(198, 220, 242, 0.36);
-    --color-kinetic-copy: #f5f7fb;
-    --color-kinetic-muted: #95a2b3;
-    --color-kinetic-accent: var(--k-accent);
-    --color-kinetic-accent-2: var(--k-highlight);
-    --color-kinetic-danger: #ff7a7a;
-    --color-kinetic-success: #6cffbe;
-    --color-kinetic-warning: #ffb86e;
-    --color-kinetic-header: rgba(5, 5, 5, 0.78);
-    --color-kinetic-overlay: color-mix(in srgb, var(--color-kinetic-panel) 94%, var(--color-kinetic-copy) 6%);
-    --color-kinetic-overlay-strong: color-mix(in srgb, var(--color-kinetic-panel-2) 88%, var(--color-kinetic-copy) 12%);
-    --color-kinetic-grid: color-mix(in srgb, var(--color-kinetic-copy) 18%, transparent);
     font-family: var(--font-sans);
     color-scheme: dark;
-    background: var(--color-kinetic-bg);
+    background: var(--color-app-bg);
   }
 
   body {
     min-height: 100vh;
-    background: var(--color-kinetic-bg);
-    color: var(--color-kinetic-copy);
-    @apply antialiased;
+    background: var(--color-app-bg);
+    color: var(--color-app-text);
+    @apply antialiased transition-colors;
   }
 
   * {
-    scrollbar-color: color-mix(in srgb, var(--color-kinetic-accent) 45%, transparent) var(--color-kinetic-overlay);
+    scrollbar-color: rgba(107, 114, 128, 0.72) rgba(17, 24, 39, 0.72);
   }
 
   *:focus-visible {
-    outline: 1px solid var(--color-kinetic-accent);
+    outline: 2px solid var(--color-app-accent);
     outline-offset: 2px;
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-kinetic-accent) 32%, transparent);
   }
 
   ::selection {
-    background: color-mix(in srgb, var(--color-kinetic-accent) 22%, transparent);
-    color: var(--color-kinetic-copy);
-  }
-
-  button,
-  input,
-  select,
-  textarea {
-    border-radius: 0;
-  }
-}
-
-@layer components {
-  .hud-label {
-    font-family: var(--font-mono);
-    letter-spacing: 0.22em;
-    @apply text-[10px] uppercase text-[color:var(--color-kinetic-muted)];
-  }
-
-  .display-title {
-    font-family: var(--font-display);
-    letter-spacing: 0.08em;
-    line-height: 0.92;
-    @apply uppercase;
-  }
-
-  .serif-accent {
-    font-family: var(--font-serif);
-    font-variation-settings: "SOFT" 50;
-  }
-
-  .kinetic-shell {
-    @apply relative min-h-screen overflow-x-hidden;
-  }
-
-  .kinetic-shell::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    background: rgba(255, 255, 255, 0.01);
-    border: 1px solid color-mix(in srgb, var(--color-kinetic-grid) 18%, transparent);
-    opacity: 0.14;
-  }
-
-  .kinetic-panel,
-  .card {
-    background: color-mix(in srgb, var(--color-kinetic-panel) 92%, var(--color-kinetic-panel-2) 8%);
-    border: 1px solid var(--color-kinetic-line);
-    @apply relative;
-  }
-
-  .kinetic-panel::after,
-  .card::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    border-top: 1px solid color-mix(in srgb, var(--color-kinetic-copy) 10%, transparent);
-    border-left: 1px solid color-mix(in srgb, var(--color-kinetic-copy) 4%, transparent);
-    background: transparent;
-    opacity: 1;
-  }
-
-  .kinetic-utility-cluster {
-    border: 1px solid var(--color-kinetic-line);
-    background: var(--color-kinetic-overlay);
-    @apply flex flex-wrap items-center gap-2 px-2 py-2;
-  }
-
-  .kinetic-utility-strip {
-    border: 1px solid var(--color-kinetic-line);
-    background: var(--color-kinetic-overlay);
-    @apply flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between;
-  }
-
-  .btn {
-    font-family: var(--font-mono);
-    letter-spacing: 0.12em;
-    border: 1px solid var(--color-kinetic-line);
-    background: var(--color-kinetic-overlay);
-    color: var(--color-kinetic-copy);
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-[11px] uppercase transition-colors disabled:cursor-not-allowed disabled:opacity-50;
-  }
-
-  .btn:hover {
-    border-color: var(--color-kinetic-line-strong);
-    background: var(--color-kinetic-overlay-strong);
-  }
-
-  .btn-primary {
-    border-color: color-mix(in srgb, var(--color-kinetic-accent) 52%, var(--color-kinetic-line) 48%);
-    background: color-mix(in srgb, var(--color-kinetic-accent) 10%, var(--color-kinetic-panel) 90%);
-    color: var(--color-kinetic-copy);
-  }
-
-  .btn-primary:hover {
-    background: color-mix(in srgb, var(--color-kinetic-accent) 14%, var(--color-kinetic-panel) 86%);
-  }
-
-  .btn-success {
-    border-color: rgba(108, 255, 190, 0.42);
-    background: color-mix(in srgb, var(--color-kinetic-success) 10%, var(--color-kinetic-panel) 90%);
-  }
-
-  .btn-danger {
-    border-color: rgba(255, 122, 122, 0.45);
-    background: color-mix(in srgb, var(--color-kinetic-danger) 10%, var(--color-kinetic-panel) 90%);
-  }
-
-  .btn-ghost {
-    background: transparent;
-  }
-
-  .kinetic-copy {
-    color: var(--color-kinetic-copy);
-  }
-
-  .kinetic-muted {
-    color: var(--color-kinetic-muted);
-  }
-
-  .kinetic-frame {
-    border: 1px solid var(--color-kinetic-line);
-    background: var(--color-kinetic-overlay);
-  }
-
-  .kinetic-progress-fill {
-    background: var(--color-kinetic-accent);
-  }
-
-  .kinetic-surface-subtle {
-    background: var(--color-kinetic-overlay);
-  }
-
-  .kinetic-surface-subtle-strong {
-    background: var(--color-kinetic-overlay-strong);
-  }
-
-  .kinetic-surface-hover:hover {
-    background: var(--color-kinetic-overlay);
-  }
-
-  .kinetic-surface-accent {
-    border-color: color-mix(in srgb, var(--color-kinetic-accent) 45%, transparent);
-    background: color-mix(in srgb, var(--color-kinetic-accent) 12%, transparent);
-    color: var(--color-kinetic-accent);
-  }
-
-  .kinetic-surface-accent-strong {
-    background: color-mix(in srgb, var(--color-kinetic-accent) 10%, transparent);
-  }
-
-  .kinetic-dropzone {
-    border-color: var(--color-kinetic-line);
-    background: color-mix(in srgb, var(--color-kinetic-copy) 2%, transparent);
-  }
-
-  .kinetic-dropzone:hover {
-    border-color: var(--color-kinetic-line-strong);
-    background: color-mix(in srgb, var(--color-kinetic-copy) 4%, transparent);
-  }
-
-  .kinetic-dropzone-active {
-    border-color: var(--color-kinetic-accent);
-    background: color-mix(in srgb, var(--color-kinetic-accent) 8%, transparent);
-  }
-
-  .kinetic-surface-success {
-    border-color: color-mix(in srgb, var(--color-kinetic-success) 45%, transparent);
-    background: color-mix(in srgb, var(--color-kinetic-success) 8%, transparent);
-    color: var(--color-kinetic-success);
-  }
-
-  .kinetic-surface-danger {
-    border-color: color-mix(in srgb, var(--color-kinetic-danger) 40%, transparent);
-    background: color-mix(in srgb, var(--color-kinetic-danger) 6%, transparent);
-  }
-
-  .kinetic-surface-success-muted {
-    border-color: color-mix(in srgb, var(--color-kinetic-success) 40%, transparent);
-    background: color-mix(in srgb, var(--color-kinetic-success) 6%, transparent);
-  }
-
-  .kinetic-glyph-box {
-    border: 1px solid var(--color-kinetic-line);
-    background: var(--color-kinetic-overlay);
-    font-family: var(--font-mono);
-    letter-spacing: 0.18em;
-    @apply flex items-center justify-center uppercase;
-  }
-
-  .kinetic-mono-label {
-    font-family: var(--font-mono);
-    letter-spacing: 0.18em;
-    @apply uppercase;
-  }
-
-  .kinetic-value-stack {
-    @apply space-y-1 text-sm;
-  }
-
-  .kinetic-value-row {
-    border: 1px solid var(--color-kinetic-line);
-    background: var(--color-kinetic-overlay);
-    @apply px-2.5 py-1.5 font-mono leading-5;
-  }
-
-  .kinetic-value-text {
-    display: block;
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-
-  .kinetic-empty-glyph {
-    border: 1px solid var(--color-kinetic-line);
-    font-family: var(--font-mono);
-    letter-spacing: 0.22em;
-    @apply mx-auto mb-4 flex h-16 w-16 items-center justify-center text-lg uppercase;
-  }
-
-  .kinetic-tone-success {
-    border-color: rgba(108, 255, 190, 0.35);
-    background: rgba(108, 255, 190, 0.05);
-  }
-
-  .kinetic-tone-success-strong {
-    border-color: rgba(108, 255, 190, 0.4);
-    background: rgba(108, 255, 190, 0.08);
-    color: var(--color-kinetic-success);
-  }
-
-  .kinetic-tone-warning {
-    border-color: rgba(255, 184, 110, 0.35);
-    background: rgba(255, 184, 110, 0.05);
-  }
-
-  .kinetic-tone-warning-strong {
-    border-color: rgba(255, 184, 110, 0.4);
-    background: rgba(255, 184, 110, 0.08);
-    color: var(--color-kinetic-warning);
-  }
-
-  .kinetic-tone-accent {
-    border-color: color-mix(in srgb, var(--color-kinetic-accent) 35%, transparent);
-    background: color-mix(in srgb, var(--color-kinetic-accent) 5%, transparent);
-  }
-
-  .kinetic-tone-accent-strong {
-    border-color: color-mix(in srgb, var(--color-kinetic-accent) 40%, transparent);
-    background: color-mix(in srgb, var(--color-kinetic-accent) 8%, transparent);
-    color: var(--color-kinetic-accent);
-  }
-
-  .kinetic-tone-highlight {
-    border-color: color-mix(in srgb, var(--color-kinetic-accent-2) 35%, transparent);
-    background: color-mix(in srgb, var(--color-kinetic-accent-2) 5%, transparent);
-  }
-
-  .kinetic-tone-highlight-strong {
-    border-color: color-mix(in srgb, var(--color-kinetic-accent-2) 40%, transparent);
-    background: color-mix(in srgb, var(--color-kinetic-accent-2) 8%, transparent);
-    color: var(--color-kinetic-accent-2);
-  }
-
-  .kinetic-tone-danger {
-    border-color: rgba(255, 122, 122, 0.35);
-    background: rgba(255, 122, 122, 0.05);
-  }
-
-  .kinetic-tone-danger-strong {
-    border-color: rgba(255, 122, 122, 0.4);
-    background: rgba(255, 122, 122, 0.08);
-    color: var(--color-kinetic-danger);
-  }
-
-  .kinetic-filter-chip {
-    border: 1px solid var(--color-kinetic-line);
-    background: var(--color-kinetic-overlay);
-    color: var(--color-kinetic-muted);
-  }
-
-  .kinetic-filter-chip:hover {
-    border-color: var(--color-kinetic-line-strong);
-    color: var(--color-kinetic-copy);
-  }
-
-  .kinetic-filter-chip-active {
-    border-color: var(--color-kinetic-accent);
-    background: color-mix(in srgb, var(--color-kinetic-accent) 10%, transparent);
-    color: var(--color-kinetic-copy);
-  }
-
-  .kinetic-filter-count {
-    background: var(--color-kinetic-overlay);
-    color: var(--color-kinetic-muted);
-  }
-
-  .kinetic-filter-count-active {
-    background: var(--color-kinetic-overlay-strong);
-    color: var(--color-kinetic-copy);
-  }
-
-  .kinetic-table-head {
-    font-family: var(--font-mono);
-    letter-spacing: 0.18em;
-    color: var(--color-kinetic-muted);
-    @apply text-[11px] font-semibold uppercase;
-  }
-
-  .input {
-    width: 100%;
-    border: 1px solid var(--color-kinetic-line);
-    background: var(--color-kinetic-overlay);
-    color: var(--color-kinetic-copy);
-    font-family: var(--font-sans);
-    @apply px-3 py-2 text-sm;
-  }
-
-  .input::placeholder {
-    color: var(--color-kinetic-muted);
-  }
-
-  .table-chip {
-    border: 1px solid var(--color-kinetic-line);
-    background: var(--color-kinetic-overlay);
-    @apply inline-flex items-center px-2 py-1 font-mono text-xs uppercase;
-  }
-
-  .kinetic-badge {
-    border: 1px solid color-mix(in srgb, var(--color-kinetic-accent-2) 45%, transparent);
-    background: color-mix(in srgb, var(--color-kinetic-accent-2) 10%, transparent);
-    color: var(--color-kinetic-accent-2);
-    font-family: var(--font-mono);
-    letter-spacing: 0.16em;
-    @apply inline-flex px-2 py-1 text-[10px] uppercase;
-  }
-
-  .kinetic-register {
-    font-family: var(--font-mono);
-    color: color-mix(in srgb, var(--color-kinetic-accent) 72%, var(--color-kinetic-copy));
-    letter-spacing: 0.18em;
-    @apply text-[10px] uppercase;
-  }
-
-  .kinetic-stroke {
-    color: transparent;
-    -webkit-text-stroke: 1px color-mix(in srgb, var(--color-kinetic-accent) 82%, var(--color-kinetic-copy));
-  }
-
-  .status-strip {
-    border-top: 1px solid var(--color-kinetic-line);
-    background: var(--color-kinetic-overlay);
-    font-family: var(--font-mono);
-    letter-spacing: 0.12em;
-    @apply text-[10px] uppercase text-[color:var(--color-kinetic-muted)];
+    background: rgba(59, 130, 246, 0.32);
+    color: var(--color-app-text);
   }
 }
 

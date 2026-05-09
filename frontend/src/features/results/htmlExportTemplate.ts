@@ -2,7 +2,7 @@ import type { ResultFilter, SummaryResponse } from '../../types/api';
 import { buildSummaryOverview, type ResultFilterTone, type ResultRowViewModel, type SummaryBannerViewModel, type SummaryStatViewModel } from './presentation';
 import { RESULTS_EXPORT_STYLES } from './htmlExportTheme';
 
-type HtmlExportTheme = 'cyan' | 'lime' | 'magenta' | 'amber';
+type HtmlExportTheme = 'dark';
 
 type HtmlExportDocument = {
   generatedAt: string;
@@ -15,25 +15,55 @@ type HtmlExportDocument = {
   rows: ResultRowViewModel[];
 };
 
+type ExportIconName = 'chart' | 'funnel' | 'stack' | 'check' | 'warning' | 'info' | 'chevron' | 'plus' | 'search';
+
 function escapeHtmlText(value: string): string {
   return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/&/g, '&' + 'amp;')
+    .replace(/</g, '&' + 'lt;')
+    .replace(/>/g, '&' + 'gt;')
+    .replace(/"/g, '&' + 'quot;')
+    .replace(/'/g, '&' + '#39;');
+}
+
+function renderIcon(name: ExportIconName, className: string): string {
+  const paths: Record<ExportIconName, string> = {
+    chart: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />',
+    funnel: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h18M6 8h12M9 12h6M11 16h2" />',
+    stack: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />',
+    check: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />',
+    warning: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />',
+    info: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 6a9 9 0 110 18 9 9 0 010-18z" />',
+    chevron: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />',
+    plus: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />',
+    search: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />',
+  };
+
+  return `<svg class="${className}" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">${paths[name]}</svg>`;
+}
+
+function renderStatIcon(stat: SummaryStatViewModel): string {
+  if (stat.tone === 'success') {
+    return renderIcon('check', 'h-5 w-5');
+  }
+
+  if (stat.tone === 'warning') {
+    return renderIcon('warning', 'h-5 w-5');
+  }
+
+  return escapeHtmlText(stat.icon);
 }
 
 function renderSummaryStats(stats: SummaryStatViewModel[]): string {
   return stats
     .map(
-      (stat) => `<div class="kinetic-panel summary-stat kinetic-tone-${stat.tone}">
-                <div class="summary-stat-head">
-                  <div class="summary-stat-icon kinetic-tone-${stat.tone}-strong">${escapeHtmlText(stat.icon)}</div>
-                  <span class="summary-stat-value kinetic-copy">${stat.value}</span>
+      (stat) => `<div class="surface-panel summary-stat p-4 tone-${stat.tone}">
+                <div class="summary-stat-head mb-3 flex items-center justify-between gap-3">
+                  <div class="summary-stat-icon tone-${stat.tone}-strong flex h-10 w-10 items-center justify-center border font-mono text-xs uppercase tracking-[0.18em]">${renderStatIcon(stat)}</div>
+                  <span class="app-text summary-stat-value text-2xl font-bold tabular-nums">${stat.value}</span>
                 </div>
-                <p class="summary-stat-label kinetic-copy">${escapeHtmlText(stat.label)}</p>
-                <p class="summary-stat-description kinetic-muted">${escapeHtmlText(stat.description)}</p>
+                <p class="app-text summary-stat-label text-sm font-semibold">${escapeHtmlText(stat.label)}</p>
+                <p class="app-muted summary-stat-description mt-0.5 text-xs">${escapeHtmlText(stat.description)}</p>
               </div>`,
     )
     .join('');
@@ -44,16 +74,18 @@ function renderSummaryBanners(banners: SummaryBannerViewModel[]): string {
     return '';
   }
 
-  return `<div class="summary-banners">${banners
+  return `<div class="summary-banners space-y-4">${banners
     .map(
-      (banner) => `<div class="kinetic-panel summary-banner kinetic-tone-${banner.tone}">
-                <div class="summary-banner-icon kinetic-tone-${banner.tone}-strong">${escapeHtmlText(banner.icon)}</div>
-                <div class="summary-banner-copy">
-                  <p class="summary-banner-title kinetic-copy">${escapeHtmlText(banner.title)}</p>
-                  <p class="summary-banner-summary kinetic-copy">${escapeHtmlText(banner.summary)}</p>
-                  ${banner.details
-                    .map((detail) => `<p class="summary-banner-detail kinetic-muted">${escapeHtmlText(detail)}</p>`)
-                    .join('')}
+      (banner) => `<div class="surface-panel summary-banner p-4 tone-${banner.tone}">
+                <div class="flex items-start gap-3">
+                  <div class="summary-banner-icon tone-${banner.tone}-strong mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center border font-mono text-xs uppercase tracking-[0.18em]">${banner.tone === 'accent' ? renderIcon('info', 'h-5 w-5') : renderIcon('warning', 'h-5 w-5')}</div>
+                  <div class="summary-banner-copy space-y-1.5">
+                    <p class="app-text summary-banner-title text-sm font-semibold">${escapeHtmlText(banner.title)}</p>
+                    <p class="app-text summary-banner-summary text-sm font-medium">${escapeHtmlText(banner.summary)}</p>
+                    ${banner.details
+                      .map((detail) => `<p class="app-muted summary-banner-detail text-sm leading-6">${escapeHtmlText(detail)}</p>`)
+                      .join('')}
+                  </div>
                 </div>
               </div>`,
     )
@@ -67,7 +99,7 @@ export function renderResultsHtmlDocument(data: HtmlExportDocument, serializedDa
   const { comparableTotal, matchPercent, comparableStats, infoBanners } = buildSummaryOverview(data.summary);
 
   return `<!DOCTYPE html>
-<html lang="en" data-theme="${data.theme}">
+<html lang="en" class="dark" data-theme="${data.theme}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -77,121 +109,130 @@ ${RESULTS_EXPORT_STYLES}
     </style>
   </head>
   <body>
-    <div class="kinetic-shell">
-      <div class="shell stack">
-        <section class="card">
-          <div class="section-card-header">
-            <div class="section-card-heading">
-              <div class="section-card-icon kinetic-tone-accent-strong">SUM</div>
-              <div class="section-card-copy">
-                <p class="hud-label" style="color: var(--color-kinetic-accent);">Step 3 · Results</p>
-                <h1><span class="kinetic-copy">Comparison Summary</span></h1>
-                <p class="kinetic-muted">Review the overall match quality before drilling into filtered result rows.</p>
+    <div class="app-shell flex min-h-screen flex-col bg-app-bg text-app-text">
+      <main class="report-main mx-auto w-full max-w-7xl flex-1 px-4 py-5 sm:px-6 lg:px-8">
+        <div class="animate-fade-in space-y-6">
+          <section class="card section-card p-5 overflow-hidden">
+            <div class="section-card-header flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div class="section-card-heading flex items-start gap-3">
+                <div class="section-card-icon mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center border font-mono text-sm uppercase tracking-[0.18em] tone-accent-strong">${renderIcon('chart', 'h-5 w-5')}</div>
+                <div class="section-card-copy">
+                  <p class="hud-label text-app-accent">Step 3 · Results</p>
+                  <h3 class="mt-1 text-sm font-semibold uppercase tracking-[0.14em] text-app-text"><span class="text-lg">Comparison Summary</span></h3>
+                  <p class="mt-1 text-sm leading-6 text-app-muted">Review the overall match quality before drilling into filtered result rows.</p>
+                </div>
+              </div>
+              <div class="section-card-action shrink-0 summary-file-grid grid gap-3 sm:grid-cols-2" aria-label="Compared files">
+                <div class="surface-panel summary-file-panel px-4 py-3">
+                  <div class="hud-label">File A</div>
+                  <div class="app-muted mt-1 text-sm"><span class="app-text font-semibold">${data.summary.total_rows_a}</span> rows</div>
+                  <div class="app-muted file-name mt-1 max-w-[280px] truncate text-xs" title="${fileAName}">${fileAName}</div>
+                </div>
+                <div class="surface-panel summary-file-panel px-4 py-3">
+                  <div class="hud-label">File B</div>
+                  <div class="app-muted mt-1 text-sm"><span class="app-text font-semibold">${data.summary.total_rows_b}</span> rows</div>
+                  <div class="app-muted file-name mt-1 max-w-[280px] truncate text-xs" title="${fileBName}">${fileBName}</div>
+                </div>
               </div>
             </div>
-            <div class="section-card-action summary-file-grid" aria-label="Compared files">
-              <div class="kinetic-panel summary-file-panel">
-                <p class="hud-label">File A</p>
-                <p class="kinetic-muted"><span class="kinetic-copy">${data.summary.total_rows_a}</span> rows</p>
-                <p class="kinetic-muted file-name" title="${fileAName}">${fileAName}</p>
-              </div>
-              <div class="kinetic-panel summary-file-panel">
-                <p class="hud-label">File B</p>
-                <p class="kinetic-muted"><span class="kinetic-copy">${data.summary.total_rows_b}</span> rows</p>
-                <p class="kinetic-muted file-name" title="${fileBName}">${fileBName}</p>
-              </div>
-            </div>
-          </div>
-          <div class="section-card-body summary-main">
-            <div class="kinetic-panel summary-match-rate">
-              <div class="summary-match-rate-head">
+            <div class="section-card-body mt-5">
+              <div class="summary-main space-y-6">
+                <div class="surface-panel summary-match-rate p-5">
+                  <div class="summary-match-rate-head flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+                    <div>
+                      <p class="hud-label">Match rate</p>
+                      <p class="app-text mt-0.5 text-sm font-medium">Match rate of comparable rows</p>
+                    </div>
+                    <div class="summary-match-rate-value flex items-baseline gap-2">
+                      <span class="display-title app-text text-4xl">${matchPercent}%</span>
+                      <span class="app-muted text-xs">${data.summary.matches} of ${comparableTotal} rows</span>
+                    </div>
+                  </div>
+                  <div class="app-frame summary-progress mt-4 h-3 w-full overflow-hidden">
+                    <div class="app-progress-fill h-full transition-all duration-500" style="width: ${matchPercent}%;"></div>
+                  </div>
+                </div>
+
                 <div>
-                  <p class="hud-label">Match rate</p>
-                  <p class="kinetic-copy" style="margin-top: 4px; font-size: 14px; font-weight: 500;">Match rate of comparable rows</p>
+                  <div class="mb-3 flex items-baseline justify-between gap-3">
+                    <div>
+                      <p class="hud-label">Outcome breakdown</p>
+                      <p class="app-muted mt-0.5 text-sm">How each comparable row was classified.</p>
+                    </div>
+                  </div>
+                  <div class="summary-stat-grid grid grid-cols-2 gap-4 md:grid-cols-4">${renderSummaryStats(comparableStats)}</div>
                 </div>
-                <div class="summary-match-rate-value">
-                  <span class="display-title kinetic-copy">${matchPercent}%</span>
-                  <span class="kinetic-muted" style="font-size: 12px;">${data.summary.matches} of ${comparableTotal} rows</span>
+
+                ${renderSummaryBanners(infoBanners)}
+              </div>
+            </div>
+          </section>
+
+          <section class="card section-card p-5 overflow-hidden">
+            <div class="section-card-header flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div class="section-card-heading flex items-start gap-3">
+                <div class="section-card-icon mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center border font-mono text-sm uppercase tracking-[0.18em] tone-accent-strong">${renderIcon('funnel', 'h-5 w-5')}</div>
+                <div class="section-card-copy">
+                  <p class="hud-label text-app-accent">Results filter</p>
+                  <h3 class="mt-1 text-sm font-semibold uppercase tracking-[0.14em] text-app-text">Focus on the rows you care about</h3>
+                  <p class="mt-1 text-sm leading-6 text-app-muted">Switch between result buckets or export the full comparison as HTML or CSV.</p>
                 </div>
               </div>
-              <div class="kinetic-frame summary-progress">
-                <div class="kinetic-progress-fill" style="width: ${matchPercent}%;"></div>
+            </div>
+            <div class="section-card-body mt-5">
+              <div id="filter-row" class="filter-row flex flex-wrap gap-2" role="group" aria-label="Result buckets"></div>
+            </div>
+          </section>
+
+          <section class="card section-card p-5 overflow-hidden">
+            <div class="section-card-header flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div class="section-card-heading flex items-start gap-3">
+                <div class="section-card-icon mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center border font-mono text-sm uppercase tracking-[0.18em] tone-accent-strong">${renderIcon('stack', 'h-5 w-5')}</div>
+                <div class="section-card-copy">
+                  <p class="hud-label text-app-accent">Detailed results</p>
+                  <h3 class="mt-1 text-sm font-semibold uppercase tracking-[0.14em] text-app-text">Comparison results</h3>
+                  <p id="results-count" class="mt-1 text-sm leading-6 text-app-muted"></p>
+                </div>
+              </div>
+              <div class="section-card-action shrink-0">
+                <label class="search-wrap relative block w-full sm:max-w-xs" for="results-search">
+                  <span class="sr-only">Search result values</span>
+                  ${renderIcon('search', 'search-icon app-muted pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2')}
+                  <input id="results-search" class="input pl-9 pr-3 text-sm" type="search" placeholder="Search keys or values" aria-label="Search keys or values" />
+                </label>
               </div>
             </div>
 
-            <div>
-              <div style="margin-bottom: 12px;">
-                <p class="hud-label">Outcome breakdown</p>
-                <p class="kinetic-muted" style="margin-top: 4px; font-size: 14px;">How each comparable row was classified.</p>
-              </div>
-              <div class="summary-stat-grid">${renderSummaryStats(comparableStats)}</div>
-            </div>
+            <div class="section-card-body mt-5">
+              <div>
+                <div id="table-empty-state" class="p-12 text-center" hidden>
+                  <div id="table-empty-glyph" class="empty-state-icon app-muted"></div>
+                  <p id="table-empty-copy" class="app-muted"></p>
+                </div>
 
-            ${renderSummaryBanners(infoBanners)}
-          </div>
-        </section>
+                <div class="table-wrap overflow-x-auto">
+                  <table id="results-table" class="results-table w-full">
+                    <thead class="app-surface-subtle border-b border-app-border">
+                      <tr>
+                        <th class="table-head w-40 min-w-[11rem] px-4 py-3 text-left" aria-sort="none"><button type="button" class="sort-button group inline-flex items-center text-left transition-colors app-muted hover:text-app-text" data-sort-column="type">Type <span class="sort-glyph ml-1 flex flex-col items-center" aria-hidden="true"><span class="block leading-none text-[8px]" data-sort-dir="asc">▲</span><span class="block leading-none text-[8px]" data-sort-dir="desc">▼</span></span></button></th>
+                        <th class="table-head px-4 py-3 text-left" aria-sort="none"><button type="button" class="sort-button group inline-flex items-center text-left transition-colors app-muted hover:text-app-text" data-sort-column="key">Key <span class="sort-glyph ml-1 flex flex-col items-center" aria-hidden="true"><span class="block leading-none text-[8px]" data-sort-dir="asc">▲</span><span class="block leading-none text-[8px]" data-sort-dir="desc">▼</span></span></button></th>
+                        <th class="table-head px-4 py-3 text-left" aria-sort="none"><button type="button" class="sort-button group inline-flex items-center text-left transition-colors app-muted hover:text-app-text" data-sort-column="fileA">File A Values <span class="sort-glyph ml-1 flex flex-col items-center" aria-hidden="true"><span class="block leading-none text-[8px]" data-sort-dir="asc">▲</span><span class="block leading-none text-[8px]" data-sort-dir="desc">▼</span></span></button></th>
+                        <th class="table-head px-4 py-3 text-left" aria-sort="none"><button type="button" class="sort-button group inline-flex items-center text-left transition-colors app-muted hover:text-app-text" data-sort-column="fileB">File B Values <span class="sort-glyph ml-1 flex flex-col items-center" aria-hidden="true"><span class="block leading-none text-[8px]" data-sort-dir="asc">▲</span><span class="block leading-none text-[8px]" data-sort-dir="desc">▼</span></span></button></th>
+                        <th class="table-head w-32 px-4 py-3 text-left" aria-sort="none"><button type="button" class="sort-button group inline-flex items-center text-left transition-colors app-muted hover:text-app-text" data-sort-column="details">Details <span class="sort-glyph ml-1 flex flex-col items-center" aria-hidden="true"><span class="block leading-none text-[8px]" data-sort-dir="asc">▲</span><span class="block leading-none text-[8px]" data-sort-dir="desc">▼</span></span></button></th>
+                      </tr>
+                    </thead>
+                    <tbody id="results-body" class="divide-y divide-app-border"></tbody>
+                  </table>
+                </div>
 
-        <section class="card">
-          <div class="section-card-header">
-            <div class="section-card-heading">
-              <div class="section-card-icon kinetic-tone-accent-strong">FLT</div>
-              <div class="section-card-copy">
-                <p class="hud-label" style="color: var(--color-kinetic-accent);">Results filter</p>
-                <h2><span class="kinetic-copy">Focus on the rows you care about</span></h2>
-                <p class="kinetic-muted">Switch between result buckets while reviewing the exported comparison.</p>
-              </div>
-            </div>
-          </div>
-          <div class="section-card-body">
-            <div id="filter-row" class="filter-row" role="group" aria-label="Result buckets"></div>
-          </div>
-        </section>
-
-        <section class="card table-card">
-          <div class="section-card-header">
-            <div class="section-card-heading">
-              <div class="section-card-icon kinetic-tone-accent-strong">RES</div>
-              <div class="section-card-copy">
-                <p class="hud-label" style="color: var(--color-kinetic-accent);">Detailed results</p>
-                <h2><span class="kinetic-copy">Comparison results</span></h2>
-                <p id="results-count" class="kinetic-muted"></p>
+                <div class="status-strip">
+                  <span id="generated-at"></span>
+                </div>
               </div>
             </div>
-            <div class="section-card-action">
-              <label class="search-wrap" for="results-search">
-                <span style="position:absolute;left:-9999px;">Search result values</span>
-                <input id="results-search" class="input" type="search" placeholder="Search keys or values" aria-label="Search keys or values" />
-              </label>
-            </div>
-          </div>
-
-          <div class="section-card-body" style="gap: 0; margin-top: 16px;">
-            <div id="table-empty-state" class="empty-state" hidden>
-              <div id="table-empty-glyph" class="kinetic-empty-glyph kinetic-muted"></div>
-              <p id="table-empty-copy" class="kinetic-muted"></p>
-            </div>
-
-            <div class="table-wrap">
-              <table id="results-table" class="results-table">
-                <thead>
-                  <tr>
-                    <th class="kinetic-table-head" aria-sort="none"><button type="button" class="sort-button" data-sort-column="type">Type <span class="sort-glyph" aria-hidden="true"><span data-sort-dir="asc">▲</span><span data-sort-dir="desc">▼</span></span></button></th>
-                    <th class="kinetic-table-head" aria-sort="none"><button type="button" class="sort-button" data-sort-column="key">Key <span class="sort-glyph" aria-hidden="true"><span data-sort-dir="asc">▲</span><span data-sort-dir="desc">▼</span></span></button></th>
-                    <th class="kinetic-table-head" aria-sort="none"><button type="button" class="sort-button" data-sort-column="fileA">File A Values <span class="sort-glyph" aria-hidden="true"><span data-sort-dir="asc">▲</span><span data-sort-dir="desc">▼</span></span></button></th>
-                    <th class="kinetic-table-head" aria-sort="none"><button type="button" class="sort-button" data-sort-column="fileB">File B Values <span class="sort-glyph" aria-hidden="true"><span data-sort-dir="asc">▲</span><span data-sort-dir="desc">▼</span></span></button></th>
-                    <th class="kinetic-table-head" aria-sort="none"><button type="button" class="sort-button" data-sort-column="details">Details <span class="sort-glyph" aria-hidden="true"><span data-sort-dir="asc">▲</span><span data-sort-dir="desc">▼</span></span></button></th>
-                  </tr>
-                </thead>
-                <tbody id="results-body"></tbody>
-              </table>
-            </div>
-
-            <div class="status-strip">
-              <span id="generated-at"></span>
-            </div>
-          </div>
-        </section>
-      </div>
+          </section>
+        </div>
+      </main>
     </div>
 
     <script id="csv-align-export-data" type="application/json">${serializedData}</script>
@@ -218,11 +259,11 @@ ${RESULTS_EXPORT_STYLES}
 
       function escapeHtml(value) {
         return String(value)
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&#39;');
+          .replace(/&/g, '&' + 'amp;')
+          .replace(/</g, '&' + 'lt;')
+          .replace(/>/g, '&' + 'gt;')
+          .replace(/"/g, '&' + 'quot;')
+          .replace(/'/g, '&' + '#39;');
       }
 
       function compareValues(left, right) {
@@ -238,47 +279,49 @@ ${RESULTS_EXPORT_STYLES}
 
       function formatValueStack(rows) {
         if (rows.length === 0) {
-          return '<span class="kinetic-muted" style="font-style: italic;">-</span>';
+          return '<span class="app-muted italic">—</span>';
         }
 
         function formatCollapsedRow(row) {
           if (row.length === 0) {
-            return '-';
+            return '—';
           }
 
-          return row.map((cell) => cell.value === '' ? '-' : String(cell.value)).join(', ');
+          return row.map((cell) => cell.value === '' ? '—' : String(cell.value)).join(', ');
         }
 
-        return '<div class="value-stack">' + rows.map((row) => (
-          '<div class="value-row">' + (row.length > 0
-            ? '<span class="kinetic-copy kinetic-value-text" title="' + escapeHtml(formatCollapsedRow(row)) + '">' + escapeHtml(formatCollapsedRow(row)) + '</span>'
-            : '-') + '</div>'
+        return '<div class="result-value-stack value-stack app-text">' + rows.map((row) => (
+          '<div class="result-value-row value-row text-[13px]">' + (row.length > 0
+            ? '<span class="result-value-text" title="' + escapeHtml(formatCollapsedRow(row)) + '">' + escapeHtml(formatCollapsedRow(row)) + '</span>'
+            : '—') + '</div>'
         )).join('') + '</div>';
       }
 
       function formatDetailValue(value, toneClass) {
-        return '<span class="diff-value-box kinetic-copy ' + toneClass + '" title="' + escapeHtml(value) + '">' + (value === '' ? '<span class="diff-empty">-</span>' : escapeHtml(value)) + '</span>';
+        return '<span class="diff-value-box app-text ' + toneClass + ' block truncate border px-2.5 py-1.5 font-mono text-sm" title="' + escapeHtml(value) + '">' + (value === '' ? '<span class="diff-empty">—</span>' : escapeHtml(value)) + '</span>';
       }
 
       function renderDetailField(field, isMatch) {
         const hasColumnA = Boolean(field.columnA);
         const hasColumnB = Boolean(field.columnB);
         const sameColumn = field.columnA === field.columnB;
-        const fileALabelClass = isMatch ? 'file-b' : 'file-a';
-        const fileAValueTone = isMatch ? 'kinetic-surface-success-muted' : 'kinetic-surface-danger';
+        const fileALabelClass = isMatch ? 'file-b text-app-success' : 'file-a text-app-danger';
+        const fileAValueTone = isMatch ? 'app-surface-success-muted' : 'app-surface-danger';
 
         return '<div class="detail-field">'
           + ((hasColumnA || hasColumnB)
-            ? '<header class="diff-card-header kinetic-muted">'
-              + (hasColumnA ? '<span class="table-chip kinetic-copy">' + escapeHtml(field.columnA) + '</span>' : '')
-              + (!sameColumn && hasColumnA && hasColumnB ? '<span class="kinetic-glyph-box diff-arrow-box detail-header-arrow kinetic-muted">-&gt;</span>' : '')
-              + (!sameColumn && hasColumnB ? '<span class="table-chip kinetic-copy">' + escapeHtml(field.columnB) + '</span>' : '')
-              + '</header>'
+            ? '<div class="diff-card-header app-muted mb-2.5 flex flex-wrap items-start gap-2 text-xs font-medium">'
+              + (hasColumnA ? '<span class="table-chip app-text max-w-full break-all">' + escapeHtml(field.columnA) + '</span>' : '')
+              + (!sameColumn && hasColumnA && hasColumnB ? '<span class="icon-frame diff-arrow-box detail-header-arrow app-muted h-8 w-8 shrink-0 text-[11px]">-></span>' : '')
+              + (!sameColumn && hasColumnB ? '<span class="table-chip app-text max-w-full break-all">' + escapeHtml(field.columnB) + '</span>' : '')
+              + '</div>'
             : '')
-          + '<div class="diff-values">'
-          + '<div class="diff-value-column"><span class="diff-value-label ' + fileALabelClass + '">File A</span>' + formatDetailValue(field.valueA, fileAValueTone) + '</div>'
-          + '<div class="kinetic-glyph-box diff-arrow-box detail-value-arrow kinetic-muted">-&gt;</div>'
-          + '<div class="diff-value-column"><span class="diff-value-label file-b">File B</span>' + formatDetailValue(field.valueB, 'kinetic-surface-success-muted') + '</div>'
+          + '<div class="diff-values grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-x-2 gap-y-1">'
+          + '<p class="diff-value-label ' + fileALabelClass + ' meta-label text-[10px]">File A</p>'
+          + '<div class="diff-value-column min-w-0 row-start-2">' + formatDetailValue(field.valueA, fileAValueTone) + '</div>'
+          + '<p class="diff-value-label file-b meta-label col-start-3 text-[10px] text-app-success">File B</p>'
+          + '<div class="icon-frame diff-arrow-box detail-value-arrow app-muted row-start-2 self-center h-7 w-7 shrink-0 text-[11px]">-></div>'
+          + '<div class="diff-value-column min-w-0 col-start-3 row-start-2">' + formatDetailValue(field.valueB, 'app-surface-success-muted') + '</div>'
           + '</div>'
           + '</div>';
       }
@@ -288,12 +331,12 @@ ${RESULTS_EXPORT_STYLES}
           return '';
         }
 
-        const detailGridClass = row.expandableDetail.variant === 'differences' ? 'diff-grid' : 'detail-stack';
+        const detailGridClass = row.expandableDetail.variant === 'differences' ? 'diff-grid lg:grid-cols-2' : 'detail-stack';
 
-        return '<tr class="details-row"><td colspan="5"><div class="kinetic-panel diff-panel"><div class="diff-panel-header"><span class="diff-panel-icon">+</span><span class="diff-panel-title kinetic-copy">' + escapeHtml(row.expandableDetail.title) + '</span><span class="diff-panel-count">' + escapeHtml(row.expandableDetail.summary) + '</span></div><div class="' + detailGridClass + '">' + row.expandableDetail.panels.map((panel) => (
-          '<article class="kinetic-panel diff-card">'
-            + (panel.label ? '<p class="detail-panel-label kinetic-mono-label kinetic-copy">' + escapeHtml(panel.label) + '</p>' : '')
-            + '<div class="detail-card-fields">' + panel.fields.map((field) => renderDetailField(field, row.resultType === 'match')).join('') + '</div>'
+        return '<tr class="details-row app-surface-subtle"><td colspan="5" class="px-4 py-4"><div class="surface-panel diff-panel p-4"><div class="diff-panel-header mb-3 flex items-center gap-2"><span class="diff-panel-icon app-surface-accent flex h-6 w-6 items-center justify-center border font-mono text-[11px] uppercase">+</span><p class="diff-panel-title meta-label app-text text-xs font-semibold">' + escapeHtml(row.expandableDetail.title) + '</p><span class="diff-panel-count app-muted ml-auto text-xs">' + escapeHtml(row.expandableDetail.summary) + '</span></div><div class="grid gap-3 sm:grid-cols-1 ' + detailGridClass + '">' + row.expandableDetail.panels.map((panel) => (
+          '<article class="surface-panel diff-card p-3.5">'
+            + (panel.label ? '<p class="detail-panel-label meta-label app-text mb-3 text-xs font-semibold">' + escapeHtml(panel.label) + '</p>' : '')
+            + '<div class="detail-card-fields grid gap-3">' + panel.fields.map((field) => renderDetailField(field, row.resultType === 'match')).join('') + '</div>'
             + '</article>'
         )).join('') + '</div></div></td></tr>';
       }
@@ -319,6 +362,8 @@ ${RESULTS_EXPORT_STYLES}
           const column = button.getAttribute('data-sort-column');
           const isActive = state.sortColumn === column;
           button.classList.toggle('active', isActive);
+          button.classList.toggle('app-text', isActive);
+          button.classList.toggle('app-muted', !isActive);
 
           const th = button.closest('th');
           if (th) {
@@ -333,9 +378,10 @@ ${RESULTS_EXPORT_STYLES}
       }
 
       function renderFilters() {
-        filterRow.innerHTML = data.filterOptions.map((option) => (
-          '<button type="button" class="filter-button' + (state.filter === option.value ? ' active' : '') + '" data-filter="' + option.value + '" aria-pressed="' + (state.filter === option.value ? 'true' : 'false') + '"><span class="filter-dot tone-' + escapeHtml(option.tone || 'neutral') + '"></span>' + escapeHtml(option.label) + '<span class="filter-count">' + option.count + '</span></button>'
-        )).join('');
+        filterRow.innerHTML = data.filterOptions.map((option) => {
+          const active = state.filter === option.value;
+          return '<button type="button" class="filter-button inline-flex items-center gap-2 px-3.5 py-1.5 text-sm font-medium transition-colors ' + (active ? 'active filter-chip-active' : 'filter-chip') + '" data-filter="' + option.value + '" aria-pressed="' + (active ? 'true' : 'false') + '"><span class="filter-dot h-2 w-2 border tone-' + escapeHtml(option.tone || 'neutral') + '" aria-hidden="true"></span>' + escapeHtml(option.label) + '<span class="filter-count px-2 py-0.5 text-xs font-semibold tabular-nums ' + (active ? 'filter-count-active' : 'filter-count') + '">' + option.count + '</span></button>';
+        }).join('');
       }
 
       function renderTable() {
@@ -366,20 +412,20 @@ ${RESULTS_EXPORT_STYLES}
         resultsBody.innerHTML = visibleRows.map((row) => {
           const isExpanded = state.expandedRow === row.id;
           const detailCell = row.expandableDetail
-            ? '<div style="display:grid;gap:8px;">'
-              + '<button type="button" class="diff-toggle" data-expand-row="' + row.id + '" aria-expanded="' + (isExpanded ? 'true' : 'false') + '">' + escapeHtml(row.expandableDetail.toggleLabel) + '<span class="diff-toggle-glyph">&gt;</span></button>'
-              + (row.description ? '<span class="result-description">' + escapeHtml(row.description) + '</span>' : '')
+            ? '<div class="grid gap-2">'
+              + '<button type="button" class="diff-toggle inline-flex w-fit items-center gap-1.5 border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] transition-colors ' + (isExpanded ? 'border-app-accent app-surface-accent-strong text-app-text' : 'app-surface-subtle border-app-border text-app-muted hover:border-app-border-strong hover:text-app-text') + '" data-expand-row="' + row.id + '" aria-expanded="' + (isExpanded ? 'true' : 'false') + '">' + escapeHtml(row.expandableDetail.toggleLabel) + '<span class="diff-toggle-glyph">></span></button>'
+              + (row.description ? '<span class="app-text text-sm">' + escapeHtml(row.description) + '</span>' : '')
               + '</div>'
-            : '<span class="result-description">' + escapeHtml(row.description || '-') + '</span>';
+            : '<span class="text-sm ' + (row.description ? 'app-text' : 'app-muted') + '">' + escapeHtml(row.description || '—') + '</span>';
 
-          return '<tr class="' + (isExpanded ? 'kinetic-surface-accent-strong' : 'kinetic-surface-hover') + '" data-result-tone="' + escapeHtml(row.badgeTone) + '">'
-            + '<td><span class="badge tone-' + row.badgeTone + '"><span class="badge-dot"></span>' + escapeHtml(row.badge.label) + '</span></td>'
-            + '<td><span class="chip kinetic-copy" title="' + escapeHtml(row.keyText) + '">' + escapeHtml(row.keyText) + '</span></td>'
-             + '<td>' + formatValueStack(row.fileAValues) + '</td>'
-             + '<td>' + formatValueStack(row.fileBValues) + '</td>'
-             + '<td>' + detailCell + '</td>'
-             + '</tr>'
-             + renderExpandedDetail(row);
+          return '<tr class="transition-colors ' + (isExpanded ? 'app-surface-accent-strong' : 'bg-transparent app-surface-hover') + '" data-result-tone="' + escapeHtml(row.badgeTone) + '">'
+            + '<td class="px-4 py-3.5 align-top"><span class="badge tone-' + row.badgeTone + ' inline-flex w-fit items-center gap-1.5 whitespace-nowrap border px-2.5 py-1 text-xs font-medium uppercase tracking-[0.12em]"><span class="badge-dot h-1.5 w-1.5 shrink-0" aria-hidden="true"></span>' + escapeHtml(row.badge.label) + '</span></td>'
+            + '<td class="px-4 py-3.5 align-top"><span class="chip app-text app-surface-subtle inline-block max-w-full truncate border border-app-border px-2.5 py-1 font-mono text-sm font-semibold" title="' + escapeHtml(row.keyText) + '">' + escapeHtml(row.keyText) + '</span></td>'
+            + '<td class="px-4 py-3.5 align-top">' + formatValueStack(row.fileAValues) + '</td>'
+            + '<td class="px-4 py-3.5 align-top">' + formatValueStack(row.fileBValues) + '</td>'
+            + '<td class="px-4 py-3.5 align-top">' + detailCell + '</td>'
+            + '</tr>'
+            + renderExpandedDetail(row);
         }).join('');
 
         updateSortButtons();

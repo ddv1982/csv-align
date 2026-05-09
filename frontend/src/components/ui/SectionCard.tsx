@@ -12,16 +12,16 @@ interface ToneClasses {
 
 const TONE_CLASSES: Record<SectionCardTone, ToneClasses> = {
   primary: {
-    eyebrow: 'text-[color:var(--color-kinetic-accent)]',
-    iconWrap: 'kinetic-tone-accent-strong',
-    title: 'text-[color:var(--color-kinetic-copy)]',
-    description: 'text-[color:var(--color-kinetic-muted)]',
+    eyebrow: 'text-app-accent',
+    iconWrap: 'tone-accent-strong',
+    title: 'text-app-text',
+    description: 'text-app-muted',
   },
   info: {
-    eyebrow: 'text-[color:var(--color-kinetic-accent-2)]',
-    iconWrap: 'kinetic-tone-highlight-strong',
-    title: 'text-[color:var(--color-kinetic-copy)]',
-    description: 'text-[color:var(--color-kinetic-muted)]',
+    eyebrow: 'text-app-highlight',
+    iconWrap: 'tone-highlight-strong',
+    title: 'text-app-text',
+    description: 'text-app-muted',
   },
 };
 

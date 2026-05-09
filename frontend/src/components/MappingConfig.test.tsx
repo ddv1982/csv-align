@@ -177,7 +177,7 @@ test('copies the current pair order in the same displayed text format and shows 
     expect(writeText).toHaveBeenCalledWith('1 id → value\n2 name → id');
     const copiedButton = within(pairOrderBox).getByRole('button', { name: 'Copied current pair order' });
 
-    expect(copiedButton).toHaveClass('text-[color:var(--color-kinetic-success)]');
+    expect(copiedButton).toHaveClass('text-app-success');
     expect(copiedButton).toHaveAttribute('title', 'Copied current pair order');
     expect(copiedButton.querySelector('svg')).not.toBeNull();
     expect(within(copiedButton).queryByText('OK')).not.toBeInTheDocument();

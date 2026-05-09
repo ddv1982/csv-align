@@ -2,9 +2,9 @@ import type { MappingDto, ResultFilter, ResultResponse, SummaryResponse } from '
 import { RESULT_FILTER_OPTIONS, buildResultRows, getResultFilterCounts, type ResultFilterTone } from './presentation';
 import { renderResultsHtmlDocument } from './htmlExportTemplate';
 
-type HtmlExportTheme = 'cyan' | 'lime' | 'magenta' | 'amber';
+type HtmlExportTheme = 'dark';
 
-const HTML_EXPORT_THEMES: readonly HtmlExportTheme[] = ['cyan', 'lime', 'magenta', 'amber'];
+const HTML_EXPORT_THEME: HtmlExportTheme = 'dark';
 
 type HtmlExportDocument = {
   generatedAt: string;
@@ -27,8 +27,8 @@ function escapeJsonForHtml(value: unknown): string {
     .replace(/&/g, '\\u0026');
 }
 
-export function normalizeHtmlExportTheme(rawTheme: string | undefined | null): HtmlExportTheme {
-  return HTML_EXPORT_THEMES.includes(rawTheme as HtmlExportTheme) ? (rawTheme as HtmlExportTheme) : 'cyan';
+export function normalizeHtmlExportTheme(_rawTheme: string | undefined | null): HtmlExportTheme {
+  return HTML_EXPORT_THEME;
 }
 
 function buildHtmlExportDocument(params: {

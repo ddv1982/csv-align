@@ -69,16 +69,16 @@ export function PairPreview({
   const hasMismatchedCounts = comparisonColumnsA.length !== comparisonColumnsB.length;
 
   return (
-    <div className="kinetic-panel mt-6 p-4">
+    <div className="surface-panel mt-6 p-4">
       <div className="mb-4">
         <p className="hud-label">Preview</p>
-        <h4 className="mt-0.5 text-sm font-semibold uppercase tracking-[0.14em] text-[color:var(--color-kinetic-copy)]">Review auto-pair help and pair order</h4>
+        <h4 className="mt-0.5 text-sm font-semibold uppercase tracking-[0.14em] text-app-text">Review auto-pair help and pair order</h4>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section aria-label="Auto-pair helper" className="kinetic-panel p-4">
+        <section aria-label="Auto-pair helper" className="surface-panel p-4">
           <p className="hud-label">Auto-pair</p>
-          <p className="mt-1 text-sm text-[color:var(--color-kinetic-muted)]">{autoPairMessage}</p>
+          <p className="mt-1 text-sm text-app-muted">{autoPairMessage}</p>
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <button
               className="btn btn-ghost px-2 py-1 text-xs"
@@ -99,11 +99,11 @@ export function PairPreview({
           </div>
         </section>
 
-        <section aria-label="Pair order" className="kinetic-panel p-4">
+        <section aria-label="Pair order" className="surface-panel p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="hud-label">Pair order</p>
-              <p className="mt-1 text-sm text-[color:var(--color-kinetic-muted)]">Save, load, or copy the order you want to review.</p>
+              <p className="mt-1 text-sm text-app-muted">Save, load, or copy the order you want to review.</p>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
               <button
@@ -119,7 +119,7 @@ export function PairPreview({
               </button>
               <button
                 aria-label={buttonLabel}
-                className={`btn btn-ghost px-2 py-1 text-xs ${copySucceeded ? 'text-[color:var(--color-kinetic-success)]' : ''}`}
+                className={`btn btn-ghost px-2 py-1 text-xs ${copySucceeded ? 'text-app-success' : ''}`}
                 disabled={!hasPairOrderToSave}
                 onClick={handleCopy}
                 title={buttonLabel}
@@ -135,9 +135,9 @@ export function PairPreview({
             </div>
           </div>
 
-          <div className="mt-4 border-t border-[color:var(--color-kinetic-line)] pt-4">
+          <div className="mt-4 border-t border-app-border pt-4">
             {pairs.length > 0 ? (
-              <div className="space-y-1 font-mono text-sm text-[color:var(--color-kinetic-copy)]">
+              <div className="space-y-1 font-mono text-sm text-app-text">
                 {pairs.map((pair, index) => (
                   <div key={`${pair.columnA}-${pair.columnB}-${index}`} className="truncate" title={pair.displayText}>
                     {pair.displayText}
@@ -145,10 +145,10 @@ export function PairPreview({
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-[color:var(--color-kinetic-muted)]">No pairs selected yet.</p>
+              <p className="text-sm text-app-muted">No pairs selected yet.</p>
             )}
             {hasMismatchedCounts && (
-              <p className="mt-3 text-sm text-[color:var(--color-kinetic-warning)]">
+              <p className="mt-3 text-sm text-app-warning">
                 Select the same number of comparison columns in both files to run the comparison.
               </p>
             )}

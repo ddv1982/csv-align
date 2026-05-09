@@ -19,7 +19,7 @@ function ColumnChipGroup({ label, columns, selectedColumns, onToggle }: {
 
   return (
     <div className="space-y-2">
-      {label && <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--color-kinetic-muted)]">{label}</p>}
+      {label && <p className="text-xs font-semibold uppercase tracking-[0.14em] text-app-muted">{label}</p>}
       <div className="flex flex-wrap gap-2">
         {columns.map((column) => {
           const isSelected = selectedColumns.includes(column);
@@ -31,8 +31,8 @@ function ColumnChipGroup({ label, columns, selectedColumns, onToggle }: {
               onClick={() => onToggle(column)}
               className={`border px-3 py-1.5 text-sm font-medium transition-colors ${
                  isSelected
-                  ? 'kinetic-filter-chip-active'
-                  : 'kinetic-filter-chip'
+                  ? 'filter-chip-active'
+                  : 'filter-chip'
                 }`}
             >
               {column}
@@ -68,7 +68,7 @@ export function ColumnChipSelector({ title, columns, virtualColumns = [], select
         )}
       </div>
       {emptyHint && selectedColumns.length === 0 && (
-        <p className="mt-2 text-xs text-[color:var(--color-kinetic-muted)]">{emptyHint}</p>
+        <p className="mt-2 text-xs text-app-muted">{emptyHint}</p>
       )}
     </div>
   );

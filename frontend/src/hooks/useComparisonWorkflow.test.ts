@@ -652,8 +652,9 @@ test('exports a standalone html review file from the current results state', asy
 
   expect(exportResultsHtmlMock).toHaveBeenCalledWith(expect.stringContaining('<!DOCTYPE html>'));
   expect(exportResultsHtmlMock).toHaveBeenCalledWith(expect.stringContaining('left.csv vs right.csv comparison results'));
-  expect(exportResultsHtmlMock).toHaveBeenCalledWith(expect.stringContaining('<html lang="en" data-theme="amber">'));
-  expect(exportResultsHtmlMock).toHaveBeenCalledWith(expect.stringContaining('"theme":"amber"'));
+  expect(exportResultsHtmlMock).toHaveBeenCalledWith(expect.stringContaining('<html lang="en" class="dark" data-theme="dark">'));
+  expect(exportResultsHtmlMock).toHaveBeenCalledWith(expect.stringContaining('"theme":"dark"'));
+  expect(exportResultsHtmlMock).not.toHaveBeenCalledWith(expect.stringContaining('"theme":"amber"'));
   expect(exportResultsHtmlMock).toHaveBeenCalledWith(expect.stringContaining('"initialFilter":"duplicate"'));
   expect(downloadBlobMock).toHaveBeenCalledWith(expect.any(Blob), 'comparison-results.html');
   expect(result.current.state.loading).toBe(false);

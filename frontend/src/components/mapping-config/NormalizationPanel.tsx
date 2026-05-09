@@ -4,7 +4,7 @@ import { PencilSquareIcon } from '../icons';
 import { SectionCard } from '../ui/SectionCard';
 
 const MAX_DECIMAL_ROUNDING_PLACES = 15;
-const CHECKBOX_CLASS = 'h-4 w-4 border-[color:var(--color-kinetic-line)] bg-transparent text-[color:var(--color-kinetic-accent)]';
+const CHECKBOX_CLASS = 'h-4 w-4 border-app-border bg-transparent text-app-accent';
 
 interface NormalizationPanelProps {
   normalization: ComparisonNormalizationConfig;
@@ -21,9 +21,9 @@ interface RuleGroupProps {
 
 function RuleGroup({ title, description, children }: RuleGroupProps) {
   return (
-    <fieldset className="rounded-2xl border border-[color:var(--color-kinetic-line)]/70 p-4">
-      <legend className="px-1 text-sm font-semibold text-[color:var(--color-kinetic-copy)]">{title}</legend>
-      {description ? <p className="mt-1 text-sm text-[color:var(--color-kinetic-muted)]">{description}</p> : null}
+    <fieldset className="rounded-2xl border border-app-border/70 p-4">
+      <legend className="px-1 text-sm font-semibold text-app-text">{title}</legend>
+      {description ? <p className="mt-1 text-sm text-app-muted">{description}</p> : null}
       <div className="mt-3 space-y-3">{children}</div>
     </fieldset>
   );
@@ -38,7 +38,7 @@ interface CheckboxRuleProps {
 
 function CheckboxRule({ checked, onChange, label, helpText }: CheckboxRuleProps) {
   return (
-    <label className="flex items-start gap-3 text-sm text-[color:var(--color-kinetic-copy)]">
+    <label className="flex items-start gap-3 text-sm text-app-text">
       <input
         type="checkbox"
         aria-label={label}
@@ -48,7 +48,7 @@ function CheckboxRule({ checked, onChange, label, helpText }: CheckboxRuleProps)
       />
       <span>
         <span className="block">{label}</span>
-        {helpText ? <span className="mt-1 block text-[color:var(--color-kinetic-muted)]">{helpText}</span> : null}
+        {helpText ? <span className="mt-1 block text-app-muted">{helpText}</span> : null}
       </span>
     </label>
   );
@@ -89,8 +89,8 @@ export function NormalizationPanel({
           />
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-[color:var(--color-kinetic-copy)]">Also treat these values as missing</label>
-            <p className="text-sm text-[color:var(--color-kinetic-muted)]">Enter exact values such as `null`, `n/a`, or `unknown`, separated by commas.</p>
+            <label className="block text-sm font-medium text-app-text">Also treat these values as missing</label>
+            <p className="text-sm text-app-muted">Enter exact values such as `null`, `n/a`, or `unknown`, separated by commas.</p>
             <input
               type="text"
               value={normalization.null_tokens.join(', ')}
@@ -141,10 +141,10 @@ export function NormalizationPanel({
               onChange={(checked) => onDecimalRoundingChange({ enabled: checked })}
               label="Round numeric values to a chosen number of decimal places before comparing"
             />
-            <p className="text-sm text-[color:var(--color-kinetic-muted)]">
+            <p className="text-sm text-app-muted">
               Choose how many decimal places to keep. Use 0 for whole numbers. Rounded values will also appear in results and exports.
             </p>
-            <label className="block text-sm font-medium text-[color:var(--color-kinetic-copy)]" htmlFor="decimal-rounding-places">
+            <label className="block text-sm font-medium text-app-text" htmlFor="decimal-rounding-places">
               Decimal places
             </label>
             <input
@@ -175,16 +175,16 @@ export function NormalizationPanel({
             onChange={(checked) => onDateChange({ enabled: checked })}
             label="Match dates written in different formats"
           />
-          <p className="text-sm text-[color:var(--color-kinetic-muted)]">Leave this off unless the same dates appear in different formats across the two files.</p>
+          <p className="text-sm text-app-muted">Leave this off unless the same dates appear in different formats across the two files.</p>
 
-          <details className="group kinetic-panel px-4 py-3">
-            <summary className="cursor-pointer text-sm font-medium text-[color:var(--color-kinetic-copy)] marker:hidden">
-              <span aria-hidden="true" className="mr-2 inline-block text-[color:var(--color-kinetic-muted)] transition-transform group-open:rotate-90">▸</span>
+          <details className="group surface-panel px-4 py-3">
+            <summary className="cursor-pointer text-sm font-medium text-app-text marker:hidden">
+              <span aria-hidden="true" className="mr-2 inline-block text-app-muted transition-transform group-open:rotate-90">▸</span>
               Advanced date patterns
             </summary>
             <div className="mt-3 space-y-2">
-              <p className="text-sm text-[color:var(--color-kinetic-muted)]">Only change these if the default patterns miss dates in your files. Enter one format per line.</p>
-              <label className="block text-sm font-medium text-[color:var(--color-kinetic-copy)]">Date formats to try</label>
+              <p className="text-sm text-app-muted">Only change these if the default patterns miss dates in your files. Enter one format per line.</p>
+              <label className="block text-sm font-medium text-app-text">Date formats to try</label>
               <textarea
                 rows={5}
                 value={normalization.date_normalization.formats.join('\n')}

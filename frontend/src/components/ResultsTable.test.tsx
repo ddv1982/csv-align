@@ -71,17 +71,17 @@ test('shows clearer labels and explanations for one-sided and ignored rows', () 
   expect(screen.getByRole('table')).toHaveClass('results-table');
 });
 
-test('uses shared theme surface classes for table states instead of hardcoded dark overlays', () => {
+test('uses shared semantic classes for table states instead of hardcoded dark overlays', () => {
   render(<ResultsTable results={RESULTS} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
 
-  expect(screen.getByText('A-1')).toHaveClass('kinetic-surface-subtle');
+  expect(screen.getByText('A-1')).toHaveClass('chip');
 
   const diffToggle = screen.getByRole('button', { name: /1 diff/i });
-  expect(diffToggle).toHaveClass('kinetic-surface-subtle');
+  expect(diffToggle).toHaveClass('diff-toggle');
 
   fireEvent.click(diffToggle);
 
-  expect(screen.getByText('Value Differences').previousElementSibling).toHaveClass('kinetic-surface-accent');
+  expect(screen.getByText('Value Differences').previousElementSibling).toHaveClass('diff-panel-icon');
 });
 
 test('lets matching rows expand paired file values for inspection', () => {
@@ -100,7 +100,7 @@ test('lets matching rows expand paired file values for inspection', () => {
   expect(screen.getAllByText('display_name').length).toBeGreaterThan(0);
 });
 
-test('uses success styling on both sides for matched inspection rows', () => {
+test('uses reusable detail value boxes on both sides for matched inspection rows', () => {
   render(
     <ResultsTable
       results={[
@@ -122,15 +122,17 @@ test('uses success styling on both sides for matched inspection rows', () => {
   fireEvent.click(screen.getByRole('button', { name: /inspect/i }));
 
   const fileALabel = screen.getByText('File A');
-  const fileAValue = screen.getAllByTitle('Match Left').find((element) => element.classList.contains('kinetic-surface-success-muted'));
-  const fileBValue = screen.getAllByTitle('Match Right').find((element) => element.classList.contains('kinetic-surface-success-muted'));
+  const fileBLabel = screen.getByText('File B');
+  const fileAValue = screen.getAllByTitle('Match Left').find((element) => element.classList.contains('diff-value-box'));
+  const fileBValue = screen.getAllByTitle('Match Right').find((element) => element.classList.contains('diff-value-box'));
 
-  expect(fileALabel).toHaveClass('text-[color:var(--color-kinetic-success)]');
+  expect(fileALabel).toHaveClass('file-a');
+  expect(fileBLabel).toHaveClass('file-b');
   expect(fileAValue).toBeTruthy();
   expect(fileBValue).toBeTruthy();
 });
 
-test('keeps split danger and success styling for mismatched inspection rows', () => {
+test('keeps split file labels for mismatched inspection rows', () => {
   render(
     <ResultsTable
       results={[
@@ -152,10 +154,12 @@ test('keeps split danger and success styling for mismatched inspection rows', ()
   fireEvent.click(screen.getByRole('button', { name: /inspect/i }));
 
   const fileALabel = screen.getByText('File A');
-  const fileAValue = screen.getAllByTitle('Mismatch Left').find((element) => element.classList.contains('kinetic-surface-danger'));
-  const fileBValue = screen.getAllByTitle('Mismatch Right').find((element) => element.classList.contains('kinetic-surface-success-muted'));
+  const fileBLabel = screen.getByText('File B');
+  const fileAValue = screen.getAllByTitle('Mismatch Left').find((element) => element.classList.contains('diff-value-box'));
+  const fileBValue = screen.getAllByTitle('Mismatch Right').find((element) => element.classList.contains('diff-value-box'));
 
-  expect(fileALabel).toHaveClass('text-[color:var(--color-kinetic-danger)]');
+  expect(fileALabel).toHaveClass('file-a');
+  expect(fileBLabel).toHaveClass('file-b');
   expect(fileAValue).toBeTruthy();
   expect(fileBValue).toBeTruthy();
 });
@@ -190,9 +194,9 @@ test('wraps long collapsed result values instead of truncating them', () => {
   const collapsedFileA = within(row as HTMLElement).getByTitle(`${longFileA}, Bravo`);
   const collapsedFileB = within(row as HTMLElement).getByTitle(`${longFileB}, Delta`);
 
-  expect(collapsedFileA).toHaveClass('kinetic-value-text');
   expect(collapsedFileA).not.toHaveClass('truncate');
-  expect(collapsedFileB).toHaveClass('kinetic-value-text');
+  expect(collapsedFileA.closest('.value-row')).toBeTruthy();
+  expect(collapsedFileB.closest('.value-row')).toBeTruthy();
   expect(row).toHaveTextContent(`${longFileA}, Bravo`);
   expect(row).toHaveTextContent(`${longFileB}, Delta`);
 

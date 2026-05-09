@@ -36,7 +36,7 @@ function App() {
   } = useComparisonWorkflow();
 
   return (
-    <div className="kinetic-shell flex min-h-screen flex-col bg-[color:var(--color-kinetic-bg)] text-[color:var(--color-kinetic-copy)]">
+    <div className="app-shell flex min-h-screen flex-col bg-app-bg text-app-text">
       <AppHeader onReset={handleReset} />
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-5 sm:px-6 lg:px-8">

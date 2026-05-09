@@ -5,17 +5,17 @@ import { NavButton } from '../ui/NavButton';
 
 function FileOverview({ label, name, rowCount, columnCount, headers }: { label: string; name: string; rowCount: number; columnCount: number; headers: string[] }) {
   return (
-    <section className="kinetic-panel p-4">
+    <section className="surface-panel p-4">
       <div className="min-w-0">
         <p className="hud-label">{label}</p>
-        <h3 className="mt-1 truncate text-sm font-semibold uppercase tracking-[0.14em] text-[color:var(--color-kinetic-copy)]">{name}</h3>
+        <h3 className="mt-1 truncate text-sm font-semibold uppercase tracking-[0.14em] text-app-text">{name}</h3>
       </div>
-      <div className="mt-3 flex flex-wrap gap-2 text-xs text-[color:var(--color-kinetic-muted)]">
+      <div className="mt-3 flex flex-wrap gap-2 text-xs text-app-muted">
         <span className="table-chip">{rowCount} rows</span>
         <span className="table-chip">{columnCount} columns</span>
       </div>
       <details className="mt-3 group">
-        <summary className="cursor-pointer list-none text-sm text-[color:var(--color-kinetic-muted)] marker:hidden">
+        <summary className="cursor-pointer list-none text-sm text-app-muted marker:hidden">
           <span aria-hidden="true" className="mr-2 inline-block transition-transform group-open:rotate-90">▸</span>
           Inspect available columns
         </summary>
@@ -69,7 +69,7 @@ export function ConfigurationStep({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="hud-label">Configure</p>
-            <h2 className="mt-1 text-lg font-semibold uppercase tracking-[0.14em] text-[color:var(--color-kinetic-copy)]">Set row keys and comparison pairs</h2>
+            <h2 className="mt-1 text-lg font-semibold uppercase tracking-[0.14em] text-app-text">Set row keys and comparison pairs</h2>
           </div>
           <div className="shrink-0">
             <NavButton direction="back" onClick={onBack}>

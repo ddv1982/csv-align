@@ -70,16 +70,16 @@ test('buildResultsHtmlDocument embeds the current comparison view state for stan
   });
 
   expect(html).toContain('<!DOCTYPE html>');
-  expect(html).toContain('<html lang="en" data-theme="cyan">');
+  expect(html).toContain('<html lang="en" class="dark" data-theme="dark">');
   expect(html).toContain('<title>left.csv vs right.csv comparison results</title>');
   expect(html).toContain('Step 3 · Results');
-  expect(html).toContain('<h1><span class="kinetic-copy">Comparison Summary</span></h1>');
+  expect(html).toContain('<span class="text-lg">Comparison Summary</span>');
   expect(html).toContain('left.csv vs right.csv comparison results');
   expect(html).toContain('aria-label="Compared files"');
-  expect(html).toContain('<p class="hud-label">File A</p>');
-  expect(html).toContain('<p class="kinetic-muted file-name" title="left.csv">left.csv</p>');
-  expect(html).toContain('<p class="hud-label">File B</p>');
-  expect(html).toContain('<p class="kinetic-muted file-name" title="right.csv">right.csv</p>');
+  expect(html).toContain('<div class="hud-label">File A</div>');
+  expect(html).toContain('class="app-muted file-name mt-1 max-w-[280px] truncate text-xs" title="left.csv"');
+  expect(html).toContain('<div class="hud-label">File B</div>');
+  expect(html).toContain('class="app-muted file-name mt-1 max-w-[280px] truncate text-xs" title="right.csv"');
   expect(html).toContain('Match rate of comparable rows');
   expect(html).toContain('How each comparable row was classified.');
   expect(html).toContain('Duplicate keys detected');
@@ -91,28 +91,31 @@ test('buildResultsHtmlDocument embeds the current comparison view state for stan
   expect(html).toContain('"expandableDetail":{"variant":"inspection","title":"Paired Values"');
   expect(html).toContain('"description":"Multiple File A rows share this selected key."');
   expect(html).toContain('data-sort-column="details"');
-  expect(html).toContain('<table id="results-table" class="results-table">');
+  expect(html).toContain('<table id="results-table" class="results-table w-full">');
   expect(html).toContain('data-expand-row=');
   expect(html).toContain('"title":"Value Differences"');
   expect(html).toContain('row.expandableDetail.title');
   expect(html).toContain('row.expandableDetail.summary');
-  expect(html).toContain('row.expandableDetail.variant === \'differences\' ? \'diff-grid\' : \'detail-stack\'');
+  expect(html).toContain("row.expandableDetail.variant === 'differences' ? 'diff-grid lg:grid-cols-2' : 'detail-stack'");
   expect(html).toContain('option.tone || \'neutral\'');
   expect(html).not.toContain('getFilterDotStyle');
   expect(html).toContain('field.columnA');
-  expect(html).toContain('class="kinetic-glyph-box diff-arrow-box detail-value-arrow kinetic-muted">-&gt;</div>');
-  expect(html).not.toContain('cell.column ? \'<span class="table-chip kinetic-copy">\' + escapeHtml(cell.column) + \'</span>\' : \'\'');
-  expect(html).toContain('class="diff-value-label ' + "' + fileALabelClass + '" + '">File A</span>');
-  expect(html).toContain("formatDetailValue(field.valueB, 'kinetic-surface-success-muted')");
-  expect(html).toContain('const fileALabelClass = isMatch ? \'file-b\' : \'file-a\';');
-  expect(html).toContain("const fileAValueTone = isMatch ? 'kinetic-surface-success-muted' : 'kinetic-surface-danger';");
+  expect(html).toContain('class="icon-frame diff-arrow-box detail-value-arrow app-muted row-start-2 self-center h-7 w-7 shrink-0 text-[11px]">-></div>');
+  expect(html).not.toContain('cell.column ? \'<span class="table-chip app-text">\' + escapeHtml(cell.column) + \'</span>\' : \'\'');
+  expect(html).toContain('class="diff-value-label ' + "' + fileALabelClass + '" + ' meta-label text-[10px]">File A</p>');
+  expect(html).toContain("formatDetailValue(field.valueB, 'app-surface-success-muted')");
+  expect(html).toContain("const fileALabelClass = isMatch ? 'file-b text-app-success' : 'file-a text-app-danger';");
+  expect(html).toContain("const fileAValueTone = isMatch ? 'app-surface-success-muted' : 'app-surface-danger';");
   expect(html).toContain('class="detail-field"');
-  expect(html).toContain('class="detail-panel-label kinetic-mono-label kinetic-copy"');
-  expect(html).toContain('class="detail-card-fields"');
-  expect(html).toContain('row.description ? \'<span class="result-description">\' + escapeHtml(row.description) + \'</span>\' : \'\'');
+  expect(html).toContain('class="detail-panel-label meta-label app-text mb-3 text-xs font-semibold"');
+  expect(html).toContain('class="detail-card-fields grid gap-3"');
+  expect(html).toContain('row.description ? \'<span class="app-text text-sm">\' + escapeHtml(row.description) + \'</span>\' : \'\'');
   expect(html).toContain('color-scheme: dark;');
-  expect(html).toContain('--color-kinetic-bg: #050505;');
-  expect(html).toContain('--color-kinetic-success: #6cffbe;');
+  expect(html).toContain('[data-theme="dark"] {');
+  expect(html).toContain('--color-app-bg: #030712;');
+  expect(html).toContain('--color-app-success: #34d399;');
+  expect(html).toContain('background: var(--color-app-bg);');
+  expect(html).not.toContain('radial-gradient(circle at top');
   expect(html).toContain('.summary-file-panel');
   expect(html).toContain('.diff-card');
   expect(html).toContain('.detail-stack');
@@ -123,13 +126,13 @@ test('buildResultsHtmlDocument embeds the current comparison view state for stan
   expect(html).toContain('.status-strip');
 });
 
-test('normalizes the exported theme to the shared standalone theme set', () => {
-  expect(normalizeHtmlExportTheme('cyan')).toBe('cyan');
-  expect(normalizeHtmlExportTheme('lime')).toBe('lime');
-  expect(normalizeHtmlExportTheme('magenta')).toBe('magenta');
-  expect(normalizeHtmlExportTheme('amber')).toBe('amber');
-  expect(normalizeHtmlExportTheme('dark')).toBe('cyan');
-  expect(normalizeHtmlExportTheme(undefined)).toBe('cyan');
+test('normalizes every exported theme input to the single dark report theme', () => {
+  expect(normalizeHtmlExportTheme('cyan')).toBe('dark');
+  expect(normalizeHtmlExportTheme('lime')).toBe('dark');
+  expect(normalizeHtmlExportTheme('magenta')).toBe('dark');
+  expect(normalizeHtmlExportTheme('amber')).toBe('dark');
+  expect(normalizeHtmlExportTheme('dark')).toBe('dark');
+  expect(normalizeHtmlExportTheme(undefined)).toBe('dark');
 
   const themedHtml = buildResultsHtmlDocument({
     summary: SUMMARY,
@@ -154,10 +157,12 @@ test('normalizes the exported theme to the shared standalone theme set', () => {
     theme: 'unsupported-theme',
   });
 
-  expect(themedHtml).toContain('<html lang="en" data-theme="magenta">');
-  expect(themedHtml).toContain('"theme":"magenta"');
-  expect(fallbackHtml).toContain('<html lang="en" data-theme="cyan">');
-  expect(fallbackHtml).toContain('"theme":"cyan"');
+  expect(themedHtml).toContain('<html lang="en" class="dark" data-theme="dark">');
+  expect(themedHtml).toContain('"theme":"dark"');
+  expect(themedHtml).not.toContain('"theme":"magenta"');
+  expect(fallbackHtml).toContain('<html lang="en" class="dark" data-theme="dark">');
+  expect(fallbackHtml).toContain('"theme":"dark"');
+  expect(fallbackHtml).not.toContain('"theme":"cyan"');
 });
 
 test('standalone export table count matches the active filter bucket after the embedded script runs', () => {
@@ -359,15 +364,15 @@ test('standalone export uses green-green inspection tones for match rows and spl
   toggles[0]?.click();
 
   let valueBoxes = Array.from(document.querySelectorAll('.diff-value-box'));
-  expect(valueBoxes[0]).toHaveClass('kinetic-surface-success-muted');
-  expect(valueBoxes[1]).toHaveClass('kinetic-surface-success-muted');
+  expect(valueBoxes[0]).toHaveClass('app-surface-success-muted');
+  expect(valueBoxes[1]).toHaveClass('app-surface-success-muted');
 
   toggles = Array.from(document.querySelectorAll('[data-expand-row]')) as HTMLButtonElement[];
   toggles[1]?.click();
 
   valueBoxes = Array.from(document.querySelectorAll('.diff-value-box'));
-  expect(valueBoxes[0]).toHaveClass('kinetic-surface-danger');
-  expect(valueBoxes[1]).toHaveClass('kinetic-surface-success-muted');
+  expect(valueBoxes[0]).toHaveClass('app-surface-danger');
+  expect(valueBoxes[1]).toHaveClass('app-surface-success-muted');
 
   document.body.innerHTML = '';
 });
@@ -411,7 +416,7 @@ test('standalone export wraps long collapsed result values instead of forcing a 
     initialFilter: 'all',
   });
 
-  expect(html).toContain('.kinetic-value-text {');
+  expect(html).toContain('.result-value-text {');
   expect(html).toContain('white-space: normal;');
   expect(html).toContain('overflow-wrap: anywhere;');
 
@@ -423,7 +428,7 @@ test('standalone export wraps long collapsed result values instead of forcing a 
   Function(script?.textContent ?? '')();
 
   const wrappedValue = document.querySelector(`[title="${CSS.escape(`${longFileA}, Bravo`)}"]`);
-  expect(wrappedValue).toHaveClass('kinetic-value-text');
+  expect(wrappedValue).toHaveClass('result-value-text');
   expect(wrappedValue?.textContent).toBe(`${longFileA}, Bravo`);
 
   document.body.innerHTML = '';

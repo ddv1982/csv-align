@@ -11,12 +11,12 @@ test('uses shared theme surface classes for active, complete, and unlocked steps
     />,
   );
 
-  expect(screen.getByText('2')).toHaveClass('kinetic-surface-accent');
-  expect(screen.getByText('1')).toHaveClass('kinetic-surface-success');
-  expect(screen.getByText('3')).toHaveClass('kinetic-surface-subtle');
+  expect(screen.getByText('2')).toHaveClass('app-surface-accent');
+  expect(screen.getByText('1')).toHaveClass('app-surface-success');
+  expect(screen.getByText('3')).toHaveClass('app-surface-subtle');
 
   const stepOneButton = screen.getByRole('button', { name: 'Go to step 1: Choose Files' });
-  expect(stepOneButton).toHaveClass('kinetic-surface-hover');
+  expect(stepOneButton).toHaveClass('app-surface-hover');
 });
 
 test('navigates only for unlocked non-active steps', () => {

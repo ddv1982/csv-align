@@ -27,18 +27,18 @@ export function ProgressSteps({ step, unlockedSteps, onStepChange }: ProgressSte
 
           const badgeClasses = `flex h-8 w-8 shrink-0 items-center justify-center border font-mono text-[11px] uppercase tracking-[0.18em] transition-colors ${
             isActive
-              ? 'kinetic-surface-accent'
+              ? 'app-surface-accent'
               : isComplete
-                ? 'kinetic-surface-success'
+                ? 'app-surface-success'
                 : isUnlocked
-                  ? 'border-[color:var(--color-kinetic-line)] kinetic-surface-subtle text-[color:var(--color-kinetic-copy)]'
-                  : 'border-[color:var(--color-kinetic-line)] bg-transparent text-[color:var(--color-kinetic-muted)]'
+                  ? 'border-app-border app-surface-subtle text-app-text'
+                  : 'border-app-border bg-transparent text-app-muted'
           }`;
 
           const textClasses = isActive
-            ? 'text-[color:var(--color-kinetic-copy)]'
+            ? 'text-app-text'
             : isUnlocked
-              ? 'text-[color:var(--color-kinetic-muted)]'
+              ? 'text-app-muted'
               : 'text-[rgba(149,162,179,0.55)]';
 
           const commonContent = (
@@ -59,7 +59,7 @@ export function ProgressSteps({ step, unlockedSteps, onStepChange }: ProgressSte
                   onClick={() => onStepChange(currentStep.id)}
                   aria-label={`Go to step ${currentStep.number}: ${currentStep.label}`}
                   aria-current={isActive ? 'step' : undefined}
-                  className={`group kinetic-surface-hover ${stepClasses} ${textClasses}`}
+                  className={`group app-surface-hover ${stepClasses} ${textClasses}`}
                 >
                   {commonContent}
                 </button>
@@ -74,7 +74,7 @@ export function ProgressSteps({ step, unlockedSteps, onStepChange }: ProgressSte
               )}
               {index < STEPS.length - 1 && (
                 <span
-                  className="mx-3 h-px w-8 bg-[color:var(--color-kinetic-line)] sm:mx-4 sm:w-12"
+                  className="mx-3 h-px w-8 bg-app-border sm:mx-4 sm:w-12"
                   aria-hidden="true"
                 />
               )}

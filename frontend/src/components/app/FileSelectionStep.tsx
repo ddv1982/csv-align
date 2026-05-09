@@ -18,14 +18,14 @@ export function FileSelectionStep({ fileA, fileB, onFileSelect, onLoadResult, on
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
             <p className="hud-label">Files</p>
-            <h2 className="mt-1 text-lg font-semibold uppercase tracking-[0.14em] text-[color:var(--color-kinetic-copy)]">Choose the two CSV files</h2>
-            <p className="mt-2 text-sm text-[color:var(--color-kinetic-muted)]">Select the two local CSV files you want to compare. Row counts and column details stay available if you need to review them.</p>
+            <h2 className="mt-1 text-lg font-semibold uppercase tracking-[0.14em] text-app-text">Choose the two CSV files</h2>
+            <p className="mt-2 text-sm text-app-muted">Select the two local CSV files you want to compare. Row counts and column details stay available if you need to review them.</p>
           </div>
 
-          <div className="kinetic-utility-strip max-w-md">
+          <div className="utility-strip max-w-md">
             <div>
               <p className="hud-label">Saved Result</p>
-              <p className="mt-1 text-sm text-[color:var(--color-kinetic-muted)]">Open a saved result to review its findings in read-only mode.</p>
+              <p className="mt-1 text-sm text-app-muted">Open a saved result to review its findings in read-only mode.</p>
             </div>
             <LoadResultButton onLoadResult={onLoadResult} />
           </div>

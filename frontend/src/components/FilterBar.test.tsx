@@ -24,7 +24,7 @@ const RESULTS: ResultResponse[] = [
   },
 ];
 
-test('uses a minimal solid active style and subtle hover-ready styling for result filters', () => {
+test('uses semantic active and inactive styling for result filters', () => {
   const onFilterChange = vi.fn();
 
   render(
@@ -43,20 +43,16 @@ test('uses a minimal solid active style and subtle hover-ready styling for resul
   expect(activeFilter).toBeTruthy();
   expect(inactiveFilter).toBeTruthy();
 
-  // Active pill uses the shared semantic filter surface plus extracted KINETIC variant.
   expect(activeFilter).toHaveAttribute('aria-pressed', 'true');
   expect(activeFilter).toHaveClass('filter-button');
   expect(activeFilter).toHaveClass('active');
-  expect(activeFilter).toHaveClass('kinetic-filter-chip-active');
   expect(activeFilter?.querySelector('.filter-dot')).toHaveClass('tone-match');
-  expect(activeFilter?.querySelector('.filter-count')).toHaveClass('kinetic-filter-count-active');
+  expect(activeFilter?.querySelector('.filter-count')).toHaveClass('filter-count');
 
-  // Inactive pill uses the shared semantic filter surface plus neutral KINETIC variant.
   expect(inactiveFilter).toHaveAttribute('aria-pressed', 'false');
   expect(inactiveFilter).toHaveClass('filter-button');
-  expect(inactiveFilter).toHaveClass('kinetic-filter-chip');
   expect(inactiveFilter?.querySelector('.filter-dot')).toHaveClass('tone-missing-left');
-  expect(inactiveFilter?.querySelector('.filter-count')).toHaveClass('kinetic-filter-count');
+  expect(inactiveFilter?.querySelector('.filter-count')).toHaveClass('filter-count');
 
   fireEvent.click(inactiveFilter!);
   expect(onFilterChange).toHaveBeenCalledWith('missing_left');

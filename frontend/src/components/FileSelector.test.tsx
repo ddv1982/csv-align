@@ -73,13 +73,13 @@ test('accepts dropped files with an uppercase .CSV extension', () => {
   expect(onSelect.mock.calls[0][0].name).toBe('UPPERCASE.CSV');
 });
 
-test('renders the kinetic idle styling for the empty dropzone', () => {
+test('renders the dark app idle styling for the empty dropzone', () => {
   const onSelect = vi.fn();
   render(<FileSelector label="File A" file={null} onSelect={onSelect} />);
 
   const dropzone = screen.getByText('Drag a CSV file here').closest('div')?.parentElement;
 
-  expect(dropzone).toHaveClass('kinetic-dropzone');
+  expect(dropzone).toHaveClass('file-dropzone');
 });
 
 test('renders a semantic button trigger for choosing a file in empty state', () => {
@@ -154,12 +154,12 @@ test('drag-leave-resets-hover styling without calling onSelect', () => {
   const dropzone = screen.getByRole('button', { name: 'File A file selector' });
 
   fireEvent.dragOver(dropzone);
-  expect(dropzone).toHaveClass('kinetic-dropzone-active');
-  expect(dropzone).not.toHaveClass('kinetic-dropzone');
+  expect(dropzone).toHaveClass('file-dropzone-active');
+  expect(dropzone).not.toHaveClass('file-dropzone');
 
   fireEvent.dragLeave(dropzone);
-  expect(dropzone).toHaveClass('kinetic-dropzone');
-  expect(dropzone).not.toHaveClass('kinetic-dropzone-active');
+  expect(dropzone).toHaveClass('file-dropzone');
+  expect(dropzone).not.toHaveClass('file-dropzone-active');
   expect(onSelect).not.toHaveBeenCalled();
 });
 
@@ -224,9 +224,9 @@ test('ignores a Tauri path drop when the window drop lands outside the selector 
   dragDropHandler?.({ type: 'drop', paths: ['/tmp/outside-drop.csv'], position: { x: 240, y: 140 } });
 
   await waitFor(() => {
-    expect(dropzone).toHaveClass('kinetic-dropzone');
+    expect(dropzone).toHaveClass('file-dropzone');
   });
-  expect(dropzone).not.toHaveClass('kinetic-dropzone-active');
+  expect(dropzone).not.toHaveClass('file-dropzone-active');
   expect(onSelect).not.toHaveBeenCalled();
   expect(screen.queryByText('Please choose a file with a .csv extension.')).not.toBeInTheDocument();
 });

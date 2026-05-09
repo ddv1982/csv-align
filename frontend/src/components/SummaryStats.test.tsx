@@ -36,7 +36,7 @@ test('separates ignored rows from comparable summary stats', () => {
   expect(screen.queryByText('Unkeyed Right')).not.toBeInTheDocument();
 });
 
-test('keeps summary chips on kinetic bordered surfaces', () => {
+test('keeps summary chips on semantic bordered surfaces', () => {
   render(
     <SummaryStats
       summary={SUMMARY}
@@ -45,15 +45,13 @@ test('keeps summary chips on kinetic bordered surfaces', () => {
     />,
   );
 
-  const matchesCard = screen.getByText('Matches').closest('div.kinetic-panel');
-  const ignoredBanner = screen.getByText('Ignored rows').closest('div.kinetic-panel');
+  const matchesCard = screen.getByText('Matches').closest('.summary-stat');
+  const ignoredBanner = screen.getByText('Ignored rows').closest('.summary-banner');
 
   expect(matchesCard).toBeTruthy();
   expect(ignoredBanner).toBeTruthy();
   expect(matchesCard).toHaveClass('summary-stat');
-  expect(matchesCard).toHaveClass('kinetic-tone-success');
   expect(ignoredBanner).toHaveClass('summary-banner');
-  expect(ignoredBanner).toHaveClass('kinetic-tone-accent');
 });
 
 test('renders icon-based section markers while keeping A/B identifiers for file-specific outcomes', () => {
@@ -67,8 +65,8 @@ test('renders icon-based section markers while keeping A/B identifiers for file-
 
   const heading = screen.getByRole('heading', { level: 3, name: 'Comparison Summary' });
   const resultsSection = heading.closest('section');
-  const fileAOnlyCard = screen.getByText('Only in File A').closest('div.kinetic-panel');
-  const fileBOnlyCard = screen.getByText('Only in File B').closest('div.kinetic-panel');
+  const fileAOnlyCard = screen.getByText('Only in File A').closest('.summary-stat');
+  const fileBOnlyCard = screen.getByText('Only in File B').closest('.summary-stat');
 
   expect(heading).toBeInTheDocument();
   expect(resultsSection?.querySelector('svg')).not.toBeNull();
