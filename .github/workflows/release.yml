@@ -202,10 +202,10 @@ jobs:
       - name: Inspect downloaded release artifacts
         run: ls -R release-artifacts
 
-      - name: Install Debian signature verification tools
+      - name: Install Debian signature and metadata validation tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y dpkg-sig gnupg
+          sudo apt-get install -y dpkg-sig gnupg appstream desktop-file-utils
 
       - name: Verify Debian package signatures
         env:
@@ -281,6 +281,58 @@ jobs:
             rm -f "${safe_deb_file}"
             safe_deb_file=""
           done
+
+      - name: Validate Debian package metadata
+        env:
+          DEB_METADATA_REPORT: deb-metadata-report.json
+        run: |
+          set -euo pipefail
+          shopt -s globstar nullglob
+
+          deb_packages=(release-artifacts/**/*.deb)
+          if [ ${#deb_packages[@]} -eq 0 ]; then
+            echo "No Debian packages found under release-artifacts." >&2
+            exit 1
+          fi
+
+          set +e
+          python3 scripts/validate_linux_deb_metadata.py \
+            "${deb_packages[@]}" \
+            --json-report "${DEB_METADATA_REPORT}"
+          validator_status=$?
+          set -e
+
+          python3 <<'PY'
+          import json
+          import os
+          import pathlib
+
+          report_path = pathlib.Path(os.environ["DEB_METADATA_REPORT"])
+          report = json.loads(report_path.read_text(encoding="utf-8"))
+          lines = [
+              "## Debian package metadata validation",
+              "",
+              f"Gate: {'PASS' if report['ok'] else 'FAIL'}",
+              "",
+              "| Package | Component ID | Project license | Desktop ID | Binary |",
+              "| --- | --- | --- | --- | --- |",
+          ]
+          for package in report["packages"]:
+              lines.append(
+                  "| {package} | {component_id} | {project_license} | {launchable} | {binary} |".format(
+                      package=pathlib.Path(package["package"]).name,
+                      component_id=package.get("component_id") or "",
+                      project_license=package.get("project_license") or "",
+                      launchable=package.get("launchable") or "",
+                      binary=package.get("binary") or "",
+                  )
+              )
+          lines.extend(["", f"JSON report: `{report_path}`"])
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+              summary.write("\n".join(lines) + "\n")
+          PY
+
+          exit "${validator_status}"
 
       - name: Upload Linux packages
         uses: softprops/action-gh-release@v2

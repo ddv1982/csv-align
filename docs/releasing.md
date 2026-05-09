@@ -104,6 +104,37 @@ dpkg-sig --verify-role builder path/to/csv-align_*.deb
 
 Apt repository metadata signing is out of scope unless CSV Align starts publishing an apt repository.
 
+## Linux software-center metadata verification
+
+CI validates each built `.deb` before signing/upload, and the release workflow repeats the same read-only check after signature verification and before GitHub Release upload:
+
+```bash
+python3 scripts/validate_linux_deb_metadata.py \
+  'src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/*.deb' \
+  --json-report deb-metadata-report.json
+```
+
+The validator enforces the AppStream component id `com.csvalign.desktop`, project license `MIT`, binary `csv-align`, and desktop id `CSV Align.desktop`. If Ubuntu Software or GNOME Software shows “Unknown license,” treat that as evidence that the app license did not reach GNOME Software, even when `/usr/share/doc/csv-align/copyright` exists in the Debian package.
+
+Manual extraction fallback for a downloaded artifact:
+
+```bash
+workdir="$(mktemp -d)"
+dpkg-deb -x path/to/csv-align_*.deb "$workdir/root"
+appstreamcli validate --no-net "$workdir/root/usr/share/metainfo/com.csvalign.desktop.metainfo.xml"
+desktop-file-validate "$workdir/root/usr/share/applications/CSV Align.desktop"
+grep -n '<project_license>MIT</project_license>' "$workdir/root/usr/share/metainfo/com.csvalign.desktop.metainfo.xml"
+```
+
+After installing the `.deb` on Ubuntu, refresh and query AppStream metadata before opening the software center:
+
+```bash
+sudo appstreamcli refresh-cache --force
+appstreamcli get com.csvalign.desktop
+```
+
+If the artifact validator and `appstreamcli get com.csvalign.desktop` both report MIT but GNOME Software still shows an unknown license, reproduce in a clean Ubuntu VM before changing package metadata again. Install the same `.deb`, refresh the AppStream cache, query `com.csvalign.desktop`, then open GNOME Software/Ubuntu Software and inspect the license tile.
+
 ## GitHub Actions behavior
 
 Pushing a tag matching `v*` triggers the release workflow.

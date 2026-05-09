@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.62 - 2026-05-09
+
+- Added a Debian package artifact validator that extracts `.deb` files and gates AppStream MIT license, desktop launchable, binary, copyright, and desktop-entry metadata before release publishing.
+- Wired Linux package metadata validation into CI and tagged releases before signing/upload, with maintainer documentation for diagnosing GNOME Software license metadata.
+
 ## v2.1.61 - 2026-05-09
 
 - Added Linux software-center metadata so Ubuntu/GNOME Software reports the package license as MIT instead of unknown.
