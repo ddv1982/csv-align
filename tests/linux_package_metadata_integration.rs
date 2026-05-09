@@ -8,7 +8,8 @@ use serde_json::Value;
 use tempfile::tempdir;
 
 const APPSTREAM_ID: &str = "com.csvalign.desktop";
-const DESKTOP_ID: &str = "CSV Align.desktop";
+const DESKTOP_ID: &str = "com.csvalign.desktop.desktop";
+const LEGACY_TAURI_DESKTOP_ID: &str = "CSV Align.desktop";
 const MAIN_BINARY: &str = "csv-align";
 const PROJECT_LICENSE: &str = "MIT";
 
@@ -119,7 +120,178 @@ fn linux_deb_metadata_validator_accepts_metadata_fixture() {
     assert!(output.status.success(), "{output:#?}");
     let report = fs::read_to_string(report_path).expect("read JSON report");
     assert!(report.contains("\"project_license\": \"MIT\""));
-    assert!(report.contains("\"launchable\": \"CSV Align.desktop\""));
+    assert!(report.contains("\"launchable\": \"com.csvalign.desktop.desktop\""));
+}
+
+#[test]
+fn apt_repository_builder_generates_unsigned_packages_release_and_dep11() {
+    let fixture = DebMetadataFixture::new(DESKTOP_ID, DESKTOP_ID);
+    let repo_dir = fixture.root.path().join("apt-repo");
+
+    let output = Command::new(python3_path())
+        .arg(apt_repository_script_path())
+        .arg("--unsigned")
+        .arg("--suite")
+        .arg("test")
+        .arg("--output")
+        .arg(&repo_dir)
+        .arg(&fixture.deb_path)
+        .output()
+        .expect("run APT repository builder");
+    assert!(output.status.success(), "{output:#?}");
+
+    let packages = fs::read_to_string(repo_dir.join("dists/test/main/binary-amd64/Packages"))
+        .expect("read Packages");
+    assert!(packages.contains("Package: csv-align"));
+    assert!(packages.contains("Filename: pool/main/c/csv-align/CSV.Align_9.9.9_amd64.deb"));
+    assert!(
+        repo_dir
+            .join("dists/test/main/binary-amd64/Packages.gz")
+            .is_file()
+    );
+
+    let release = fs::read_to_string(repo_dir.join("dists/test/Release")).expect("read Release");
+    assert!(release.contains("Suite: test"));
+    assert!(release.contains("Architectures: amd64"));
+    assert!(release.contains("Date: "));
+    assert!(release.contains("MD5Sum:"));
+    assert!(release.contains("SHA1:"));
+    assert!(release.contains("SHA256:"));
+    assert!(release.contains("main/binary-amd64/Packages"));
+    assert!(release.contains("main/dep11/Components-amd64.yml"));
+
+    let dep11 = fs::read_to_string(repo_dir.join("dists/test/main/dep11/Components-amd64.yml"))
+        .expect("read DEP-11 metadata");
+    assert!(dep11.contains("File: DEP-11"));
+    assert!(dep11.contains("Version: '1.0'"));
+    assert!(dep11.contains("Architecture: 'amd64'"));
+    assert!(dep11.contains("Package: 'csv-align'"));
+    assert!(dep11.contains("ProjectLicense: 'MIT'"));
+    assert!(dep11.contains("Launchable:\n  desktop-id:\n    - 'com.csvalign.desktop.desktop'"));
+    assert!(
+        repo_dir
+            .join("dists/test/main/dep11/Components-amd64.yml.gz")
+            .is_file()
+    );
+    assert!(
+        repo_dir
+            .join("pool/main/c/csv-align/CSV.Align_9.9.9_amd64.deb")
+            .is_file()
+    );
+    assert!(!repo_dir.join("dists/test/InRelease").exists());
+    assert!(!repo_dir.join("dists/test/Release.gpg").exists());
+}
+
+#[test]
+fn apt_repository_builder_signs_release_when_gpg_is_available() {
+    let Some(gpg) = gpg_path() else {
+        eprintln!("skipping APT repository signing test because gpg is unavailable");
+        return;
+    };
+
+    let fixture = DebMetadataFixture::new(DESKTOP_ID, DESKTOP_ID);
+    let gpg_home = fixture.root.path().join("gnupg");
+    fs::create_dir(&gpg_home).expect("create gpg home");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&gpg_home, fs::Permissions::from_mode(0o700)).expect("chmod gpg home");
+    }
+
+    let key_id = "CSV Align Apt Repo Test <apt-repo-test@example.invalid>";
+    let key_output = Command::new(&gpg)
+        .arg("--batch")
+        .arg("--homedir")
+        .arg(&gpg_home)
+        .arg("--passphrase")
+        .arg("")
+        .arg("--quick-gen-key")
+        .arg(key_id)
+        .arg("default")
+        .arg("default")
+        .arg("never")
+        .output()
+        .expect("create temporary gpg key");
+    assert!(key_output.status.success(), "{key_output:#?}");
+
+    let repo_dir = fixture.root.path().join("signed-apt-repo");
+    let public_key_path = repo_dir.join("csv-align-archive-keyring.pgp");
+    let output = Command::new(python3_path())
+        .arg(apt_repository_script_path())
+        .arg("--suite")
+        .arg("test")
+        .arg("--output")
+        .arg(&repo_dir)
+        .arg("--gpg-homedir")
+        .arg(&gpg_home)
+        .arg("--gpg-key")
+        .arg(key_id)
+        .arg("--public-key-out")
+        .arg(&public_key_path)
+        .arg(&fixture.deb_path)
+        .output()
+        .expect("run signed APT repository builder");
+    assert!(output.status.success(), "{output:#?}");
+
+    let in_release = repo_dir.join("dists/test/InRelease");
+    let release_gpg = repo_dir.join("dists/test/Release.gpg");
+    let release = repo_dir.join("dists/test/Release");
+    assert!(in_release.is_file());
+    assert!(release_gpg.is_file());
+    assert!(release.is_file());
+    assert!(public_key_path.is_file());
+
+    let verify_inrelease = Command::new(&gpg)
+        .arg("--batch")
+        .arg("--homedir")
+        .arg(&gpg_home)
+        .arg("--verify")
+        .arg(&in_release)
+        .output()
+        .expect("verify InRelease signature");
+    assert!(verify_inrelease.status.success(), "{verify_inrelease:#?}");
+
+    let verify_release_gpg = Command::new(&gpg)
+        .arg("--batch")
+        .arg("--homedir")
+        .arg(&gpg_home)
+        .arg("--verify")
+        .arg(&release_gpg)
+        .arg(&release)
+        .output()
+        .expect("verify Release.gpg signature");
+    assert!(
+        verify_release_gpg.status.success(),
+        "{verify_release_gpg:#?}"
+    );
+}
+
+#[test]
+fn linux_deb_desktop_id_normalizer_rewrites_tauri_product_name_desktop_file() {
+    let fixture = DebMetadataFixture::new(LEGACY_TAURI_DESKTOP_ID, LEGACY_TAURI_DESKTOP_ID);
+
+    let normalize_output = Command::new(python3_path())
+        .arg(normalizer_script_path())
+        .arg(&fixture.deb_path)
+        .output()
+        .expect("run Linux deb desktop id normalizer");
+    assert!(normalize_output.status.success(), "{normalize_output:#?}");
+
+    let report_path = fixture.root.path().join("normalized-report.json");
+    let validator_output = fixture.run([
+        "--skip-external-tools".into(),
+        "--json-report".into(),
+        report_path.display().to_string(),
+    ]);
+    assert!(validator_output.status.success(), "{validator_output:#?}");
+
+    let report = fs::read_to_string(report_path).expect("read JSON report");
+    assert!(report.contains("\"launchable\": \"com.csvalign.desktop.desktop\""));
+    assert!(
+        report
+            .contains("\"desktop_path\": \"/usr/share/applications/com.csvalign.desktop.desktop\"")
+    );
+    assert!(!report.contains("\"CSV Align.desktop\""));
 }
 
 #[test]
@@ -143,7 +315,7 @@ fn linux_deb_metadata_validator_requires_external_tools_in_gate_mode() {
 
 #[test]
 fn linux_deb_metadata_validator_rejects_launchable_desktop_id_drift() {
-    let fixture = DebMetadataFixture::new("com.csvalign.desktop.desktop", DESKTOP_ID);
+    let fixture = DebMetadataFixture::new(LEGACY_TAURI_DESKTOP_ID, DESKTOP_ID);
 
     let output = fixture.run(["--skip-external-tools".to_string()]);
     let stderr = String::from_utf8_lossy(&output.stderr);
@@ -235,6 +407,14 @@ fn validator_script_path() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("scripts/validate_linux_deb_metadata.py")
 }
 
+fn normalizer_script_path() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("scripts/normalize_linux_deb_desktop_id.py")
+}
+
+fn apt_repository_script_path() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("scripts/build_apt_repository.py")
+}
+
 fn python3_path() -> PathBuf {
     let output = Command::new("python3")
         .arg("-c")
@@ -243,6 +423,23 @@ fn python3_path() -> PathBuf {
         .expect("resolve python3 path");
     assert!(output.status.success(), "{output:#?}");
     PathBuf::from(String::from_utf8_lossy(&output.stdout).trim())
+}
+
+fn gpg_path() -> Option<PathBuf> {
+    let output = Command::new("python3")
+        .arg("-c")
+        .arg("import shutil; print(shutil.which('gpg') or '')")
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if path.is_empty() {
+        None
+    } else {
+        Some(PathBuf::from(path))
+    }
 }
 
 fn xml_tag_text<'a>(xml: &'a str, tag: &str) -> &'a str {
@@ -297,6 +494,7 @@ fn parse_package_version(path: &Path) -> String {
 
 const CREATE_DEB_FIXTURE_PY: &str = r#"
 import io
+import hashlib
 import pathlib
 import sys
 import tarfile
@@ -360,6 +558,32 @@ with tarfile.open(fileobj=tar_buffer, mode='w:gz') as tar:
         info.mtime = 0
         tar.addfile(info, io.BytesIO(data))
 
+md5sums = ''.join(
+    f'{hashlib.md5(content.encode("utf-8")).hexdigest()}  {name.removeprefix("./")}\n'
+    for name, content in sorted(files.items())
+)
+control = '''Package: csv-align
+Version: 9.9.9
+Architecture: amd64
+Maintainer: CSV Align <noreply@example.invalid>
+Description: CSV file comparison tool
+'''
+
+control_files = {
+    './control': control,
+    './md5sums': md5sums,
+}
+
+control_buffer = io.BytesIO()
+with tarfile.open(fileobj=control_buffer, mode='w:gz') as tar:
+    for name, content in control_files.items():
+        data = content.encode('utf-8')
+        info = tarfile.TarInfo(name)
+        info.size = len(data)
+        info.mode = 0o644
+        info.mtime = 0
+        tar.addfile(info, io.BytesIO(data))
+
 def ar_member(name, data):
     encoded_name = f'{name}/'.encode('ascii')
     header = (
@@ -377,6 +601,7 @@ def ar_member(name, data):
 out_path.write_bytes(
     b'!<arch>\n' +
     ar_member('debian-binary', b'2.0\n') +
+    ar_member('control.tar.gz', control_buffer.getvalue()) +
     ar_member('data.tar.gz', tar_buffer.getvalue())
 )
 "#;

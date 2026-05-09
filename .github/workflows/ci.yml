@@ -239,6 +239,12 @@ jobs:
           rm -rf target/${{ env.TAURI_TARGET }}/release/bundle
           cargo tauri build --target ${{ env.TAURI_TARGET }}
 
+      - name: Normalize Debian desktop id
+        run: |
+          set -euo pipefail
+          python3 scripts/normalize_linux_deb_desktop_id.py \
+            "src-tauri/target/${TAURI_TARGET}/release/bundle/deb/*.deb"
+
       - name: Validate Debian package metadata
         env:
           DEB_METADATA_REPORT: deb-metadata-report.json

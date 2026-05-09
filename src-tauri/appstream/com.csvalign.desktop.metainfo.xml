@@ -8,7 +8,7 @@
   <description>
     <p>CSV Align compares two CSV files, highlights matching and differing rows, supports configurable column mapping, and exports comparison results.</p>
   </description>
-  <launchable type="desktop-id">CSV Align.desktop</launchable>
+  <launchable type="desktop-id">com.csvalign.desktop.desktop</launchable>
   <provides>
     <binary>csv-align</binary>
   </provides>
@@ -17,6 +17,6 @@
     <name>Douwe de Vries</name>
   </developer>
   <releases>
-    <release version="2.1.63" date="2026-05-09" />
+    <release version="2.1.64" date="2026-05-10" />
   </releases>
 </component>

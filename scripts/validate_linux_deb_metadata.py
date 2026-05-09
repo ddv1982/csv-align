@@ -25,7 +25,7 @@ from typing import Any
 DEFAULT_COMPONENT_ID = "com.csvalign.desktop"
 DEFAULT_LICENSE = "MIT"
 DEFAULT_BINARY = "csv-align"
-DEFAULT_DESKTOP_ID = "CSV Align.desktop"
+DEFAULT_DESKTOP_ID = "com.csvalign.desktop.desktop"
 
 REQUIRED_COPYRIGHT_PATH = pathlib.PurePosixPath("usr/share/doc/csv-align/copyright")
 

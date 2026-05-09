@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.64 - 2026-05-10
+
+- Added signed APT repository generation for Linux releases, including Packages indexes, Release/InRelease signatures, exported keyring material, and DEP-11 catalog metadata for software centers.
+- Normalized the Debian desktop id to the reverse-DNS AppStream launchable contract before package signing so `.deb` artifacts and repository metadata agree on `com.csvalign.desktop.desktop`.
+
 ## v2.1.63 - 2026-05-09
 
 - Fixed the tagged release Linux asset job so it checks out the repository before running the Debian package metadata validator.
