@@ -940,6 +940,31 @@ html {
   align-items: start;
 }
 
+.diff-values > .diff-value-label.file-a {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.diff-values > .diff-value-label.file-b {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.diff-values > .diff-value-column {
+  grid-column: 1;
+  grid-row: 2;
+  min-width: 0;
+}
+
+.diff-values > .detail-value-arrow {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.diff-values > .detail-value-arrow + .diff-value-column {
+  grid-column: 3;
+}
+
 .diff-value-column {
   min-width: 0;
 }

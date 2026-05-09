@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.57 - 2026-05-09
+
+- Fixed exported HTML comparison detail panels so File A, arrow, and File B values keep the same readable side-by-side layout as the in-app results view, including long sensitive values.
+- Added export regression coverage for the standalone diff-grid placement rules and prepared the v2.1.57 patch release.
+
 ## v2.1.56 - 2026-05-09
 
 - Renamed the restored dark design-system primitives away from KINETIC terminology, moving app colors into semantic Tailwind v4 `@theme` tokens and neutral shared surface classes.

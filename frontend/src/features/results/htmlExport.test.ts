@@ -122,6 +122,10 @@ test('buildResultsHtmlDocument embeds the current comparison view state for stan
   expect(html).toContain('.detail-card-fields');
   expect(html).toContain('.detail-header-arrow');
   expect(html).toContain('.detail-value-arrow');
+  expect(html).toContain('.diff-values > .diff-value-label.file-a');
+  expect(html).toContain('.diff-values > .diff-value-label.file-b');
+  expect(html).toContain('.diff-values > .detail-value-arrow + .diff-value-column');
+  expect(html).toContain('grid-column: 3;');
   expect(html).toContain('.section-card-header');
   expect(html).toContain('.status-strip');
 });
