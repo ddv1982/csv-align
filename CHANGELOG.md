@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.54 - 2026-05-09
+
+- Switched macOS release notarization in CI to require App Store Connect API key authentication, removing the Apple ID/app-specific-password fallback path.
+- Documented the required macOS release secrets and prepared the release workflow to use the generated API key file for notarized DMG publishing.
+
 ## v2.1.53 - 2026-05-09
 
 - Reduced CI and release packaging duplication by publishing a reusable frontend dist artifact for Tauri packaging while keeping Linux and macOS Tauri bundles OS-specific.

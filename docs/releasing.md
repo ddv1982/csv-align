@@ -65,6 +65,21 @@ cd frontend && npm run lint
 cd frontend && npm run build
 ```
 
+## macOS release prerequisites
+
+The release workflow requires App Store Connect API key authentication for macOS notarization. Apple ID/app-specific-password notarization is not supported in CI.
+
+Configure these GitHub Actions secrets before pushing a release tag:
+
+- `APPLE_CERTIFICATE` — base64-encoded Developer ID Application `.p12` certificate
+- `APPLE_CERTIFICATE_PASSWORD`
+- `KEYCHAIN_PASSWORD`
+- `APPLE_API_ISSUER` — App Store Connect Issuer ID
+- `APPLE_API_KEY` — App Store Connect Key ID
+- `APPLE_API_PRIVATE_KEY` — single-line base64-encoded `.p8` private key content
+
+Use a Team App Store Connect API key suitable for notarization. The workflow decodes `APPLE_API_PRIVATE_KEY` during the macOS release job and passes the generated `AuthKey_<APPLE_API_KEY>.p8` path to Tauri.
+
 ## GitHub Actions behavior
 
 Pushing a tag matching `v*` triggers the release workflow.

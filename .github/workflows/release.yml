@@ -233,55 +233,33 @@ jobs:
           targets: ${{ matrix.target }}
 
       - name: Prepare Apple signing environment
-        id: apple_env
         env:
           APPLE_CERTIFICATE_SECRET: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD_SECRET: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_API_ISSUER_SECRET: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_API_KEY_SECRET: ${{ secrets.APPLE_API_KEY }}
           APPLE_API_PRIVATE_KEY_SECRET: ${{ secrets.APPLE_API_PRIVATE_KEY }}
-          APPLE_ID_SECRET: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD_SECRET: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID_SECRET: ${{ secrets.APPLE_TEAM_ID }}
-          APPLE_PROVIDER_SHORT_NAME_SECRET: ${{ secrets.APPLE_PROVIDER_SHORT_NAME }}
           KEYCHAIN_PASSWORD_SECRET: ${{ secrets.KEYCHAIN_PASSWORD }}
         run: |
-          if [ -z "$APPLE_CERTIFICATE_SECRET" ] || [ -z "$APPLE_CERTIFICATE_PASSWORD_SECRET" ] || [ -z "$KEYCHAIN_PASSWORD_SECRET" ]; then
-            echo "Apple signing certificate secrets are required for macOS release assets." >&2
-            exit 1
-          fi
+          missing=()
+          [ -n "$APPLE_CERTIFICATE_SECRET" ] || missing+=("APPLE_CERTIFICATE")
+          [ -n "$APPLE_CERTIFICATE_PASSWORD_SECRET" ] || missing+=("APPLE_CERTIFICATE_PASSWORD")
+          [ -n "$KEYCHAIN_PASSWORD_SECRET" ] || missing+=("KEYCHAIN_PASSWORD")
+          [ -n "$APPLE_API_ISSUER_SECRET" ] || missing+=("APPLE_API_ISSUER")
+          [ -n "$APPLE_API_KEY_SECRET" ] || missing+=("APPLE_API_KEY")
+          [ -n "$APPLE_API_PRIVATE_KEY_SECRET" ] || missing+=("APPLE_API_PRIVATE_KEY")
 
-          {
-            echo "APPLE_CERTIFICATE=$APPLE_CERTIFICATE_SECRET"
-            echo "APPLE_CERTIFICATE_PASSWORD=$APPLE_CERTIFICATE_PASSWORD_SECRET"
-            echo "KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD_SECRET"
-          } >> "$GITHUB_ENV"
-
-          if [ -n "$APPLE_API_ISSUER_SECRET" ] && [ -n "$APPLE_API_KEY_SECRET" ] && [ -n "$APPLE_API_PRIVATE_KEY_SECRET" ]; then
-            {
-              echo "APPLE_API_ISSUER=$APPLE_API_ISSUER_SECRET"
-              echo "APPLE_API_KEY=$APPLE_API_KEY_SECRET"
-              echo "APPLE_API_PRIVATE_KEY=$APPLE_API_PRIVATE_KEY_SECRET"
-            } >> "$GITHUB_ENV"
-            echo "auth_mode=api_key" >> "$GITHUB_OUTPUT"
-          elif [ -n "$APPLE_ID_SECRET" ] && [ -n "$APPLE_PASSWORD_SECRET" ]; then
-            {
-              echo "APPLE_ID=$APPLE_ID_SECRET"
-              echo "APPLE_PASSWORD=$APPLE_PASSWORD_SECRET"
-            } >> "$GITHUB_ENV"
-            if [ -n "$APPLE_TEAM_ID_SECRET" ]; then
-              echo "APPLE_TEAM_ID=$APPLE_TEAM_ID_SECRET" >> "$GITHUB_ENV"
-            fi
-            if [ -n "$APPLE_PROVIDER_SHORT_NAME_SECRET" ]; then
-              echo "APPLE_PROVIDER_SHORT_NAME=$APPLE_PROVIDER_SHORT_NAME_SECRET" >> "$GITHUB_ENV"
-            fi
-            echo "auth_mode=apple_id" >> "$GITHUB_OUTPUT"
-          else
-            echo "App Store Connect API key secrets or Apple ID notarization secrets are required for macOS release assets." >&2
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "Required macOS release secrets are missing: ${missing[*]}" >&2
+            echo "Configure App Store Connect API key authentication; Apple ID/app-specific-password notarization is not supported by this workflow." >&2
             exit 1
           fi
 
       - name: Import Apple signing certificate
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
         run: |
           python3 <<'PY'
           import base64
@@ -308,7 +286,9 @@ jobs:
           rm -f certificate.p12
 
       - name: Prepare App Store Connect API key
-        if: steps.apple_env.outputs.auth_mode == 'api_key'
+        env:
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
         run: |
           python3 <<'PY'
           import base64
@@ -345,6 +325,8 @@ jobs:
         working-directory: src-tauri
         env:
           CSV_ALIGN_USE_PREBUILT_FRONTEND: '1'
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
         run: |
           rm -rf target/${{ matrix.target }}/release/bundle
           cargo tauri build --target ${{ matrix.target }}
