@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.53 - 2026-05-09
+
+- Reduced CI and release packaging duplication by publishing a reusable frontend dist artifact for Tauri packaging while keeping Linux and macOS Tauri bundles OS-specific.
+- Added an explicit prebuilt-frontend build hook contract, early release validation for required CI artifacts, and release docs for the Linux/macOS-only packaging path.
+
 ## v2.1.52 - 2026-05-09
 
 - Restored macOS release asset publishing for tagged releases, building both Apple Silicon and Intel Tauri DMGs while keeping the regular CI package reuse path Linux-only.

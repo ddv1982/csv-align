@@ -53,6 +53,7 @@ jobs:
               - '.github/workflows/**'
               - 'Cargo.toml'
               - 'Cargo.lock'
+              - 'scripts/build_frontend_for_tauri.sh'
               - 'src/**'
               - 'src-tauri/**'
               - 'frontend/**'
@@ -105,8 +106,10 @@ jobs:
   test-frontend:
     name: Test Frontend
     needs: changes
-    if: needs.changes.outputs.run_frontend_ci == 'true'
+    if: needs.changes.outputs.run_frontend_ci == 'true' || needs.changes.outputs.run_tauri_ci == 'true'
     runs-on: ubuntu-22.04
+    env:
+      FRONTEND_DIST_ARTIFACT_NAME: csv-align-frontend-dist
 
     steps:
       - name: Checkout repository
@@ -124,16 +127,50 @@ jobs:
         run: npm ci
 
       - name: Run frontend tests
+        if: needs.changes.outputs.run_frontend_ci == 'true'
         working-directory: frontend
         run: npm test
 
       - name: Run frontend lint
+        if: needs.changes.outputs.run_frontend_ci == 'true'
         working-directory: frontend
         run: npm run lint
 
       - name: Build frontend
         working-directory: frontend
         run: npm run build
+
+      - name: Validate Tauri prebuilt frontend contract
+        run: |
+          set -euo pipefail
+
+          temp_dir="$(mktemp -d)"
+          cleanup() {
+            if [ -d "${temp_dir}/dist" ]; then
+              rm -rf frontend/dist
+              mv "${temp_dir}/dist" frontend/dist
+            fi
+            rm -rf "${temp_dir}"
+          }
+          trap cleanup EXIT
+
+          mv frontend/dist "${temp_dir}/dist"
+          if CSV_ALIGN_USE_PREBUILT_FRONTEND=1 scripts/build_frontend_for_tauri.sh; then
+            echo "Expected prebuilt frontend mode to fail when frontend/dist/index.html is missing." >&2
+            exit 1
+          fi
+
+          mv "${temp_dir}/dist" frontend/dist
+          CSV_ALIGN_USE_PREBUILT_FRONTEND=1 scripts/build_frontend_for_tauri.sh
+
+      - name: Upload frontend dist artifact
+        if: needs.changes.outputs.run_tauri_ci == 'true'
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ env.FRONTEND_DIST_ARTIFACT_NAME }}
+          path: frontend/dist/**
+          if-no-files-found: error
+          retention-days: 7
 
   build-tauri:
     name: Build Tauri
@@ -143,11 +180,12 @@ jobs:
       needs.changes.outputs.run_tauri_ci == 'true' &&
       (needs.test.result == 'success' || needs.test.result == 'skipped') &&
       needs.validate-release-metadata.result == 'success' &&
-      (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped')
+      needs.test-frontend.result == 'success'
     runs-on: ubuntu-22.04
     env:
       TAURI_TARGET: x86_64-unknown-linux-gnu
       RELEASE_ARTIFACT_NAME: csv-align-linux-x86_64-release-bundle
+      FRONTEND_DIST_ARTIFACT_NAME: csv-align-frontend-dist
 
     steps:
       - name: Checkout repository
@@ -172,20 +210,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
+      - name: Download frontend dist artifact
+        uses: actions/download-artifact@v6
         with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Build frontend
-        working-directory: frontend
-        run: npm run build
+          name: ${{ env.FRONTEND_DIST_ARTIFACT_NAME }}
+          path: frontend/dist
 
       - name: Setup Rust cache
         uses: Swatinem/rust-cache@v2
@@ -204,6 +233,8 @@ jobs:
 
       - name: Build Tauri app
         working-directory: src-tauri
+        env:
+          CSV_ALIGN_USE_PREBUILT_FRONTEND: '1'
         run: |
           rm -rf target/${{ env.TAURI_TARGET }}/release/bundle
           cargo tauri build --target ${{ env.TAURI_TARGET }}

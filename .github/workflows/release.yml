@@ -17,6 +17,7 @@ env:
   CARGO_TERM_COLOR: always
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   RELEASE_ARTIFACT_NAME: csv-align-linux-x86_64-release-bundle
+  FRONTEND_DIST_ARTIFACT_NAME: csv-align-frontend-dist
 
 jobs:
   validate-release:
@@ -39,6 +40,7 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           TAGGED_SHA: ${{ github.sha }}
           RELEASE_ARTIFACT_NAME: ${{ env.RELEASE_ARTIFACT_NAME }}
+          FRONTEND_DIST_ARTIFACT_NAME: ${{ env.FRONTEND_DIST_ARTIFACT_NAME }}
         run: |
           deadline=$((SECONDS + 3600))
 
@@ -62,11 +64,13 @@ jobs:
             echo "Observed CI run status: ${status:-unknown} ${conclusion:-}"
 
             if [ "$status" = "completed" ] && [ "$conclusion" = "success" ]; then
-              artifact_count="$(gh api "repos/${REPOSITORY}/actions/runs/${run_id}/artifacts?name=${RELEASE_ARTIFACT_NAME}" --jq '.artifacts | length')"
-              if [ "$artifact_count" -eq 0 ]; then
-                echo "CI succeeded for ${TAGGED_SHA} but did not publish artifact ${RELEASE_ARTIFACT_NAME}." >&2
-                exit 1
-              fi
+              for artifact_name in "$RELEASE_ARTIFACT_NAME" "$FRONTEND_DIST_ARTIFACT_NAME"; do
+                artifact_count="$(gh api "repos/${REPOSITORY}/actions/runs/${run_id}/artifacts?name=${artifact_name}" --jq '[.artifacts[] | select(.expired == false)] | length')"
+                if [ "$artifact_count" -eq 0 ]; then
+                  echo "CI succeeded for ${TAGGED_SHA} but did not publish a non-expired artifact named ${artifact_name}." >&2
+                  exit 1
+                fi
+              done
 
               echo "ci_run_id=${run_id}" >> "$GITHUB_OUTPUT"
               echo "CI succeeded for ${TAGGED_SHA}: ${run_url}"
@@ -317,20 +321,14 @@ jobs:
               env_file.write(f"APPLE_API_KEY_PATH={key_path.resolve()}\n")
           PY
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
+      - name: Download frontend dist artifact from CI
+        uses: actions/download-artifact@v6
         with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Build frontend
-        working-directory: frontend
-        run: npm run build
+          name: ${{ env.FRONTEND_DIST_ARTIFACT_NAME }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ needs.validate-release.outputs.ci_run_id }}
+          path: frontend/dist
 
       - name: Setup Rust cache
         uses: Swatinem/rust-cache@v2
@@ -345,6 +343,8 @@ jobs:
 
       - name: Build Tauri app
         working-directory: src-tauri
+        env:
+          CSV_ALIGN_USE_PREBUILT_FRONTEND: '1'
         run: |
           rm -rf target/${{ matrix.target }}/release/bundle
           cargo tauri build --target ${{ matrix.target }}

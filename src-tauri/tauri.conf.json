@@ -1,7 +1,7 @@
 {
   "build": {
     "beforeDevCommand": "cd frontend && npm run dev",
-    "beforeBuildCommand": "cd frontend && npm run build",
+    "beforeBuildCommand": "scripts/build_frontend_for_tauri.sh",
     "devUrl": "http://localhost:5173",
     "frontendDist": "../frontend/dist"
   },
@@ -47,5 +47,5 @@
   "productName": "CSV Align",
   "mainBinaryName": "csv-align",
   "identifier": "com.csvalign.desktop",
-  "version": "2.1.52"
+  "version": "2.1.53"
 }
