@@ -43,6 +43,14 @@ fn tauri_debian_bundle_declares_license_and_software_center_metadata() {
 #[test]
 fn appstream_metainfo_exposes_mit_project_license() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let tauri_conf: Value = serde_json::from_str(
+        &fs::read_to_string(root.join("src-tauri/tauri.conf.json"))
+            .expect("read Tauri configuration"),
+    )
+    .expect("valid Tauri configuration JSON");
+    let version = tauri_conf["version"]
+        .as_str()
+        .expect("Tauri configuration version");
     let metainfo =
         fs::read_to_string(root.join("src-tauri/appstream/com.csvalign.desktop.metainfo.xml"))
             .expect("read AppStream metainfo");
@@ -53,6 +61,9 @@ fn appstream_metainfo_exposes_mit_project_license() {
     assert!(metainfo.contains("<project_license>MIT</project_license>"));
     assert!(metainfo.contains("<launchable type=\"desktop-id\">CSV Align.desktop</launchable>"));
     assert!(metainfo.contains("<binary>csv-align</binary>"));
+    assert!(metainfo.contains(&format!(
+        "<release version=\"{version}\" date=\"2026-05-09\" />"
+    )));
 }
 
 #[test]

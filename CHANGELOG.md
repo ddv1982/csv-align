@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.61 - 2026-05-09
+
+- Added Linux software-center metadata so Ubuntu/GNOME Software reports the package license as MIT instead of unknown.
+- Included Debian copyright metadata in the `.deb` bundle alongside the existing signed package artifacts.
+
 ## v2.1.60 - 2026-05-09
 
 - Added CI-time Debian `.deb` signing with a dedicated GPG key, verifying signed Linux packages before the reusable release artifact is uploaded.
