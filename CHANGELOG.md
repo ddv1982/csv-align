@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.66 - 2026-05-10
+
+- Removed the custom APT repository `.tar.gz` release asset while keeping the signed repository published through GitHub Pages.
+- Updated release documentation so maintainers expect `.deb`, `.AppImage`, and repository setup assets without the extra repository archive.
+
 ## v2.1.65 - 2026-05-10
 
 - Published the repository-backed Linux install path, including the setup package asset, GitHub Pages APT deployment, and release-time repository sanity checks.

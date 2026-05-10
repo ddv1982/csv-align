@@ -347,7 +347,6 @@ jobs:
           DEB_SIGNING_PRIVATE_KEY: ${{ secrets.DEB_SIGNING_PRIVATE_KEY }}
           DEB_SIGNING_KEY_FINGERPRINT: ${{ secrets.DEB_SIGNING_KEY_FINGERPRINT }}
           DEB_SIGNING_KEY_PASSPHRASE: ${{ secrets.DEB_SIGNING_KEY_PASSPHRASE }}
-          RELEASE_TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
           shopt -s globstar nullglob
@@ -457,7 +456,6 @@ jobs:
             apt-repository/dists/stable/Release.gpg \
             apt-repository/dists/stable/Release
 
-          tar -C apt-repository -czf "csv-align-apt-repository-${RELEASE_TAG}.tar.gz" .
           mkdir -p pages-site/apt
           cp -a apt-repository/. pages-site/apt/
 
@@ -480,7 +478,6 @@ jobs:
           files: |
             release-artifacts/**/*.deb
             release-artifacts/**/*.AppImage
-            csv-align-apt-repository-*.tar.gz
             csv-align-repository-setup_*.deb
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
