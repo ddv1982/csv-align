@@ -273,7 +273,7 @@ export function ResultsTable({
               <thead className="app-surface-subtle border-b border-app-border">
                 <tr>
                   {renderSortHeader('Type', 'type', 'table-head w-40 min-w-[11rem] px-4 py-3 text-left')}
-                  {renderSortHeader('Key', 'key', 'table-head px-4 py-3 text-left')}
+                  {renderSortHeader('Key', 'key', 'table-head results-key-column px-4 py-3 text-left')}
                   {renderSortHeader('File A Values', 'fileA', 'table-head px-4 py-3 text-left')}
                   {renderSortHeader('File B Values', 'fileB', 'table-head px-4 py-3 text-left')}
                   {renderSortHeader('Details', 'details', 'table-head w-32 px-4 py-3 text-left')}
@@ -292,7 +292,7 @@ export function ResultsTable({
                             {row.badge.label}
                           </span>
                         </td>
-                        <td className="px-4 py-3.5 align-top">
+                        <td className="results-key-cell px-4 py-3.5 align-top">
                           <KeyChip row={row} />
                         </td>
                         <td className="px-4 py-3.5 align-top">{renderValueRows(row.fileAValues)}</td>

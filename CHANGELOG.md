@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.70 - 2026-05-10
+
+- Improved the results table KEY column width so short numeric keys stay readable instead of wrapping into stacked digits in narrow cells.
+- Kept in-app and standalone HTML export table styling aligned with shared key-column sizing and regression coverage.
+
 ## v2.1.69 - 2026-05-10
 
 - Fixed the Linux APT repository setup installer so the downloaded temporary setup package is readable by APT's `_apt` sandbox before installation, avoiding the unsandboxed root access notice.

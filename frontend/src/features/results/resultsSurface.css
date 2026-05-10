@@ -665,6 +665,16 @@
   width: 100%;
 }
 
+.results-table {
+  min-width: 960px;
+}
+
+.results-key-column,
+.results-key-cell {
+  min-width: 14rem;
+  width: clamp(14rem, 22vw, 18rem);
+}
+
 .table-head {
   letter-spacing: 0.06em;
   color: #d1d5db;
@@ -771,7 +781,8 @@
 .key-chip-part {
   display: block;
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .result-value-stack,

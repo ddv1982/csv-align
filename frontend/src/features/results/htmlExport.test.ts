@@ -203,8 +203,16 @@ test('standalone export stacks multi-part keys inside the compact key chip after
   });
 
   expect(html).toContain('"keyParts":["71","7"]');
+  expect(html).toContain('results-key-column');
+  expect(html).toContain('results-key-cell');
+  expect(html).toContain('.results-table {');
+  expect(html).toContain('min-width: 960px;');
+  expect(html).toContain('.results-key-column,');
+  expect(html).toContain('width: clamp(14rem, 22vw, 18rem);');
   expect(html).toContain('.key-chip {');
   expect(html).toContain('.key-chip-part {');
+  expect(html).toContain('overflow-wrap: break-word;');
+  expect(html).toContain('word-break: normal;');
 
   const parsed = new DOMParser().parseFromString(html, 'text/html');
   const script = parsed.querySelector('script:not([type="application/json"])');

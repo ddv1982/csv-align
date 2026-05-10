@@ -103,7 +103,11 @@ test('stacks multi-part keys inside the compact key chip', () => {
     />,
   );
 
+  const keyHeader = screen.getByRole('button', { name: /key/i }).closest('th');
+  expect(keyHeader).toHaveClass('results-key-column');
+
   const keyChip = screen.getByTitle('71, 7');
+  expect(keyChip.closest('td')).toHaveClass('results-key-cell');
   expect(keyChip).toHaveClass('key-chip');
   expect(keyChip).toHaveClass('chip');
   expect(keyChip).not.toHaveClass('truncate');
