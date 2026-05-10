@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.68 - 2026-05-10
+
+- Clarified the Linux install lore so the one-time APT repository setup and normal package install commands are shown as separate terminal steps.
+- Split the Ubuntu/Debian setup commands into copy-safe blocks, reducing the chance that the release setup script is skipped during manual installs.
+
 ## v2.1.67 - 2026-05-10
 
 - Added a hosted `install-apt-repo.sh` release asset so Linux users can enable the signed APT repository with one command before installing `csv-align` through APT.
