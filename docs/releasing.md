@@ -106,7 +106,19 @@ dpkg-sig --verify-role builder path/to/csv-align_*.deb
 
 Tagged releases also build a minimal signed APT repository from the exact `.deb` artifact downloaded from CI. The release workflow publishes it to GitHub Pages under `https://ddv1982.github.io/csv-align/apt/`. GitHub Pages must be configured to deploy from GitHub Actions for this hosted route to work. If hosting changes, update the repository setup package and this document together.
 
-The release should also publish a repository setup package, intended as `csv-align-repository-setup_1.0_all.deb`. That setup package is independently versioned from the app and should change only when the repository URL, keyring, source configuration, or pinning changes. It installs the archive keyring and Deb822 source file so users can enable the CSV Align repository once, then run `sudo apt update` and install `csv-align` through APT or a repository-backed software center.
+The release should also publish a repository setup package, intended as `csv-align-repository-setup_1.0_all.deb`. That setup package is independently versioned from the app and should change only when the repository URL, keyring, source configuration, or pinning changes. Keep the setup package version at `1.0` for app-only and docs-only releases; bump it only when the installed setup package contract changes. A setup package version bump must update README commands, `scripts/install-apt-repo.sh`, this release document, and any workflow filename assumptions in the same change. It installs the archive keyring and Deb822 source file so users can enable the CSV Align repository once, then run `sudo apt update` and install `csv-align` through APT or a repository-backed software center.
+
+The canonical end-user setup script URL is:
+
+```text
+https://github.com/ddv1982/csv-align/releases/latest/download/install-apt-repo.sh
+```
+
+The setup script downloads and installs the repository setup package from:
+
+```text
+https://github.com/ddv1982/csv-align/releases/latest/download/csv-align-repository-setup_1.0_all.deb
+```
 
 The repository is a static tree suitable for GitHub Pages or another static HTTPS host:
 
@@ -144,21 +156,42 @@ Use `--unsigned` only for local smoke tests; do not publish an unsigned APT repo
 
 The release workflow copies the generated tree into the Pages artifact at `apt/`, so the `dists/`, `pool/`, and `csv-align-archive-keyring.pgp` entries should be reachable under `https://ddv1982.github.io/csv-align/apt/` after the Pages deploy completes.
 
-After the Pages deploy, verify the hosted repository metadata before announcing the release:
+After the Pages deploy, verify the hosted repository metadata, setup script URL, and direct setup package URL before announcing the release:
 
 ```bash
 curl -fsSI https://ddv1982.github.io/csv-align/apt/dists/stable/InRelease
 curl -fsSI https://ddv1982.github.io/csv-align/apt/dists/stable/main/binary-amd64/Packages.gz
 curl -fsSI https://ddv1982.github.io/csv-align/apt/dists/stable/main/dep11/Components-amd64.yml.gz
 curl -fsSI https://ddv1982.github.io/csv-align/apt/csv-align-archive-keyring.pgp
+curl -fsSI https://github.com/ddv1982/csv-align/releases/latest/download/install-apt-repo.sh
+curl -fsSI https://github.com/ddv1982/csv-align/releases/latest/download/csv-align-repository-setup_1.0_all.deb
 ```
 
-Users should normally install the repository with the setup package rather than by hand:
+Download the setup script and verify its syntax, then download the setup package and verify its package fields:
 
 ```bash
-sudo apt install ./csv-align-repository-setup_1.0_all.deb
+curl -fsSL https://github.com/ddv1982/csv-align/releases/latest/download/install-apt-repo.sh | sh -n
+curl -fsSLo /tmp/csv-align-repository-setup.deb \
+  https://github.com/ddv1982/csv-align/releases/latest/download/csv-align-repository-setup_1.0_all.deb
+dpkg-deb --field /tmp/csv-align-repository-setup.deb Package Version Architecture
+```
+
+The fields should report `Package: csv-align-repository-setup`, `Version: 1.0`, and `Architecture: all`.
+
+Users should normally install the repository with the setup script rather than by hand. Mirror this command block in the README so user and maintainer docs stay aligned:
+
+```bash
+bash <(curl -fsSL https://github.com/ddv1982/csv-align/releases/latest/download/install-apt-repo.sh)
 sudo apt update
 sudo apt install csv-align
+```
+
+If a user wants to inspect the setup script first, use:
+
+```bash
+curl -fsSLO https://github.com/ddv1982/csv-align/releases/latest/download/install-apt-repo.sh
+sh install-apt-repo.sh
+rm -f install-apt-repo.sh
 ```
 
 If the setup package is unavailable during maintainer testing, use a `Signed-By` keyring file rather than `apt-key` or global trust. Example for the intended hosted repository:
@@ -184,7 +217,7 @@ The repository includes DEP-11 `Components-amd64.yml.gz` metadata generated from
 Verify the repository-backed install path in a clean Ubuntu/Debian VM before claiming Software Center availability:
 
 ```bash
-sudo apt install ./csv-align-repository-setup_1.0_all.deb
+bash <(curl -fsSL https://github.com/ddv1982/csv-align/releases/latest/download/install-apt-repo.sh)
 sudo apt update
 apt-cache policy csv-align
 sudo apt install csv-align

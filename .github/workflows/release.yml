@@ -448,6 +448,7 @@ jobs:
           grep -Fx "Components: main" "${setup_extract_dir}/etc/apt/sources.list.d/csv-align.sources"
           grep -E '^Architectures: .*amd64( |$)' "${setup_extract_dir}/etc/apt/sources.list.d/csv-align.sources"
           grep -Fx "Signed-By: /usr/share/keyrings/csv-align-archive-keyring.pgp" "${setup_extract_dir}/etc/apt/sources.list.d/csv-align.sources"
+          sh -n scripts/install-apt-repo.sh
 
           chmod 700 "${verification_home}"
           GNUPGHOME="${verification_home}" gpg --batch --import apt-repository/csv-align-archive-keyring.pgp
@@ -479,6 +480,7 @@ jobs:
             release-artifacts/**/*.deb
             release-artifacts/**/*.AppImage
             csv-align-repository-setup_*.deb
+            scripts/install-apt-repo.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

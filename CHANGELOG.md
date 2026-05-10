@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.67 - 2026-05-10
+
+- Added a hosted `install-apt-repo.sh` release asset so Linux users can enable the signed APT repository with one command before installing `csv-align` through APT.
+- Refreshed the README install section with macOS DMG guidance, Linux repository install instructions, and compact technology badges.
+
 ## v2.1.66 - 2026-05-10
 
 - Removed the custom APT repository `.tar.gz` release asset while keeping the signed repository published through GitHub Pages.

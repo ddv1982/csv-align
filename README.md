@@ -1,5 +1,11 @@
 # CSV Align
 
+![Rust 2024](https://img.shields.io/badge/Rust-2024-b7410e?style=flat-square)
+![Tauri 2.10](https://img.shields.io/badge/Tauri-2.10-ffc131?style=flat-square)
+![React 19](https://img.shields.io/badge/React-19-61dafb?style=flat-square)
+![TypeScript 5.8](https://img.shields.io/badge/TypeScript-5.8-3178c6?style=flat-square)
+![Vite 8](https://img.shields.io/badge/Vite-8-646cff?style=flat-square)
+
 CSV Align is a desktop and web app for comparing two CSV files side by side.
 
 It is designed for practical reconciliation work: matching rows by selected keys, comparing chosen columns in a controlled order, highlighting differences clearly, and exporting the results.
@@ -16,46 +22,38 @@ It is designed for practical reconciliation work: matching rows by selected keys
 - Filter results and export the final comparison to CSV
 - Run as either a local web app or a native desktop app
 
-## Download
+## Install
 
 Desktop builds are published on the GitHub Releases page:
 
 - [Releases](https://github.com/ddv1982/csv-align/releases)
 
-Current automated release assets include:
+### macOS
 
-- Linux: `.AppImage` and `.deb`
+Download the `.dmg` for your Mac from the latest release:
 
-If additional desktop platforms are restored in the release workflow later, their assets will appear on the same Releases page.
+- Apple Silicon: `aarch64` / ARM64
+- Intel: `x86_64`
 
-Linux note: Tauri v2 Linux builds require a distro with **WebKitGTK 4.1**.
+Open the `.dmg` and drag CSV Align into Applications.
 
-## Install on Linux
+### Linux
 
-The recommended Linux install route is the repository-backed package. It lets APT and repository-backed software centers receive CSV Align package metadata, AppStream/DEP-11 metadata, and future updates from the same signed source.
+Linux builds require a distro with **WebKitGTK 4.1**.
 
-1. Download the repository setup package from the GitHub Releases page, for example `csv-align-repository-setup_1.0_all.deb`.
-2. Install the setup package once. It installs the CSV Align archive keyring and APT source configuration:
+For repository-backed installs and updates:
 
-   ```bash
-   sudo apt install ./csv-align-repository-setup_1.0_all.deb
-   ```
+```bash
+bash <(curl -fsSL https://github.com/ddv1982/csv-align/releases/latest/download/install-apt-repo.sh)
+sudo apt update
+sudo apt install csv-align
+```
 
-3. Refresh APT metadata:
-
-   ```bash
-   sudo apt update
-   ```
-
-4. Install CSV Align:
-
-   ```bash
-   sudo apt install csv-align
-   ```
+The setup script downloads the repository setup package to a temporary file, installs the CSV Align archive keyring and APT source configuration, then removes the temporary file.
 
 After the repository is enabled and system metadata has refreshed, CSV Align can also be installed by searching for “CSV Align” in GNOME Software or Ubuntu Software. If the app does not appear immediately, refresh package metadata with `sudo apt update` and allow the software center/AppStream cache to update before searching again.
 
-The standalone `.deb` release asset remains available as a fallback for direct installation. It should contain correct desktop and license metadata, but it cannot provide the same repository-level Software Center discoverability as the signed APT repository.
+The standalone `.AppImage` and `.deb` release assets remain available as direct-download fallback options.
 
 ## Quick start
 
@@ -110,15 +108,6 @@ cargo install tauri-cli --locked --version "^2"
 ```bash
 cargo tauri dev
 ```
-
-## Breaking changes in v2.0.0
-
-- Saved comparison snapshots now use the v2 on-disk format (`persistence::v1` with `version: 2`). Snapshots created by v1.x releases are not backward compatible; re-run the comparison in v2 before saving a new snapshot.
-- Duplicate result types now use the corrected snake_case wire values `duplicate_file_a` and `duplicate_file_b`.
-- The local web app now listens on `127.0.0.1:3001` instead of the previous v1 web port.
-- Column-mapping payloads now use a single `MappingDto` contract instead of separate `MappingRequest` and `MappingResponse` shapes.
-- The release line upgrades the stack to React 19, Axum 0.8, Rust edition 2024 (MSRV 1.85+), Node 22+, and TypeScript 5.8.
-- Internally, v2 also standardizes on a shared `SessionStore`, typed `CsvAlignError` handling, structured `tracing`, unified CSV parsing/validation workflows, and a flatter comparison domain model.
 
 ## How it works
 
