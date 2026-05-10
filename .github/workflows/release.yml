@@ -8,6 +8,8 @@ on:
 permissions:
   actions: read
   contents: write
+  pages: write
+  id-token: write
 
 concurrency:
   group: release-${{ github.ref_name }}
@@ -382,12 +384,16 @@ jobs:
           verification_home="$(mktemp -d)"
           key_file="$(mktemp)"
           passphrase_file=""
+          setup_extract_dir=""
           cleanup() {
             rm -rf "${gnupg_home}"
             rm -rf "${verification_home}"
             rm -f "${key_file}"
             if [ -n "${passphrase_file}" ]; then
               rm -f "${passphrase_file}"
+            fi
+            if [ -n "${setup_extract_dir}" ]; then
+              rm -rf "${setup_extract_dir}"
             fi
           }
           trap cleanup EXIT
@@ -418,15 +424,31 @@ jobs:
             echo "Selected APT repository signing passphrase is not set; signing will only work for an intentionally unprotected key."
           fi
 
+          setup_package="csv-align-repository-setup_1.0_all.deb"
           python3 scripts/build_apt_repository.py \
             --clean \
             --output apt-repository \
             --suite stable \
+            --repository-url "https://ddv1982.github.io/csv-align/apt/" \
             --gpg-homedir "${gnupg_home}" \
             --gpg-key "${expected_fingerprint}" \
             --public-key-out apt-repository/csv-align-archive-keyring.pgp \
+            --setup-package-out "${setup_package}" \
             "${passphrase_args[@]}" \
             "${deb_packages[@]}"
+
+          test "$(dpkg-deb --field "${setup_package}" Package)" = "csv-align-repository-setup"
+          test "$(dpkg-deb --field "${setup_package}" Version)" = "1.0"
+          test "$(dpkg-deb --field "${setup_package}" Architecture)" = "all"
+          setup_extract_dir="$(mktemp -d)"
+          dpkg-deb -x "${setup_package}" "${setup_extract_dir}"
+          test -s "${setup_extract_dir}/usr/share/keyrings/csv-align-archive-keyring.pgp"
+          grep -Fx "Types: deb" "${setup_extract_dir}/etc/apt/sources.list.d/csv-align.sources"
+          grep -Fx "URIs: https://ddv1982.github.io/csv-align/apt/" "${setup_extract_dir}/etc/apt/sources.list.d/csv-align.sources"
+          grep -Fx "Suites: stable" "${setup_extract_dir}/etc/apt/sources.list.d/csv-align.sources"
+          grep -Fx "Components: main" "${setup_extract_dir}/etc/apt/sources.list.d/csv-align.sources"
+          grep -E '^Architectures: .*amd64( |$)' "${setup_extract_dir}/etc/apt/sources.list.d/csv-align.sources"
+          grep -Fx "Signed-By: /usr/share/keyrings/csv-align-archive-keyring.pgp" "${setup_extract_dir}/etc/apt/sources.list.d/csv-align.sources"
 
           chmod 700 "${verification_home}"
           GNUPGHOME="${verification_home}" gpg --batch --import apt-repository/csv-align-archive-keyring.pgp
@@ -436,6 +458,20 @@ jobs:
             apt-repository/dists/stable/Release
 
           tar -C apt-repository -czf "csv-align-apt-repository-${RELEASE_TAG}.tar.gz" .
+          mkdir -p pages-site/apt
+          cp -a apt-repository/. pages-site/apt/
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload APT repository Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: pages-site
+
+      - name: Deploy APT repository to GitHub Pages
+        id: deploy_apt_pages
+        uses: actions/deploy-pages@v4
 
       - name: Upload Linux packages
         uses: softprops/action-gh-release@v2
@@ -445,6 +481,7 @@ jobs:
             release-artifacts/**/*.deb
             release-artifacts/**/*.AppImage
             csv-align-apt-repository-*.tar.gz
+            csv-align-repository-setup_*.deb
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

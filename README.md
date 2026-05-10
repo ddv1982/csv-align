@@ -30,6 +30,33 @@ If additional desktop platforms are restored in the release workflow later, thei
 
 Linux note: Tauri v2 Linux builds require a distro with **WebKitGTK 4.1**.
 
+## Install on Linux
+
+The recommended Linux install route is the repository-backed package. It lets APT and repository-backed software centers receive CSV Align package metadata, AppStream/DEP-11 metadata, and future updates from the same signed source.
+
+1. Download the repository setup package from the GitHub Releases page, for example `csv-align-repository-setup_1.0_all.deb`.
+2. Install the setup package once. It installs the CSV Align archive keyring and APT source configuration:
+
+   ```bash
+   sudo apt install ./csv-align-repository-setup_1.0_all.deb
+   ```
+
+3. Refresh APT metadata:
+
+   ```bash
+   sudo apt update
+   ```
+
+4. Install CSV Align:
+
+   ```bash
+   sudo apt install csv-align
+   ```
+
+After the repository is enabled and system metadata has refreshed, CSV Align can also be installed by searching for “CSV Align” in GNOME Software or Ubuntu Software. If the app does not appear immediately, refresh package metadata with `sudo apt update` and allow the software center/AppStream cache to update before searching again.
+
+The standalone `.deb` release asset remains available as a fallback for direct installation. It should contain correct desktop and license metadata, but it cannot provide the same repository-level Software Center discoverability as the signed APT repository.
+
 ## Quick start
 
 ### Prerequisites

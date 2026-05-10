@@ -39,6 +39,12 @@ DEFAULT_COMPONENT_ID = "com.csvalign.desktop"
 DEFAULT_ORIGIN = "csv-align-stable-main"
 DEFAULT_LABEL = "CSV Align"
 DEFAULT_DESCRIPTION = "CSV Align APT repository"
+DEFAULT_REPOSITORY_URL = "https://ddv1982.github.io/csv-align/apt/"
+DEFAULT_SETUP_PACKAGE_NAME = "csv-align-repository-setup"
+DEFAULT_SETUP_PACKAGE_VERSION = "1.0"
+DEFAULT_SETUP_MAINTAINER = "CSV Align <noreply@csvalign.invalid>"
+DEFAULT_SETUP_KEYRING_PATH = "/usr/share/keyrings/csv-align-archive-keyring.pgp"
+DEFAULT_SETUP_SOURCES_PATH = "/etc/apt/sources.list.d/csv-align.sources"
 
 
 @dataclass(frozen=True)
@@ -345,6 +351,68 @@ def gzip_write(path: pathlib.Path, data: bytes) -> None:
             gz.write(data)
 
 
+def gzip_bytes(data: bytes) -> bytes:
+    buffer = io.BytesIO()
+    with gzip.GzipFile(filename="", mode="wb", fileobj=buffer, mtime=0) as gz:
+        gz.write(data)
+    return buffer.getvalue()
+
+
+def normalize_deb_data_path(path: str) -> str:
+    if not path.startswith("/"):
+        raise ValueError(f"Debian package install path must be absolute: {path!r}")
+    parts = pathlib.PurePosixPath(path).parts
+    if len(parts) < 2 or parts[0] != "/":
+        raise ValueError(f"unsafe Debian package path: {path!r}")
+    data_parts = parts[1:]
+    if any(part in {".", ".."} or any(ord(char) < 32 for char in part) for part in data_parts):
+        raise ValueError(f"unsafe Debian package path: {path!r}")
+    return "/".join(data_parts)
+
+
+def tar_gz_bytes(files: dict[str, tuple[bytes, int]]) -> bytes:
+    buffer = io.BytesIO()
+    with tarfile.open(fileobj=buffer, mode="w") as tar:
+        for name, (data, mode) in sorted(files.items()):
+            info = tarfile.TarInfo(name)
+            info.size = len(data)
+            info.mode = mode
+            info.mtime = 0
+            info.uid = 0
+            info.gid = 0
+            info.uname = "root"
+            info.gname = "root"
+            tar.addfile(info, io.BytesIO(data))
+    return gzip_bytes(buffer.getvalue())
+
+
+def ar_member(name: str, data: bytes) -> bytes:
+    encoded_name = f"{name}/".encode("ascii")
+    if len(encoded_name) > 16:
+        raise ValueError(f"ar member name is too long: {name}")
+    header = (
+        encoded_name.ljust(16, b" ")
+        + b"0".ljust(12, b" ")
+        + b"0".ljust(6, b" ")
+        + b"0".ljust(6, b" ")
+        + b"100644".ljust(8, b" ")
+        + str(len(data)).encode("ascii").ljust(10, b" ")
+        + b"`\n"
+    )
+    padding = b"\n" if len(data) % 2 else b""
+    return header + data + padding
+
+
+def write_deb_archive(output: pathlib.Path, control_files: dict[str, tuple[bytes, int]], data_files: dict[str, tuple[bytes, int]]) -> None:
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_bytes(
+        b"!<arch>\n"
+        + ar_member("debian-binary", b"2.0\n")
+        + ar_member("control.tar.gz", tar_gz_bytes(control_files))
+        + ar_member("data.tar.gz", tar_gz_bytes(data_files))
+    )
+
+
 def file_hashes(path: pathlib.Path) -> tuple[str, str, str, int]:
     data = path.read_bytes()
     return (
@@ -420,6 +488,84 @@ def export_public_key(args: argparse.Namespace) -> None:
         subprocess.run([*base, "--export", args.gpg_key], check=True, stdout=handle)
 
 
+def setup_sources_text(args: argparse.Namespace, architectures: list[str], signed_by_path: str) -> str:
+    lines = [
+        "Types: deb",
+        f"URIs: {args.repository_url}",
+        f"Suites: {args.suite}",
+        f"Components: {args.component}",
+    ]
+    if architectures:
+        lines.append(f"Architectures: {' '.join(architectures)}")
+    lines.append(f"Signed-By: {signed_by_path}")
+    return "\n".join(lines) + "\n"
+
+
+def setup_keyring_bytes(args: argparse.Namespace) -> bytes:
+    key_path = args.setup_public_key or args.public_key_out
+    if not key_path:
+        raise ValueError(
+            "--setup-package-out requires --setup-public-key, or signed generation with --public-key-out"
+        )
+    keyring = pathlib.Path(key_path)
+    if not keyring.is_file():
+        raise ValueError(f"repository setup keyring source does not exist: {keyring}")
+    data = keyring.read_bytes()
+    if not data:
+        raise ValueError(f"repository setup keyring source is empty: {keyring}")
+    return data
+
+
+def build_setup_package(args: argparse.Namespace, architectures: list[str]) -> None:
+    if not args.setup_package_out:
+        return
+
+    keyring_path = normalize_deb_data_path(args.setup_keyring_path)
+    sources_path = normalize_deb_data_path(args.setup_sources_path)
+    keyring_install_path = f"/{keyring_path}"
+    sources_install_path = f"/{sources_path}"
+    keyring = setup_keyring_bytes(args)
+    sources = setup_sources_text(args, architectures, keyring_install_path).encode("utf-8")
+    data_files = {
+        f"./{keyring_path}": (keyring, 0o644),
+        f"./{sources_path}": (sources, 0o644),
+    }
+    md5sums = "".join(
+        f"{hashlib.md5(data, usedforsecurity=False).hexdigest()}  {name.removeprefix('./')}\n"
+        for name, (data, _mode) in sorted(data_files.items())
+    ).encode("utf-8")
+    control = (
+        f"Package: {args.setup_package_name}\n"
+        f"Version: {args.setup_package_version}\n"
+        "Architecture: all\n"
+        "Section: admin\n"
+        "Priority: optional\n"
+        f"Maintainer: {args.setup_maintainer}\n"
+        "Depends: apt, ca-certificates\n"
+        "Description: CSV Align APT repository setup package\n"
+        " Installs the CSV Align archive keyring and Deb822 source configuration.\n"
+    ).encode("utf-8")
+    control_files = {
+        "./control": (control, 0o644),
+        "./conffiles": ((sources_install_path + "\n").encode("utf-8"), 0o644),
+        "./md5sums": (md5sums, 0o644),
+    }
+    write_deb_archive(pathlib.Path(args.setup_package_out), control_files, data_files)
+
+
+def normalized_pool_filename(fields: dict[str, str]) -> str:
+    package = fields.get("Package")
+    version = fields.get("Version")
+    arch = fields.get("Architecture")
+    if not package or not version or not arch:
+        raise ValueError("Debian control file must declare Package, Version, and Architecture")
+    values = {"Package": package, "Version": version, "Architecture": arch}
+    for key, value in values.items():
+        if any(char in value for char in ("/", "\x00", "\n", "\r")) or value in {".", ".."}:
+            raise ValueError(f"unsafe {key} value for pool filename: {value!r}")
+    return f"{package}_{version}_{arch}.deb"
+
+
 def collect_package(deb_path: pathlib.Path, pool_path: pathlib.PurePosixPath) -> DebPackage:
     fields, metainfo, desktop_fields = deb_control_metainfo_and_desktop(deb_path)
     package = fields.get("Package")
@@ -453,8 +599,11 @@ def build_repository(args: argparse.Namespace) -> None:
         source = pathlib.Path(deb).resolve()
         if not source.is_file():
             raise ValueError(f"missing .deb artifact: {source}")
-        pool_rel = pathlib.PurePosixPath("pool/main/c/csv-align") / source.name
+        fields, _metainfo, _desktop_fields = deb_control_metainfo_and_desktop(source)
+        pool_rel = pathlib.PurePosixPath("pool/main/c/csv-align") / normalized_pool_filename(fields)
         destination = repo_root / pool_rel
+        if destination.exists():
+            raise ValueError(f"duplicate normalized package output path: {pool_rel}")
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, destination)
         packages.append(collect_package(destination, pool_rel))
@@ -486,10 +635,13 @@ def build_repository(args: argparse.Namespace) -> None:
     release_path = repo_root / "dists" / args.suite / "Release"
     release_path.write_text(release_file(repo_root, args, sorted(by_arch)), encoding="utf-8")
 
+    architectures = sorted(by_arch)
     if args.unsigned:
+        build_setup_package(args, architectures)
         return
     sign_release(args, release_path)
     export_public_key(args)
+    build_setup_package(args, architectures)
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -501,10 +653,40 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--origin", default=DEFAULT_ORIGIN, help="Release/DEP-11 origin")
     parser.add_argument("--label", default=DEFAULT_LABEL, help="Release label")
     parser.add_argument("--description", default=DEFAULT_DESCRIPTION, help="Release description")
+    parser.add_argument(
+        "--repository-url",
+        default=DEFAULT_REPOSITORY_URL,
+        help="public HTTPS base URL used in the optional repository setup package",
+    )
     parser.add_argument("--gpg-key", help="GPG key id/fingerprint used for signing")
     parser.add_argument("--gpg-homedir", help="GPG home directory containing the signing key")
     parser.add_argument("--gpg-passphrase-file", help="optional passphrase file for loopback signing")
     parser.add_argument("--public-key-out", help="optional path for binary gpg --export output")
+    parser.add_argument(
+        "--setup-package-out",
+        help="optional path for csv-align-repository-setup_<version>_all.deb output",
+    )
+    parser.add_argument(
+        "--setup-public-key",
+        help="public keyring bytes to install in the optional repository setup package; defaults to --public-key-out",
+    )
+    parser.add_argument("--setup-package-name", default=DEFAULT_SETUP_PACKAGE_NAME, help="repository setup package name")
+    parser.add_argument(
+        "--setup-package-version",
+        default=DEFAULT_SETUP_PACKAGE_VERSION,
+        help="repository setup package version, independent from the app version",
+    )
+    parser.add_argument("--setup-maintainer", default=DEFAULT_SETUP_MAINTAINER, help="repository setup package maintainer")
+    parser.add_argument(
+        "--setup-keyring-path",
+        default=DEFAULT_SETUP_KEYRING_PATH,
+        help="absolute keyring install path used by the setup package",
+    )
+    parser.add_argument(
+        "--setup-sources-path",
+        default=DEFAULT_SETUP_SOURCES_PATH,
+        help="absolute Deb822 source install path used by the setup package",
+    )
     parser.add_argument("--clean", action="store_true", help="remove output directory before generating")
     parser.add_argument(
         "--unsigned",
@@ -524,6 +706,8 @@ def main() -> int:
         )
     if args.unsigned and args.public_key_out:
         parser.error("--public-key-out requires signed generation")
+    if args.setup_package_out and args.unsigned and not args.setup_public_key:
+        parser.error("--setup-package-out with --unsigned requires --setup-public-key")
     try:
         build_repository(args)
     except Exception as error:  # noqa: BLE001 - CLI should surface concise failures

@@ -127,6 +127,8 @@ fn linux_deb_metadata_validator_accepts_metadata_fixture() {
 fn apt_repository_builder_generates_unsigned_packages_release_and_dep11() {
     let fixture = DebMetadataFixture::new(DESKTOP_ID, DESKTOP_ID);
     let repo_dir = fixture.root.path().join("apt-repo");
+    let spaced_source_deb = fixture.root.path().join("CSV Align_9.9.9_amd64.deb");
+    fs::copy(&fixture.deb_path, &spaced_source_deb).expect("copy fixture to spaced source path");
 
     let output = Command::new(python3_path())
         .arg(apt_repository_script_path())
@@ -135,7 +137,7 @@ fn apt_repository_builder_generates_unsigned_packages_release_and_dep11() {
         .arg("test")
         .arg("--output")
         .arg(&repo_dir)
-        .arg(&fixture.deb_path)
+        .arg(&spaced_source_deb)
         .output()
         .expect("run APT repository builder");
     assert!(output.status.success(), "{output:#?}");
@@ -143,7 +145,8 @@ fn apt_repository_builder_generates_unsigned_packages_release_and_dep11() {
     let packages = fs::read_to_string(repo_dir.join("dists/test/main/binary-amd64/Packages"))
         .expect("read Packages");
     assert!(packages.contains("Package: csv-align"));
-    assert!(packages.contains("Filename: pool/main/c/csv-align/CSV.Align_9.9.9_amd64.deb"));
+    assert!(packages.contains("Filename: pool/main/c/csv-align/csv-align_9.9.9_amd64.deb"));
+    assert!(!packages.contains("CSV Align_9.9.9_amd64.deb"));
     assert!(
         repo_dir
             .join("dists/test/main/binary-amd64/Packages.gz")
@@ -175,11 +178,81 @@ fn apt_repository_builder_generates_unsigned_packages_release_and_dep11() {
     );
     assert!(
         repo_dir
-            .join("pool/main/c/csv-align/CSV.Align_9.9.9_amd64.deb")
+            .join("pool/main/c/csv-align/csv-align_9.9.9_amd64.deb")
             .is_file()
+    );
+    assert!(
+        !repo_dir
+            .join("pool/main/c/csv-align/CSV Align_9.9.9_amd64.deb")
+            .exists()
     );
     assert!(!repo_dir.join("dists/test/InRelease").exists());
     assert!(!repo_dir.join("dists/test/Release.gpg").exists());
+}
+
+#[test]
+fn apt_repository_builder_generates_repository_setup_package() {
+    let fixture = DebMetadataFixture::new(DESKTOP_ID, DESKTOP_ID);
+    let repo_dir = fixture.root.path().join("apt-repo");
+    let keyring_path = fixture.root.path().join("csv-align-archive-keyring.pgp");
+    let setup_deb_path = fixture
+        .root
+        .path()
+        .join("csv-align-repository-setup_1.0_all.deb");
+    fs::write(&keyring_path, "fake test keyring\n").expect("write fake keyring");
+
+    let output = Command::new(python3_path())
+        .arg(apt_repository_script_path())
+        .arg("--unsigned")
+        .arg("--suite")
+        .arg("stable")
+        .arg("--output")
+        .arg(&repo_dir)
+        .arg("--setup-public-key")
+        .arg(&keyring_path)
+        .arg("--setup-package-out")
+        .arg(&setup_deb_path)
+        .arg(&fixture.deb_path)
+        .output()
+        .expect("run APT repository builder with setup package output");
+    assert!(output.status.success(), "{output:#?}");
+    assert!(setup_deb_path.is_file());
+
+    let setup_package = inspect_deb_package(&setup_deb_path);
+    let control = setup_package["control"].as_str().expect("control text");
+    assert!(control.contains("Package: csv-align-repository-setup"));
+    assert!(control.contains("Version: 1.0"));
+    assert!(control.contains("Architecture: all"));
+    assert!(control.contains("Depends: apt, ca-certificates"));
+
+    let files = setup_package["files"].as_array().expect("file list");
+    assert!(
+        files
+            .iter()
+            .any(|file| file == "usr/share/keyrings/csv-align-archive-keyring.pgp")
+    );
+    assert!(
+        files
+            .iter()
+            .any(|file| file == "etc/apt/sources.list.d/csv-align.sources")
+    );
+    assert_eq!(
+        setup_package["keyring"].as_str(),
+        Some("fake test keyring\n")
+    );
+
+    let sources = setup_package["sources"].as_str().expect("sources text");
+    assert!(sources.contains("Types: deb"));
+    assert!(sources.contains("URIs: https://ddv1982.github.io/csv-align/apt/"));
+    assert!(sources.contains("Suites: stable"));
+    assert!(sources.contains("Components: main"));
+    assert!(sources.contains("Architectures: amd64"));
+    assert!(sources.contains("Signed-By: /usr/share/keyrings/csv-align-archive-keyring.pgp"));
+
+    assert_eq!(
+        setup_package["conffiles"].as_str(),
+        Some("/etc/apt/sources.list.d/csv-align.sources\n")
+    );
 }
 
 #[test]
@@ -425,6 +498,17 @@ fn python3_path() -> PathBuf {
     PathBuf::from(String::from_utf8_lossy(&output.stdout).trim())
 }
 
+fn inspect_deb_package(path: &Path) -> Value {
+    let output = Command::new(python3_path())
+        .arg("-c")
+        .arg(INSPECT_DEB_PACKAGE_PY)
+        .arg(path)
+        .output()
+        .expect("inspect deb package");
+    assert!(output.status.success(), "{output:#?}");
+    serde_json::from_slice(&output.stdout).expect("inspection JSON")
+}
+
 fn gpg_path() -> Option<PathBuf> {
     let output = Command::new("python3")
         .arg("-c")
@@ -491,6 +575,51 @@ fn parse_package_version(path: &Path) -> String {
     }
     panic!("missing package version in {path:?}")
 }
+
+const INSPECT_DEB_PACKAGE_PY: &str = r#"
+import io
+import json
+import pathlib
+import sys
+import tarfile
+
+path = pathlib.Path(sys.argv[1])
+entries = {}
+with path.open('rb') as handle:
+    if handle.read(8) != b'!<arch>\n':
+        raise SystemExit('not a deb ar archive')
+    while True:
+        header = handle.read(60)
+        if not header:
+            break
+        name = header[:16].decode('utf-8').strip().rstrip('/')
+        size = int(header[48:58].decode('ascii').strip())
+        data = handle.read(size)
+        if size % 2:
+            handle.read(1)
+        entries[name] = data
+
+result = {'files': []}
+for archive_name, prefix in [('control.tar.gz', 'control'), ('data.tar.gz', 'data')]:
+    with tarfile.open(fileobj=io.BytesIO(entries[archive_name]), mode='r:gz') as tar:
+        for member in tar.getmembers():
+            if not member.isfile():
+                continue
+            normalized = member.name.removeprefix('./')
+            data = tar.extractfile(member).read()
+            if archive_name == 'data.tar.gz':
+                result['files'].append(normalized)
+            if normalized == 'control':
+                result['control'] = data.decode('utf-8')
+            elif normalized == 'conffiles':
+                result['conffiles'] = data.decode('utf-8')
+            elif normalized == 'usr/share/keyrings/csv-align-archive-keyring.pgp':
+                result['keyring'] = data.decode('utf-8')
+            elif normalized == 'etc/apt/sources.list.d/csv-align.sources':
+                result['sources'] = data.decode('utf-8')
+
+print(json.dumps(result, sort_keys=True))
+"#;
 
 const CREATE_DEB_FIXTURE_PY: &str = r#"
 import io

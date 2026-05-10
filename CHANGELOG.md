@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.65 - 2026-05-10
+
+- Published the repository-backed Linux install path, including the setup package asset, GitHub Pages APT deployment, and release-time repository sanity checks.
+- Hardened APT repository generation by deriving pool filenames from Debian control metadata and covering setup-package contents plus spaced source artifact names in tests.
+
 ## v2.1.64 - 2026-05-10
 
 - Added signed APT repository generation for Linux releases, including Packages indexes, Release/InRelease signatures, exported keyring material, and DEP-11 catalog metadata for software centers.

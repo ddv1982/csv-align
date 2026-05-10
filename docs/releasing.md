@@ -102,9 +102,13 @@ Maintainers can verify a downloaded release asset locally after importing the pu
 dpkg-sig --verify-role builder path/to/csv-align_*.deb
 ```
 
-## APT repository release asset prerequisites
+## APT repository and Software Center publishing
 
-Tagged releases also build a minimal signed APT repository from the exact `.deb` artifact downloaded from CI. The release workflow publishes it as `csv-align-apt-repository-vX.Y.Z.tar.gz`. The tarball is a static repository tree suitable for syncing to HTTPS hosting, for example GitHub Pages or another static web host:
+Tagged releases also build a minimal signed APT repository from the exact `.deb` artifact downloaded from CI. The release workflow publishes it both as `csv-align-apt-repository-vX.Y.Z.tar.gz` and to GitHub Pages under `https://ddv1982.github.io/csv-align/apt/`. GitHub Pages must be configured to deploy from GitHub Actions for this hosted route to work. If hosting changes, update the repository setup package and this document together.
+
+The release should also publish a repository setup package, intended as `csv-align-repository-setup_1.0_all.deb`. That setup package is independently versioned from the app and should change only when the repository URL, keyring, source configuration, or pinning changes. It installs the archive keyring and Deb822 source file so users can enable the CSV Align repository once, then run `sudo apt update` and install `csv-align` through APT or a repository-backed software center.
+
+The repository is a static tree suitable for GitHub Pages or another static HTTPS host:
 
 ```text
 pool/main/c/csv-align/csv-align_*.deb
@@ -138,15 +142,34 @@ python3 scripts/build_apt_repository.py \
 
 Use `--unsigned` only for local smoke tests; do not publish an unsigned APT repository.
 
-After syncing the extracted repository tree to HTTPS hosting, users should install it with a `Signed-By` keyring file rather than `apt-key` or global trust. Example for a repository hosted at `https://example.com/csv-align-apt/`:
+The release workflow copies the generated tree into the Pages artifact at `apt/`, so the `dists/`, `pool/`, and `csv-align-archive-keyring.pgp` entries should be reachable under `https://ddv1982.github.io/csv-align/apt/` after the Pages deploy completes. The tarball remains useful for audit or manual recovery if Pages deployment needs to be repaired.
+
+After the Pages deploy, verify the hosted repository metadata before announcing the release:
+
+```bash
+curl -fsSI https://ddv1982.github.io/csv-align/apt/dists/stable/InRelease
+curl -fsSI https://ddv1982.github.io/csv-align/apt/dists/stable/main/binary-amd64/Packages.gz
+curl -fsSI https://ddv1982.github.io/csv-align/apt/dists/stable/main/dep11/Components-amd64.yml.gz
+curl -fsSI https://ddv1982.github.io/csv-align/apt/csv-align-archive-keyring.pgp
+```
+
+Users should normally install the repository with the setup package rather than by hand:
+
+```bash
+sudo apt install ./csv-align-repository-setup_1.0_all.deb
+sudo apt update
+sudo apt install csv-align
+```
+
+If the setup package is unavailable during maintainer testing, use a `Signed-By` keyring file rather than `apt-key` or global trust. Example for the intended hosted repository:
 
 ```bash
 sudo install -d -m 0755 /etc/apt/keyrings
-curl -fsSL https://example.com/csv-align-apt/csv-align-archive-keyring.pgp \
+curl -fsSL https://ddv1982.github.io/csv-align/apt/csv-align-archive-keyring.pgp \
   | sudo tee /etc/apt/keyrings/csv-align-archive-keyring.pgp >/dev/null
 sudo tee /etc/apt/sources.list.d/csv-align.sources >/dev/null <<'EOF'
 Types: deb
-URIs: https://example.com/csv-align-apt/
+URIs: https://ddv1982.github.io/csv-align/apt/
 Suites: stable
 Components: main
 Architectures: amd64
@@ -156,7 +179,20 @@ sudo apt update
 sudo apt install csv-align
 ```
 
-The repository includes DEP-11 `Components-amd64.yml.gz` metadata generated from the packaged AppStream metainfo and desktop file. That catalog-level metadata is what gives APT-backed software centers the strongest package-to-app license association.
+The repository includes DEP-11 `Components-amd64.yml.gz` metadata generated from the packaged AppStream metainfo and desktop file. That catalog-level metadata is what gives APT-backed software centers the strongest package-to-app license association. CSV Align becomes searchable in GNOME Software or Ubuntu Software only after the repository is enabled and package/AppStream metadata caches have refreshed.
+
+Verify the repository-backed install path in a clean Ubuntu/Debian VM before claiming Software Center availability:
+
+```bash
+sudo apt install ./csv-align-repository-setup_1.0_all.deb
+sudo apt update
+apt-cache policy csv-align
+sudo apt install csv-align
+appstreamcli refresh-cache --force
+appstreamcli get com.csvalign.desktop --details
+```
+
+The `apt-cache policy` output should resolve `csv-align` from the CSV Align repository, and the AppStream details should report package `csv-align`, desktop launchable `com.csvalign.desktop.desktop`, binary `csv-align`, and project license `MIT`. Then open GNOME Software or Ubuntu Software, search for “CSV Align,” and confirm the app can be installed from the repository-backed result.
 
 ## Linux software-center metadata verification
 
