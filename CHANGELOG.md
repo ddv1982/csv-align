@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.1.69 - 2026-05-10
+
+- Fixed the Linux APT repository setup installer so the downloaded temporary setup package is readable by APT's `_apt` sandbox before installation, avoiding the unsandboxed root access notice.
+
 ## v2.1.68 - 2026-05-10
 
 - Clarified the Linux install lore so the one-time APT repository setup and normal package install commands are shown as separate terminal steps.

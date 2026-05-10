@@ -32,6 +32,7 @@ case "$downloader" in
     wget -qO "$setup_deb" "$setup_url"
     ;;
 esac
+chmod 0644 "$setup_deb"
 
 printf 'Installing CSV Align APT repository setup package...\n'
 sudo apt install -y "$setup_deb"
