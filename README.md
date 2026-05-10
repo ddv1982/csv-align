@@ -49,7 +49,7 @@ sudo apt update
 sudo apt install csv-align
 ```
 
-The setup script downloads the repository setup package to a temporary file, installs the CSV Align archive keyring and APT source configuration, then removes the temporary file.
+Run the setup script only once per machine. It downloads the repository setup package to a temporary file, installs the CSV Align archive keyring and APT source configuration, then removes the temporary file. After that, use normal `sudo apt update` and `sudo apt install csv-align` commands for installs and updates.
 
 After the repository is enabled and system metadata has refreshed, CSV Align can also be installed by searching for “CSV Align” in GNOME Software or Ubuntu Software. If the app does not appear immediately, refresh package metadata with `sudo apt update` and allow the software center/AppStream cache to update before searching again.
 
