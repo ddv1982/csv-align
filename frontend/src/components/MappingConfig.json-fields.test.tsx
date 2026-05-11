@@ -63,12 +63,12 @@ test('allows users to enable equivalent number cleanup', () => {
   });
 });
 
-test('allows users to enable flexible row-key wildcard matching', () => {
+test('allows users to enable flexible row-key matching', () => {
   const onNormalizationChange = vi.fn();
 
   renderMappingConfig({ onNormalizationChange });
 
-  fireEvent.click(screen.getByLabelText('Enable ** wildcard matching for row keys'));
+  fireEvent.click(screen.getByLabelText('Enable flexible row-key matching'));
 
   expect(onNormalizationChange).toHaveBeenCalledWith({
     ...INITIAL_NORMALIZATION_CONFIG,

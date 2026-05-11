@@ -71,13 +71,13 @@ export function NormalizationPanel({
       <div className="space-y-4">
         <RuleGroup
           title="Row-key matching"
-          description="Exact key matching stays on unless you explicitly enable wildcard matching."
+          description="Exact key matching stays on unless you explicitly enable flexible matching."
         >
           <CheckboxRule
             checked={normalization.flexible_key_matching}
             onChange={(checked) => onChange({ flexible_key_matching: checked })}
-            label="Enable ** wildcard matching for row keys"
-            helpText="Use ** to match variable row-key text, including across row-key columns. When enabled, ** can bridge different selected row-key counts."
+            label="Enable flexible row-key matching"
+            helpText="Use ** to match variable row-key text, including across row-key columns. This can also pair rows without ** when shared anchored key tokens and another key part line up, so review broad matches."
           />
         </RuleGroup>
 

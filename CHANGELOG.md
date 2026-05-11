@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.74 - 2026-05-11
+
+- Hardened flexible row-key matching so shared anchors respect case-sensitive normalization and reject conflicting numeric or embedded identifier tokens.
+- Added limits and regression coverage for broad flexible key scans so wildcard-style matching fails fast with actionable guidance instead of doing excessive pair comparisons.
+
 ## v2.1.73 - 2026-05-11
 
 - Supported flexible `**` row-key matching across mismatched selected key counts while preserving File A key shape in compare responses and CSV exports.

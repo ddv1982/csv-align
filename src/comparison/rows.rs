@@ -62,6 +62,7 @@ pub(super) fn split_rows_by_key_usable(
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum FlexibleKeyMatch {
+    SharedAnchoredToken,
     BoundaryWildcard,
     ComponentWildcard,
     Exact,
@@ -70,9 +71,10 @@ pub(super) enum FlexibleKeyMatch {
 impl FlexibleKeyMatch {
     pub(super) fn preference_rank(self) -> u8 {
         match self {
-            FlexibleKeyMatch::BoundaryWildcard => 0,
-            FlexibleKeyMatch::ComponentWildcard => 1,
-            FlexibleKeyMatch::Exact => 2,
+            FlexibleKeyMatch::SharedAnchoredToken => 0,
+            FlexibleKeyMatch::BoundaryWildcard => 1,
+            FlexibleKeyMatch::ComponentWildcard => 2,
+            FlexibleKeyMatch::Exact => 3,
         }
     }
 }
@@ -105,6 +107,8 @@ pub(super) fn classify_flexible_key_match(
         if intersection.boundary_consumed_by_wildcard {
             return Some(FlexibleKeyMatch::BoundaryWildcard);
         }
+    } else if shared_anchored_tokens_match(key_a, key_b) {
+        return Some(FlexibleKeyMatch::SharedAnchoredToken);
     }
 
     None
@@ -160,6 +164,118 @@ struct WildcardIntersection {
 
 fn key_contains_wildcard(key: &[String]) -> bool {
     key.iter().any(|component| component.contains("**"))
+}
+
+fn shared_anchored_tokens_match(key_a: &[String], key_b: &[String]) -> bool {
+    if key_a.len() != key_b.len() {
+        return false;
+    }
+
+    let mut exact_component_count = 0;
+    let mut shared_alpha_count = 0;
+    let mut shares_number = false;
+    let mut shared_component_count = 0;
+
+    for (component_a, component_b) in key_a.iter().zip(key_b) {
+        if component_a == component_b {
+            exact_component_count += 1;
+            continue;
+        }
+
+        let tokens_a = key_token_set(std::slice::from_ref(component_a));
+        let tokens_b = key_token_set(std::slice::from_ref(component_b));
+        let component_shared_alpha_count = tokens_a.alpha.intersection(&tokens_b.alpha).count();
+        let component_shares_number = tokens_a
+            .numeric
+            .iter()
+            .any(|token| tokens_b.numeric.contains(token));
+
+        if component_shared_alpha_count == 0 {
+            return false;
+        }
+
+        if (!tokens_a.numeric.is_empty() || !tokens_b.numeric.is_empty())
+            && !component_shares_number
+        {
+            return false;
+        }
+
+        shared_alpha_count += component_shared_alpha_count;
+        shares_number |= component_shares_number;
+        shared_component_count += 1;
+    }
+
+    shared_component_count > 0
+        && shared_alpha_count > 0
+        && (exact_component_count > 0 || shares_number || shared_alpha_count >= 2)
+}
+
+#[derive(Default)]
+struct KeyTokenSet {
+    alpha: HashSet<String>,
+    numeric: HashSet<String>,
+}
+
+fn key_token_set(key: &[String]) -> KeyTokenSet {
+    let mut token_set = KeyTokenSet::default();
+
+    for component in key {
+        for token in alphanumeric_tokens(component) {
+            if token.chars().all(|character| character.is_ascii_digit()) {
+                token_set.numeric.insert(token);
+            } else {
+                for numeric_token in ascii_digit_runs(&token) {
+                    token_set.numeric.insert(numeric_token);
+                }
+
+                if token.chars().any(|character| character.is_alphabetic())
+                    && token.chars().count() >= 4
+                {
+                    token_set.alpha.insert(token);
+                }
+            }
+        }
+    }
+
+    token_set
+}
+
+fn ascii_digit_runs(value: &str) -> Vec<String> {
+    let mut runs = Vec::new();
+    let mut current = String::new();
+
+    for character in value.chars() {
+        if character.is_ascii_digit() {
+            current.push(character);
+        } else if !current.is_empty() {
+            runs.push(std::mem::take(&mut current));
+        }
+    }
+
+    if !current.is_empty() {
+        runs.push(current);
+    }
+
+    runs
+}
+
+fn alphanumeric_tokens(value: &str) -> Vec<String> {
+    let mut tokens = Vec::new();
+    let mut current = String::new();
+
+    for character in value.chars() {
+        if character.is_alphanumeric() {
+            current.push(character);
+        } else if !current.is_empty() {
+            tokens.push(std::mem::take(&mut current));
+        }
+    }
+
+    if !current.is_empty() {
+        tokens.push(current);
+    }
+
+    tokens
 }
 
 fn wildcard_patterns_intersect(pattern_a: &str, pattern_b: &str) -> bool {

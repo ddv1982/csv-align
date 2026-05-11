@@ -43,9 +43,9 @@ test('shows grouped comparison rules and labels', () => {
   expect(screen.getByText('Missing values')).toBeInTheDocument();
   expect(screen.getByText('Text and numbers')).toBeInTheDocument();
   expect(screen.getByText('Dates')).toBeInTheDocument();
-  expect(screen.getByLabelText('Enable ** wildcard matching for row keys')).toBeInTheDocument();
-  expect(screen.getByText('Use ** to match variable row-key text, including across row-key columns. When enabled, ** can bridge different selected row-key counts.')).toBeInTheDocument();
-  expect(screen.getByLabelText('Enable ** wildcard matching for row keys')).not.toBeChecked();
+  expect(screen.getByLabelText('Enable flexible row-key matching')).toBeInTheDocument();
+  expect(screen.getByText('Use ** to match variable row-key text, including across row-key columns. This can also pair rows without ** when shared anchored key tokens and another key part line up, so review broad matches.')).toBeInTheDocument();
+  expect(screen.getByLabelText('Enable flexible row-key matching')).not.toBeChecked();
   expect(screen.getByLabelText('Treat blank cells as missing')).toBeInTheDocument();
   expect(screen.getByText('Also treat these values as missing')).toBeInTheDocument();
   expect(screen.getByLabelText('Round numeric values to a chosen number of decimal places before comparing')).toBeInTheDocument();

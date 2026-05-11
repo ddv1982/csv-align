@@ -343,6 +343,147 @@ fn run_comparison_rejects_excessive_flexible_key_candidate_sets() {
 }
 
 #[test]
+fn run_comparison_rejects_excessive_shared_token_candidate_sets() {
+    const ROW_COUNT_A: usize = 101;
+    const ROW_COUNT_B: usize = 100;
+
+    fn alpha_suffix(mut index: usize) -> String {
+        let mut suffix = String::new();
+        for _ in 0..3 {
+            suffix.push((b'A' + (index % 26) as u8) as char);
+            index /= 26;
+        }
+        suffix
+    }
+
+    let csv_a = CsvData {
+        file_path: Some("left.csv".to_string()),
+        headers: vec![
+            "batch".to_string(),
+            "label".to_string(),
+            "value".to_string(),
+        ],
+        rows: (0..ROW_COUNT_A)
+            .map(|index| {
+                vec![
+                    "BATCH".to_string(),
+                    format!("COMMON ANCHOR LEFT{}", alpha_suffix(index)),
+                    "same".to_string(),
+                ]
+            })
+            .collect(),
+    };
+    let csv_b = CsvData {
+        file_path: Some("right.csv".to_string()),
+        headers: vec![
+            "batch".to_string(),
+            "label".to_string(),
+            "value".to_string(),
+        ],
+        rows: (0..ROW_COUNT_B)
+            .map(|index| {
+                vec![
+                    "BATCH".to_string(),
+                    format!("COMMON ANCHOR RIGHT{}", alpha_suffix(index)),
+                    "same".to_string(),
+                ]
+            })
+            .collect(),
+    };
+
+    let error = run_comparison(
+        &csv_a,
+        &csv_b,
+        CompareRequest {
+            key_columns_a: vec!["batch".to_string(), "label".to_string()],
+            key_columns_b: vec!["batch".to_string(), "label".to_string()],
+            comparison_columns_a: vec!["value".to_string()],
+            comparison_columns_b: vec!["value".to_string()],
+            column_mappings: vec![MappingRequest {
+                file_a_column: "value".to_string(),
+                file_b_column: "value".to_string(),
+                mapping_type: "manual".to_string(),
+                similarity: None,
+            }],
+            normalization: ComparisonNormalizationConfig {
+                flexible_key_matching: true,
+                ..ComparisonNormalizationConfig::default()
+            },
+        },
+    )
+    .expect_err("dense shared-token candidates should fail fast");
+    let message = error.to_string();
+
+    match error {
+        CsvAlignError::Validation(CompareValidationError::TooManyFlexibleKeyCandidates {
+            candidate_count,
+            limit,
+        }) => {
+            assert_eq!(candidate_count, 10_001);
+            assert_eq!(limit, 10_000);
+        }
+        other => panic!("unexpected error: {other}"),
+    }
+    assert!(message.contains("exceeds the limit of 10000"));
+}
+
+#[test]
+fn run_comparison_rejects_excessive_flexible_key_pair_scans() {
+    const ROW_COUNT_A: usize = 1_001;
+    const ROW_COUNT_B: usize = 1_000;
+
+    let csv_a = CsvData {
+        file_path: Some("left.csv".to_string()),
+        headers: vec!["id".to_string(), "value".to_string()],
+        rows: (0..ROW_COUNT_A)
+            .map(|index| vec![format!("LEFTONLY{index:04}"), "same".to_string()])
+            .collect(),
+    };
+    let csv_b = CsvData {
+        file_path: Some("right.csv".to_string()),
+        headers: vec!["id".to_string(), "value".to_string()],
+        rows: (0..ROW_COUNT_B)
+            .map(|index| vec![format!("RIGHTONLY{index:04}"), "same".to_string()])
+            .collect(),
+    };
+
+    let error = run_comparison(
+        &csv_a,
+        &csv_b,
+        CompareRequest {
+            key_columns_a: vec!["id".to_string()],
+            key_columns_b: vec!["id".to_string()],
+            comparison_columns_a: vec!["value".to_string()],
+            comparison_columns_b: vec!["value".to_string()],
+            column_mappings: vec![MappingRequest {
+                file_a_column: "value".to_string(),
+                file_b_column: "value".to_string(),
+                mapping_type: "manual".to_string(),
+                similarity: None,
+            }],
+            normalization: ComparisonNormalizationConfig {
+                flexible_key_matching: true,
+                ..ComparisonNormalizationConfig::default()
+            },
+        },
+    )
+    .expect_err("large flexible key scan should fail fast");
+    let message = error.to_string();
+
+    match error {
+        CsvAlignError::Validation(CompareValidationError::TooManyFlexibleKeyComparisons {
+            comparison_count,
+            limit,
+        }) => {
+            assert_eq!(comparison_count, 1_000_001);
+            assert_eq!(limit, 1_000_000);
+        }
+        other => panic!("unexpected error: {other}"),
+    }
+    assert!(message.contains("would compare 1000001 key pairs"));
+}
+
+#[test]
 fn run_comparison_rejects_unknown_mapping_type() {
     let csv_a = csv_loader::load_csv_from_bytes(b"id,name\n1,Alice\n").unwrap();
     let csv_b = csv_loader::load_csv_from_bytes(b"id,name\n1,Alice\n").unwrap();

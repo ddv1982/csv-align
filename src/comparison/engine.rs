@@ -9,6 +9,33 @@ use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 
 pub(crate) const MAX_FLEXIBLE_KEY_CANDIDATES: usize = 10_000;
+pub(crate) const MAX_FLEXIBLE_KEY_COMPARISONS: usize = 1_000_000;
+
+pub(crate) fn bounded_flexible_key_comparison_count(
+    csv_a: &CsvData,
+    csv_b: &CsvData,
+    config: &ComparisonConfig,
+    limit: usize,
+) -> usize {
+    if !config.normalization.flexible_key_matching {
+        return 0;
+    }
+
+    let key_selections_a = get_column_selections(&csv_a.headers, &config.key_columns_a);
+    let key_selections_b = get_column_selections(&csv_b.headers, &config.key_columns_b);
+    let (map_a, _) = split_rows_by_key_usable(csv_a, &key_selections_a, &config.normalization);
+    let (map_b, _) = split_rows_by_key_usable(csv_b, &key_selections_b, &config.normalization);
+
+    if map_a.is_empty() || map_b.is_empty() {
+        return 0;
+    }
+
+    if map_a.len() > limit / map_b.len() {
+        return limit + 1;
+    }
+
+    map_a.len() * map_b.len()
+}
 
 pub(crate) fn bounded_flexible_key_candidate_count(
     csv_a: &CsvData,

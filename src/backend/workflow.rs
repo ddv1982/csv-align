@@ -265,6 +265,20 @@ pub fn run_comparison(
     let csv_a = csv_a.borrow();
     let csv_b = csv_b.borrow();
     let config = build_comparison_config(csv_a, csv_b, request)?;
+    let flexible_comparison_count = engine::bounded_flexible_key_comparison_count(
+        csv_a,
+        csv_b,
+        &config,
+        engine::MAX_FLEXIBLE_KEY_COMPARISONS,
+    );
+    if flexible_comparison_count > engine::MAX_FLEXIBLE_KEY_COMPARISONS {
+        return Err(CompareValidationError::TooManyFlexibleKeyComparisons {
+            comparison_count: flexible_comparison_count,
+            limit: engine::MAX_FLEXIBLE_KEY_COMPARISONS,
+        }
+        .into());
+    }
+
     let flexible_candidate_count = engine::bounded_flexible_key_candidate_count(
         csv_a,
         csv_b,

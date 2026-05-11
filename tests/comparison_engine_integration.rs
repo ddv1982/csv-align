@@ -833,6 +833,328 @@ fn test_compare_csv_data_matches_file_b_double_asterisk_across_mismatched_key_co
 }
 
 #[test]
+fn test_compare_csv_data_matches_single_key_shared_anchored_tokens_when_flexible_enabled() {
+    let csv_a = csv_data("left.csv", &["id", "value"], &[&["Node RF 7", "same"]]);
+    let csv_b = csv_data("right.csv", &["id", "value"], &[&["Delta Node 7", "same"]]);
+    let config = create_flexible_key_test_config(true);
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    assert!(
+        matches!(&results[0], RowComparisonResult::Match { key, .. } if key == &vec!["Node RF 7".to_string()])
+    );
+}
+
+#[test]
+fn test_compare_csv_data_matches_multi_key_shared_anchored_tokens_when_flexible_enabled() {
+    let csv_a = csv_data(
+        "left.csv",
+        &["name", "cycle", "value"],
+        &[&["Node RF", "7", "same"]],
+    );
+    let csv_b = csv_data(
+        "right.csv",
+        &["name", "cycle", "value"],
+        &[&["Delta Node", "7", "same"]],
+    );
+    let config = comparison_config(
+        &["name", "cycle"],
+        &["name", "cycle"],
+        &["value"],
+        &["value"],
+        &[("value", "value")],
+        ComparisonNormalizationConfig {
+            flexible_key_matching: true,
+            ..ComparisonNormalizationConfig::default()
+        },
+    );
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    assert!(matches!(
+        &results[0],
+        RowComparisonResult::Match { key, .. }
+            if key == &vec!["Node RF".to_string(), "7".to_string()]
+    ));
+}
+
+#[test]
+fn test_compare_csv_data_keeps_shared_anchored_tokens_exact_only_when_flexible_is_off() {
+    let csv_a = csv_data("left.csv", &["id", "value"], &[&["NODE RF 7", "left"]]);
+    let csv_b = csv_data("right.csv", &["id", "value"], &[&["Delta Node 7", "right"]]);
+    let config = create_flexible_key_test_config(false);
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 2);
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingRight { key, values_a }
+                if key == &vec!["NODE RF 7".to_string()]
+                    && values_a == &vec!["left".to_string()]
+        )
+    }));
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingLeft { key, values_b }
+                if key == &vec!["Delta Node 7".to_string()]
+                    && values_b == &vec!["right".to_string()]
+        )
+    }));
+}
+
+#[test]
+fn test_compare_csv_data_rejects_same_category_with_conflicting_numeric_key_part() {
+    let csv_a = csv_data(
+        "left.csv",
+        &["category", "id", "value"],
+        &[&["GROUP", "001", "left"]],
+    );
+    let csv_b = csv_data(
+        "right.csv",
+        &["category", "id", "value"],
+        &[&["GROUP", "002", "right"]],
+    );
+    let config = comparison_config(
+        &["category", "id"],
+        &["category", "id"],
+        &["value"],
+        &["value"],
+        &[("value", "value")],
+        ComparisonNormalizationConfig {
+            flexible_key_matching: true,
+            ..ComparisonNormalizationConfig::default()
+        },
+    );
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 2);
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingRight { key, values_a }
+                if key == &vec!["GROUP".to_string(), "001".to_string()]
+                    && values_a == &vec!["left".to_string()]
+        )
+    }));
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingLeft { key, values_b }
+                if key == &vec!["GROUP".to_string(), "002".to_string()]
+                    && values_b == &vec!["right".to_string()]
+        )
+    }));
+}
+
+#[test]
+fn test_compare_csv_data_rejects_one_sided_numeric_token_in_shared_component() {
+    let csv_a = csv_data(
+        "left.csv",
+        &["category", "id", "value"],
+        &[&["GROUP", "NODE 7", "left"]],
+    );
+    let csv_b = csv_data(
+        "right.csv",
+        &["category", "id", "value"],
+        &[&["GROUP", "Delta Node", "right"]],
+    );
+    let config = comparison_config(
+        &["category", "id"],
+        &["category", "id"],
+        &["value"],
+        &["value"],
+        &[("value", "value")],
+        ComparisonNormalizationConfig {
+            flexible_key_matching: true,
+            ..ComparisonNormalizationConfig::default()
+        },
+    );
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 2);
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingRight { key, values_a }
+                if key == &vec!["GROUP".to_string(), "NODE 7".to_string()]
+                    && values_a == &vec!["left".to_string()]
+        )
+    }));
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingLeft { key, values_b }
+                if key == &vec!["GROUP".to_string(), "Delta Node".to_string()]
+                    && values_b == &vec!["right".to_string()]
+        )
+    }));
+}
+
+#[test]
+fn test_compare_csv_data_honors_case_sensitive_shared_anchored_tokens() {
+    let csv_a = csv_data("left.csv", &["id", "value"], &[&["NODE RF 7", "left"]]);
+    let csv_b = csv_data("right.csv", &["id", "value"], &[&["Delta node 7", "right"]]);
+    let config = create_flexible_key_test_config(true);
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 2);
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingRight { key, values_a }
+                if key == &vec!["NODE RF 7".to_string()]
+                    && values_a == &vec!["left".to_string()]
+        )
+    }));
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingLeft { key, values_b }
+                if key == &vec!["Delta node 7".to_string()]
+                    && values_b == &vec!["right".to_string()]
+        )
+    }));
+}
+
+#[test]
+fn test_compare_csv_data_allows_case_insensitive_shared_anchored_tokens_when_enabled() {
+    let csv_a = csv_data("left.csv", &["id", "value"], &[&["NODE RF 7", "same"]]);
+    let csv_b = csv_data("right.csv", &["id", "value"], &[&["Delta node 7", "same"]]);
+    let config = comparison_config(
+        &["id"],
+        &["id"],
+        &["value"],
+        &["value"],
+        &[("value", "value")],
+        ComparisonNormalizationConfig {
+            flexible_key_matching: true,
+            case_insensitive: true,
+            ..ComparisonNormalizationConfig::default()
+        },
+    );
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    assert!(
+        matches!(&results[0], RowComparisonResult::Match { key, .. } if key == &vec!["NODE RF 7".to_string()])
+    );
+}
+
+#[test]
+fn test_compare_csv_data_rejects_conflicting_alphanumeric_identifiers_with_exact_anchor() {
+    let csv_a = csv_data(
+        "left.csv",
+        &["category", "id", "value"],
+        &[&["GROUP", "COMMON A001", "left"]],
+    );
+    let csv_b = csv_data(
+        "right.csv",
+        &["category", "id", "value"],
+        &[&["GROUP", "COMMON B002", "right"]],
+    );
+    let config = comparison_config(
+        &["category", "id"],
+        &["category", "id"],
+        &["value"],
+        &["value"],
+        &[("value", "value")],
+        ComparisonNormalizationConfig {
+            flexible_key_matching: true,
+            ..ComparisonNormalizationConfig::default()
+        },
+    );
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 2);
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingRight { key, values_a }
+                if key == &vec!["GROUP".to_string(), "COMMON A001".to_string()]
+                    && values_a == &vec!["left".to_string()]
+        )
+    }));
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingLeft { key, values_b }
+                if key == &vec!["GROUP".to_string(), "COMMON B002".to_string()]
+                    && values_b == &vec!["right".to_string()]
+        )
+    }));
+}
+
+#[test]
+fn test_compare_csv_data_rejects_conflicting_alphanumeric_identifiers_without_exact_anchor() {
+    let csv_a = csv_data(
+        "left.csv",
+        &["id", "value"],
+        &[&["COMMON NODE A001", "left"]],
+    );
+    let csv_b = csv_data(
+        "right.csv",
+        &["id", "value"],
+        &[&["COMMON NODE B002", "right"]],
+    );
+    let config = create_flexible_key_test_config(true);
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 2);
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingRight { key, values_a }
+                if key == &vec!["COMMON NODE A001".to_string()]
+                    && values_a == &vec!["left".to_string()]
+        )
+    }));
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingLeft { key, values_b }
+                if key == &vec!["COMMON NODE B002".to_string()]
+                    && values_b == &vec!["right".to_string()]
+        )
+    }));
+}
+
+#[test]
+fn test_compare_csv_data_rejects_weak_shared_text_without_second_anchor() {
+    let csv_a = csv_data("left.csv", &["id", "value"], &[&["NODE RF", "left"]]);
+    let csv_b = csv_data("right.csv", &["id", "value"], &[&["Delta Node", "right"]]);
+    let config = create_flexible_key_test_config(true);
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 2);
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingRight { key, .. }
+                if key == &vec!["NODE RF".to_string()]
+        )
+    }));
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingLeft { key, .. }
+                if key == &vec!["Delta Node".to_string()]
+        )
+    }));
+}
+
+#[test]
 fn test_compare_csv_data_handles_dense_mismatched_double_asterisk_candidate_set() {
     const ROW_COUNT: usize = 24;
 
