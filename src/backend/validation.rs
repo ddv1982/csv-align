@@ -26,12 +26,14 @@ pub(crate) fn build_comparison_config(
 
     validate_selected_columns("Key columns for File A", csv_a, &key_columns_a)?;
     validate_selected_columns("Key columns for File B", csv_b, &key_columns_b)?;
-    validate_matching_counts(
-        "Key columns for File A",
-        key_columns_a.len(),
-        "Key columns for File B",
-        key_columns_b.len(),
-    )?;
+    if !normalization.flexible_key_matching {
+        validate_matching_counts(
+            "Key columns for File A",
+            key_columns_a.len(),
+            "Key columns for File B",
+            key_columns_b.len(),
+        )?;
+    }
 
     validate_selected_columns(
         "Comparison columns for File A",

@@ -8,6 +8,38 @@ use crate::data::json_fields::ColumnSelection;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 
+pub(crate) const MAX_FLEXIBLE_KEY_CANDIDATES: usize = 10_000;
+
+pub(crate) fn bounded_flexible_key_candidate_count(
+    csv_a: &CsvData,
+    csv_b: &CsvData,
+    config: &ComparisonConfig,
+    limit: usize,
+) -> usize {
+    if !config.normalization.flexible_key_matching {
+        return 0;
+    }
+
+    let key_selections_a = get_column_selections(&csv_a.headers, &config.key_columns_a);
+    let key_selections_b = get_column_selections(&csv_b.headers, &config.key_columns_b);
+    let (map_a, _) = split_rows_by_key_usable(csv_a, &key_selections_a, &config.normalization);
+    let (map_b, _) = split_rows_by_key_usable(csv_b, &key_selections_b, &config.normalization);
+
+    let mut candidate_count = 0;
+    for key_a in map_a.keys() {
+        for key_b in map_b.keys() {
+            if classify_flexible_key_match(key_a, key_b).is_some() {
+                candidate_count += 1;
+                if candidate_count > limit {
+                    return candidate_count;
+                }
+            }
+        }
+    }
+
+    candidate_count
+}
+
 /// Compare two CSV datasets based on configuration
 pub fn compare_csv_data(
     csv_a: &CsvData,
@@ -382,6 +414,9 @@ fn push_paired_group_results(
     keyed_rows_b: &KeyedRows,
     context: &ComparisonContext,
 ) {
+    // Paired rows intentionally use File A's display key as the canonical result key.
+    // Flexible matching can pair different key shapes, so the left-side key preserves
+    // the existing API/export contract while unmatched File B rows still show File B keys.
     if keyed_rows_a.indices.len() > 1 && keyed_rows_b.indices.len() > 1 {
         results.push(RowComparisonResult::Duplicate {
             key: keyed_rows_a.display_key.clone(),

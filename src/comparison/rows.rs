@@ -81,29 +81,30 @@ pub(super) fn classify_flexible_key_match(
     key_a: &[String],
     key_b: &[String],
 ) -> Option<FlexibleKeyMatch> {
-    if key_a.len() != key_b.len() {
-        return None;
-    }
+    let matching_component_count = key_a.len() == key_b.len();
 
-    if key_a == key_b {
+    if matching_component_count && key_a == key_b {
         return Some(FlexibleKeyMatch::Exact);
     }
 
-    if key_a
-        .iter()
-        .zip(key_b)
-        .all(|(component_a, component_b)| flexible_components_match(component_a, component_b))
+    if matching_component_count
+        && key_a
+            .iter()
+            .zip(key_b)
+            .all(|(component_a, component_b)| flexible_components_match(component_a, component_b))
     {
         return Some(FlexibleKeyMatch::ComponentWildcard);
     }
 
-    if (key_contains_wildcard(key_a) || key_contains_wildcard(key_b))
-        && wildcard_token_streams_intersect(
+    if key_contains_wildcard(key_a) || key_contains_wildcard(key_b) {
+        let intersection = wildcard_token_streams_intersect(
             &tokenize_key_wildcard_pattern(key_a),
             &tokenize_key_wildcard_pattern(key_b),
-        )
-    {
-        return Some(FlexibleKeyMatch::BoundaryWildcard);
+        );
+
+        if intersection.boundary_consumed_by_wildcard {
+            return Some(FlexibleKeyMatch::BoundaryWildcard);
+        }
     }
 
     None
@@ -151,6 +152,12 @@ enum PatternToken {
     Char(char),
 }
 
+#[derive(Default)]
+struct WildcardIntersection {
+    intersects: bool,
+    boundary_consumed_by_wildcard: bool,
+}
+
 fn key_contains_wildcard(key: &[String]) -> bool {
     key.iter().any(|component| component.contains("**"))
 }
@@ -158,67 +165,88 @@ fn key_contains_wildcard(key: &[String]) -> bool {
 fn wildcard_patterns_intersect(pattern_a: &str, pattern_b: &str) -> bool {
     let tokens_a = tokenize_wildcard_pattern(pattern_a);
     let tokens_b = tokenize_wildcard_pattern(pattern_b);
-    wildcard_token_streams_intersect(&tokens_a, &tokens_b)
+    wildcard_token_streams_intersect(&tokens_a, &tokens_b).intersects
 }
 
-fn wildcard_token_streams_intersect(tokens_a: &[PatternToken], tokens_b: &[PatternToken]) -> bool {
-    let mut stack = vec![(0, 0, false)];
+fn wildcard_token_streams_intersect(
+    tokens_a: &[PatternToken],
+    tokens_b: &[PatternToken],
+) -> WildcardIntersection {
+    let mut stack = vec![(0, 0, false, false)];
     let mut visited = HashSet::new();
+    let mut intersection = WildcardIntersection::default();
 
-    while let Some((index_a, index_b, crossed_boundary)) = stack.pop() {
-        if !visited.insert((index_a, index_b, crossed_boundary)) {
+    while let Some((index_a, index_b, crossed_boundary, consumed_boundary)) = stack.pop() {
+        if !visited.insert((index_a, index_b, crossed_boundary, consumed_boundary)) {
             continue;
         }
 
         let token_a = tokens_a.get(index_a).copied();
         let token_b = tokens_b.get(index_b).copied();
         match (token_a, token_b) {
-            (None, None) => return true,
+            (None, None) => {
+                if consumed_boundary {
+                    return WildcardIntersection {
+                        intersects: true,
+                        boundary_consumed_by_wildcard: true,
+                    };
+                }
+                intersection.intersects = true;
+            }
             (Some(PatternToken::Any), Some(PatternToken::Any)) => {
-                stack.push((index_a + 1, index_b, crossed_boundary));
-                stack.push((index_a, index_b + 1, crossed_boundary));
+                stack.push((index_a + 1, index_b, crossed_boundary, consumed_boundary));
+                stack.push((index_a, index_b + 1, crossed_boundary, consumed_boundary));
             }
             (Some(PatternToken::Any), Some(PatternToken::Char(_)))
             | (Some(PatternToken::Any), Some(PatternToken::Boundary)) => {
-                stack.push((index_a + 1, index_b, crossed_boundary));
+                let consumed_boundary_now = token_b == Some(PatternToken::Boundary);
+                stack.push((index_a + 1, index_b, crossed_boundary, consumed_boundary));
                 stack.push((
                     index_a,
                     index_b + 1,
-                    crossed_boundary || token_b == Some(PatternToken::Boundary),
+                    crossed_boundary || consumed_boundary_now,
+                    consumed_boundary || consumed_boundary_now,
                 ));
             }
             (Some(PatternToken::Char(_)), Some(PatternToken::Any))
             | (Some(PatternToken::Boundary), Some(PatternToken::Any)) => {
-                stack.push((index_a, index_b + 1, crossed_boundary));
+                let consumed_boundary_now = token_a == Some(PatternToken::Boundary);
+                stack.push((index_a, index_b + 1, crossed_boundary, consumed_boundary));
                 stack.push((
                     index_a + 1,
                     index_b,
-                    crossed_boundary || token_a == Some(PatternToken::Boundary),
+                    crossed_boundary || consumed_boundary_now,
+                    consumed_boundary || consumed_boundary_now,
                 ));
             }
             (Some(PatternToken::Any), None) => {
-                stack.push((index_a + 1, index_b, crossed_boundary));
+                stack.push((index_a + 1, index_b, crossed_boundary, consumed_boundary));
             }
             (None, Some(PatternToken::Any)) => {
-                stack.push((index_a, index_b + 1, crossed_boundary));
+                stack.push((index_a, index_b + 1, crossed_boundary, consumed_boundary));
             }
             (Some(PatternToken::Boundary), Some(PatternToken::Boundary)) => {
-                stack.push((index_a + 1, index_b + 1, false));
+                stack.push((index_a + 1, index_b + 1, false, consumed_boundary));
             }
             (Some(PatternToken::Boundary), _) if crossed_boundary => {
-                stack.push((index_a + 1, index_b, false));
+                stack.push((index_a + 1, index_b, false, consumed_boundary));
             }
             (_, Some(PatternToken::Boundary)) if crossed_boundary => {
-                stack.push((index_a, index_b + 1, false));
+                stack.push((index_a, index_b + 1, false, consumed_boundary));
             }
             (Some(PatternToken::Char(left)), Some(PatternToken::Char(right))) if left == right => {
-                stack.push((index_a + 1, index_b + 1, crossed_boundary));
+                stack.push((
+                    index_a + 1,
+                    index_b + 1,
+                    crossed_boundary,
+                    consumed_boundary,
+                ));
             }
             _ => {}
         }
     }
 
-    false
+    intersection
 }
 
 fn tokenize_key_wildcard_pattern(key: &[String]) -> Vec<PatternToken> {

@@ -111,6 +111,10 @@ pub enum CompareValidationError {
         selection: &'static str,
         columns: Vec<String>,
     },
+    TooManyFlexibleKeyCandidates {
+        candidate_count: usize,
+        limit: usize,
+    },
     InvalidMappings(String),
     InvalidSimilarity(String),
 }
@@ -150,6 +154,13 @@ impl fmt::Display for CompareValidationError {
                     columns.join(", ")
                 )
             }
+            Self::TooManyFlexibleKeyCandidates {
+                candidate_count,
+                limit,
+            } => write!(
+                f,
+                "Flexible key matching produced {candidate_count} possible key pairings, which exceeds the limit of {limit}. Narrow the selected keys, add literal anchors to ** patterns, or disable flexible key matching."
+            ),
             Self::InvalidMappings(message) | Self::InvalidSimilarity(message) => {
                 f.write_str(message)
             }

@@ -766,6 +766,271 @@ fn test_compare_csv_data_matches_double_asterisk_across_key_component_boundaries
 }
 
 #[test]
+fn test_compare_csv_data_matches_double_asterisk_across_mismatched_key_component_counts() {
+    let csv_a = csv_data(
+        "left.csv",
+        &["composite", "value"],
+        &[&["GROUP**CODE", "same"]],
+    );
+    let csv_b = csv_data(
+        "right.csv",
+        &["part_a", "part_b", "value"],
+        &[&["GROUP", "TAILCODE", "same"]],
+    );
+    let config = comparison_config(
+        &["composite"],
+        &["part_a", "part_b"],
+        &["value"],
+        &["value"],
+        &[("value", "value")],
+        ComparisonNormalizationConfig {
+            flexible_key_matching: true,
+            ..ComparisonNormalizationConfig::default()
+        },
+    );
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    assert!(matches!(
+        &results[0],
+        RowComparisonResult::Match { key, .. } if key == &vec!["GROUP**CODE".to_string()]
+    ));
+}
+
+#[test]
+fn test_compare_csv_data_matches_file_b_double_asterisk_across_mismatched_key_component_counts() {
+    let csv_a = csv_data(
+        "left.csv",
+        &["part_a", "part_b", "part_c", "value"],
+        &[&["GROUP", "MIDDLE", "TAIL", "same"]],
+    );
+    let csv_b = csv_data(
+        "right.csv",
+        &["composite", "suffix", "value"],
+        &[&["GROUP**", "TAIL", "same"]],
+    );
+    let config = comparison_config(
+        &["part_a", "part_b", "part_c"],
+        &["composite", "suffix"],
+        &["value"],
+        &["value"],
+        &[("value", "value")],
+        ComparisonNormalizationConfig {
+            flexible_key_matching: true,
+            ..ComparisonNormalizationConfig::default()
+        },
+    );
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    assert!(matches!(
+        &results[0],
+        RowComparisonResult::Match { key, .. }
+            if key == &vec!["GROUP".to_string(), "MIDDLE".to_string(), "TAIL".to_string()]
+    ));
+}
+
+#[test]
+fn test_compare_csv_data_handles_dense_mismatched_double_asterisk_candidate_set() {
+    const ROW_COUNT: usize = 24;
+
+    let csv_a = CsvData {
+        file_path: Some("left.csv".to_string()),
+        headers: vec![
+            "wild".to_string(),
+            "file_a_id".to_string(),
+            "value".to_string(),
+        ],
+        rows: (0..ROW_COUNT)
+            .map(|index| vec!["**".to_string(), format!("A{index:02}"), "same".to_string()])
+            .collect(),
+    };
+    let csv_b = CsvData {
+        file_path: Some("right.csv".to_string()),
+        headers: vec![
+            "file_b_id".to_string(),
+            "literal".to_string(),
+            "wild".to_string(),
+            "value".to_string(),
+        ],
+        rows: (0..ROW_COUNT)
+            .map(|index| {
+                vec![
+                    format!("B{index:02}"),
+                    "MIDDLE".to_string(),
+                    "**".to_string(),
+                    "same".to_string(),
+                ]
+            })
+            .collect(),
+    };
+    let config = comparison_config(
+        &["wild", "file_a_id"],
+        &["file_b_id", "literal", "wild"],
+        &["value"],
+        &["value"],
+        &[("value", "value")],
+        ComparisonNormalizationConfig {
+            flexible_key_matching: true,
+            ..ComparisonNormalizationConfig::default()
+        },
+    );
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), ROW_COUNT);
+    assert_eq!(
+        results
+            .iter()
+            .filter(|result| matches!(result, RowComparisonResult::Match { .. }))
+            .count(),
+        ROW_COUNT
+    );
+    assert!(results.iter().all(|result| {
+        matches!(
+            result,
+            RowComparisonResult::Match { key, .. }
+                if key.len() == 2 && key[0] == "**" && key[1].starts_with('A')
+        )
+    }));
+}
+
+#[test]
+fn test_compare_csv_data_does_not_concatenate_mismatched_key_counts_without_double_asterisk() {
+    let csv_a = csv_data(
+        "left.csv",
+        &["composite", "value"],
+        &[&["GROUPTAIL", "left"]],
+    );
+    let csv_b = csv_data(
+        "right.csv",
+        &["part_a", "part_b", "value"],
+        &[&["GROUP", "TAIL", "right"]],
+    );
+    let config = comparison_config(
+        &["composite"],
+        &["part_a", "part_b"],
+        &["value"],
+        &["value"],
+        &[("value", "value")],
+        ComparisonNormalizationConfig {
+            flexible_key_matching: true,
+            ..ComparisonNormalizationConfig::default()
+        },
+    );
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 2);
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingRight { key, values_a }
+                if key == &vec!["GROUPTAIL".to_string()]
+                    && values_a == &vec!["left".to_string()]
+        )
+    }));
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingLeft { key, values_b }
+                if key == &vec!["GROUP".to_string(), "TAIL".to_string()]
+                    && values_b == &vec!["right".to_string()]
+        )
+    }));
+}
+
+#[test]
+fn test_compare_csv_data_keeps_missing_results_for_mismatched_key_counts_without_wildcard_bridge() {
+    let csv_a = csv_data(
+        "left.csv",
+        &["composite", "value"],
+        &[&["GROUP**CODE", "left"]],
+    );
+    let csv_b = csv_data(
+        "right.csv",
+        &["part_a", "part_b", "value"],
+        &[&["OTHER", "TAILCODE", "right"]],
+    );
+    let config = comparison_config(
+        &["composite"],
+        &["part_a", "part_b"],
+        &["value"],
+        &["value"],
+        &[("value", "value")],
+        ComparisonNormalizationConfig {
+            flexible_key_matching: true,
+            ..ComparisonNormalizationConfig::default()
+        },
+    );
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 2);
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingRight { key, values_a }
+                if key == &vec!["GROUP**CODE".to_string()]
+                    && values_a == &vec!["left".to_string()]
+        )
+    }));
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingLeft { key, values_b }
+                if key == &vec!["OTHER".to_string(), "TAILCODE".to_string()]
+                    && values_b == &vec!["right".to_string()]
+        )
+    }));
+}
+
+#[test]
+fn test_compare_csv_data_keeps_single_asterisk_literal_with_mismatched_key_counts() {
+    let csv_a = csv_data(
+        "left.csv",
+        &["composite", "value"],
+        &[&["GROUP*CODE", "left"]],
+    );
+    let csv_b = csv_data(
+        "right.csv",
+        &["part_a", "part_b", "value"],
+        &[&["GROUP", "TAILCODE", "right"]],
+    );
+    let config = comparison_config(
+        &["composite"],
+        &["part_a", "part_b"],
+        &["value"],
+        &["value"],
+        &[("value", "value")],
+        ComparisonNormalizationConfig {
+            flexible_key_matching: true,
+            ..ComparisonNormalizationConfig::default()
+        },
+    );
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 2);
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingRight { key, .. }
+                if key == &vec!["GROUP*CODE".to_string()]
+        )
+    }));
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingLeft { key, .. }
+                if key == &vec!["GROUP".to_string(), "TAILCODE".to_string()]
+        )
+    }));
+}
+
+#[test]
 fn test_compare_csv_data_does_not_redistribute_key_components_without_double_asterisk() {
     let csv_a = csv_data(
         "left.csv",

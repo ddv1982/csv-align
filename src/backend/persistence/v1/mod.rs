@@ -290,6 +290,7 @@ fn validate_snapshot(snapshot: &SnapshotV1) -> Result<(), CsvAlignError> {
         &snapshot.file_a.headers,
         &snapshot.file_b.headers,
         &snapshot.selection,
+        &snapshot.normalization,
     )?;
     validate_mappings(
         &snapshot.file_a.headers,
@@ -321,6 +322,7 @@ fn validate_selection(
     headers_a: &[String],
     headers_b: &[String],
     selection: &SelectionV1,
+    normalization: &ComparisonNormalizationConfig,
 ) -> Result<(), CsvAlignError> {
     validate_saved_selected_columns(
         "Saved snapshot key columns for File A",
@@ -343,7 +345,9 @@ fn validate_selection(
         &selection.comparison_columns_b,
     )?;
 
-    if selection.key_columns_a.len() != selection.key_columns_b.len() {
+    if !normalization.flexible_key_matching
+        && selection.key_columns_a.len() != selection.key_columns_b.len()
+    {
         return Err(CsvAlignError::BadInput(
             "Saved snapshot key columns for File A and File B must contain the same number of columns"
                 .to_string(),

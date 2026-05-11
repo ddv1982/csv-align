@@ -77,7 +77,7 @@ export function NormalizationPanel({
             checked={normalization.flexible_key_matching}
             onChange={(checked) => onChange({ flexible_key_matching: checked })}
             label="Enable ** wildcard matching for row keys"
-            helpText="Use this when row keys include prefixes, suffixes, or generated IDs. Example: INV-** can match INV-001."
+            helpText="Use ** to match variable row-key text, including across row-key columns. When enabled, ** can bridge different selected row-key counts."
           />
         </RuleGroup>
 

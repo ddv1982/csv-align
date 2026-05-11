@@ -10,8 +10,8 @@ use super::pair_order::{load_pair_order_workflow, save_pair_order_workflow};
 use super::store::SessionStore;
 use crate::backend::error::CsvAlignError;
 use crate::backend::requests::{
-    CompareExecution, CompareRequest, LoadComparisonSnapshotResponse, LoadPairOrderResponse,
-    PairOrderSelection, SuggestMappingsRequest,
+    CompareExecution, CompareRequest, CompareValidationError, LoadComparisonSnapshotResponse,
+    LoadPairOrderResponse, PairOrderSelection, SuggestMappingsRequest,
 };
 use crate::backend::session::SessionData;
 use crate::backend::validation::build_comparison_config;
@@ -265,6 +265,20 @@ pub fn run_comparison(
     let csv_a = csv_a.borrow();
     let csv_b = csv_b.borrow();
     let config = build_comparison_config(csv_a, csv_b, request)?;
+    let flexible_candidate_count = engine::bounded_flexible_key_candidate_count(
+        csv_a,
+        csv_b,
+        &config,
+        engine::MAX_FLEXIBLE_KEY_CANDIDATES,
+    );
+    if flexible_candidate_count > engine::MAX_FLEXIBLE_KEY_CANDIDATES {
+        return Err(CompareValidationError::TooManyFlexibleKeyCandidates {
+            candidate_count: flexible_candidate_count,
+            limit: engine::MAX_FLEXIBLE_KEY_CANDIDATES,
+        }
+        .into());
+    }
+
     let results = engine::compare_csv_data(csv_a, csv_b, &config);
     let summary = engine::generate_summary(&results, csv_a.rows.len(), csv_b.rows.len());
 

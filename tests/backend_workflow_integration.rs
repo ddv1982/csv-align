@@ -1,12 +1,12 @@
 use csv_align::backend::{
-    CompareRequest, CsvAlignError, CsvLoadSource, MappingRequest, PairOrderSelection, SessionData,
-    apply_csv_to_session, comparison_inputs, export_results_to_bytes,
-    export_session_results_snapshot, load_comparison_snapshot_workflow, load_csv_workflow,
-    load_pair_order_workflow, run_comparison, save_comparison_snapshot_workflow,
+    CompareRequest, CompareValidationError, CsvAlignError, CsvLoadSource, MappingRequest,
+    PairOrderSelection, SessionData, apply_csv_to_session, comparison_inputs,
+    export_results_to_bytes, export_session_results_snapshot, load_comparison_snapshot_workflow,
+    load_csv_workflow, load_pair_order_workflow, run_comparison, save_comparison_snapshot_workflow,
     save_pair_order_workflow,
 };
 use csv_align::data::csv_loader;
-use csv_align::data::types::{ComparisonNormalizationConfig, FileSide};
+use csv_align::data::types::{ComparisonNormalizationConfig, CsvData, FileSide};
 use std::io::Write;
 use std::sync::Arc;
 use tempfile::NamedTempFile;
@@ -220,6 +220,129 @@ fn run_comparison_and_export_snapshot_preserve_configured_labels() {
 }
 
 #[test]
+fn run_comparison_and_export_snapshot_use_file_a_key_shape_for_mismatched_flexible_match() {
+    let csv_a = csv_loader::load_csv_from_bytes(b"composite,value\nGROUP**CODE,same\n").unwrap();
+    let csv_b =
+        csv_loader::load_csv_from_bytes(b"part_a,part_b,value\nGROUP,TAILCODE,same\n").unwrap();
+
+    let execution = run_comparison(
+        &csv_a,
+        &csv_b,
+        CompareRequest {
+            key_columns_a: vec!["composite".to_string()],
+            key_columns_b: vec!["part_a".to_string(), "part_b".to_string()],
+            comparison_columns_a: vec!["value".to_string()],
+            comparison_columns_b: vec!["value".to_string()],
+            column_mappings: vec![MappingRequest {
+                file_a_column: "value".to_string(),
+                file_b_column: "value".to_string(),
+                mapping_type: "manual".to_string(),
+                similarity: None,
+            }],
+            normalization: ComparisonNormalizationConfig {
+                flexible_key_matching: true,
+                ..ComparisonNormalizationConfig::default()
+            },
+        },
+    )
+    .unwrap();
+
+    assert_eq!(execution.response.summary.matches, 1);
+    assert_eq!(execution.response.results.len(), 1);
+    assert_eq!(execution.response.results[0].key, vec!["GROUP**CODE"]);
+
+    let session = SessionData {
+        comparison_results: execution.results,
+        comparison_config: Some(execution.config),
+        ..SessionData::new()
+    };
+
+    let (results, config) = export_session_results_snapshot(&session).unwrap();
+    let exported =
+        String::from_utf8(export_results_to_bytes(&results, config.as_ref()).unwrap()).unwrap();
+
+    assert!(
+        exported.contains("Result,Key: composite / part_a,Key: part_b,File A: value,File B: value")
+    );
+    assert!(exported.contains("Match,GROUP**CODE,,same,same"));
+}
+
+#[test]
+fn run_comparison_rejects_excessive_flexible_key_candidate_sets() {
+    const ROW_COUNT: usize = 101;
+
+    let csv_a = CsvData {
+        file_path: Some("left.csv".to_string()),
+        headers: vec![
+            "wild".to_string(),
+            "file_a_id".to_string(),
+            "value".to_string(),
+        ],
+        rows: (0..ROW_COUNT)
+            .map(|index| vec!["**".to_string(), format!("A{index:03}"), "same".to_string()])
+            .collect(),
+    };
+    let csv_b = CsvData {
+        file_path: Some("right.csv".to_string()),
+        headers: vec![
+            "file_b_id".to_string(),
+            "literal".to_string(),
+            "wild".to_string(),
+            "value".to_string(),
+        ],
+        rows: (0..ROW_COUNT)
+            .map(|index| {
+                vec![
+                    format!("B{index:03}"),
+                    "MIDDLE".to_string(),
+                    "**".to_string(),
+                    "same".to_string(),
+                ]
+            })
+            .collect(),
+    };
+
+    let error = run_comparison(
+        &csv_a,
+        &csv_b,
+        CompareRequest {
+            key_columns_a: vec!["wild".to_string(), "file_a_id".to_string()],
+            key_columns_b: vec![
+                "file_b_id".to_string(),
+                "literal".to_string(),
+                "wild".to_string(),
+            ],
+            comparison_columns_a: vec!["value".to_string()],
+            comparison_columns_b: vec!["value".to_string()],
+            column_mappings: vec![MappingRequest {
+                file_a_column: "value".to_string(),
+                file_b_column: "value".to_string(),
+                mapping_type: "manual".to_string(),
+                similarity: None,
+            }],
+            normalization: ComparisonNormalizationConfig {
+                flexible_key_matching: true,
+                ..ComparisonNormalizationConfig::default()
+            },
+        },
+    )
+    .expect_err("dense flexible key candidates should fail fast");
+    let message = error.to_string();
+
+    match error {
+        CsvAlignError::Validation(CompareValidationError::TooManyFlexibleKeyCandidates {
+            candidate_count,
+            limit,
+        }) => {
+            assert_eq!(candidate_count, 10_001);
+            assert_eq!(limit, 10_000);
+        }
+        other => panic!("unexpected error: {other}"),
+    }
+    assert!(message.contains("exceeds the limit of 10000"));
+}
+
+#[test]
 fn run_comparison_rejects_unknown_mapping_type() {
     let csv_a = csv_loader::load_csv_from_bytes(b"id,name\n1,Alice\n").unwrap();
     let csv_b = csv_loader::load_csv_from_bytes(b"id,name\n1,Alice\n").unwrap();
@@ -299,6 +422,36 @@ fn run_comparison_rejects_mismatched_key_column_counts() {
     assert!(error.to_string().contains(
         "Key columns for File A and Key columns for File B must contain the same number of columns"
     ));
+}
+
+#[test]
+fn run_comparison_allows_mismatched_key_column_counts_only_for_flexible_matching() {
+    let csv_a = csv_loader::load_csv_from_bytes(b"composite,value\nGROUP**CODE,same\n").unwrap();
+    let csv_b =
+        csv_loader::load_csv_from_bytes(b"part_a,part_b,value\nGROUP,TAILCODE,same\n").unwrap();
+
+    let execution = run_comparison(
+        &csv_a,
+        &csv_b,
+        CompareRequest {
+            key_columns_a: vec!["composite".to_string()],
+            key_columns_b: vec!["part_a".to_string(), "part_b".to_string()],
+            comparison_columns_a: vec!["value".to_string()],
+            comparison_columns_b: vec!["value".to_string()],
+            column_mappings: vec![],
+            normalization: ComparisonNormalizationConfig {
+                flexible_key_matching: true,
+                ..ComparisonNormalizationConfig::default()
+            },
+        },
+    )
+    .expect("flexible matching should allow unequal key counts");
+
+    assert_eq!(execution.response.summary.matches, 1);
+    assert_eq!(execution.response.summary.missing_left, 0);
+    assert_eq!(execution.response.summary.missing_right, 0);
+    assert_eq!(execution.config.key_columns_a, vec!["composite"]);
+    assert_eq!(execution.config.key_columns_b, vec!["part_a", "part_b"]);
 }
 
 #[test]
@@ -489,6 +642,47 @@ fn comparison_snapshot_round_trips_saved_results_and_hydrates_session() {
 
     assert!(exported.contains("Key: id / record_id"));
     assert!(exported.contains("Mismatch,2,Bob,Robert"));
+}
+
+#[test]
+fn comparison_snapshot_round_trips_flexible_mismatched_key_counts() {
+    let mut session = SessionData::new();
+    let csv_a = csv_loader::load_csv_from_bytes(b"composite,value\nGROUP**CODE,same\n").unwrap();
+    let csv_b =
+        csv_loader::load_csv_from_bytes(b"part_a,part_b,value\nGROUP,TAILCODE,same\n").unwrap();
+
+    apply_csv_to_session(&mut session, FileSide::A, csv_a);
+    apply_csv_to_session(&mut session, FileSide::B, csv_b);
+
+    let (csv_a, csv_b) = comparison_inputs(&session).unwrap();
+    let execution = run_comparison(
+        csv_a.as_ref(),
+        csv_b.as_ref(),
+        CompareRequest {
+            key_columns_a: vec!["composite".to_string()],
+            key_columns_b: vec!["part_a".to_string(), "part_b".to_string()],
+            comparison_columns_a: vec!["value".to_string()],
+            comparison_columns_b: vec!["value".to_string()],
+            column_mappings: vec![],
+            normalization: ComparisonNormalizationConfig {
+                flexible_key_matching: true,
+                ..ComparisonNormalizationConfig::default()
+            },
+        },
+    )
+    .unwrap();
+    session.comparison_results = execution.results;
+    session.comparison_config = Some(execution.config);
+
+    let contents = save_comparison_snapshot_workflow(&session).unwrap();
+    let mut restored_session = SessionData::new();
+    let response = load_comparison_snapshot_workflow(&mut restored_session, &contents).unwrap();
+    let restored_config = restored_session.comparison_config.expect("restored config");
+
+    assert_eq!(response.summary.matches, 1);
+    assert_eq!(restored_config.key_columns_a, vec!["composite"]);
+    assert_eq!(restored_config.key_columns_b, vec!["part_a", "part_b"]);
+    assert!(restored_config.normalization.flexible_key_matching);
 }
 
 #[test]

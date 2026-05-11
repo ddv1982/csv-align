@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.73 - 2026-05-11
+
+- Supported flexible `**` row-key matching across mismatched selected key counts while preserving File A key shape in compare responses and CSV exports.
+- Added a fail-fast validation guard for overly broad flexible key candidate sets so wildcard comparisons return actionable guidance instead of entering an expensive matching path.
+
 ## v2.1.72 - 2026-05-11
 
 - Fixed explicit `**` row-key matching when the wildcard span crosses selected key component boundaries.

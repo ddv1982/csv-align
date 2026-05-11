@@ -44,6 +44,7 @@ test('shows grouped comparison rules and labels', () => {
   expect(screen.getByText('Text and numbers')).toBeInTheDocument();
   expect(screen.getByText('Dates')).toBeInTheDocument();
   expect(screen.getByLabelText('Enable ** wildcard matching for row keys')).toBeInTheDocument();
+  expect(screen.getByText('Use ** to match variable row-key text, including across row-key columns. When enabled, ** can bridge different selected row-key counts.')).toBeInTheDocument();
   expect(screen.getByLabelText('Enable ** wildcard matching for row keys')).not.toBeChecked();
   expect(screen.getByLabelText('Treat blank cells as missing')).toBeInTheDocument();
   expect(screen.getByText('Also treat these values as missing')).toBeInTheDocument();
