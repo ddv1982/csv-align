@@ -130,6 +130,32 @@ test('buildResultsHtmlDocument embeds the current comparison view state for stan
   expect(html).toContain('.status-strip');
 });
 
+test('standalone export includes visible match progress fill styling', () => {
+  const html = buildResultsHtmlDocument({
+    summary: SUMMARY,
+    fileAName: 'left.csv',
+    fileBName: 'right.csv',
+    comparisonColumnsA: ['name'],
+    comparisonColumnsB: ['display_name'],
+    mappings: MAPPINGS,
+    results: RESULTS,
+    initialFilter: 'all',
+  });
+
+  const parsed = new DOMParser().parseFromString(html, 'text/html');
+  const progress = parsed.querySelector<HTMLElement>('.summary-progress');
+  const fill = progress?.querySelector<HTMLElement>('.app-progress-fill');
+  const styles = Array.from(parsed.querySelectorAll('style'))
+    .map((style) => style.textContent ?? '')
+    .join('\n');
+
+  expect(progress).toBeTruthy();
+  expect(progress?.classList.contains('app-frame')).toBe(true);
+  expect(fill).toBeTruthy();
+  expect(fill?.style.width).toBe('50%');
+  expect(styles).toMatch(/\.app-progress-fill\s*\{[^}]*display:\s*block;[^}]*height:\s*100%;/s);
+});
+
 test('normalizes every exported theme input to the single dark report theme', () => {
   expect(normalizeHtmlExportTheme('cyan')).toBe('dark');
   expect(normalizeHtmlExportTheme('lime')).toBe('dark');

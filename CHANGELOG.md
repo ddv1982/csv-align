@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.71 - 2026-05-11
+
+- Fixed standalone HTML exports so the match-rate progress fill renders at the intended full height.
+- Added regression coverage for exported progress styling and ignored generated Python bytecode cache artifacts.
+
 ## v2.1.70 - 2026-05-10
 
 - Improved the results table KEY column width so short numeric keys stay readable instead of wrapping into stacked digits in narrow cells.

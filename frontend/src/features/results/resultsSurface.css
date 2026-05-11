@@ -245,6 +245,8 @@
 }
 
 .app-progress-fill {
+  display: block;
+  height: 100%;
   border-radius: 999px;
   background: linear-gradient(90deg, var(--color-primary-400), var(--color-primary-500), var(--color-primary-600));
 }
