@@ -1,7 +1,7 @@
 {
   "name": "csv-align-frontend",
   "private": true,
-  "version": "2.1.77",
+  "version": "2.1.78",
   "type": "module",
   "scripts": {
     "dev": "vite",

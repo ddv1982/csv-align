@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.78 - 2026-05-12
+
+- Improved flexible row-key matching so rows with one clear shared text token can be paired when the match is isolated and unambiguous.
+- Hardened broad shared-token matching so weak candidates cannot displace stronger wildcard, exact, or anchored key pairings, with neutral regression coverage and clearer UI help text.
+
 ## v2.1.77 - 2026-05-11
 
 - Polished the desktop app shell with a taller startup window target, matching new-window sizing, and a sticky token-based glass header treatment.
