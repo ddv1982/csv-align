@@ -62,6 +62,7 @@ pub(super) fn split_rows_by_key_usable(
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum FlexibleKeyMatch {
+    SharedTextToken,
     SharedAnchoredToken,
     BoundaryWildcard,
     ComponentWildcard,
@@ -71,10 +72,11 @@ pub(super) enum FlexibleKeyMatch {
 impl FlexibleKeyMatch {
     pub(super) fn preference_rank(self) -> u8 {
         match self {
-            FlexibleKeyMatch::SharedAnchoredToken => 0,
-            FlexibleKeyMatch::BoundaryWildcard => 1,
-            FlexibleKeyMatch::ComponentWildcard => 2,
-            FlexibleKeyMatch::Exact => 3,
+            FlexibleKeyMatch::SharedTextToken => 0,
+            FlexibleKeyMatch::SharedAnchoredToken => 1,
+            FlexibleKeyMatch::BoundaryWildcard => 2,
+            FlexibleKeyMatch::ComponentWildcard => 3,
+            FlexibleKeyMatch::Exact => 4,
         }
     }
 }
@@ -107,8 +109,8 @@ pub(super) fn classify_flexible_key_match(
         if intersection.boundary_consumed_by_wildcard {
             return Some(FlexibleKeyMatch::BoundaryWildcard);
         }
-    } else if shared_anchored_tokens_match(key_a, key_b) {
-        return Some(FlexibleKeyMatch::SharedAnchoredToken);
+    } else if let Some(match_kind) = classify_shared_key_tokens(key_a, key_b) {
+        return Some(match_kind);
     }
 
     None
@@ -166,9 +168,9 @@ fn key_contains_wildcard(key: &[String]) -> bool {
     key.iter().any(|component| component.contains("**"))
 }
 
-fn shared_anchored_tokens_match(key_a: &[String], key_b: &[String]) -> bool {
+fn classify_shared_key_tokens(key_a: &[String], key_b: &[String]) -> Option<FlexibleKeyMatch> {
     if key_a.len() != key_b.len() {
-        return false;
+        return None;
     }
 
     let has_exact_numeric_component = key_a.iter().zip(key_b).any(|(component_a, component_b)| {
@@ -199,7 +201,7 @@ fn shared_anchored_tokens_match(key_a: &[String], key_b: &[String]) -> bool {
                 .any(|token| tokens_b.embedded_identifiers.contains(token));
 
         if component_shared_alpha_count == 0 {
-            return false;
+            return None;
         }
 
         let component_a_has_numbers = !tokens_a.numeric.is_empty() || tokens_a.has_embedded_numeric;
@@ -208,7 +210,7 @@ fn shared_anchored_tokens_match(key_a: &[String], key_b: &[String]) -> bool {
         let one_component_has_numbers = component_a_has_numbers != component_b_has_numbers;
 
         if !component_shares_number && both_components_have_numbers {
-            return false;
+            return None;
         }
 
         if !component_shares_number && one_component_has_numbers {
@@ -219,7 +221,7 @@ fn shared_anchored_tokens_match(key_a: &[String], key_b: &[String]) -> bool {
             };
 
             if !has_exact_numeric_component || !numeric_tokens_are_standalone {
-                return false;
+                return None;
             }
         }
 
@@ -228,9 +230,15 @@ fn shared_anchored_tokens_match(key_a: &[String], key_b: &[String]) -> bool {
         shared_component_count += 1;
     }
 
-    shared_component_count > 0
-        && shared_alpha_count > 0
-        && (exact_component_count > 0 || shares_number || shared_alpha_count >= 2)
+    if shared_component_count == 0 || shared_alpha_count == 0 {
+        return None;
+    }
+
+    if exact_component_count > 0 || shares_number || shared_alpha_count >= 2 {
+        Some(FlexibleKeyMatch::SharedAnchoredToken)
+    } else {
+        Some(FlexibleKeyMatch::SharedTextToken)
+    }
 }
 
 #[derive(Default)]

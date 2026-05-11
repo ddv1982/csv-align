@@ -44,7 +44,7 @@ test('shows grouped comparison rules and labels', () => {
   expect(screen.getByText('Text and numbers')).toBeInTheDocument();
   expect(screen.getByText('Dates')).toBeInTheDocument();
   expect(screen.getByLabelText('Enable flexible row-key matching')).toBeInTheDocument();
-  expect(screen.getByText('Use ** to match variable row-key text, including across row-key columns. This can also pair rows without ** when shared anchored key tokens and another key part line up, so review broad matches.')).toBeInTheDocument();
+  expect(screen.getByText('Turn this on when matching rows may use slightly different key text. Use ** as a wildcard for changing parts; CSV Align can also match keys that share one clear, distinctive word when there is only one possible match.')).toBeInTheDocument();
   expect(screen.getByLabelText('Enable flexible row-key matching')).not.toBeChecked();
   expect(screen.getByLabelText('Treat blank cells as missing')).toBeInTheDocument();
   expect(screen.getByText('Also treat these values as missing')).toBeInTheDocument();

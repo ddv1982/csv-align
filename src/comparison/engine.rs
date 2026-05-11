@@ -52,14 +52,22 @@ pub(crate) fn bounded_flexible_key_candidate_count(
     let (map_a, _) = split_rows_by_key_usable(csv_a, &key_selections_a, &config.normalization);
     let (map_b, _) = split_rows_by_key_usable(csv_b, &key_selections_b, &config.normalization);
 
+    let flexible_candidate_counts = count_flexible_candidates(&map_a, &map_b);
     let mut candidate_count = 0;
     for key_a in map_a.keys() {
         for key_b in map_b.keys() {
-            if classify_flexible_key_match(key_a, key_b).is_some() {
-                candidate_count += 1;
-                if candidate_count > limit {
-                    return candidate_count;
-                }
+            let Some(match_kind) = classify_flexible_key_match(key_a, key_b) else {
+                continue;
+            };
+
+            if !should_keep_flexible_candidate(match_kind, key_a, key_b, &flexible_candidate_counts)
+            {
+                continue;
+            }
+
+            candidate_count += 1;
+            if candidate_count > limit {
+                return candidate_count;
             }
         }
     }
@@ -175,6 +183,7 @@ fn compare_key_groups_flexible(
     let mut matched_b: HashSet<Vec<String>> = HashSet::new();
     let mut candidates = Vec::new();
     let candidate_rows_b: Vec<(&Vec<String>, &KeyedRows)> = map_b.iter().collect();
+    let flexible_candidate_counts = count_flexible_candidates(map_a, map_b);
 
     for (key_a, keyed_rows_a) in map_a {
         collect_flexible_candidates_for_key(
@@ -182,6 +191,7 @@ fn compare_key_groups_flexible(
             key_a,
             keyed_rows_a,
             candidate_rows_b.iter().copied(),
+            &flexible_candidate_counts,
         );
     }
 
@@ -234,6 +244,7 @@ fn collect_flexible_candidates_for_key<'a>(
     key_a: &[String],
     keyed_rows_a: &KeyedRows,
     candidate_rows_b: impl Iterator<Item = (&'a Vec<String>, &'a KeyedRows)>,
+    flexible_candidate_counts: &FlexibleCandidateCounts,
 ) {
     for (key_b, keyed_rows_b) in candidate_rows_b {
         let Some(match_kind) =
@@ -241,6 +252,15 @@ fn collect_flexible_candidates_for_key<'a>(
         else {
             continue;
         };
+
+        if !should_keep_flexible_candidate(
+            match_kind,
+            &keyed_rows_a.normalized_key,
+            &keyed_rows_b.normalized_key,
+            flexible_candidate_counts,
+        ) {
+            continue;
+        }
 
         candidates.push(FlexibleCandidate {
             key_a: key_a.to_vec(),
@@ -258,6 +278,59 @@ fn collect_flexible_candidates_for_key<'a>(
             first_index_b: keyed_rows_b.first_index,
         });
     }
+}
+
+struct FlexibleCandidateCounts {
+    weak_by_a: HashMap<Vec<String>, usize>,
+    weak_by_b: HashMap<Vec<String>, usize>,
+    total_by_a: HashMap<Vec<String>, usize>,
+    total_by_b: HashMap<Vec<String>, usize>,
+}
+
+fn count_flexible_candidates(
+    map_a: &HashMap<Vec<String>, KeyedRows>,
+    map_b: &HashMap<Vec<String>, KeyedRows>,
+) -> FlexibleCandidateCounts {
+    let mut weak_by_a = HashMap::new();
+    let mut weak_by_b = HashMap::new();
+    let mut total_by_a = HashMap::new();
+    let mut total_by_b = HashMap::new();
+
+    for key_a in map_a.keys() {
+        for key_b in map_b.keys() {
+            let Some(match_kind) = classify_flexible_key_match(key_a, key_b) else {
+                continue;
+            };
+
+            *total_by_a.entry(key_a.clone()).or_default() += 1;
+            *total_by_b.entry(key_b.clone()).or_default() += 1;
+
+            if match_kind == FlexibleKeyMatch::SharedTextToken {
+                *weak_by_a.entry(key_a.clone()).or_default() += 1;
+                *weak_by_b.entry(key_b.clone()).or_default() += 1;
+            }
+        }
+    }
+
+    FlexibleCandidateCounts {
+        weak_by_a,
+        weak_by_b,
+        total_by_a,
+        total_by_b,
+    }
+}
+
+fn should_keep_flexible_candidate(
+    match_kind: FlexibleKeyMatch,
+    key_a: &[String],
+    key_b: &[String],
+    flexible_candidate_counts: &FlexibleCandidateCounts,
+) -> bool {
+    match_kind != FlexibleKeyMatch::SharedTextToken
+        || (flexible_candidate_counts.weak_by_a.get(key_a) == Some(&1)
+            && flexible_candidate_counts.weak_by_b.get(key_b) == Some(&1)
+            && flexible_candidate_counts.total_by_a.get(key_a) == Some(&1)
+            && flexible_candidate_counts.total_by_b.get(key_b) == Some(&1))
 }
 
 fn compare_flexible_candidate_preference(

@@ -881,6 +881,40 @@ fn test_compare_csv_data_matches_multi_key_shared_anchored_tokens_when_flexible_
 }
 
 #[test]
+fn test_compare_csv_data_matches_multi_key_single_shared_text_token_with_exact_sibling_key() {
+    let csv_a = csv_data(
+        "left.csv",
+        &["name", "group", "value"],
+        &[&["NORTH HARBOR", "ALPHA", "same"]],
+    );
+    let csv_b = csv_data(
+        "right.csv",
+        &["name", "group", "value"],
+        &[&["Remote Harbor", "ALPHA", "same"]],
+    );
+    let config = comparison_config(
+        &["name", "group"],
+        &["name", "group"],
+        &["value"],
+        &["value"],
+        &[("value", "value")],
+        ComparisonNormalizationConfig {
+            flexible_key_matching: true,
+            ..ComparisonNormalizationConfig::default()
+        },
+    );
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    assert!(matches!(
+        &results[0],
+        RowComparisonResult::Match { key, .. }
+            if key == &vec!["NORTH HARBOR".to_string(), "ALPHA".to_string()]
+    ));
+}
+
+#[test]
 fn test_compare_csv_data_keeps_shared_anchored_tokens_exact_only_when_flexible_is_off() {
     let csv_a = csv_data("left.csv", &["id", "value"], &[&["NODE RF 7", "left"]]);
     let csv_b = csv_data(
@@ -1336,28 +1370,101 @@ fn test_compare_csv_data_rejects_conflicting_alphanumeric_identifiers_without_ex
 }
 
 #[test]
-fn test_compare_csv_data_rejects_weak_shared_text_without_second_anchor() {
-    let csv_a = csv_data("left.csv", &["id", "value"], &[&["NODE RF", "left"]]);
-    let csv_b = csv_data("right.csv", &["id", "value"], &[&["Remote Node", "right"]]);
+fn test_compare_csv_data_matches_single_shared_text_token_when_flexible_enabled() {
+    let csv_a = csv_data("left.csv", &["id", "value"], &[&["NORTH HARBOR", "same"]]);
+    let csv_b = csv_data("right.csv", &["id", "value"], &[&["Remote Harbor", "same"]]);
     let config = create_flexible_key_test_config(true);
 
     let results = compare_csv_data(&csv_a, &csv_b, &config);
 
-    assert_eq!(results.len(), 2);
+    assert_eq!(results.len(), 1);
+    assert!(
+        matches!(&results[0], RowComparisonResult::Match { key, .. } if key == &vec!["NORTH HARBOR".to_string()])
+    );
+}
+
+#[test]
+fn test_compare_csv_data_does_not_use_shared_text_token_to_displace_stronger_candidate() {
+    let csv_a = csv_data(
+        "left.csv",
+        &["id", "value"],
+        &[
+            &["ALPHA HARBOR EAST", "same"],
+            &["BACKUP HARBOR EAST", "left-only"],
+        ],
+    );
+    let csv_b = csv_data(
+        "right.csv",
+        &["id", "value"],
+        &[
+            &["REMOTE HARBOR EAST", "same"],
+            &["ALPHA TERMINAL", "right-only"],
+        ],
+    );
+    let config = create_flexible_key_test_config(true);
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 3);
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::Match { key, values_a, values_b }
+                if key == &vec!["ALPHA HARBOR EAST".to_string()]
+                    && values_a == &vec!["same".to_string()]
+                    && values_b == &vec!["same".to_string()]
+        )
+    }));
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingRight { key, values_a }
+                if key == &vec!["BACKUP HARBOR EAST".to_string()]
+                    && values_a == &vec!["left-only".to_string()]
+        )
+    }));
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingLeft { key, values_b }
+                if key == &vec!["ALPHA TERMINAL".to_string()]
+                    && values_b == &vec!["right-only".to_string()]
+        )
+    }));
+}
+
+#[test]
+fn test_compare_csv_data_does_not_auto_pair_ambiguous_single_shared_text_token() {
+    let csv_a = csv_data("left.csv", &["id", "value"], &[&["NORTH HARBOR", "left"]]);
+    let csv_b = csv_data(
+        "right.csv",
+        &["id", "value"],
+        &[&["Remote Harbor", "right-a"], &["Backup Harbor", "right-b"]],
+    );
+    let config = create_flexible_key_test_config(true);
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 3);
+    assert!(
+        !results
+            .iter()
+            .any(|result| matches!(result, RowComparisonResult::Match { .. }))
+    );
     assert!(results.iter().any(|result| {
         matches!(
             result,
             RowComparisonResult::MissingRight { key, .. }
-                if key == &vec!["NODE RF".to_string()]
+                if key == &vec!["NORTH HARBOR".to_string()]
         )
     }));
-    assert!(results.iter().any(|result| {
-        matches!(
-            result,
-            RowComparisonResult::MissingLeft { key, .. }
-                if key == &vec!["Remote Node".to_string()]
-        )
-    }));
+    assert_eq!(
+        results
+            .iter()
+            .filter(|result| matches!(result, RowComparisonResult::MissingLeft { .. }))
+            .count(),
+        2
+    );
 }
 
 #[test]
