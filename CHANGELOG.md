@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.72 - 2026-05-11
+
+- Fixed explicit `**` row-key matching when the wildcard span crosses selected key component boundaries.
+- Added neutral regression coverage for boundary-aware wildcard matching, single-asterisk literals, unrelated component redistribution, and match ordering.
+
 ## v2.1.71 - 2026-05-11
 
 - Fixed standalone HTML exports so the match-rate progress fill renders at the intended full height.
