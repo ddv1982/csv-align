@@ -732,6 +732,221 @@ fn test_compare_csv_data_matches_overlapping_double_asterisk_patterns_on_both_si
 }
 
 #[test]
+fn test_compare_csv_data_matches_double_asterisk_across_key_component_boundaries() {
+    let csv_a = csv_data(
+        "left.csv",
+        &["part_a", "part_b", "value"],
+        &[&["GROUP**TAIL", "CODE", "same"]],
+    );
+    let csv_b = csv_data(
+        "right.csv",
+        &["part_a", "part_b", "value"],
+        &[&["GROUP", "TAILCODE", "same"]],
+    );
+    let config = comparison_config(
+        &["part_a", "part_b"],
+        &["part_a", "part_b"],
+        &["value"],
+        &["value"],
+        &[("value", "value")],
+        ComparisonNormalizationConfig {
+            flexible_key_matching: true,
+            ..ComparisonNormalizationConfig::default()
+        },
+    );
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    assert!(matches!(
+        &results[0],
+        RowComparisonResult::Match { key, .. }
+            if key == &vec!["GROUP**TAIL".to_string(), "CODE".to_string()]
+    ));
+}
+
+#[test]
+fn test_compare_csv_data_does_not_redistribute_key_components_without_double_asterisk() {
+    let csv_a = csv_data(
+        "left.csv",
+        &["part_a", "part_b", "value"],
+        &[&["GROUPTAIL", "CODE", "same"]],
+    );
+    let csv_b = csv_data(
+        "right.csv",
+        &["part_a", "part_b", "value"],
+        &[&["GROUP", "TAILCODE", "same"]],
+    );
+    let config = comparison_config(
+        &["part_a", "part_b"],
+        &["part_a", "part_b"],
+        &["value"],
+        &["value"],
+        &[("value", "value")],
+        ComparisonNormalizationConfig {
+            flexible_key_matching: true,
+            ..ComparisonNormalizationConfig::default()
+        },
+    );
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 2);
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingRight { key, .. }
+                if key == &vec!["GROUPTAIL".to_string(), "CODE".to_string()]
+        )
+    }));
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingLeft { key, .. }
+                if key == &vec!["GROUP".to_string(), "TAILCODE".to_string()]
+        )
+    }));
+}
+
+#[test]
+fn test_compare_csv_data_keeps_single_asterisk_literal_across_key_component_boundaries() {
+    let csv_a = csv_data(
+        "left.csv",
+        &["part_a", "part_b", "value"],
+        &[&["GROUP*TAIL", "CODE", "same"]],
+    );
+    let csv_b = csv_data(
+        "right.csv",
+        &["part_a", "part_b", "value"],
+        &[&["GROUP", "TAILCODE", "same"]],
+    );
+    let config = comparison_config(
+        &["part_a", "part_b"],
+        &["part_a", "part_b"],
+        &["value"],
+        &["value"],
+        &[("value", "value")],
+        ComparisonNormalizationConfig {
+            flexible_key_matching: true,
+            ..ComparisonNormalizationConfig::default()
+        },
+    );
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 2);
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingRight { key, .. }
+                if key == &vec!["GROUP*TAIL".to_string(), "CODE".to_string()]
+        )
+    }));
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingLeft { key, .. }
+                if key == &vec!["GROUP".to_string(), "TAILCODE".to_string()]
+        )
+    }));
+}
+
+#[test]
+fn test_compare_csv_data_rejects_boundary_redistribution_unrelated_to_double_asterisk() {
+    let csv_a = csv_data(
+        "left.csv",
+        &["part_a", "part_b", "value"],
+        &[&["ALPHA", "OMEGA**", "same"]],
+    );
+    let csv_b = csv_data(
+        "right.csv",
+        &["part_a", "part_b", "value"],
+        &[&["AL", "PHAOMEGAX", "same"]],
+    );
+    let config = comparison_config(
+        &["part_a", "part_b"],
+        &["part_a", "part_b"],
+        &["value"],
+        &["value"],
+        &[("value", "value")],
+        ComparisonNormalizationConfig {
+            flexible_key_matching: true,
+            ..ComparisonNormalizationConfig::default()
+        },
+    );
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 2);
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingRight { key, .. }
+                if key == &vec!["ALPHA".to_string(), "OMEGA**".to_string()]
+        )
+    }));
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingLeft { key, .. }
+                if key == &vec!["AL".to_string(), "PHAOMEGAX".to_string()]
+        )
+    }));
+}
+
+#[test]
+fn test_compare_csv_data_prefers_component_wildcard_match_before_boundary_fallback() {
+    let csv_a = csv_data(
+        "left.csv",
+        &["part_a", "part_b", "value"],
+        &[
+            &["GROUP**TAIL", "CODE", "fallback"],
+            &["GROUP**", "TAILCODE", "component"],
+        ],
+    );
+    let csv_b = csv_data(
+        "right.csv",
+        &["part_a", "part_b", "value"],
+        &[&["GROUP", "TAILCODE", "component"]],
+    );
+    let config = comparison_config(
+        &["part_a", "part_b"],
+        &["part_a", "part_b"],
+        &["value"],
+        &["value"],
+        &[("value", "value")],
+        ComparisonNormalizationConfig {
+            flexible_key_matching: true,
+            ..ComparisonNormalizationConfig::default()
+        },
+    );
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 2);
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::Match {
+                key,
+                values_a,
+                values_b,
+            } if key == &vec!["GROUP**".to_string(), "TAILCODE".to_string()]
+                && values_a == &vec!["component".to_string()]
+                && values_b == &vec!["component".to_string()]
+        )
+    }));
+    assert!(results.iter().any(|result| {
+        matches!(
+            result,
+            RowComparisonResult::MissingRight { key, values_a }
+                if key == &vec!["GROUP**TAIL".to_string(), "CODE".to_string()]
+                    && values_a == &vec!["fallback".to_string()]
+        )
+    }));
+}
+
+#[test]
 fn test_compare_csv_data_matches_double_asterisk_in_multi_column_keys() {
     let csv_a = csv_data(
         "left.csv",

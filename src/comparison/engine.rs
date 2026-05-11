@@ -1,7 +1,7 @@
 use super::super::data::types::*;
 use super::rows::{
-    KeyedRows, extract_columns, flexible_keys_match, get_column_selections,
-    split_rows_by_key_usable, wildcard_literal_count, wildcard_token_count,
+    FlexibleKeyMatch, KeyedRows, classify_flexible_key_match, extract_columns,
+    get_column_selections, split_rows_by_key_usable, wildcard_literal_count, wildcard_token_count,
 };
 use super::value_compare::{find_differences, normalize_display_value};
 use crate::data::json_fields::ColumnSelection;
@@ -71,7 +71,7 @@ struct ComparisonContext<'a> {
 struct FlexibleCandidate {
     key_a: Vec<String>,
     key_b: Vec<String>,
-    exact_match: bool,
+    match_kind: FlexibleKeyMatch,
     literal_count: usize,
     wildcard_count: usize,
     first_index_a: usize,
@@ -177,14 +177,16 @@ fn collect_flexible_candidates_for_key<'a>(
     candidate_rows_b: impl Iterator<Item = (&'a Vec<String>, &'a KeyedRows)>,
 ) {
     for (key_b, keyed_rows_b) in candidate_rows_b {
-        if !flexible_keys_match(&keyed_rows_a.normalized_key, &keyed_rows_b.normalized_key) {
+        let Some(match_kind) =
+            classify_flexible_key_match(&keyed_rows_a.normalized_key, &keyed_rows_b.normalized_key)
+        else {
             continue;
-        }
+        };
 
         candidates.push(FlexibleCandidate {
             key_a: key_a.to_vec(),
             key_b: key_b.clone(),
-            exact_match: keyed_rows_a.normalized_key == keyed_rows_b.normalized_key,
+            match_kind,
             literal_count: wildcard_literal_count(
                 &keyed_rows_a.normalized_key,
                 &keyed_rows_b.normalized_key,
@@ -204,8 +206,9 @@ fn compare_flexible_candidate_preference(
     right: &FlexibleCandidate,
 ) -> Ordering {
     right
-        .exact_match
-        .cmp(&left.exact_match)
+        .match_kind
+        .preference_rank()
+        .cmp(&left.match_kind.preference_rank())
         .then(right.literal_count.cmp(&left.literal_count))
         .then(left.wildcard_count.cmp(&right.wildcard_count))
         .then(left.first_index_a.cmp(&right.first_index_a))
