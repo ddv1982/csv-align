@@ -108,11 +108,11 @@ function KeyChip({ row }: { row: ResultRowViewModel }) {
 
 function DetailCell({ row, isExpanded, onToggle }: { row: ResultRowViewModel; isExpanded: boolean; onToggle: () => void }) {
   if (!row.expandableDetail) {
-    return <span className={`text-sm ${row.description ? 'app-text' : 'app-muted'}`}>{row.description ?? '—'}</span>;
+    return <span className={`detail-description text-sm ${row.description ? 'app-text' : 'app-muted'}`}>{row.description ?? '—'}</span>;
   }
 
   return (
-    <div className="grid gap-2">
+    <div className="detail-cell-stack grid gap-2">
       <button
         onClick={onToggle}
         className={`diff-toggle inline-flex w-fit items-center gap-1.5 border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] transition-colors ${
@@ -125,7 +125,7 @@ function DetailCell({ row, isExpanded, onToggle }: { row: ResultRowViewModel; is
         {row.expandableDetail.toggleLabel}
         <ChevronRightIcon className={`diff-toggle-glyph h-3.5 w-3.5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
       </button>
-      {row.description && <span className="app-text text-sm">{row.description}</span>}
+      {row.description && <span className="detail-description app-text text-sm">{row.description}</span>}
     </div>
   );
 }

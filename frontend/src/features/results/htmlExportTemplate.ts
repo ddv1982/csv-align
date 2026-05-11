@@ -423,11 +423,11 @@ ${RESULTS_EXPORT_STYLES}
         resultsBody.innerHTML = visibleRows.map((row) => {
           const isExpanded = state.expandedRow === row.id;
           const detailCell = row.expandableDetail
-            ? '<div class="grid gap-2">'
+            ? '<div class="detail-cell-stack grid gap-2">'
               + '<button type="button" class="diff-toggle inline-flex w-fit items-center gap-1.5 border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] transition-colors ' + (isExpanded ? 'border-app-accent app-surface-accent-strong text-app-text' : 'app-surface-subtle border-app-border text-app-muted hover:border-app-border-strong hover:text-app-text') + '" data-expand-row="' + row.id + '" aria-expanded="' + (isExpanded ? 'true' : 'false') + '">' + escapeHtml(row.expandableDetail.toggleLabel) + '<span class="diff-toggle-glyph">></span></button>'
-              + (row.description ? '<span class="app-text text-sm">' + escapeHtml(row.description) + '</span>' : '')
+              + (row.description ? '<span class="detail-description app-text text-sm">' + escapeHtml(row.description) + '</span>' : '')
               + '</div>'
-            : '<span class="text-sm ' + (row.description ? 'app-text' : 'app-muted') + '">' + escapeHtml(row.description || '—') + '</span>';
+            : '<span class="detail-description text-sm ' + (row.description ? 'app-text' : 'app-muted') + '">' + escapeHtml(row.description || '—') + '</span>';
 
           return '<tr class="transition-colors ' + (isExpanded ? 'app-surface-accent-strong' : 'bg-transparent app-surface-hover') + '" data-result-tone="' + escapeHtml(row.badgeTone) + '">'
             + '<td class="px-4 py-3.5 align-top"><span class="badge tone-' + row.badgeTone + ' inline-flex w-fit items-center gap-1.5 whitespace-nowrap border px-2.5 py-1 text-xs font-medium uppercase tracking-[0.12em]"><span class="badge-dot h-1.5 w-1.5 shrink-0" aria-hidden="true"></span>' + escapeHtml(row.badge.label) + '</span></td>'

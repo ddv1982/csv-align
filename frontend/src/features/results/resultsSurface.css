@@ -849,6 +849,21 @@
   transform: rotate(90deg);
 }
 
+.detail-cell-stack {
+  display: grid;
+  gap: 8px;
+  align-items: start;
+  justify-items: start;
+}
+
+.detail-description {
+  display: block;
+  max-width: 14rem;
+  font-size: 14px;
+  line-height: 1.45;
+  white-space: normal;
+}
+
 .details-row td {
   background: rgba(31, 41, 55, 0.52);
 }

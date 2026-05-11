@@ -109,7 +109,12 @@ test('buildResultsHtmlDocument embeds the current comparison view state for stan
   expect(html).toContain('class="detail-field"');
   expect(html).toContain('class="detail-panel-label meta-label app-text mb-3 text-xs font-semibold"');
   expect(html).toContain('class="detail-card-fields grid gap-3"');
-  expect(html).toContain('row.description ? \'<span class="app-text text-sm">\' + escapeHtml(row.description) + \'</span>\' : \'\'');
+  expect(html).toContain('class="detail-cell-stack grid gap-2"');
+  expect(html).toContain('row.description ? \'<span class="detail-description app-text text-sm">\' + escapeHtml(row.description) + \'</span>\' : \'\'');
+  expect(html).toContain('.detail-cell-stack {');
+  expect(html).toContain('justify-items: start;');
+  expect(html).toContain('.detail-description {');
+  expect(html).toContain('max-width: 14rem;');
   expect(html).toContain('color-scheme: dark;');
   expect(html).toContain('[data-theme="dark"] {');
   expect(html).toContain('--color-app-bg: #030712;');
@@ -366,6 +371,64 @@ test('standalone export table count matches the active filter bucket after the e
   duplicateFilter?.click();
 
   expect(resultsCount?.textContent).toBe('1 of 1 rows shown');
+
+  document.body.innerHTML = '';
+});
+
+test('standalone export stacks inspect actions above one-sided detail text', () => {
+  const html = buildResultsHtmlDocument({
+    summary: {
+      total_rows_a: 1,
+      total_rows_b: 0,
+      matches: 0,
+      mismatches: 0,
+      missing_left: 0,
+      missing_right: 1,
+      unkeyed_left: 0,
+      unkeyed_right: 0,
+      duplicates_a: 0,
+      duplicates_b: 0,
+    },
+    fileAName: 'left.csv',
+    fileBName: 'right.csv',
+    comparisonColumnsA: ['name'],
+    comparisonColumnsB: ['display_name'],
+    mappings: MAPPINGS,
+    results: [
+      {
+        result_type: 'missing_right',
+        key: ['only-left'],
+        values_a: ['Only Left'],
+        values_b: [],
+        duplicate_values_a: [],
+        duplicate_values_b: [],
+        differences: [],
+      },
+    ],
+    initialFilter: 'all',
+  });
+
+  const parsed = new DOMParser().parseFromString(html, 'text/html');
+  const script = parsed.querySelector('script:not([type="application/json"])');
+  const styles = Array.from(parsed.querySelectorAll('style'))
+    .map((style) => style.textContent ?? '')
+    .join('\n');
+
+  expect(styles).toMatch(/\.detail-cell-stack\s*\{[^}]*display:\s*grid;[^}]*gap:\s*8px;/s);
+  expect(styles).toMatch(/\.detail-description\s*\{[^}]*display:\s*block;[^}]*max-width:\s*14rem;/s);
+
+  document.body.innerHTML = parsed.body.innerHTML;
+  // eslint-disable-next-line no-new-func
+  Function(script?.textContent ?? '')();
+
+  const detailStack = document.querySelector('.detail-cell-stack');
+  const inspectToggle = detailStack?.querySelector('button[data-expand-row]');
+  const description = detailStack?.querySelector('.detail-description');
+
+  expect(detailStack).toBeTruthy();
+  expect(inspectToggle?.textContent).toContain('Inspect');
+  expect(description?.textContent).toBe('Present only in File A for the selected key.');
+  expect(inspectToggle?.nextElementSibling).toBe(description);
 
   document.body.innerHTML = '';
 });

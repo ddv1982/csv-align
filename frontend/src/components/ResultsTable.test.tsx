@@ -68,6 +68,14 @@ test('shows clearer labels and explanations for one-sided and ignored rows', () 
   expect(fileAOnlyBadge).toHaveClass('whitespace-nowrap');
   expect(fileAOnlyBadge).toHaveClass('w-fit');
   expect(fileAOnlyBadge?.querySelector('.badge-dot')).toBeTruthy();
+
+  const fileAOnlyRow = screen.getByText('A-1').closest('tr') as HTMLElement;
+  const detailDescription = within(fileAOnlyRow).getByText('Present only in File A for the selected key.');
+  const detailStack = detailDescription.closest('.detail-cell-stack') as HTMLElement;
+  const inspectToggle = within(detailStack).getByRole('button', { name: /inspect/i });
+  expect(detailDescription).toHaveClass('detail-description');
+  expect(inspectToggle.nextElementSibling).toBe(detailDescription);
+
   expect(screen.getByRole('table')).toHaveClass('results-table');
 });
 
