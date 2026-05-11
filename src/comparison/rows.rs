@@ -171,6 +171,10 @@ fn shared_anchored_tokens_match(key_a: &[String], key_b: &[String]) -> bool {
         return false;
     }
 
+    let has_exact_numeric_component = key_a.iter().zip(key_b).any(|(component_a, component_b)| {
+        component_a == component_b && is_numeric_only_component(component_a)
+    });
+
     let mut exact_component_count = 0;
     let mut shared_alpha_count = 0;
     let mut shares_number = false;
@@ -188,16 +192,35 @@ fn shared_anchored_tokens_match(key_a: &[String], key_b: &[String]) -> bool {
         let component_shares_number = tokens_a
             .numeric
             .iter()
-            .any(|token| tokens_b.numeric.contains(token));
+            .any(|token| tokens_b.numeric.contains(token))
+            || tokens_a
+                .embedded_identifiers
+                .iter()
+                .any(|token| tokens_b.embedded_identifiers.contains(token));
 
         if component_shared_alpha_count == 0 {
             return false;
         }
 
-        if (!tokens_a.numeric.is_empty() || !tokens_b.numeric.is_empty())
-            && !component_shares_number
-        {
+        let component_a_has_numbers = !tokens_a.numeric.is_empty() || tokens_a.has_embedded_numeric;
+        let component_b_has_numbers = !tokens_b.numeric.is_empty() || tokens_b.has_embedded_numeric;
+        let both_components_have_numbers = component_a_has_numbers && component_b_has_numbers;
+        let one_component_has_numbers = component_a_has_numbers != component_b_has_numbers;
+
+        if !component_shares_number && both_components_have_numbers {
             return false;
+        }
+
+        if !component_shares_number && one_component_has_numbers {
+            let numeric_tokens_are_standalone = if !component_a_has_numbers {
+                !tokens_b.has_embedded_numeric
+            } else {
+                !tokens_a.has_embedded_numeric
+            };
+
+            if !has_exact_numeric_component || !numeric_tokens_are_standalone {
+                return false;
+            }
         }
 
         shared_alpha_count += component_shared_alpha_count;
@@ -214,6 +237,8 @@ fn shared_anchored_tokens_match(key_a: &[String], key_b: &[String]) -> bool {
 struct KeyTokenSet {
     alpha: HashSet<String>,
     numeric: HashSet<String>,
+    embedded_identifiers: HashSet<String>,
+    has_embedded_numeric: bool,
 }
 
 fn key_token_set(key: &[String]) -> KeyTokenSet {
@@ -224,20 +249,28 @@ fn key_token_set(key: &[String]) -> KeyTokenSet {
             if token.chars().all(|character| character.is_ascii_digit()) {
                 token_set.numeric.insert(token);
             } else {
-                for numeric_token in ascii_digit_runs(&token) {
-                    token_set.numeric.insert(numeric_token);
+                let has_alpha = token.chars().any(|character| character.is_alphabetic());
+                let numeric_tokens = ascii_digit_runs(&token);
+                if !numeric_tokens.is_empty() {
+                    token_set.has_embedded_numeric = true;
+                    if has_alpha {
+                        token_set.embedded_identifiers.insert(token.to_lowercase());
+                    }
                 }
 
-                if token.chars().any(|character| character.is_alphabetic())
-                    && token.chars().count() >= 4
-                {
-                    token_set.alpha.insert(token);
+                if has_alpha && token.chars().count() >= 4 {
+                    token_set.alpha.insert(token.to_lowercase());
                 }
             }
         }
     }
 
     token_set
+}
+
+fn is_numeric_only_component(value: &str) -> bool {
+    let trimmed = value.trim();
+    !trimmed.is_empty() && trimmed.chars().all(|character| character.is_ascii_digit())
 }
 
 fn ascii_digit_runs(value: &str) -> Vec<String> {
