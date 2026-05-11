@@ -129,7 +129,7 @@ dependencies = [
 
 [[package]]
 name = "csv-align"
-version = "2.1.76"
+version = "2.1.77"
 dependencies = [
  "anyhow",
  "axum",

@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.77 - 2026-05-11
+
+- Polished the desktop app shell with a taller startup window target, matching new-window sizing, and a sticky token-based glass header treatment.
+- Updated progress-step labels and badges to use normal app typography instead of HUD/monospace styling, with focused regression coverage for the shell contracts.
+
 ## v2.1.76 - 2026-05-11
 
 - Improved flexible row-key matching so case-variant shared anchors and standalone numeric prefixes can match when another selected key component is an exact numeric anchor.
