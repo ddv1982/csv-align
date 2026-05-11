@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.75 - 2026-05-11
+
+- Fixed standalone HTML reports so Inspect actions and one-sided detail text stack with the same neat layout as the in-app results table.
+- Added app and export regression coverage for detail text layout parity without embedding user-provided sample data.
+
 ## v2.1.74 - 2026-05-11
 
 - Hardened flexible row-key matching so shared anchors respect case-sensitive normalization and reject conflicting numeric or embedded identifier tokens.
