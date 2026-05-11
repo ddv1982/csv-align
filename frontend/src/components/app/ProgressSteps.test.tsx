@@ -63,3 +63,26 @@ test('keeps a consistent step container width for active and navigable steps', (
   expect(screen.getByText('Step 2').closest('div')).toHaveClass('min-w-[11rem]');
   expect(screen.getByRole('button', { name: 'Go to step 3: Results' })).toHaveClass('min-w-[11rem]');
 });
+
+test('uses normal app typography instead of HUD styling for step copy', () => {
+  render(
+    <ProgressSteps
+      step="configure"
+      unlockedSteps={['select', 'configure', 'results']}
+      onStepChange={vi.fn()}
+    />,
+  );
+
+  expect(screen.getByText('Step 1')).not.toHaveClass('hud-label');
+  expect(screen.getByText('Step 1')).toHaveClass('text-xs', 'font-medium', 'text-app-muted');
+  const firstLabel = screen.getByText('Choose Files');
+  const firstBadge = screen.getByText('1');
+
+  expect(firstLabel).toHaveClass('text-sm', 'font-semibold', 'tracking-tight');
+  expect(firstLabel).not.toHaveClass('uppercase');
+  expect(firstLabel).not.toHaveClass('tracking-[0.14em]');
+  expect(firstBadge).toHaveClass('text-sm', 'font-semibold');
+  expect(firstBadge).not.toHaveClass('font-mono');
+  expect(firstBadge).not.toHaveClass('uppercase');
+  expect(firstBadge).not.toHaveClass('tracking-[0.18em]');
+});

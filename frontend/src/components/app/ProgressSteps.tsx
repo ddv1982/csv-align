@@ -25,7 +25,7 @@ export function ProgressSteps({ step, unlockedSteps, onStepChange }: ProgressSte
           const isUnlocked = unlockedSteps.includes(currentStep.id);
           const canNavigate = isUnlocked && !isActive;
 
-          const badgeClasses = `flex h-8 w-8 shrink-0 items-center justify-center border font-mono text-[11px] uppercase tracking-[0.18em] transition-colors ${
+          const badgeClasses = `flex h-8 w-8 shrink-0 items-center justify-center border text-sm font-semibold transition-colors ${
             isActive
               ? 'app-surface-accent'
               : isComplete
@@ -45,8 +45,8 @@ export function ProgressSteps({ step, unlockedSteps, onStepChange }: ProgressSte
             <>
               <span className={badgeClasses}>{currentStep.number}</span>
               <span className="ml-3 text-left">
-                <span className="hud-label block">Step {currentStep.number}</span>
-                <span className="block text-sm font-medium uppercase tracking-[0.14em]">{currentStep.label}</span>
+                <span className="block text-xs font-medium text-app-muted">Step {currentStep.number}</span>
+                <span className="block text-sm font-semibold tracking-tight">{currentStep.label}</span>
               </span>
             </>
           );

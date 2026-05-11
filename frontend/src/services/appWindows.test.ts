@@ -55,9 +55,16 @@ describe('openNewAppWindow', () => {
     await openNewAppWindow();
 
     expect(webviewWindowMock).toHaveBeenCalledTimes(1);
-    const [label, options] = webviewWindowMock.mock.calls[0] as [string, { title: string; url: string }];
+    const [label, options] = webviewWindowMock.mock.calls[0] as [
+      string,
+      { title: string; width: number; height: number; center: boolean; resizable: boolean; url: string },
+    ];
     expect(label).toMatch(/^app-/);
     expect(options.title).toBe('CSV Align');
+    expect(options.width).toBe(1200);
+    expect(options.height).toBe(880);
+    expect(options.center).toBe(true);
+    expect(options.resizable).toBe(true);
     expect(options.url).toBe(window.location.href);
   });
 

@@ -76,8 +76,13 @@ test('does not render the legacy CA header badge', async () => {
   expect(screen.getByRole('heading', { name: /csv align/i })).toBeInTheDocument();
 });
 
-test('uses sticky legacy dark header styling', async () => {
+test('uses the sticky glass header surface', async () => {
   await renderHeader();
 
-  expect(screen.getByRole('banner')).toHaveClass('sticky', 'top-0', 'backdrop-blur-sm', 'border-gray-800');
+  const header = screen.getByRole('banner');
+
+  expect(header).toHaveClass('app-header-glass', 'sticky', 'top-0', 'z-30');
+  expect(header).not.toHaveClass('border-gray-800');
+  expect(header).not.toHaveClass('bg-gray-950/80');
+  expect(header).not.toHaveClass('backdrop-blur-sm');
 });

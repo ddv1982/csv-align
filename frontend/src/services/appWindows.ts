@@ -1,13 +1,16 @@
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { isTauri } from './tauri';
 
+const APP_WINDOW_WIDTH = 1200;
+const APP_WINDOW_HEIGHT = 880;
+
 export async function openNewAppWindow(): Promise<void> {
   if (isTauri) {
     const label = `app-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     const webviewWindow = new WebviewWindow(label, {
       title: 'CSV Align',
-      width: 1200,
-      height: 800,
+      width: APP_WINDOW_WIDTH,
+      height: APP_WINDOW_HEIGHT,
       center: true,
       resizable: true,
       url: window.location.href,
