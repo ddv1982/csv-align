@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.76 - 2026-05-11
+
+- Improved flexible row-key matching so case-variant shared anchors and standalone numeric prefixes can match when another selected key component is an exact numeric anchor.
+- Hardened shared-anchor matching against embedded alphanumeric identifier false positives with neutral regression coverage.
+
 ## v2.1.75 - 2026-05-11
 
 - Fixed standalone HTML reports so Inspect actions and one-sided detail text stack with the same neat layout as the in-app results table.
