@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.1.79 - 2026-05-12
+
+- Clarified the flexible row-key matching helper text so it describes partial-text matches in simpler language.
+
 ## v2.1.78 - 2026-05-12
 
 - Improved flexible row-key matching so rows with one clear shared text token can be paired when the match is isolated and unambiguous.

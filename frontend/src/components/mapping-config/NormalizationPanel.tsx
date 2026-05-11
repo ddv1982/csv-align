@@ -77,7 +77,7 @@ export function NormalizationPanel({
             checked={normalization.flexible_key_matching}
             onChange={(checked) => onChange({ flexible_key_matching: checked })}
             label="Enable flexible row-key matching"
-            helpText="Turn this on when matching rows may use slightly different key text. Use ** as a wildcard for changing parts; CSV Align can also match keys that share one clear, distinctive word when there is only one possible match."
+            helpText="Turn this on to match row keys when only part of the text needs to be the same."
           />
         </RuleGroup>
 
