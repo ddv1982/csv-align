@@ -532,6 +532,7 @@ fn push_paired_group_results(
             values_a: comparison_display_values_a(keyed_rows_a, context),
             values_b: Vec::new(),
         });
+        return;
     }
 
     if keyed_rows_b.indices.len() > 1 {
@@ -540,6 +541,7 @@ fn push_paired_group_results(
             values_a: Vec::new(),
             values_b: comparison_display_values_b(keyed_rows_b, context),
         });
+        return;
     }
 
     results.push(compare_first_rows(keyed_rows_a, keyed_rows_b, context));

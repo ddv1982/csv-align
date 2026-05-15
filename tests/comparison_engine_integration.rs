@@ -44,6 +44,33 @@ fn create_test_config() -> ComparisonConfig {
     )
 }
 
+fn non_duplicate_results_for_key<'a>(
+    results: &'a [RowComparisonResult],
+    key: &str,
+) -> Vec<&'a RowComparisonResult> {
+    results
+        .iter()
+        .filter(|result| result.key() == [key.to_string()])
+        .filter(|result| !matches!(result, RowComparisonResult::Duplicate { .. }))
+        .collect()
+}
+
+fn duplicate_result_for_key<'a>(
+    results: &'a [RowComparisonResult],
+    expected_key: &str,
+) -> &'a RowComparisonResult {
+    let expected_key = vec![expected_key.to_string()];
+    results
+        .iter()
+        .find(|result| {
+            matches!(
+                result,
+                RowComparisonResult::Duplicate { key, .. } if key == &expected_key
+            )
+        })
+        .unwrap_or_else(|| panic!("missing duplicate result for key {expected_key:?}"))
+}
+
 #[test]
 fn test_compare_csv_data() {
     let csv_a = create_test_csv_a();
@@ -52,7 +79,7 @@ fn test_compare_csv_data() {
 
     let results = compare_csv_data(&csv_a, &csv_b, &config);
 
-    assert_eq!(results.len(), 5);
+    assert_eq!(results.len(), 4);
 
     let matches = results
         .iter()
@@ -76,10 +103,14 @@ fn test_compare_csv_data() {
         .count();
 
     assert_eq!(matches, 1);
-    assert_eq!(mismatches, 1);
+    assert_eq!(mismatches, 0);
     assert_eq!(missing_left, 1);
     assert_eq!(missing_right, 1);
     assert_eq!(duplicates, 1);
+    assert!(
+        non_duplicate_results_for_key(&results, "2").is_empty(),
+        "duplicate key 2 should not also emit a match or mismatch result"
+    );
 
     let duplicate = results
         .iter()
@@ -100,6 +131,98 @@ fn test_compare_csv_data() {
         }
         _ => unreachable!(),
     }
+}
+
+#[test]
+fn test_compare_csv_data_file_b_duplicate_skips_first_row_mismatch() {
+    let csv_a = csv_data("left.csv", &["id", "name"], &[&["8", "Alpha"]]);
+    let csv_b = csv_data(
+        "right.csv",
+        &["id", "name"],
+        &[&["8", "Beta"], &["8", "Gamma"]],
+    );
+    let config = comparison_config(
+        &["id"],
+        &["id"],
+        &["name"],
+        &["name"],
+        &[("name", "name")],
+        ComparisonNormalizationConfig::default(),
+    );
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    assert!(
+        non_duplicate_results_for_key(&results, "8").is_empty(),
+        "duplicate key 8 should not also emit a match or mismatch result"
+    );
+    match duplicate_result_for_key(&results, "8") {
+        RowComparisonResult::Duplicate {
+            key,
+            values_a,
+            values_b,
+        } => {
+            assert_eq!(key, &vec!["8".to_string()]);
+            assert!(values_a.is_empty());
+            assert_eq!(
+                values_b,
+                &vec![vec!["Beta".to_string()], vec!["Gamma".to_string()]]
+            );
+        }
+        _ => panic!("expected duplicate result for File B duplicate key"),
+    }
+
+    let summary = generate_summary(&results, csv_a.rows.len(), csv_b.rows.len());
+    assert_eq!(summary.mismatches, 0);
+    assert_eq!(summary.matches, 0);
+    assert_eq!(summary.duplicates_b, 1);
+}
+
+#[test]
+fn test_compare_csv_data_one_sided_duplicate_skips_first_row_match() {
+    let csv_a = csv_data(
+        "left.csv",
+        &["id", "name"],
+        &[&["7", "Same"], &["7", "Other"]],
+    );
+    let csv_b = csv_data("right.csv", &["id", "name"], &[&["7", "Same"]]);
+    let config = comparison_config(
+        &["id"],
+        &["id"],
+        &["name"],
+        &["name"],
+        &[("name", "name")],
+        ComparisonNormalizationConfig::default(),
+    );
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    assert!(
+        non_duplicate_results_for_key(&results, "7").is_empty(),
+        "duplicate key 7 should not also emit a match or mismatch result"
+    );
+    match duplicate_result_for_key(&results, "7") {
+        RowComparisonResult::Duplicate {
+            key,
+            values_a,
+            values_b,
+        } => {
+            assert_eq!(key, &vec!["7".to_string()]);
+            assert_eq!(
+                values_a,
+                &vec![vec!["Same".to_string()], vec!["Other".to_string()]]
+            );
+            assert!(values_b.is_empty());
+        }
+        _ => panic!("expected duplicate result for File A duplicate key"),
+    }
+
+    let summary = generate_summary(&results, csv_a.rows.len(), csv_b.rows.len());
+    assert_eq!(summary.matches, 0);
+    assert_eq!(summary.mismatches, 0);
+    assert_eq!(summary.duplicates_a, 1);
 }
 
 #[test]
@@ -150,6 +273,45 @@ fn test_compare_csv_data_keeps_duplicate_rows_grouped_by_side() {
         }
         _ => panic!("expected duplicate result when both files contain duplicates"),
     }
+}
+
+#[test]
+fn test_compare_csv_data_flexible_duplicate_skips_first_row_mismatch() {
+    let csv_a = csv_data(
+        "left.csv",
+        &["id", "value"],
+        &[&["INV-**", "Alpha"], &["INV-**", "Beta"]],
+    );
+    let csv_b = csv_data("right.csv", &["id", "value"], &[&["INV-001", "Gamma"]]);
+    let config = create_flexible_key_test_config(true);
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    assert!(
+        non_duplicate_results_for_key(&results, "INV-**").is_empty(),
+        "flexible duplicate key INV-** should not also emit a match or mismatch result"
+    );
+    match duplicate_result_for_key(&results, "INV-**") {
+        RowComparisonResult::Duplicate {
+            key,
+            values_a,
+            values_b,
+        } => {
+            assert_eq!(key, &vec!["INV-**".to_string()]);
+            assert_eq!(
+                values_a,
+                &vec![vec!["Alpha".to_string()], vec!["Beta".to_string()]]
+            );
+            assert!(values_b.is_empty());
+        }
+        _ => panic!("expected duplicate result for flexible File A duplicate key"),
+    }
+
+    let summary = generate_summary(&results, csv_a.rows.len(), csv_b.rows.len());
+    assert_eq!(summary.matches, 0);
+    assert_eq!(summary.mismatches, 0);
+    assert_eq!(summary.duplicates_a, 1);
 }
 
 #[test]

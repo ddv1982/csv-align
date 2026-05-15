@@ -107,6 +107,10 @@ fn result_by_type<'a>(results: &'a [Value], result_type: &str) -> &'a Value {
         .unwrap_or_else(|| panic!("missing result type {result_type}"))
 }
 
+fn result_has_key(result: &Value, key: &str) -> bool {
+    result.get("key") == Some(&serde_json::json!([key]))
+}
+
 #[tokio::test]
 async fn csv_align_error_variants_map_to_documented_http_status() {
     let cases = [
@@ -400,6 +404,138 @@ async fn response_contracts_compare_serializes_each_result_variant_and_summary_s
             "duplicates_b": 0
         })
     );
+}
+
+#[tokio::test]
+async fn response_contracts_compare_excludes_mismatch_for_one_sided_duplicate_key() {
+    let state = AppState::new();
+    let session_id = state.create_session();
+
+    let mut session = SessionData::new();
+    session.csv_a = Some(
+        csv_data(
+            "left.csv",
+            &["id", "name"],
+            &[&["9", "Alpha"], &["9", "Beta"]],
+        )
+        .into(),
+    );
+    session.csv_b = Some(csv_data("right.csv", &["id", "name"], &[&["9", "Gamma"]]).into());
+    assert!(state.update_session(&session_id, session));
+
+    let response = handlers::compare(
+        State(state),
+        Path(session_id),
+        Json(CompareRequest {
+            key_columns_a: vec!["id".to_string()],
+            key_columns_b: vec!["id".to_string()],
+            comparison_columns_a: vec!["name".to_string()],
+            comparison_columns_b: vec!["name".to_string()],
+            column_mappings: vec![MappingRequest {
+                file_a_column: "name".to_string(),
+                file_b_column: "name".to_string(),
+                mapping_type: "exact".to_string(),
+                similarity: None,
+            }],
+            normalization: ComparisonNormalizationConfig::default(),
+        }),
+    )
+    .await;
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let json = response_json(response).await;
+    let results = json["results"]
+        .as_array()
+        .expect("results should be an array");
+    assert_eq!(results.len(), 1);
+    assert!(
+        results
+            .iter()
+            .filter(|result| result_has_key(result, "9"))
+            .all(|result| result["result_type"] == "duplicate_file_a"),
+        "duplicate key 9 should not also serialize a match or mismatch row"
+    );
+
+    let duplicate = result_by_type(results, "duplicate_file_a");
+    assert_eq!(duplicate["key"], serde_json::json!(["9"]));
+    assert_eq!(duplicate["values_a"], serde_json::json!(["Alpha"]));
+    assert_eq!(duplicate["values_b"], serde_json::json!([]));
+    assert_eq!(
+        duplicate["duplicate_values_a"],
+        serde_json::json!([["Alpha"], ["Beta"]])
+    );
+    assert_eq!(duplicate["duplicate_values_b"], serde_json::json!([]));
+    assert_eq!(duplicate["differences"], serde_json::json!([]));
+    assert_eq!(json["summary"]["matches"], 0);
+    assert_eq!(json["summary"]["mismatches"], 0);
+    assert_eq!(json["summary"]["duplicates_a"], 1);
+}
+
+#[tokio::test]
+async fn response_contracts_compare_serializes_file_b_only_duplicate_key() {
+    let state = AppState::new();
+    let session_id = state.create_session();
+
+    let mut session = SessionData::new();
+    session.csv_a = Some(csv_data("left.csv", &["id", "name"], &[&["9", "Alpha"]]).into());
+    session.csv_b = Some(
+        csv_data(
+            "right.csv",
+            &["id", "name"],
+            &[&["9", "Beta"], &["9", "Gamma"]],
+        )
+        .into(),
+    );
+    assert!(state.update_session(&session_id, session));
+
+    let response = handlers::compare(
+        State(state),
+        Path(session_id),
+        Json(CompareRequest {
+            key_columns_a: vec!["id".to_string()],
+            key_columns_b: vec!["id".to_string()],
+            comparison_columns_a: vec!["name".to_string()],
+            comparison_columns_b: vec!["name".to_string()],
+            column_mappings: vec![MappingRequest {
+                file_a_column: "name".to_string(),
+                file_b_column: "name".to_string(),
+                mapping_type: "exact".to_string(),
+                similarity: None,
+            }],
+            normalization: ComparisonNormalizationConfig::default(),
+        }),
+    )
+    .await;
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let json = response_json(response).await;
+    let results = json["results"]
+        .as_array()
+        .expect("results should be an array");
+    assert_eq!(results.len(), 1);
+    assert!(
+        results
+            .iter()
+            .filter(|result| result_has_key(result, "9"))
+            .all(|result| result["result_type"] == "duplicate_file_b"),
+        "duplicate key 9 should not also serialize a match or mismatch row"
+    );
+
+    let duplicate = result_by_type(results, "duplicate_file_b");
+    assert_eq!(duplicate["key"], serde_json::json!(["9"]));
+    assert_eq!(duplicate["values_a"], serde_json::json!([]));
+    assert_eq!(duplicate["values_b"], serde_json::json!(["Beta"]));
+    assert_eq!(duplicate["duplicate_values_a"], serde_json::json!([]));
+    assert_eq!(
+        duplicate["duplicate_values_b"],
+        serde_json::json!([["Beta"], ["Gamma"]])
+    );
+    assert_eq!(duplicate["differences"], serde_json::json!([]));
+    assert_eq!(json["summary"]["matches"], 0);
+    assert_eq!(json["summary"]["mismatches"], 0);
+    assert_eq!(json["summary"]["duplicates_b"], 1);
 }
 
 #[tokio::test]
