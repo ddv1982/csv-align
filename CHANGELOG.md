@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.80 - 2026-05-15
+
+- Kept duplicate result keys out of match and mismatch categories so duplicate rows appear only in the duplicate bucket.
+- Added exact, flexible-key, and API contract regression coverage for one-sided duplicate classification.
+
 ## v2.1.79 - 2026-05-12
 
 - Clarified the flexible row-key matching helper text so it describes partial-text matches in simpler language.
