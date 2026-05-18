@@ -1,5 +1,11 @@
 import type { MappingDto, ResultFilter, ResultResponse, SummaryResponse } from '../../types/api';
-import { RESULT_FILTER_OPTIONS, buildResultRows, getResultFilterCounts, type ResultFilterTone } from './presentation';
+import {
+  RESULT_FILTER_OPTIONS,
+  buildResultRows,
+  getResultFilterCounts,
+  type ResultFilterTone,
+} from './presentation';
+import { getSearchableFieldOptions, type SearchableFieldOption } from './search';
 import { renderResultsHtmlDocument } from './htmlExportTemplate';
 
 type HtmlExportTheme = 'dark';
@@ -16,6 +22,7 @@ type HtmlExportDocument = {
   mappings: MappingDto[];
   summary: SummaryResponse;
   filterOptions: Array<{ value: ResultFilter; label: string; count: number; tone: ResultFilterTone }>;
+  searchFields: SearchableFieldOption[];
   initialFilter: ResultFilter;
   rows: ReturnType<typeof buildResultRows>;
 };
@@ -59,6 +66,11 @@ function buildHtmlExportDocument(params: {
       count: counts[option.value],
       tone: option.tone,
     })),
+    searchFields: getSearchableFieldOptions({
+      fileA: params.comparisonColumnsA,
+      fileB: params.comparisonColumnsB,
+      mappings: params.mappings,
+    }),
     initialFilter: params.initialFilter,
     rows: buildResultRows(params.results, {
       fileA: params.comparisonColumnsA,

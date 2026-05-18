@@ -85,7 +85,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -216,6 +217,11 @@ svg {
 
 .input::placeholder {
   color: var(--color-app-muted);
+}
+
+.result-search-field-select {
+  min-width: 144px;
+  padding-left: 12px;
 }
 
 .table-wrap {

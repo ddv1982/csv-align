@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { expect, test } from 'vitest';
 import { ResultsTable } from './ResultsTable';
 import type { ResultResponse } from '../types/api';
@@ -285,13 +285,76 @@ test('shows overlapping key and comparison pairs in expanded matched results', (
 test('filters visible rows by search query across keys and values', () => {
   render(<ResultsTable results={RESULTS} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
 
-  const search = screen.getByPlaceholderText('Search keys or values');
+  const search = screen.getByLabelText('Search comparison results');
   fireEvent.change(search, { target: { value: 'gamma' } });
 
   expect(screen.getByText('C-3')).toBeInTheDocument();
   expect(screen.queryByText('A-1')).not.toBeInTheDocument();
   expect(screen.queryByText('B-2')).not.toBeInTheDocument();
   expect(screen.getByText('1 of 4 rows shown')).toBeInTheDocument();
+});
+
+test('filters visible rows by the selected search field', () => {
+  render(<ResultsTable results={RESULTS} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
+
+  expect(screen.getByRole('button', { name: 'Search field' })).toHaveTextContent('All fields');
+  expect(screen.queryByText('Search in')).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Search field' }));
+  fireEvent.click(screen.getByRole('option', { name: 'Key' }));
+
+  const search = screen.getByLabelText('Search comparison results');
+  expect(search).toHaveAttribute('placeholder', 'Search keys');
+
+  fireEvent.change(search, { target: { value: 'gamma' } });
+
+  expect(screen.queryByText('C-3')).not.toBeInTheDocument();
+  expect(screen.getByText('No results match the current filter and search.')).toBeInTheDocument();
+
+  fireEvent.change(search, { target: { value: 'C-3' } });
+
+  expect(screen.getByText('C-3')).toBeInTheDocument();
+  expect(screen.getByText('1 of 4 rows shown')).toBeInTheDocument();
+});
+
+test('closes the search field picker with keyboard and outside click', async () => {
+  render(<ResultsTable results={RESULTS} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
+
+  const trigger = screen.getByRole('button', { name: 'Search field' });
+
+  fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+  await waitFor(() => expect(screen.getByRole('option', { name: 'All fields' })).toHaveFocus());
+
+  fireEvent.keyDown(screen.getByRole('option', { name: 'All fields' }), { key: 'Escape' });
+  expect(screen.queryByPlaceholderText('Find a field')).not.toBeInTheDocument();
+  expect(trigger).toHaveFocus();
+
+  fireEvent.click(trigger);
+  expect(screen.getByPlaceholderText('Find a field')).toBeInTheDocument();
+  fireEvent.mouseDown(document.body);
+  expect(screen.queryByPlaceholderText('Find a field')).not.toBeInTheDocument();
+
+  fireEvent.click(trigger);
+  fireEvent.click(screen.getByRole('option', { name: 'Key' }));
+  expect(trigger).toHaveFocus();
+  expect(trigger).toHaveTextContent('Key');
+});
+
+test('collapses expanded rows when the query or selected field changes', () => {
+  render(<ResultsTable results={RESULTS} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
+
+  fireEvent.click(screen.getByRole('button', { name: /1 diff/i }));
+  expect(screen.getByText('Value Differences')).toBeInTheDocument();
+
+  fireEvent.change(screen.getByLabelText('Search comparison results'), { target: { value: 'zulu' } });
+  expect(screen.queryByText('Value Differences')).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: /1 diff/i }));
+  expect(screen.getByText('Value Differences')).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Search field' }));
+  fireEvent.click(screen.getByRole('option', { name: 'Details' }));
+  expect(screen.queryByText('Value Differences')).not.toBeInTheDocument();
 });
 
 test('sorts rows by key when the header is clicked', () => {
@@ -451,7 +514,7 @@ test('sorts rows by diff count descending when the details header is clicked twi
 test('updates the controlled search input value synchronously on each keystroke', () => {
   render(<ResultsTable results={RESULTS} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
 
-  const search = screen.getByPlaceholderText('Search keys or values');
+  const search = screen.getByLabelText('Search comparison results');
 
   fireEvent.change(search, { target: { value: 'g' } });
   expect(search).toHaveValue('g');

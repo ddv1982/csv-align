@@ -589,6 +589,172 @@ test('standalone export uses green-green inspection tones for match rows and spl
   document.body.innerHTML = '';
 });
 
+test('standalone export supports compact field-scoped search with fallback to all fields', () => {
+  const html = buildResultsHtmlDocument({
+    summary: SUMMARY,
+    fileAName: 'left.csv',
+    fileBName: 'right.csv',
+    comparisonColumnsA: ['name'],
+    comparisonColumnsB: ['display_name'],
+    mappings: MAPPINGS,
+    results: RESULTS,
+    initialFilter: 'all',
+  });
+
+  expect(html).toContain('id="results-search-field"');
+  expect(html).toContain('aria-label="Search field"');
+  expect(html).toContain('"searchFields"');
+  expect(html).toContain('"label":"All fields"');
+  expect(html).not.toContain('Search in');
+
+  const parsed = new DOMParser().parseFromString(html, 'text/html');
+  const script = parsed.querySelector('script:not([type="application/json"])');
+
+  document.body.innerHTML = parsed.body.innerHTML;
+  // eslint-disable-next-line no-new-func
+  Function(script?.textContent ?? '')();
+
+  const fieldSelect = document.getElementById('results-search-field') as HTMLSelectElement;
+  const searchInput = document.getElementById('results-search') as HTMLInputElement;
+  const resultsCount = document.getElementById('results-count');
+
+  expect(fieldSelect.value).toBe('all');
+  expect(searchInput.placeholder).toBe('Search all result fields');
+
+  searchInput.value = '  bOB  ';
+  fireEvent.input(searchInput);
+  expect(resultsCount?.textContent).toBe('1 of 3 rows shown');
+
+  fieldSelect.value = 'key';
+  fireEvent.change(fieldSelect);
+  expect(searchInput.placeholder).toBe('Search keys');
+  expect(resultsCount?.textContent).toBe('0 of 3 rows shown');
+  expect(document.body.textContent).toContain('No results match the current filter and search.');
+
+  searchInput.value = '2';
+  fireEvent.input(searchInput);
+  expect(resultsCount?.textContent).toBe('1 of 3 rows shown');
+
+  const diffToggle = document.querySelector('[data-expand-row]') as HTMLButtonElement;
+  diffToggle.click();
+  expect(document.body.textContent).toContain('Value Differences');
+
+  fieldSelect.value = 'details';
+  fireEvent.change(fieldSelect);
+  expect(document.getElementById('results-body')?.textContent).not.toContain('Value Differences');
+
+  fieldSelect.value = 'not-a-real-field';
+  fireEvent.change(fieldSelect);
+  searchInput.value = 'Bob';
+  fireEvent.input(searchInput);
+  expect(fieldSelect.value).toBe('all');
+  expect(resultsCount?.textContent).toBe('1 of 3 rows shown');
+
+  document.body.innerHTML = '';
+});
+
+test('standalone export does not fall back to broad search for intentionally empty scoped fields', () => {
+  const html = buildResultsHtmlDocument({
+    summary: {
+      total_rows_a: 1,
+      total_rows_b: 0,
+      matches: 0,
+      mismatches: 0,
+      missing_left: 0,
+      missing_right: 1,
+      unkeyed_left: 0,
+      unkeyed_right: 0,
+      duplicates_a: 0,
+      duplicates_b: 0,
+    },
+    fileAName: 'left.csv',
+    fileBName: 'right.csv',
+    comparisonColumnsA: ['name'],
+    comparisonColumnsB: ['display_name'],
+    mappings: MAPPINGS,
+    results: [
+      {
+        result_type: 'missing_right',
+        key: ['left-only'],
+        values_a: ['Left Alpha'],
+        values_b: [],
+        duplicate_values_a: [],
+        duplicate_values_b: [],
+        differences: [],
+      },
+    ],
+    initialFilter: 'all',
+  });
+
+  const parsed = new DOMParser().parseFromString(html, 'text/html');
+  const script = parsed.querySelector('script:not([type="application/json"])');
+
+  document.body.innerHTML = parsed.body.innerHTML;
+  // eslint-disable-next-line no-new-func
+  Function(script?.textContent ?? '')();
+
+  const fieldSelect = document.getElementById('results-search-field') as HTMLSelectElement;
+  const searchInput = document.getElementById('results-search') as HTMLInputElement;
+  const resultsCount = document.getElementById('results-count');
+
+  fieldSelect.value = 'fileB';
+  fireEvent.change(fieldSelect);
+  searchInput.value = 'Left Alpha';
+  fireEvent.input(searchInput);
+
+  expect(resultsCount?.textContent).toBe('0 of 1 rows shown');
+  expect(document.body.textContent).toContain('No results match the current filter and search.');
+
+  document.body.innerHTML = '';
+});
+
+test('standalone export keeps user keys out of expandable row attributes', () => {
+  const html = buildResultsHtmlDocument({
+    summary: {
+      total_rows_a: 1,
+      total_rows_b: 1,
+      matches: 0,
+      mismatches: 1,
+      missing_left: 0,
+      missing_right: 0,
+      unkeyed_left: 0,
+      unkeyed_right: 0,
+      duplicates_a: 0,
+      duplicates_b: 0,
+    },
+    fileAName: 'left.csv',
+    fileBName: 'right.csv',
+    comparisonColumnsA: ['name'],
+    comparisonColumnsB: ['display_name'],
+    mappings: MAPPINGS,
+    results: [
+      {
+        result_type: 'mismatch',
+        key: ['bad" data-injected="true'],
+        values_a: ['Alice'],
+        values_b: ['Alicia'],
+        duplicate_values_a: [],
+        duplicate_values_b: [],
+        differences: [{ column_a: 'name', column_b: 'display_name', value_a: 'Alice', value_b: 'Alicia' }],
+      },
+    ],
+    initialFilter: 'all',
+  });
+
+  const parsed = new DOMParser().parseFromString(html, 'text/html');
+  const script = parsed.querySelector('script:not([type="application/json"])');
+
+  document.body.innerHTML = parsed.body.innerHTML;
+  // eslint-disable-next-line no-new-func
+  Function(script?.textContent ?? '')();
+
+  const toggle = document.querySelector('[data-expand-row]') as HTMLButtonElement;
+  expect(toggle.getAttribute('data-expand-row')).toBe('row-0');
+  expect(toggle.hasAttribute('data-injected')).toBe(false);
+
+  document.body.innerHTML = '';
+});
+
 test('standalone export wraps long collapsed result values instead of forcing a single truncated line', () => {
   const longFileA = 'AlphaSegmentOne,AlphaSegmentTwo,AlphaSegmentThree,AlphaSegmentFour';
   const longFileB = 'BravoSegmentOne,BravoSegmentTwo,BravoSegmentThree,BravoSegmentFour';

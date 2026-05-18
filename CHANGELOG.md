@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.81 - 2026-05-19
+
+- Added compact scoped search to the results table so users can search all fields, keys, result types, details, mapped columns, or specific File A/File B columns.
+- Kept standalone HTML exports aligned with result search behavior, including field-scoped filtering, compact native field selection, safe row identifiers, and regression coverage for export escaping and parity.
+
 ## v2.1.80 - 2026-05-15
 
 - Kept duplicate result keys out of match and mismatch categories so duplicate rows appear only in the duplicate bucket.

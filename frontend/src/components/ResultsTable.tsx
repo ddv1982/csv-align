@@ -10,7 +10,15 @@ import {
   type ResultSortDirection,
   type ResultValueCell,
 } from '../features/results/presentation';
+import {
+  SEARCHABLE_FIELD_ALL,
+  getSearchableFieldOptions,
+  getSearchableFieldPlaceholder,
+  normalizeSearchableFieldId,
+  type SearchableFieldId,
+} from '../features/results/search';
 import { ChevronRightIcon, MagnifyingGlassIcon, RectangleStackIcon } from './icons';
+import { SearchFieldPicker } from './results/SearchFieldPicker';
 import { SectionCard } from './ui/SectionCard';
 
 interface ResultsTableProps {
@@ -152,25 +160,49 @@ export function ResultsTable({
 }: ResultsTableProps) {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [searchFieldId, setSearchFieldId] = useState<SearchableFieldId>(SEARCHABLE_FIELD_ALL);
   const [sortColumn, setSortColumn] = useState<ResultSortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<ResultSortDirection>('asc');
   const [isPending, startTransition] = useTransition();
   const deferredQuery = useDeferredValue(query);
 
+  const comparisonColumns = useMemo(
+    () => ({ fileA: comparisonColumnsA, fileB: comparisonColumnsB, mappings }),
+    [comparisonColumnsA, comparisonColumnsB, mappings],
+  );
+
+  const searchFieldOptions = useMemo(
+    () => getSearchableFieldOptions(comparisonColumns),
+    [comparisonColumns],
+  );
+  const normalizedSearchFieldId = normalizeSearchableFieldId(searchFieldId, searchFieldOptions);
+  const searchPlaceholder = getSearchableFieldPlaceholder(normalizedSearchFieldId, searchFieldOptions);
+
   const resultRows = useMemo(
-    () => buildResultRows(results, { fileA: comparisonColumnsA, fileB: comparisonColumnsB, mappings }),
-    [comparisonColumnsA, comparisonColumnsB, mappings, results],
+    () => buildResultRows(results, comparisonColumns),
+    [comparisonColumns, results],
   );
 
   const visibleResults = useMemo(
     () => filterAndSortResultRows(resultRows, {
       filter: 'all',
       query: deferredQuery,
+      searchFieldId: normalizedSearchFieldId,
       sortColumn,
       sortDirection,
     }),
-    [deferredQuery, resultRows, sortColumn, sortDirection],
+    [deferredQuery, normalizedSearchFieldId, resultRows, sortColumn, sortDirection],
   );
+
+  const handleSearchQueryChange = (nextQuery: string) => {
+    setQuery(nextQuery);
+    setExpandedRow(null);
+  };
+
+  const handleSearchFieldChange = (nextFieldId: SearchableFieldId) => {
+    setSearchFieldId(nextFieldId);
+    setExpandedRow(null);
+  };
 
   const handleSort = (column: ResultSortColumn) => {
     startTransition(() => {
@@ -248,17 +280,25 @@ export function ResultsTable({
       className="overflow-hidden"
       icon={<RectangleStackIcon className="h-5 w-5" />}
       action={
-        <label className="relative block w-full sm:max-w-xs">
-          <span className="sr-only">Search result values</span>
-          <MagnifyingGlassIcon className="app-muted pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search keys or values"
-            className="input pl-9 pr-3 text-sm"
+        <div className="result-search-controls">
+          <SearchFieldPicker
+            options={searchFieldOptions}
+            value={normalizedSearchFieldId}
+            onChange={handleSearchFieldChange}
           />
-        </label>
+          <label className="search-wrap relative block w-full">
+            <span className="sr-only">Search comparison results</span>
+            <MagnifyingGlassIcon className="app-muted pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+            <input
+              type="search"
+              aria-label="Search comparison results"
+              value={query}
+              onChange={(event) => handleSearchQueryChange(event.target.value)}
+              placeholder={searchPlaceholder}
+              className="input pl-9 pr-3 text-sm"
+            />
+          </label>
+        </div>
       }
     >
       <div>

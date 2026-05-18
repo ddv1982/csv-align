@@ -1,5 +1,10 @@
-import type { CompareResultType, MappingDto, ResultFilter, ResultResponse, SummaryResponse } from '../../types/api';
-
+import type { CompareResultType, ResultFilter, ResultResponse, SummaryResponse } from '../../types/api';
+import {
+  SEARCHABLE_FIELD_ALL,
+  buildSearchFields,
+  normalizeSearchText,
+} from './search';
+import type { ComparisonColumns, SearchableFieldId } from './search';
 export type ResultValueCell = {
   column: string | null;
   value: string;
@@ -61,7 +66,6 @@ export type ResultBadgeTone =
 export type ResultSortColumn = 'type' | 'key' | 'fileA' | 'fileB' | 'details';
 export type ResultSortDirection = 'asc' | 'desc';
 export type ResultFilterBucket = Exclude<ResultFilter, 'all'> | 'duplicate';
-
 export type ResultRowViewModel = {
   id: string;
   result: ResultResponse;
@@ -79,6 +83,7 @@ export type ResultRowViewModel = {
   differences: ResultResponse['differences'];
   expandableDetail: ResultExpandableDetail | null;
   searchText: string;
+  searchFields: Record<SearchableFieldId, string>;
   sortValues: Record<ResultSortColumn, string | number>;
 };
 
@@ -110,12 +115,6 @@ export type SummaryOverview = {
 type ResultStaticCopy = {
   label: string;
   description: string | null;
-};
-
-type ComparisonColumns = {
-  fileA: string[];
-  fileB: string[];
-  mappings?: MappingDto[];
 };
 
 type InspectionFieldPair = {
@@ -429,17 +428,28 @@ export function buildResultRows(
     const fileAValues = buildDisplayValueRows(result.duplicate_values_a, result.values_a, comparisonColumns.fileA);
     const fileBValues = buildDisplayValueRows(result.duplicate_values_b, result.values_b, comparisonColumns.fileB);
     const expandableDetail = buildExpandableDetail(result, fileAValues, fileBValues, comparisonColumns);
-    const columnSearchText = [comparisonColumns.fileA.join(' '), comparisonColumns.fileB.join(' ')].join(' ');
+    const filterBucket = getResultFilterBucket(result);
+    const description = getResultDescription(result.result_type);
+    const searchFields = buildSearchFields({
+      result,
+      badgeLabel: badge.label,
+      filterBucket,
+      description,
+      fileAValues,
+      fileBValues,
+      expandableDetail,
+      comparisonColumns,
+    });
 
     return {
-      id: `${index}-${result.result_type}-${result.key.join('|')}`,
+      id: `row-${index}`,
       result,
       resultType: result.result_type,
-      filterBucket: getResultFilterBucket(result),
+      filterBucket,
       badge,
       badgeLabel: badge.label,
       badgeTone: getResultBadgeTone(result.result_type),
-      description: getResultDescription(result.result_type),
+      description,
       keyText: result.key.join(', '),
       keyParts: [...result.key],
       fileAValues,
@@ -447,18 +457,8 @@ export function buildResultRows(
       detailsCount: result.differences.length,
       differences: result.differences,
       expandableDetail,
-      searchText: [
-        badge.label,
-        result.key.join(' '),
-        result.values_a.join(' '),
-        result.values_b.join(' '),
-        result.duplicate_values_a.flat().join(' '),
-        result.duplicate_values_b.flat().join(' '),
-        columnSearchText,
-        result.differences.flatMap((diff) => [diff.column_a, diff.column_b, diff.value_a, diff.value_b]).join(' '),
-      ]
-        .join(' ')
-        .toLowerCase(),
+      searchText: searchFields[SEARCHABLE_FIELD_ALL],
+      searchFields,
       sortValues: {
         type: badge.label,
         key: result.key.join(' '),
@@ -477,12 +477,17 @@ export function filterAndSortResultRows(
     query: string;
     sortColumn: ResultSortColumn | null;
     sortDirection: ResultSortDirection;
+    searchFieldId?: SearchableFieldId | null;
   },
 ): ResultRowViewModel[] {
-  const normalizedQuery = params.query.trim().toLowerCase();
+  const normalizedQuery = normalizeSearchText(params.query);
+  const activeFieldId = params.searchFieldId ?? SEARCHABLE_FIELD_ALL;
   const filtered = rows.filter((row) => {
     const matchesBucket = params.filter === 'all' || row.filterBucket === params.filter;
-    const matchesSearch = normalizedQuery.length === 0 || row.searchText.includes(normalizedQuery);
+    const rowSearchText = activeFieldId === SEARCHABLE_FIELD_ALL
+      ? row.searchText
+      : (row.searchFields[activeFieldId] ?? row.searchText);
+    const matchesSearch = normalizedQuery.length === 0 || rowSearchText.includes(normalizedQuery);
     return matchesBucket && matchesSearch;
   });
 

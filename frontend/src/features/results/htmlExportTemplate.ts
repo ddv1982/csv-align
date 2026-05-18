@@ -1,5 +1,16 @@
 import type { ResultFilter, SummaryResponse } from '../../types/api';
-import { buildSummaryOverview, type ResultFilterTone, type ResultRowViewModel, type SummaryBannerViewModel, type SummaryStatViewModel } from './presentation';
+import {
+  buildSummaryOverview,
+  type ResultFilterTone,
+  type ResultRowViewModel,
+  type SummaryBannerViewModel,
+  type SummaryStatViewModel,
+} from './presentation';
+import {
+  SEARCHABLE_FIELD_GROUPS,
+  SEARCH_FIELD_GROUP_LABELS,
+  type SearchableFieldOption,
+} from './search';
 import { RESULTS_EXPORT_STYLES } from './htmlExportTheme';
 
 type HtmlExportTheme = 'dark';
@@ -11,6 +22,7 @@ type HtmlExportDocument = {
   fileBName: string;
   summary: SummaryResponse;
   filterOptions: Array<{ value: ResultFilter; label: string; count: number; tone: ResultFilterTone }>;
+  searchFields: SearchableFieldOption[];
   initialFilter: ResultFilter;
   rows: ResultRowViewModel[];
 };
@@ -40,6 +52,21 @@ function renderIcon(name: ExportIconName, className: string): string {
   };
 
   return `<svg class="${className}" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">${paths[name]}</svg>`;
+}
+
+function renderSearchFieldOptions(options: SearchableFieldOption[]): string {
+  return SEARCHABLE_FIELD_GROUPS
+    .map((group) => {
+      const groupOptions = options.filter((option) => option.group === group);
+      if (groupOptions.length === 0) {
+        return '';
+      }
+
+      return `<optgroup label="${escapeHtmlText(SEARCH_FIELD_GROUP_LABELS[group])}">${groupOptions
+        .map((option) => `<option value="${escapeHtmlText(option.id)}">${escapeHtmlText(option.label)}</option>`)
+        .join('')}</optgroup>`;
+    })
+    .join('');
 }
 
 function renderStatIcon(stat: SummaryStatViewModel): string {
@@ -195,11 +222,17 @@ ${RESULTS_EXPORT_STYLES}
                 </div>
               </div>
               <div class="section-card-action shrink-0">
-                <label class="search-wrap relative block w-full sm:max-w-xs" for="results-search">
-                  <span class="sr-only">Search result values</span>
-                  ${renderIcon('search', 'search-icon app-muted pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2')}
-                  <input id="results-search" class="input pl-9 pr-3 text-sm" type="search" placeholder="Search keys or values" aria-label="Search keys or values" />
-                </label>
+                <div class="result-search-controls">
+                  <label class="result-search-field block" for="results-search-field">
+                    <span class="sr-only">Search field</span>
+                    <select id="results-search-field" class="input result-search-field-select app-text w-full px-3 py-2 text-sm" aria-label="Search field">${renderSearchFieldOptions(data.searchFields)}</select>
+                  </label>
+                  <label class="search-wrap relative block w-full" for="results-search">
+                    <span class="sr-only">Search comparison results</span>
+                    ${renderIcon('search', 'search-icon app-muted pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2')}
+                    <input id="results-search" class="input pl-9 pr-3 text-sm" type="search" placeholder="Search all result fields" aria-label="Search comparison results" />
+                  </label>
+                </div>
               </div>
             </div>
 
@@ -241,6 +274,7 @@ ${RESULTS_EXPORT_STYLES}
       const state = {
         filter: data.initialFilter,
         query: '',
+        searchField: 'all',
         sortColumn: null,
         sortDirection: 'asc',
         expandedRow: null,
@@ -253,6 +287,7 @@ ${RESULTS_EXPORT_STYLES}
       const emptyState = document.getElementById('table-empty-state');
       const emptyGlyph = document.getElementById('table-empty-glyph');
       const emptyCopy = document.getElementById('table-empty-copy');
+      const searchFieldSelect = document.getElementById('results-search-field');
       const searchInput = document.getElementById('results-search');
 
       document.getElementById('generated-at').textContent = 'Generated ' + new Date(data.generatedAt).toLocaleString();
@@ -275,6 +310,41 @@ ${RESULTS_EXPORT_STYLES}
           numeric: true,
           sensitivity: 'base',
         });
+      }
+
+      function normalizeSearchText(value) {
+        return String(value).trim().toLowerCase();
+      }
+
+      function getSearchFields() {
+        const fields = Array.isArray(data.searchFields) ? data.searchFields : [];
+        return fields.some((field) => field && field.id === 'all')
+          ? fields
+          : [{ id: 'all', label: 'All fields', group: 'general', placeholder: 'Search all result fields' }];
+      }
+
+      function normalizeSearchFieldId(fieldId) {
+        const fields = getSearchFields();
+        return fields.some((field) => field.id === fieldId) ? fieldId : 'all';
+      }
+
+      function getActiveSearchField() {
+        const normalizedField = normalizeSearchFieldId(state.searchField);
+        state.searchField = normalizedField;
+        return getSearchFields().find((field) => field.id === normalizedField) || getSearchFields()[0];
+      }
+
+      function getRowSearchText(row) {
+        const activeField = getActiveSearchField();
+        if (activeField.id === 'all') {
+          return row.searchText || '';
+        }
+
+        if (row.searchFields && Object.prototype.hasOwnProperty.call(row.searchFields, activeField.id)) {
+          return row.searchFields[activeField.id] || '';
+        }
+
+        return row.searchText || '';
       }
 
       function formatValueStack(rows) {
@@ -353,10 +423,10 @@ ${RESULTS_EXPORT_STYLES}
       }
 
       function getVisibleRows() {
-        const normalizedQuery = state.query.trim().toLowerCase();
+        const normalizedQuery = normalizeSearchText(state.query);
         const filtered = data.rows.filter((row) => {
           const matchesBucket = state.filter === 'all' ? true : row.filterBucket === state.filter;
-          const matchesSearch = normalizedQuery.length === 0 ? true : row.searchText.includes(normalizedQuery);
+          const matchesSearch = normalizedQuery.length === 0 ? true : getRowSearchText(row).includes(normalizedQuery);
           return matchesBucket && matchesSearch;
         });
 
@@ -388,6 +458,12 @@ ${RESULTS_EXPORT_STYLES}
         });
       }
 
+      function renderSearchFields() {
+        const activeField = getActiveSearchField();
+        searchFieldSelect.value = activeField.id;
+        searchInput.placeholder = activeField.placeholder || 'Search all result fields';
+      }
+
       function renderFilters() {
         filterRow.innerHTML = data.filterOptions.map((option) => {
           const active = state.filter === option.value;
@@ -406,6 +482,7 @@ ${RESULTS_EXPORT_STYLES}
           emptyCopy.textContent = 'No results match the selected filter.';
           emptyState.hidden = false;
           resultsTable.hidden = true;
+          resultsBody.innerHTML = '';
           return;
         }
 
@@ -414,6 +491,7 @@ ${RESULTS_EXPORT_STYLES}
           emptyCopy.textContent = 'No results match the current filter and search.';
           emptyState.hidden = false;
           resultsTable.hidden = true;
+          resultsBody.innerHTML = '';
           return;
         }
 
@@ -424,7 +502,7 @@ ${RESULTS_EXPORT_STYLES}
           const isExpanded = state.expandedRow === row.id;
           const detailCell = row.expandableDetail
             ? '<div class="detail-cell-stack grid gap-2">'
-              + '<button type="button" class="diff-toggle inline-flex w-fit items-center gap-1.5 border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] transition-colors ' + (isExpanded ? 'border-app-accent app-surface-accent-strong text-app-text' : 'app-surface-subtle border-app-border text-app-muted hover:border-app-border-strong hover:text-app-text') + '" data-expand-row="' + row.id + '" aria-expanded="' + (isExpanded ? 'true' : 'false') + '">' + escapeHtml(row.expandableDetail.toggleLabel) + '<span class="diff-toggle-glyph">></span></button>'
+              + '<button type="button" class="diff-toggle inline-flex w-fit items-center gap-1.5 border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] transition-colors ' + (isExpanded ? 'border-app-accent app-surface-accent-strong text-app-text' : 'app-surface-subtle border-app-border text-app-muted hover:border-app-border-strong hover:text-app-text') + '" data-expand-row="' + escapeHtml(row.id) + '" aria-expanded="' + (isExpanded ? 'true' : 'false') + '">' + escapeHtml(row.expandableDetail.toggleLabel) + '<span class="diff-toggle-glyph">></span></button>'
               + (row.description ? '<span class="detail-description app-text text-sm">' + escapeHtml(row.description) + '</span>' : '')
               + '</div>'
             : '<span class="detail-description text-sm ' + (row.description ? 'app-text' : 'app-muted') + '">' + escapeHtml(row.description || '—') + '</span>';
@@ -451,6 +529,13 @@ ${RESULTS_EXPORT_STYLES}
         state.filter = target.getAttribute('data-filter');
         state.expandedRow = null;
         renderFilters();
+        renderTable();
+      });
+
+      searchFieldSelect.addEventListener('change', (event) => {
+        state.searchField = normalizeSearchFieldId(event.target.value);
+        state.expandedRow = null;
+        renderSearchFields();
         renderTable();
       });
 
@@ -486,6 +571,7 @@ ${RESULTS_EXPORT_STYLES}
       });
 
       renderFilters();
+      renderSearchFields();
       renderTable();
       updateSortButtons();
     </script>
