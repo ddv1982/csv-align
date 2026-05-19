@@ -8,12 +8,7 @@ import {
   getResultDescription,
   getResultFilterCounts,
 } from './presentation';
-import {
-  getFileASearchableFieldId,
-  getFileBSearchableFieldId,
-  getMappedSearchableFieldId,
-  getSearchableFieldOptions,
-} from './search';
+import { getSearchableFieldOptions, normalizeSearchableFieldId } from './search';
 import type { MappingDto, ResultResponse } from '../../types/api';
 
 const RESULTS: ResultResponse[] = [
@@ -375,7 +370,7 @@ test('uses explicit mappings to pair inspection labels when selected column orde
   });
 });
 
-test('builds searchable field metadata and preserves all-fields compatibility', () => {
+test('builds general searchable field metadata and preserves all-fields compatibility', () => {
   const mappings: MappingDto[] = [
     { file_a_column: 'first_name', file_b_column: 'full_name', mapping_type: 'manual' },
   ];
@@ -394,24 +389,20 @@ test('builds searchable field metadata and preserves all-fields compatibility', 
     fileB: ['full_name'],
     mappings,
   });
-  const options = getSearchableFieldOptions({ fileA: ['first_name'], fileB: ['full_name'], mappings });
+  const options = getSearchableFieldOptions();
 
-  expect(options.map((option) => [option.group, option.label])).toEqual([
-    ['general', 'All fields'],
-    ['general', 'Type'],
-    ['general', 'Key'],
-    ['general', 'File A values'],
-    ['general', 'File B values'],
-    ['general', 'Details'],
-    ['mapped', 'first_name ↔ full_name'],
-    ['fileA', 'first_name'],
-    ['fileB', 'full_name'],
+  expect(options.map((option) => option.label)).toEqual([
+    'All fields',
+    'Type',
+    'Key',
+    'File A values',
+    'File B values',
   ]);
   expect(rows[0].searchText).toBe(rows[0].searchFields.all);
   expect(rows[0].searchFields.key).toContain('person-1');
   expect(rows[0].searchFields.fileA).toContain('alice');
   expect(rows[0].searchFields.fileB).toContain('alicia');
-  expect(rows[0].searchFields.details).toContain('first_name');
+  expect(rows[0].searchFields.all).toContain('first_name');
 });
 
 test('filters rows by a selected searchable field with all-fields fallback for unknown ids', () => {
@@ -450,45 +441,142 @@ test('filters rows by a selected searchable field with all-fields fallback for u
   expect(filterAndSortResultRows(rows, {
     filter: 'all',
     query: 'right-only-token',
-    searchFieldId: getFileBSearchableFieldId('display_name'),
-    sortColumn: null,
-    sortDirection: 'asc',
-  }).map((row) => row.keyText)).toEqual(['beta-key']);
-  expect(filterAndSortResultRows(rows, {
-    filter: 'all',
-    query: 'right-only-token',
-    searchFieldId: getMappedSearchableFieldId('name', 'display_name'),
+    searchFieldId: 'fileB',
     sortColumn: null,
     sortDirection: 'asc',
   }).map((row) => row.keyText)).toEqual(['beta-key']);
   expect(filterAndSortResultRows(rows, {
     filter: 'all',
     query: 'left-only-token',
-    searchFieldId: getFileASearchableFieldId('name'),
+    searchFieldId: 'fileA',
     sortColumn: null,
     sortDirection: 'asc',
   }).map((row) => row.keyText)).toEqual(['alpha-key']);
   expect(filterAndSortResultRows(rows, {
     filter: 'all',
     query: 'name',
-    searchFieldId: getFileASearchableFieldId('name'),
+    searchFieldId: 'fileA',
     sortColumn: null,
     sortDirection: 'asc',
   })).toEqual([]);
   expect(filterAndSortResultRows(rows, {
     filter: 'all',
     query: 'display_name',
-    searchFieldId: getMappedSearchableFieldId('name', 'display_name'),
+    searchFieldId: 'fileB',
+    sortColumn: null,
+    sortDirection: 'asc',
+  })).toEqual([]);
+  const normalizedUnknownField = normalizeSearchableFieldId('unknown-field', getSearchableFieldOptions());
+  expect(normalizedUnknownField).toBe('all');
+  expect(filterAndSortResultRows(rows, {
+    filter: 'all',
+    query: 'right-only-token',
+    searchFieldId: normalizedUnknownField,
+    sortColumn: null,
+    sortDirection: 'asc',
+  }).map((row) => row.keyText)).toEqual(['beta-key']);
+});
+
+test('searches duplicate and one-sided values only through their fixed file-side fields', () => {
+  const rows = buildResultRows([
+    {
+      result_type: 'duplicate_file_a',
+      key: ['duplicate-a-key'],
+      values_a: [],
+      values_b: [],
+      duplicate_values_a: [['left-duplicate-token'], ['left-second-token']],
+      duplicate_values_b: [],
+      differences: [],
+    },
+    {
+      result_type: 'duplicate_file_b',
+      key: ['duplicate-b-key'],
+      values_a: [],
+      values_b: [],
+      duplicate_values_a: [],
+      duplicate_values_b: [['right-duplicate-token'], ['right-second-token']],
+      differences: [],
+    },
+    {
+      result_type: 'missing_right',
+      key: ['left-only-key'],
+      values_a: ['left-only-token'],
+      values_b: [],
+      duplicate_values_a: [],
+      duplicate_values_b: [],
+      differences: [],
+    },
+    {
+      result_type: 'missing_left',
+      key: ['right-only-key'],
+      values_a: [],
+      values_b: ['right-only-token'],
+      duplicate_values_a: [],
+      duplicate_values_b: [],
+      differences: [],
+    },
+  ], {
+    fileA: ['name'],
+    fileB: ['display_name'],
+    mappings: [{ file_a_column: 'name', file_b_column: 'display_name', mapping_type: 'manual' }],
+  });
+
+  expect(filterAndSortResultRows(rows, {
+    filter: 'all',
+    query: 'left-duplicate-token',
+    searchFieldId: 'fileA',
+    sortColumn: null,
+    sortDirection: 'asc',
+  }).map((row) => row.keyText)).toEqual(['duplicate-a-key']);
+  expect(filterAndSortResultRows(rows, {
+    filter: 'all',
+    query: 'left-duplicate-token',
+    searchFieldId: 'fileB',
+    sortColumn: null,
+    sortDirection: 'asc',
+  })).toEqual([]);
+  expect(filterAndSortResultRows(rows, {
+    filter: 'all',
+    query: 'right-duplicate-token',
+    searchFieldId: 'fileB',
+    sortColumn: null,
+    sortDirection: 'asc',
+  }).map((row) => row.keyText)).toEqual(['duplicate-b-key']);
+  expect(filterAndSortResultRows(rows, {
+    filter: 'all',
+    query: 'right-duplicate-token',
+    searchFieldId: 'fileA',
+    sortColumn: null,
+    sortDirection: 'asc',
+  })).toEqual([]);
+  expect(filterAndSortResultRows(rows, {
+    filter: 'all',
+    query: 'left-only-token',
+    searchFieldId: 'fileA',
+    sortColumn: null,
+    sortDirection: 'asc',
+  }).map((row) => row.keyText)).toEqual(['left-only-key']);
+  expect(filterAndSortResultRows(rows, {
+    filter: 'all',
+    query: 'left-only-token',
+    searchFieldId: 'fileB',
     sortColumn: null,
     sortDirection: 'asc',
   })).toEqual([]);
   expect(filterAndSortResultRows(rows, {
     filter: 'all',
     query: 'right-only-token',
-    searchFieldId: 'unknown-field',
+    searchFieldId: 'fileB',
     sortColumn: null,
     sortDirection: 'asc',
-  }).map((row) => row.keyText)).toEqual(['beta-key']);
+  }).map((row) => row.keyText)).toEqual(['right-only-key']);
+  expect(filterAndSortResultRows(rows, {
+    filter: 'all',
+    query: 'right-only-token',
+    searchFieldId: 'fileA',
+    sortColumn: null,
+    sortDirection: 'asc',
+  })).toEqual([]);
 });
 
 test('keeps zero-diff mismatch inspection aligned to explicit mappings', () => {

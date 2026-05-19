@@ -687,8 +687,14 @@
   cursor: pointer;
 }
 
+.result-search-field-button.input,
+.result-search-field-select.input {
+  background: var(--color-app-panel);
+}
+
 .result-search-field-popover {
   border-color: var(--color-app-border-strong);
+  background: var(--color-app-panel);
 }
 
 .result-search-field-list {
@@ -708,10 +714,6 @@
 
 .result-search-field-option[aria-selected="true"] {
   border: 1px solid rgba(96, 165, 250, 0.42);
-}
-
-.result-search-field-group-label {
-  color: var(--color-app-muted);
 }
 
 .search-wrap {

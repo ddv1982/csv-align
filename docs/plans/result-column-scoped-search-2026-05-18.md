@@ -23,6 +23,10 @@ Represent searchable fields in the shared presentation layer so the React table 
 
 Keep search query and selected field as local table/export UI state for this implementation. The exported HTML should include the same compact combobox + query behavior, but initialize to `initialFilter` as today, empty query, and **All fields** selected. Do not lift query/field into workflow state just to preserve the current table search at export time; users can reproduce scoped searches inside the standalone report.
 
+### Decision update — 2026-05-19
+
+The final implementation intentionally narrowed the picker to five general fields only: **All fields**, **Type**, **Key**, **File A values**, and **File B values**. Dynamic mapped/source-column fields, the separate **Details** scope, and picker-internal typeahead were removed after UX review because the fixed list is compact enough for desktop and mobile without an advanced combobox. Details text remains searchable through **All fields** for compatibility, while File A/File B scopes search only their side's visible and duplicate values.
+
 ### UX details
 - Keep the feature lightweight: present this as choosing the field to search, not as “scoped search” or “advanced filters.”
 - Default to **All fields** so the current simple behavior remains the normal path.

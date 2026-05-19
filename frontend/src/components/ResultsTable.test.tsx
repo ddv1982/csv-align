@@ -323,21 +323,36 @@ test('closes the search field picker with keyboard and outside click', async () 
   const trigger = screen.getByRole('button', { name: 'Search field' });
 
   fireEvent.keyDown(trigger, { key: 'ArrowDown' });
-  await waitFor(() => expect(screen.getByRole('option', { name: 'All fields' })).toHaveFocus());
+  await waitFor(() => expect(screen.getByRole('option', { name: 'All fields', selected: true })).toHaveFocus());
 
+  fireEvent.keyDown(screen.getByRole('option', { name: 'All fields' }), { key: 'ArrowDown' });
+  expect(screen.getByRole('option', { name: 'Type' })).toHaveFocus();
+  fireEvent.keyDown(screen.getByRole('option', { name: 'Type' }), { key: 'End' });
+  expect(screen.getByRole('option', { name: 'File B values' })).toHaveFocus();
+  fireEvent.keyDown(screen.getByRole('option', { name: 'File B values' }), { key: 'Home' });
+  expect(screen.getByRole('option', { name: 'All fields', selected: true })).toHaveFocus();
+
+  fireEvent.keyDown(screen.getByRole('option', { name: 'All fields' }), { key: 'Tab' });
+  expect(screen.queryByRole('option', { name: 'Key' })).not.toBeInTheDocument();
+
+  fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+  await waitFor(() => expect(screen.getByRole('option', { name: 'All fields' })).toHaveFocus());
   fireEvent.keyDown(screen.getByRole('option', { name: 'All fields' }), { key: 'Escape' });
   expect(screen.queryByPlaceholderText('Find a field')).not.toBeInTheDocument();
   expect(trigger).toHaveFocus();
 
   fireEvent.click(trigger);
-  expect(screen.getByPlaceholderText('Find a field')).toBeInTheDocument();
+  expect(screen.getByRole('option', { name: 'Key' })).toBeInTheDocument();
   fireEvent.mouseDown(document.body);
-  expect(screen.queryByPlaceholderText('Find a field')).not.toBeInTheDocument();
+  expect(screen.queryByRole('option', { name: 'Key' })).not.toBeInTheDocument();
 
   fireEvent.click(trigger);
   fireEvent.click(screen.getByRole('option', { name: 'Key' }));
   expect(trigger).toHaveFocus();
   expect(trigger).toHaveTextContent('Key');
+
+  fireEvent.click(trigger);
+  expect(screen.getByRole('option', { name: 'Key', selected: true })).toBeInTheDocument();
 });
 
 test('collapses expanded rows when the query or selected field changes', () => {
@@ -353,7 +368,7 @@ test('collapses expanded rows when the query or selected field changes', () => {
   expect(screen.getByText('Value Differences')).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole('button', { name: 'Search field' }));
-  fireEvent.click(screen.getByRole('option', { name: 'Details' }));
+  fireEvent.click(screen.getByRole('option', { name: 'File B values' }));
   expect(screen.queryByText('Value Differences')).not.toBeInTheDocument();
 });
 

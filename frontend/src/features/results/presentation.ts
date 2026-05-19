@@ -435,10 +435,7 @@ export function buildResultRows(
       badgeLabel: badge.label,
       filterBucket,
       description,
-      fileAValues,
-      fileBValues,
       expandableDetail,
-      comparisonColumns,
     });
 
     return {

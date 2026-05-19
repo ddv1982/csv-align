@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.82 - 2026-05-19
+
+- Simplified result search scoping to the compact fixed fields users need most: all fields, type, key, File A values, and File B values.
+- Kept the app and standalone HTML report aligned with opaque search controls, shared fixed-field metadata, and regression coverage for duplicate and one-sided scoped searches.
+
 ## v2.1.81 - 2026-05-19
 
 - Added compact scoped search to the results table so users can search all fields, keys, result types, details, mapped columns, or specific File A/File B columns.

@@ -618,6 +618,14 @@ test('standalone export supports compact field-scoped search with fallback to al
   const searchInput = document.getElementById('results-search') as HTMLInputElement;
   const resultsCount = document.getElementById('results-count');
 
+  expect(Array.from(fieldSelect.options).map((option) => option.textContent)).toEqual([
+    'All fields',
+    'Type',
+    'Key',
+    'File A values',
+    'File B values',
+  ]);
+  expect(fieldSelect.querySelector('optgroup')).toBeNull();
   expect(fieldSelect.value).toBe('all');
   expect(searchInput.placeholder).toBe('Search all result fields');
 
@@ -639,7 +647,7 @@ test('standalone export supports compact field-scoped search with fallback to al
   diffToggle.click();
   expect(document.body.textContent).toContain('Value Differences');
 
-  fieldSelect.value = 'details';
+  fieldSelect.value = 'fileB';
   fireEvent.change(fieldSelect);
   expect(document.getElementById('results-body')?.textContent).not.toContain('Value Differences');
 

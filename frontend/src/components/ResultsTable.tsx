@@ -171,10 +171,7 @@ export function ResultsTable({
     [comparisonColumnsA, comparisonColumnsB, mappings],
   );
 
-  const searchFieldOptions = useMemo(
-    () => getSearchableFieldOptions(comparisonColumns),
-    [comparisonColumns],
-  );
+  const searchFieldOptions = useMemo(() => getSearchableFieldOptions(), []);
   const normalizedSearchFieldId = normalizeSearchableFieldId(searchFieldId, searchFieldOptions);
   const searchPlaceholder = getSearchableFieldPlaceholder(normalizedSearchFieldId, searchFieldOptions);
 

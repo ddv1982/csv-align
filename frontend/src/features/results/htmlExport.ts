@@ -66,11 +66,7 @@ function buildHtmlExportDocument(params: {
       count: counts[option.value],
       tone: option.tone,
     })),
-    searchFields: getSearchableFieldOptions({
-      fileA: params.comparisonColumnsA,
-      fileB: params.comparisonColumnsB,
-      mappings: params.mappings,
-    }),
+    searchFields: getSearchableFieldOptions(),
     initialFilter: params.initialFilter,
     rows: buildResultRows(params.results, {
       fileA: params.comparisonColumnsA,

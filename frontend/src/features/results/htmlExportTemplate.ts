@@ -6,11 +6,7 @@ import {
   type SummaryBannerViewModel,
   type SummaryStatViewModel,
 } from './presentation';
-import {
-  SEARCHABLE_FIELD_GROUPS,
-  SEARCH_FIELD_GROUP_LABELS,
-  type SearchableFieldOption,
-} from './search';
+import type { SearchableFieldOption } from './search';
 import { RESULTS_EXPORT_STYLES } from './htmlExportTheme';
 
 type HtmlExportTheme = 'dark';
@@ -55,17 +51,8 @@ function renderIcon(name: ExportIconName, className: string): string {
 }
 
 function renderSearchFieldOptions(options: SearchableFieldOption[]): string {
-  return SEARCHABLE_FIELD_GROUPS
-    .map((group) => {
-      const groupOptions = options.filter((option) => option.group === group);
-      if (groupOptions.length === 0) {
-        return '';
-      }
-
-      return `<optgroup label="${escapeHtmlText(SEARCH_FIELD_GROUP_LABELS[group])}">${groupOptions
-        .map((option) => `<option value="${escapeHtmlText(option.id)}">${escapeHtmlText(option.label)}</option>`)
-        .join('')}</optgroup>`;
-    })
+  return options
+    .map((option) => `<option value="${escapeHtmlText(option.id)}">${escapeHtmlText(option.label)}</option>`)
     .join('');
 }
 
@@ -320,7 +307,7 @@ ${RESULTS_EXPORT_STYLES}
         const fields = Array.isArray(data.searchFields) ? data.searchFields : [];
         return fields.some((field) => field && field.id === 'all')
           ? fields
-          : [{ id: 'all', label: 'All fields', group: 'general', placeholder: 'Search all result fields' }];
+          : [{ id: 'all', label: 'All fields', placeholder: 'Search all result fields' }];
       }
 
       function normalizeSearchFieldId(fieldId) {
