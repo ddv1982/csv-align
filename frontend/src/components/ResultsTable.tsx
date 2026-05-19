@@ -292,7 +292,7 @@ export function ResultsTable({
               value={query}
               onChange={(event) => handleSearchQueryChange(event.target.value)}
               placeholder={searchPlaceholder}
-              className="input pl-9 pr-3 text-sm"
+              className="input result-search-input pl-9 pr-3 text-sm"
             />
           </label>
         </div>

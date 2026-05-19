@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.83 - 2026-05-19
+
+- Aligned the in-app results search input with the field selector height so the compact search controls read as one control group across desktop and narrow layouts.
+- Fixed saved standalone HTML reports so field-scoped search options respond after export, while keeping opaque search controls shared between the app and report.
+
 ## v2.1.82 - 2026-05-19
 
 - Simplified result search scoping to the compact fixed fields users need most: all fields, type, key, File A values, and File B values.

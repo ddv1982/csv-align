@@ -682,14 +682,27 @@
 }
 
 .result-search-field-button,
-.result-search-field-select {
+.result-search-field-select,
+.result-search-input {
   min-height: 40px;
+  height: 40px;
+}
+
+.result-search-field-button,
+.result-search-field-select {
   cursor: pointer;
 }
 
 .result-search-field-button.input,
-.result-search-field-select.input {
+.result-search-field-select.input,
+.result-search-input.input {
+  border: 1px solid var(--color-app-border);
   background: var(--color-app-panel);
+  color: var(--color-app-text);
+}
+
+.result-search-input::placeholder {
+  color: var(--color-app-muted);
 }
 
 .result-search-field-popover {

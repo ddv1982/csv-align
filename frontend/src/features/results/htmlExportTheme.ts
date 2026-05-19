@@ -209,7 +209,7 @@ svg {
   min-width: 240px;
   border: 1px solid var(--color-app-border);
   border-radius: 8px;
-  background: rgba(17, 24, 39, 0.86);
+  background: var(--color-app-panel);
   color: var(--color-app-text);
   padding: 9px 12px 9px 36px;
   font-size: 14px;

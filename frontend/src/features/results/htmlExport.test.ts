@@ -605,6 +605,11 @@ test('standalone export supports compact field-scoped search with fallback to al
   expect(html).toContain('aria-label="Search field"');
   expect(html).toContain('"searchFields"');
   expect(html).toContain('"label":"All fields"');
+  expect(html).toContain('class="input result-search-input pl-9 pr-3 text-sm"');
+  expect(html).toContain('.result-search-field-select,\n.result-search-input {');
+  expect(html).toContain('background: var(--color-app-panel);');
+  expect(html).toContain("searchFieldSelect.addEventListener('input', handleSearchFieldSelect);");
+  expect(html).toContain("searchFieldSelect.addEventListener('change', handleSearchFieldSelect);");
   expect(html).not.toContain('Search in');
 
   const parsed = new DOMParser().parseFromString(html, 'text/html');
@@ -618,6 +623,7 @@ test('standalone export supports compact field-scoped search with fallback to al
   const searchInput = document.getElementById('results-search') as HTMLInputElement;
   const resultsCount = document.getElementById('results-count');
 
+  expect(searchInput).toHaveClass('result-search-input');
   expect(Array.from(fieldSelect.options).map((option) => option.textContent)).toEqual([
     'All fields',
     'Type',
@@ -648,7 +654,8 @@ test('standalone export supports compact field-scoped search with fallback to al
   expect(document.body.textContent).toContain('Value Differences');
 
   fieldSelect.value = 'fileB';
-  fireEvent.change(fieldSelect);
+  fireEvent.input(fieldSelect);
+  expect(searchInput.placeholder).toBe('Search File B values');
   expect(document.getElementById('results-body')?.textContent).not.toContain('Value Differences');
 
   fieldSelect.value = 'not-a-real-field';

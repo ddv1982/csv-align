@@ -217,7 +217,7 @@ ${RESULTS_EXPORT_STYLES}
                   <label class="search-wrap relative block w-full" for="results-search">
                     <span class="sr-only">Search comparison results</span>
                     ${renderIcon('search', 'search-icon app-muted pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2')}
-                    <input id="results-search" class="input pl-9 pr-3 text-sm" type="search" placeholder="Search all result fields" aria-label="Search comparison results" />
+                    <input id="results-search" class="input result-search-input pl-9 pr-3 text-sm" type="search" placeholder="Search all result fields" aria-label="Search comparison results" />
                   </label>
                 </div>
               </div>
@@ -519,12 +519,20 @@ ${RESULTS_EXPORT_STYLES}
         renderTable();
       });
 
-      searchFieldSelect.addEventListener('change', (event) => {
-        state.searchField = normalizeSearchFieldId(event.target.value);
+      function handleSearchFieldSelect(event) {
+        const nextField = normalizeSearchFieldId(event.target.value);
+        if (state.searchField === nextField) {
+          return;
+        }
+
+        state.searchField = nextField;
         state.expandedRow = null;
         renderSearchFields();
         renderTable();
-      });
+      }
+
+      searchFieldSelect.addEventListener('input', handleSearchFieldSelect);
+      searchFieldSelect.addEventListener('change', handleSearchFieldSelect);
 
       searchInput.addEventListener('input', (event) => {
         state.query = event.target.value;

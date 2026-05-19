@@ -304,6 +304,7 @@ test('filters visible rows by the selected search field', () => {
   fireEvent.click(screen.getByRole('option', { name: 'Key' }));
 
   const search = screen.getByLabelText('Search comparison results');
+  expect(search).toHaveClass('result-search-input');
   expect(search).toHaveAttribute('placeholder', 'Search keys');
 
   fireEvent.change(search, { target: { value: 'gamma' } });
