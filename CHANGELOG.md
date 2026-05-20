@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.86 - 2026-05-21
+
+- Sealed the APT repository setup lore so the one-line Linux installer now authenticates the repository setup package with a GPG-signed SHA256 sidecar before it reaches `apt install`.
+- Extended the release pipeline to publish and verify setup-package checksum sidecars, stamp the pinned archive signer into the installer, and tolerate signing-subkey layouts without weakening the fingerprint pin.
+
 ## v2.1.85 - 2026-05-21
 
 - Hardened the RPM release lore with a project-owned package build that keeps the reverse-DNS launcher, AppStream metadata, icons, binary, and license file in one software-center-ready payload.

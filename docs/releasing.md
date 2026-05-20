@@ -120,6 +120,15 @@ The setup script downloads and installs the repository setup package from:
 https://github.com/ddv1982/csv-align/releases/latest/download/csv-align-repository-setup_1.0_all.deb
 ```
 
+It also downloads the setup package SHA256 sidecar and detached signature from:
+
+```text
+https://github.com/ddv1982/csv-align/releases/latest/download/csv-align-repository-setup_1.0_all.deb.sha256
+https://github.com/ddv1982/csv-align/releases/latest/download/csv-align-repository-setup_1.0_all.deb.sha256.asc
+```
+
+The release workflow stamps the selected APT repository signing fingerprint into `install-apt-repo.sh` before uploading it. The installer imports the hosted `csv-align-archive-keyring.pgp`, verifies the sidecar signature was made by that pinned signer, then verifies the downloaded setup package checksum before running `sudo apt install`.
+
 The repository is a static tree suitable for GitHub Pages or another static HTTPS host:
 
 ```text
@@ -165,18 +174,25 @@ curl -fsSI https://ddv1982.github.io/csv-align/apt/dists/stable/main/dep11/Compo
 curl -fsSI https://ddv1982.github.io/csv-align/apt/csv-align-archive-keyring.pgp
 curl -fsSI https://github.com/ddv1982/csv-align/releases/latest/download/install-apt-repo.sh
 curl -fsSI https://github.com/ddv1982/csv-align/releases/latest/download/csv-align-repository-setup_1.0_all.deb
+curl -fsSI https://github.com/ddv1982/csv-align/releases/latest/download/csv-align-repository-setup_1.0_all.deb.sha256
+curl -fsSI https://github.com/ddv1982/csv-align/releases/latest/download/csv-align-repository-setup_1.0_all.deb.sha256.asc
 ```
 
-Download the setup script and verify its syntax, then download the setup package and verify its package fields:
+Download the setup script and verify its syntax, then download the setup package sidecars and package fields:
 
 ```bash
 curl -fsSL https://github.com/ddv1982/csv-align/releases/latest/download/install-apt-repo.sh | sh -n
 curl -fsSLo /tmp/csv-align-repository-setup.deb \
   https://github.com/ddv1982/csv-align/releases/latest/download/csv-align-repository-setup_1.0_all.deb
+curl -fsSLo /tmp/csv-align-repository-setup.deb.sha256 \
+  https://github.com/ddv1982/csv-align/releases/latest/download/csv-align-repository-setup_1.0_all.deb.sha256
+curl -fsSLo /tmp/csv-align-repository-setup.deb.sha256.asc \
+  https://github.com/ddv1982/csv-align/releases/latest/download/csv-align-repository-setup_1.0_all.deb.sha256.asc
+test "$(sha256sum /tmp/csv-align-repository-setup.deb | awk '{print $1}')" = "$(awk '{print $1}' /tmp/csv-align-repository-setup.deb.sha256)"
 dpkg-deb --field /tmp/csv-align-repository-setup.deb Package Version Architecture
 ```
 
-The fields should report `Package: csv-align-repository-setup`, `Version: 1.0`, and `Architecture: all`.
+Run `gpg --verify /tmp/csv-align-repository-setup.deb.sha256.asc /tmp/csv-align-repository-setup.deb.sha256` after importing the release-published keyring if you want to manually mirror the installer's signature check. The fields should report `Package: csv-align-repository-setup`, `Version: 1.0`, and `Architecture: all`.
 
 Users should normally install the repository with the setup script rather than by hand. Mirror this command block in the README so user and maintainer docs stay aligned:
 

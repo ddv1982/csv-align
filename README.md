@@ -47,7 +47,7 @@ Enable the repository once per machine:
 bash <(curl -fsSL https://github.com/ddv1982/csv-align/releases/latest/download/install-apt-repo.sh)
 ```
 
-The setup script downloads the repository setup package to a temporary file, installs the CSV Align archive keyring and APT source configuration, then removes the temporary file.
+The setup script downloads the repository setup package to a temporary file, verifies it against a GPG-signed SHA256 sidecar from the release, installs the CSV Align archive keyring and APT source configuration, then removes the temporary files.
 
 Refresh APT metadata:
 

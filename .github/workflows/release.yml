@@ -466,11 +466,13 @@ jobs:
           fi
 
           passphrase_args=()
+          gpg_passphrase_options=()
           if [ -n "${signing_passphrase}" ]; then
             passphrase_file="$(mktemp)"
             chmod 600 "${passphrase_file}"
             printf '%s' "${signing_passphrase}" > "${passphrase_file}"
             passphrase_args=(--gpg-passphrase-file "${passphrase_file}")
+            gpg_passphrase_options=(--passphrase-file "${passphrase_file}")
           else
             echo "Selected APT repository signing passphrase is not set; signing will only work for an intentionally unprotected key."
           fi
@@ -488,6 +490,32 @@ jobs:
             "${passphrase_args[@]}" \
             "${deb_packages[@]}"
 
+          EXPECTED_FINGERPRINT="${expected_fingerprint}" python3 <<'PY'
+          import os
+          import pathlib
+
+          fingerprint = os.environ["EXPECTED_FINGERPRINT"]
+          script_path = pathlib.Path("scripts/install-apt-repo.sh")
+          script = script_path.read_text(encoding="utf-8")
+          placeholder = "__CSV_ALIGN_APT_SIGNING_KEY_FINGERPRINT__"
+          if placeholder not in script:
+              raise SystemExit(f"missing installer fingerprint placeholder {placeholder}")
+          script_path.write_text(script.replace(placeholder, fingerprint), encoding="utf-8")
+          PY
+
+          sha256sum "${setup_package}" > "${setup_package}.sha256"
+          gpg \
+            --batch \
+            --yes \
+            --pinentry-mode loopback \
+            --homedir "${gnupg_home}" \
+            --local-user "${expected_fingerprint}" \
+            "${gpg_passphrase_options[@]}" \
+            --armor \
+            --detach-sign \
+            --output "${setup_package}.sha256.asc" \
+            "${setup_package}.sha256"
+
           test "$(dpkg-deb --field "${setup_package}" Package)" = "csv-align-repository-setup"
           test "$(dpkg-deb --field "${setup_package}" Version)" = "1.0"
           test "$(dpkg-deb --field "${setup_package}" Architecture)" = "all"
@@ -501,6 +529,7 @@ jobs:
           grep -E '^Architectures: .*amd64( |$)' "${setup_extract_dir}/etc/apt/sources.list.d/csv-align.sources"
           grep -Fx "Signed-By: /usr/share/keyrings/csv-align-archive-keyring.pgp" "${setup_extract_dir}/etc/apt/sources.list.d/csv-align.sources"
           sh -n scripts/install-apt-repo.sh
+          ! grep -F "__CSV_ALIGN_APT_SIGNING_KEY_FINGERPRINT__" scripts/install-apt-repo.sh
 
           chmod 700 "${verification_home}"
           GNUPGHOME="${verification_home}" gpg --batch --import apt-repository/csv-align-archive-keyring.pgp
@@ -508,6 +537,9 @@ jobs:
           GNUPGHOME="${verification_home}" gpg --batch --verify \
             apt-repository/dists/stable/Release.gpg \
             apt-repository/dists/stable/Release
+          GNUPGHOME="${verification_home}" gpg --batch --verify \
+            "${setup_package}.sha256.asc" \
+            "${setup_package}.sha256"
 
           mkdir -p pages-site/apt
           cp -a apt-repository/. pages-site/apt/
@@ -533,6 +565,8 @@ jobs:
             release-artifacts/**/*.rpm
             release-artifacts/**/*.AppImage
             csv-align-repository-setup_*.deb
+            csv-align-repository-setup_*.deb.sha256
+            csv-align-repository-setup_*.deb.sha256.asc
             scripts/install-apt-repo.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

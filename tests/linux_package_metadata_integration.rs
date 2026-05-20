@@ -333,6 +333,59 @@ fn apt_repository_builder_generates_repository_setup_package() {
 }
 
 #[test]
+fn apt_setup_installer_authenticates_signed_checksum_before_install() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let script = fs::read_to_string(root.join("scripts/install-apt-repo.sh"))
+        .expect("read installer script");
+
+    assert!(script.contains("setup_sha256_url="));
+    assert!(script.contains("setup_sha256_sig_url="));
+    assert!(script.contains("CSV_ALIGN_REPOSITORY_SETUP_SIGNING_KEY_FINGERPRINT"));
+    assert!(script.contains("__CSV_ALIGN_APT_SIGNING_KEY_FINGERPRINT__"));
+    assert!(script.contains("gpg --batch --status-fd 3 --verify"));
+    assert!(script.contains("VALIDSIG"));
+    assert!(script.contains("signer == expected || primary == expected"));
+    assert!(script.contains("Expected signing or primary fingerprint"));
+    assert!(script.contains("CSV Align setup SHA256 signature was made by an unexpected signer"));
+    assert!(script.contains("actual_sha256=\"$(calculate_sha256 \"$setup_deb\")\""));
+
+    let verify_index = script
+        .find("Verified CSV Align repository setup package SHA256.")
+        .expect("installer should report checksum verification before install");
+    let install_index = script
+        .find("sudo apt install -y \"$setup_deb\"")
+        .expect("installer should install setup package");
+    assert!(
+        verify_index < install_index,
+        "installer must verify the setup package before installing it"
+    );
+
+    let syntax = Command::new("sh")
+        .arg("-n")
+        .arg(root.join("scripts/install-apt-repo.sh"))
+        .output()
+        .expect("syntax-check installer script");
+    assert!(syntax.status.success(), "{syntax:#?}");
+}
+
+#[test]
+fn release_workflow_publishes_signed_setup_checksum_sidecars() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let workflow = fs::read_to_string(root.join(".github/workflows/release.yml"))
+        .expect("read release workflow");
+
+    assert!(workflow.contains("sha256sum \"${setup_package}\" > \"${setup_package}.sha256\""));
+    assert!(workflow.contains("--detach-sign"));
+    assert!(workflow.contains("--output \"${setup_package}.sha256.asc\""));
+    assert!(workflow.contains("EXPECTED_FINGERPRINT=\"${expected_fingerprint}\" python3"));
+    assert!(workflow.contains(
+        "! grep -F \"__CSV_ALIGN_APT_SIGNING_KEY_FINGERPRINT__\" scripts/install-apt-repo.sh"
+    ));
+    assert!(workflow.contains("csv-align-repository-setup_*.deb.sha256"));
+    assert!(workflow.contains("csv-align-repository-setup_*.deb.sha256.asc"));
+}
+
+#[test]
 fn apt_repository_builder_signs_release_when_gpg_is_available() {
     let Some(gpg) = gpg_path() else {
         eprintln!("skipping APT repository signing test because gpg is unavailable");
