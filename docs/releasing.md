@@ -229,7 +229,7 @@ The `apt-cache policy` output should resolve `csv-align` from the CSV Align repo
 
 ## RPM release assets
 
-CI builds the Tauri Linux bundle with Debian, RPM, and AppImage targets. The Ubuntu runner installs `rpm` so `rpmbuild` is available before `cargo tauri build`, then gates the reusable release artifact on at least one generated `.rpm` under `src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/rpm/`.
+CI builds the Tauri Linux bundle with Debian, RPM, and AppImage targets. Tauri's generated RPM is replaced by `scripts/build_rpm_package.py`, a project-owned RPM build that packages the Tauri release binary with the canonical reverse-DNS desktop metadata. The Ubuntu runner installs `rpm` and `rpm2cpio` so `rpmbuild` is available for that replacement package and RPM payloads can be inspected afterward.
 
 The tagged release workflow downloads that reusable Linux bundle from CI and uploads `release-artifacts/**/*.rpm` to the GitHub Release alongside `.deb` and `.AppImage` assets. RPM artifacts are not part of the signed APT repository and are not signed by the Debian `dpkg-sig` flow.
 
@@ -237,20 +237,24 @@ Manual RPM smoke check for a downloaded artifact:
 
 ```bash
 rpm -qip path/to/csv-align-*.rpm
-rpm -qlp path/to/csv-align-*.rpm | grep -E '(/usr/bin/csv-align|/usr/share/metainfo/com\.csvalign\.desktop\.metainfo\.xml|/usr/share/applications/.*\.desktop)'
+rpm -qlp path/to/csv-align-*.rpm | grep -E '(/usr/bin/csv-align|/usr/share/metainfo/com\.csvalign\.desktop\.metainfo\.xml|/usr/share/applications/com\.csvalign\.desktop\.desktop|/usr/share/licenses/csv-align/LICENSE)'
+test "$(rpm -qlp path/to/csv-align-*.rpm | grep -c '^/usr/share/applications/.*\.desktop$')" = "1"
 ```
 
 ## Linux software-center metadata verification
 
-CI normalizes each built `.deb` before validation/signing because Tauri currently emits a product-name desktop file (`CSV Align.desktop`). The normalizer renames that packaged launcher to `com.csvalign.desktop.desktop` and keeps AppStream `<launchable type="desktop-id">` aligned. CI then validates the normalized `.deb` before signing/upload, and the release workflow repeats the same read-only check after signature verification and before GitHub Release upload:
+CI normalizes each built `.deb` before validation/signing because Tauri currently emits a product-name desktop file (`CSV Align.desktop`). The normalizer renames that packaged launcher to `com.csvalign.desktop.desktop` and keeps AppStream `<launchable type="desktop-id">` aligned. RPM packages are rebuilt from the Tauri release binary and must include exactly one desktop launcher: `/usr/share/applications/com.csvalign.desktop.desktop`. CI validates both Linux package formats before upload, and the release workflow repeats the same read-only checks before GitHub Release upload:
 
 ```bash
 python3 scripts/validate_linux_deb_metadata.py \
   'src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/*.deb' \
   --json-report deb-metadata-report.json
+python3 scripts/validate_linux_deb_metadata.py \
+  'src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/rpm/*.rpm' \
+  --json-report rpm-metadata-report.json
 ```
 
-The validator enforces the AppStream component id `com.csvalign.desktop`, project license `MIT`, binary `csv-align`, and desktop id `com.csvalign.desktop.desktop`. If Ubuntu Software or GNOME Software shows “Unknown license,” treat that as evidence that the app license did not reach GNOME Software, even when `/usr/share/doc/csv-align/copyright` exists in the Debian package.
+The validator enforces the AppStream component id `com.csvalign.desktop`, project license `MIT`, binary `csv-align`, desktop id `com.csvalign.desktop.desktop`, and that no extra `.desktop` launchers are present in gate mode. It also checks the Debian copyright file or RPM license file as appropriate. If Ubuntu Software or GNOME Software shows “Unknown license,” treat that as evidence that the app license did not reach the software center, even when the package includes a distro-specific license file.
 
 Manual extraction fallback for a downloaded artifact:
 

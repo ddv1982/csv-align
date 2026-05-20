@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Validate CSV Align Debian package metadata for Linux software centers.
+"""Validate CSV Align Linux package metadata for software centers.
 
 The validator intentionally has a Python extraction path so it can inspect .deb
-artifacts even on systems where dpkg-deb is unavailable.
+artifacts even on systems where dpkg-deb is unavailable. RPM artifacts are
+converted through rpm2cpio, then extracted through a fail-closed Python newc
+parser so archive member paths are validated before anything is written.
 """
 
 from __future__ import annotations
@@ -26,8 +28,15 @@ DEFAULT_COMPONENT_ID = "com.csvalign.desktop"
 DEFAULT_LICENSE = "MIT"
 DEFAULT_BINARY = "csv-align"
 DEFAULT_DESKTOP_ID = "com.csvalign.desktop.desktop"
+DEFAULT_RPM_PACKAGE_NAME = "csv-align"
+DEFAULT_RPM_ARCH = "x86_64"
 
 REQUIRED_COPYRIGHT_PATH = pathlib.PurePosixPath("usr/share/doc/csv-align/copyright")
+REQUIRED_RPM_LICENSE_PATH = pathlib.PurePosixPath("usr/share/licenses/csv-align/LICENSE")
+CPIO_HEADER_LEN = 110
+CPIO_MODE_TYPE_MASK = 0o170000
+CPIO_MODE_DIRECTORY = 0o040000
+CPIO_MODE_REGULAR_FILE = 0o100000
 
 
 @dataclass
@@ -57,6 +66,7 @@ class ToolResult:
 @dataclass
 class PackageReport:
     package: str
+    package_format: str | None = None
     ok: bool = False
     extraction: str | None = None
     metainfo_path: str | None = None
@@ -71,13 +81,16 @@ class PackageReport:
     release_date: str | None = None
     desktop_fields: dict[str, str] = field(default_factory=dict)
     detected_desktop_ids: list[str] = field(default_factory=list)
+    rpm_header_fields: dict[str, str] = field(default_factory=dict)
     appstream_validation: ToolResult | None = None
     desktop_validation: ToolResult | None = None
+    rpm_header_validation: ToolResult | None = None
     errors: list[str] = field(default_factory=list)
 
     def to_json(self) -> dict[str, Any]:
         return {
             "package": self.package,
+            "package_format": self.package_format,
             "ok": self.ok,
             "extraction": self.extraction,
             "metainfo_path": self.metainfo_path,
@@ -92,11 +105,15 @@ class PackageReport:
             "release_date": self.release_date,
             "desktop_fields": self.desktop_fields,
             "detected_desktop_ids": self.detected_desktop_ids,
+            "rpm_header_fields": self.rpm_header_fields,
             "appstream_validation": self.appstream_validation.to_json()
             if self.appstream_validation
             else None,
             "desktop_validation": self.desktop_validation.to_json()
             if self.desktop_validation
+            else None,
+            "rpm_header_validation": self.rpm_header_validation.to_json()
+            if self.rpm_header_validation
             else None,
             "errors": self.errors,
         }
@@ -231,6 +248,138 @@ def extract_deb(deb_path: pathlib.Path, destination: pathlib.Path) -> str:
     return extract_data_archive(data_member, entries[data_member], destination)
 
 
+def extract_rpm(rpm_path: pathlib.Path, destination: pathlib.Path) -> str:
+    rpm2cpio = shutil.which("rpm2cpio")
+    if not rpm2cpio:
+        raise ValueError("RPM extraction requires missing tool: rpm2cpio")
+
+    completed = subprocess.run(
+        [rpm2cpio, str(rpm_path)],
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if completed.returncode != 0:
+        raise ValueError(
+            "rpm2cpio failed: " + completed.stderr.decode("utf-8", errors="replace").strip()
+        )
+    extract_newc_cpio(completed.stdout, destination)
+    return "rpm2cpio+python-newc"
+
+
+def cpio_pad4(value: int) -> int:
+    return (4 - (value % 4)) % 4
+
+
+def cpio_hex_field(header: bytes, start: int) -> int:
+    raw = header[start : start + 8]
+    try:
+        return int(raw.decode("ascii"), 16)
+    except ValueError as error:
+        raise ValueError(f"invalid newc cpio header field: {raw!r}") from error
+
+
+def safe_cpio_relative_path(raw_name: str) -> pathlib.PurePosixPath:
+    name = raw_name.removeprefix("./")
+    path = pathlib.PurePosixPath(name)
+    if not name or name == ".":
+        raise ValueError(f"refusing empty cpio member path: {raw_name!r}")
+    if path.is_absolute():
+        raise ValueError(f"refusing absolute cpio member path: {raw_name!r}")
+    if any(part in {"", ".", ".."} for part in path.parts):
+        raise ValueError(f"refusing unsafe cpio member path: {raw_name!r}")
+    return path
+
+
+def write_safe_cpio_file(
+    destination: pathlib.Path, relative_path: pathlib.PurePosixPath, data: bytes, mode: int
+) -> None:
+    destination = destination.resolve()
+    output_path = destination.joinpath(*relative_path.parts)
+    try:
+        output_path.resolve().relative_to(destination)
+    except ValueError as error:
+        raise ValueError(f"refusing cpio member outside extraction root: {relative_path}") from error
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("wb") as handle:
+        handle.write(data)
+    output_path.chmod(mode & 0o777)
+
+
+def extract_newc_cpio(data: bytes, destination: pathlib.Path) -> None:
+    offset = 0
+    seen_paths: set[str] = set()
+    while True:
+        if offset + CPIO_HEADER_LEN > len(data):
+            raise ValueError("truncated newc cpio header")
+        header = data[offset : offset + CPIO_HEADER_LEN]
+        offset += CPIO_HEADER_LEN
+
+        magic = header[:6]
+        if magic not in {b"070701", b"070702"}:
+            raise ValueError(f"unsupported cpio format: {magic!r}")
+
+        mode = cpio_hex_field(header, 14)
+        nlink = cpio_hex_field(header, 38)
+        file_size = cpio_hex_field(header, 54)
+        name_size = cpio_hex_field(header, 94)
+        if name_size == 0:
+            raise ValueError("newc cpio member has empty name field")
+        if offset + name_size > len(data):
+            raise ValueError("truncated newc cpio member name")
+
+        raw_name = data[offset : offset + name_size]
+        offset += name_size
+        offset += cpio_pad4(CPIO_HEADER_LEN + name_size)
+        if not raw_name.endswith(b"\0"):
+            raise ValueError("newc cpio member name is not NUL-terminated")
+        try:
+            member_name = raw_name[:-1].decode("utf-8")
+        except UnicodeDecodeError as error:
+            raise ValueError("newc cpio member name is not valid UTF-8") from error
+
+        if offset + file_size > len(data):
+            raise ValueError(f"truncated newc cpio payload for {member_name!r}")
+        payload = data[offset : offset + file_size]
+        offset += file_size
+        offset += cpio_pad4(file_size)
+
+        if member_name == "TRAILER!!!":
+            return
+
+        relative_path = safe_cpio_relative_path(member_name)
+        path_key = relative_path.as_posix()
+        if path_key in seen_paths:
+            raise ValueError(f"refusing duplicate cpio member path: {member_name!r}")
+        seen_paths.add(path_key)
+
+        mode_type = mode & CPIO_MODE_TYPE_MASK
+        if mode_type == CPIO_MODE_DIRECTORY:
+            destination.joinpath(*relative_path.parts).mkdir(parents=True, exist_ok=True)
+            continue
+        if mode_type != CPIO_MODE_REGULAR_FILE:
+            raise ValueError(f"refusing non-regular cpio member: {member_name!r}")
+        if nlink != 1:
+            raise ValueError(f"refusing hard-linked cpio member: {member_name!r}")
+        write_safe_cpio_file(destination, relative_path, payload, mode)
+
+
+def package_format(package_path: pathlib.Path) -> str:
+    if package_path.suffix == ".rpm":
+        return "rpm"
+    if package_path.suffix == ".deb":
+        return "deb"
+    raise ValueError(f"unsupported Linux package extension: {package_path.suffix or package_path.name}")
+
+
+def extract_package(package_path: pathlib.Path, destination: pathlib.Path) -> tuple[str, str]:
+    format_name = package_format(package_path)
+    if format_name == "rpm":
+        return format_name, extract_rpm(package_path, destination)
+    return format_name, extract_deb(package_path, destination)
+
+
 def run_optional_tool(name: str, args: list[str]) -> ToolResult:
     executable = shutil.which(name)
     command = [name, *args]
@@ -252,6 +401,78 @@ def run_optional_tool(name: str, args: list[str]) -> ToolResult:
         stdout=completed.stdout.strip(),
         stderr=completed.stderr.strip(),
     )
+
+
+def query_rpm_header(package_path: pathlib.Path) -> tuple[ToolResult, dict[str, str]]:
+    query_format = "\\n".join(
+        [
+            "name=%{NAME}",
+            "version=%{VERSION}",
+            "arch=%{ARCH}",
+            "summary=%{SUMMARY}",
+            "license=%{LICENSE}",
+        ]
+    )
+    result = run_optional_tool(
+        "rpm", ["-qp", "--queryformat", query_format, str(package_path)]
+    )
+    fields: dict[str, str] = {}
+    if result.ok:
+        for line in result.stdout.splitlines():
+            if "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            fields[key] = value.strip()
+    return result, fields
+
+
+def validate_rpm_header(
+    report: PackageReport,
+    package_path: pathlib.Path,
+    expected_package_name: str,
+    expected_license: str,
+    expected_arch: str,
+    require_external_tools: bool,
+) -> None:
+    report.rpm_header_validation, report.rpm_header_fields = query_rpm_header(package_path)
+    if not report.rpm_header_validation.available:
+        if require_external_tools:
+            report.errors.append("rpm is required for RPM header validation but was not found")
+        return
+    if not report.rpm_header_validation.ok:
+        report.errors.append(
+            "rpm -qp --queryformat failed for "
+            f"{package_path} (exit {report.rpm_header_validation.returncode})"
+        )
+        return
+
+    require_present_equal(
+        report.errors,
+        "RPM package name",
+        report.rpm_header_fields.get("name"),
+        expected_package_name,
+    )
+    require_present_equal(
+        report.errors,
+        "RPM license",
+        report.rpm_header_fields.get("license"),
+        expected_license,
+    )
+    require_present_equal(
+        report.errors,
+        "RPM architecture",
+        report.rpm_header_fields.get("arch"),
+        expected_arch,
+    )
+    if report.rpm_header_fields.get("summary") is None:
+        report.errors.append("RPM summary is missing")
+    if report.release_version is not None:
+        require_equal(
+            report.errors,
+            "RPM version",
+            report.rpm_header_fields.get("version"),
+            report.release_version,
+        )
 
 
 def parse_desktop_file(path: pathlib.Path) -> dict[str, str]:
@@ -298,27 +519,29 @@ def require_file(errors: list[str], root: pathlib.Path, relative_path: pathlib.P
 
 
 def validate_package(
-    deb_path: pathlib.Path,
+    package_path: pathlib.Path,
     expected_component_id: str,
     expected_license: str,
     expected_binary: str,
     expected_desktop_id: str,
+    expected_rpm_package_name: str,
+    expected_rpm_arch: str,
     investigate: bool,
     run_external_tools: bool,
     require_external_tools: bool,
 ) -> PackageReport:
-    report = PackageReport(package=str(deb_path))
+    report = PackageReport(package=str(package_path))
     metainfo_rel = pathlib.PurePosixPath(
         f"usr/share/metainfo/{expected_component_id}.metainfo.xml"
     )
     desktop_rel = pathlib.PurePosixPath(f"usr/share/applications/{expected_desktop_id}")
 
-    with tempfile.TemporaryDirectory(prefix="csv-align-deb-metadata-") as temp:
+    with tempfile.TemporaryDirectory(prefix="csv-align-linux-metadata-") as temp:
         extract_root = pathlib.Path(temp)
         try:
-            report.extraction = extract_deb(deb_path, extract_root)
+            report.package_format, report.extraction = extract_package(package_path, extract_root)
         except Exception as error:  # noqa: BLE001 - surface concise validator failure
-            report.errors.append(f"failed to extract {deb_path}: {error}")
+            report.errors.append(f"failed to extract {package_path}: {error}")
             return report
 
         applications_dir = extract_root / "usr/share/applications"
@@ -339,7 +562,12 @@ def validate_package(
                 report.errors.append("missing required desktop file under /usr/share/applications")
         else:
             desktop_path = require_file(report.errors, extract_root, desktop_rel)
-        copyright_path = require_file(report.errors, extract_root, REQUIRED_COPYRIGHT_PATH)
+        license_rel = (
+            REQUIRED_RPM_LICENSE_PATH
+            if report.package_format == "rpm"
+            else REQUIRED_COPYRIGHT_PATH
+        )
+        copyright_path = require_file(report.errors, extract_root, license_rel)
 
         if metainfo_path.is_file():
             report.metainfo_path = f"/{metainfo_rel}"
@@ -399,6 +627,16 @@ def validate_package(
                         f"/{metainfo_rel} (exit {report.appstream_validation.returncode})"
                     )
 
+        if report.package_format == "rpm" and run_external_tools:
+            validate_rpm_header(
+                report=report,
+                package_path=package_path,
+                expected_package_name=expected_rpm_package_name,
+                expected_license=expected_license,
+                expected_arch=expected_rpm_arch,
+                require_external_tools=require_external_tools,
+            )
+
         if desktop_path.is_file():
             desktop_rel_actual = pathlib.PurePosixPath(
                 *desktop_path.relative_to(extract_root).parts
@@ -415,6 +653,8 @@ def validate_package(
                 report.errors.append(f"desktop file {report.desktop_path} is missing Name")
             if report.desktop_fields.get("Icon") is None:
                 report.errors.append(f"desktop file {report.desktop_path} is missing Icon")
+            if report.desktop_fields.get("NoDisplay", "").strip().lower() == "true":
+                report.errors.append(f"desktop file {report.desktop_path} must be visible")
 
             if run_external_tools:
                 report.desktop_validation = run_optional_tool(
@@ -432,24 +672,37 @@ def validate_package(
                     )
 
         if copyright_path.is_file():
-            report.copyright_path = f"/{REQUIRED_COPYRIGHT_PATH}"
+            report.copyright_path = f"/{license_rel}"
             copyright = copyright_path.read_text(encoding="utf-8", errors="replace")
-            if f"License: {expected_license}" not in copyright:
+            if report.package_format == "deb" and f"License: {expected_license}" not in copyright:
                 report.errors.append(
                     f"Debian copyright is missing `License: {expected_license}`"
                 )
+            if report.package_format == "rpm" and expected_license not in copyright:
+                report.errors.append(f"RPM license file is missing `{expected_license}`")
 
         if not investigate and expected_desktop_id not in report.detected_desktop_ids:
             report.errors.append(
                 "required desktop-id contract not found in package desktop files: "
                 f"{expected_desktop_id!r}; detected {report.detected_desktop_ids!r}"
             )
+        if not investigate:
+            unexpected_desktop_ids = [
+                desktop_id
+                for desktop_id in report.detected_desktop_ids
+                if desktop_id != expected_desktop_id
+            ]
+            if unexpected_desktop_ids:
+                report.errors.append(
+                    "unexpected desktop files found in package: "
+                    f"{unexpected_desktop_ids!r}; expected only {expected_desktop_id!r}"
+                )
 
         report.ok = not report.errors
         return report
 
 
-def expand_deb_patterns(patterns: list[str]) -> list[pathlib.Path]:
+def expand_package_patterns(patterns: list[str]) -> list[pathlib.Path]:
     paths: list[pathlib.Path] = []
     for pattern in patterns:
         matches = sorted(glob.glob(pattern))
@@ -482,7 +735,15 @@ def print_summary(report: PackageReport, investigate: bool) -> None:
             f"Icon={report.desktop_fields.get('Icon')!r} "
             f"StartupWMClass={report.desktop_fields.get('StartupWMClass')!r}"
         )
-    for tool in [report.appstream_validation, report.desktop_validation]:
+    if report.rpm_header_fields:
+        print(
+            "  RPM header: "
+            f"name={report.rpm_header_fields.get('name')!r} "
+            f"version={report.rpm_header_fields.get('version')!r} "
+            f"arch={report.rpm_header_fields.get('arch')!r} "
+            f"license={report.rpm_header_fields.get('license')!r}"
+        )
+    for tool in [report.appstream_validation, report.desktop_validation, report.rpm_header_validation]:
         if tool is None:
             continue
         if tool.available:
@@ -498,9 +759,9 @@ def print_summary(report: PackageReport, investigate: bool) -> None:
 
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Validate Linux .deb AppStream, desktop-file, and license metadata."
+        description="Validate Linux .deb/.rpm AppStream, desktop-file, and license metadata."
     )
-    parser.add_argument("deb", nargs="+", help=".deb artifact path or glob")
+    parser.add_argument("package", nargs="+", help=".deb/.rpm artifact path or glob")
     parser.add_argument(
         "--expected-component-id", default=DEFAULT_COMPONENT_ID, help="expected AppStream id"
     )
@@ -520,6 +781,16 @@ def build_arg_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="print detected desktop ids without enforcing the expected desktop-id",
     )
+    parser.add_argument(
+        "--expected-rpm-package-name",
+        default=DEFAULT_RPM_PACKAGE_NAME,
+        help="expected RPM header package name",
+    )
+    parser.add_argument(
+        "--expected-rpm-arch",
+        default=DEFAULT_RPM_ARCH,
+        help="expected RPM header architecture",
+    )
     parser.add_argument("--json-report", help="optional path to write a JSON validation report")
     parser.add_argument(
         "--skip-external-tools",
@@ -533,23 +804,52 @@ def main() -> int:
     parser = build_arg_parser()
     args = parser.parse_args()
 
-    deb_paths = expand_deb_patterns(args.deb)
-    if not deb_paths:
-        print("error: no .deb artifacts matched the supplied path/glob", file=sys.stderr)
+    package_paths = expand_package_patterns(args.package)
+    if not package_paths:
+        error = "no .deb/.rpm artifacts matched the supplied path/glob"
+        print(f"error: {error}", file=sys.stderr)
+        if args.json_report:
+            payload = {
+                "ok": False,
+                "gate": not args.investigate,
+                "errors": [error],
+                "external_validation": {
+                    "enabled": not args.skip_external_tools,
+                    "required": not args.skip_external_tools and not args.investigate,
+                    "missing_tools_allowed": args.skip_external_tools or args.investigate,
+                },
+                "expected": {
+                    "component_id": args.expected_component_id,
+                    "license": args.expected_license,
+                    "binary": args.expected_binary,
+                    "desktop_id": args.expected_desktop_id,
+                    "rpm_package_name": args.expected_rpm_package_name,
+                    "rpm_arch": args.expected_rpm_arch,
+                },
+                "packages": [],
+            }
+            report_path = pathlib.Path(args.json_report)
+            report_path.parent.mkdir(parents=True, exist_ok=True)
+            report_path.write_text(
+                json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+            )
+            print(f"Wrote JSON report: {report_path}")
         return 2
 
     reports = [
         validate_package(
-            deb_path=deb_path,
+            package_path=package_path,
             expected_component_id=args.expected_component_id,
             expected_license=args.expected_license,
             expected_binary=args.expected_binary,
             expected_desktop_id=args.expected_desktop_id,
+            expected_rpm_package_name=args.expected_rpm_package_name,
+            expected_rpm_arch=args.expected_rpm_arch,
             investigate=args.investigate,
             run_external_tools=not args.skip_external_tools,
             require_external_tools=not args.skip_external_tools and not args.investigate,
         )
-        for deb_path in deb_paths
+        for package_path in package_paths
     ]
 
     for report in reports:
@@ -568,6 +868,8 @@ def main() -> int:
             "license": args.expected_license,
             "binary": args.expected_binary,
             "desktop_id": args.expected_desktop_id,
+            "rpm_package_name": args.expected_rpm_package_name,
+            "rpm_arch": args.expected_rpm_arch,
         },
         "packages": [report.to_json() for report in reports],
     }

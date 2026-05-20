@@ -1,0 +1,9 @@
+[Desktop Entry]
+Categories=Utility;
+Comment=CSV File Comparison Tool
+Exec=csv-align
+StartupWMClass=csv-align
+Icon=csv-align
+Name=CSV Align
+Terminal=false
+Type=Application

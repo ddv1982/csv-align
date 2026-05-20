@@ -14,6 +14,48 @@ const MAIN_BINARY: &str = "csv-align";
 const PROJECT_LICENSE: &str = "MIT";
 
 #[test]
+fn rpm_package_builder_script_is_valid_python() {
+    let output = Command::new(python3_path())
+        .arg("-m")
+        .arg("py_compile")
+        .arg(build_rpm_package_script_path())
+        .output()
+        .expect("compile RPM package builder script");
+
+    assert!(output.status.success(), "{output:#?}");
+}
+
+#[test]
+fn rpm_package_builder_disables_debug_subpackages() {
+    let output = Command::new(python3_path())
+        .arg("-c")
+        .arg(
+            r#"
+import importlib.util
+import pathlib
+import sys
+
+script_path = pathlib.Path(sys.argv[1])
+spec = importlib.util.spec_from_file_location("build_rpm_package", script_path)
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+print(module.build_spec("9.9.9", "x86_64"))
+"#,
+        )
+        .arg(build_rpm_package_script_path())
+        .output()
+        .expect("render RPM spec");
+
+    assert!(output.status.success(), "{output:#?}");
+    let spec = String::from_utf8(output.stdout).expect("RPM spec should be UTF-8");
+    assert!(
+        spec.lines()
+            .any(|line| line.trim() == "%global debug_package %{nil}"),
+        "RPM spec should disable debug subpackages so rpmbuild emits one main RPM"
+    );
+}
+
+#[test]
 fn tauri_linux_bundle_declares_license_and_software_center_metadata() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let tauri_conf = read_tauri_conf(root);
@@ -48,6 +90,7 @@ fn tauri_linux_bundle_declares_license_and_software_center_metadata() {
 
     let rpm = &bundle["linux"]["rpm"];
     assert_eq!(rpm["depends"].as_array().map(Vec::len), Some(0));
+    assert!(rpm.get("desktopTemplate").is_none());
     let rpm_files = rpm["files"].as_object().expect("RPM custom files map");
 
     assert_eq!(
@@ -55,6 +98,12 @@ fn tauri_linux_bundle_declares_license_and_software_center_metadata() {
             .get("/usr/share/licenses/csv-align/LICENSE")
             .and_then(Value::as_str),
         Some("../LICENSE")
+    );
+    assert_eq!(
+        rpm_files
+            .get(&format!("/usr/share/applications/{DESKTOP_ID}"))
+            .and_then(Value::as_str),
+        Some("linux/com.csvalign.desktop.desktop")
     );
     assert_eq!(
         rpm_files
@@ -69,6 +118,10 @@ fn tauri_linux_bundle_declares_license_and_software_center_metadata() {
             "RPM bundle source file should exist: {source}"
         );
     }
+    assert!(
+        root.join("scripts/build_rpm_package.py").exists(),
+        "canonical RPM builder should exist because Tauri's generated RPM desktop basename is not the package contract"
+    );
 }
 
 #[test]
@@ -438,6 +491,235 @@ fn linux_deb_metadata_validator_rejects_missing_launchable() {
     );
 }
 
+#[test]
+fn linux_metadata_validator_writes_json_report_when_no_packages_match() {
+    let root = tempdir().expect("temp dir");
+    let report_path = root.path().join("missing-report.json");
+    let output = Command::new(python3_path())
+        .arg(validator_script_path())
+        .arg(root.path().join("missing/*.rpm"))
+        .arg("--skip-external-tools")
+        .arg("--json-report")
+        .arg(&report_path)
+        .output()
+        .expect("run Linux metadata validator with missing glob");
+
+    assert!(!output.status.success(), "{output:#?}");
+    let report: Value = serde_json::from_str(
+        &fs::read_to_string(report_path).expect("read missing-artifact JSON report"),
+    )
+    .expect("valid missing-artifact JSON report");
+    assert_eq!(report["ok"], false);
+    assert_eq!(report["packages"].as_array().map(Vec::len), Some(0));
+    assert!(
+        report["errors"][0]
+            .as_str()
+            .expect("missing-artifact error")
+            .contains("no .deb/.rpm artifacts matched")
+    );
+}
+
+#[test]
+fn linux_rpm_metadata_validator_accepts_safe_newc_payload() {
+    let fixture = RpmMetadataFixture::new(vec![
+        NewcEntry::file(
+            "usr/share/metainfo/com.csvalign.desktop.metainfo.xml",
+            appstream_fixture(DESKTOP_ID),
+        ),
+        NewcEntry::file(
+            &format!("usr/share/applications/{DESKTOP_ID}"),
+            desktop_fixture(),
+        ),
+        NewcEntry::file("usr/share/licenses/csv-align/LICENSE", "MIT\n".to_string()),
+    ]);
+    let report_path = fixture.root.path().join("rpm-report.json");
+
+    let output = fixture.run([
+        "--skip-external-tools".into(),
+        "--json-report".into(),
+        report_path.display().to_string(),
+    ]);
+
+    assert!(output.status.success(), "{output:#?}");
+    let report = fs::read_to_string(report_path).expect("read RPM JSON report");
+    assert!(report.contains("\"package_format\": \"rpm\""));
+    assert!(report.contains("\"extraction\": \"rpm2cpio+python-newc\""));
+    assert!(report.contains("\"launchable\": \"com.csvalign.desktop.desktop\""));
+}
+
+#[test]
+fn linux_rpm_metadata_validator_validates_rpm_header_fields_in_gate_mode() {
+    let fixture = RpmMetadataFixture::new(vec![
+        NewcEntry::file(
+            "usr/share/metainfo/com.csvalign.desktop.metainfo.xml",
+            appstream_fixture(DESKTOP_ID),
+        ),
+        NewcEntry::file(
+            &format!("usr/share/applications/{DESKTOP_ID}"),
+            desktop_fixture(),
+        ),
+        NewcEntry::file("usr/share/licenses/csv-align/LICENSE", "MIT\n".to_string()),
+    ]);
+    let report_path = fixture.root.path().join("rpm-gate-report.json");
+
+    let output = fixture.run(["--json-report".into(), report_path.display().to_string()]);
+
+    assert!(output.status.success(), "{output:#?}");
+    let report: Value =
+        serde_json::from_str(&fs::read_to_string(report_path).expect("read RPM gate JSON report"))
+            .expect("valid RPM gate JSON report");
+    let package = &report["packages"][0];
+    assert_eq!(package["rpm_header_fields"]["name"], "csv-align");
+    assert_eq!(package["rpm_header_fields"]["version"], "9.9.9");
+    assert_eq!(package["rpm_header_fields"]["arch"], "x86_64");
+    assert_eq!(package["rpm_header_fields"]["license"], "MIT");
+}
+
+#[test]
+fn linux_rpm_metadata_validator_rejects_unsafe_newc_paths() {
+    let fixture = RpmMetadataFixture::new(vec![NewcEntry::file(
+        "/tmp/csv-align-owned",
+        "bad\n".to_string(),
+    )]);
+
+    let output = fixture.run(["--skip-external-tools".to_string()]);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert!(!output.status.success(), "{output:#?}");
+    assert!(
+        stderr.contains("refusing absolute cpio member path"),
+        "stderr should explain unsafe path rejection, got: {stderr}"
+    );
+}
+
+#[test]
+fn linux_rpm_metadata_validator_rejects_newc_symlinks() {
+    let fixture = RpmMetadataFixture::new(vec![NewcEntry::symlink(
+        "usr/share/applications/link.desktop",
+        "/tmp/csv-align-owned",
+    )]);
+
+    let output = fixture.run(["--skip-external-tools".to_string()]);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert!(!output.status.success(), "{output:#?}");
+    assert!(
+        stderr.contains("refusing non-regular cpio member"),
+        "stderr should explain symlink rejection, got: {stderr}"
+    );
+}
+
+#[test]
+fn linux_rpm_metadata_validator_rejects_extra_hidden_desktop_file() {
+    let fixture = RpmMetadataFixture::new(vec![
+        NewcEntry::file(
+            "usr/share/metainfo/com.csvalign.desktop.metainfo.xml",
+            appstream_fixture(DESKTOP_ID),
+        ),
+        NewcEntry::file(
+            &format!("usr/share/applications/{DESKTOP_ID}"),
+            desktop_fixture(),
+        ),
+        NewcEntry::file(
+            "usr/share/applications/CSV Align.desktop",
+            hidden_desktop_fixture(),
+        ),
+        NewcEntry::file("usr/share/licenses/csv-align/LICENSE", "MIT\n".to_string()),
+    ]);
+
+    let output = fixture.run(["--skip-external-tools".to_string()]);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert!(!output.status.success(), "{output:#?}");
+    assert!(
+        stderr.contains("unexpected desktop files found in package"),
+        "stderr should explain extra desktop rejection, got: {stderr}"
+    );
+}
+
+#[test]
+fn linux_rpm_metadata_validator_rejects_extra_visible_desktop_file() {
+    let fixture = RpmMetadataFixture::new(vec![
+        NewcEntry::file(
+            "usr/share/metainfo/com.csvalign.desktop.metainfo.xml",
+            appstream_fixture(DESKTOP_ID),
+        ),
+        NewcEntry::file(
+            &format!("usr/share/applications/{DESKTOP_ID}"),
+            desktop_fixture(),
+        ),
+        NewcEntry::file(
+            "usr/share/applications/CSV Align.desktop",
+            desktop_fixture(),
+        ),
+        NewcEntry::file("usr/share/licenses/csv-align/LICENSE", "MIT\n".to_string()),
+    ]);
+
+    let output = fixture.run(["--skip-external-tools".to_string()]);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert!(!output.status.success(), "{output:#?}");
+    assert!(
+        stderr.contains("unexpected desktop files found in package"),
+        "stderr should explain extra desktop rejection, got: {stderr}"
+    );
+}
+
+#[test]
+fn linux_rpm_metadata_validator_rejects_hidden_expected_desktop_file() {
+    let fixture = RpmMetadataFixture::new(vec![
+        NewcEntry::file(
+            "usr/share/metainfo/com.csvalign.desktop.metainfo.xml",
+            appstream_fixture(DESKTOP_ID),
+        ),
+        NewcEntry::file(
+            &format!("usr/share/applications/{DESKTOP_ID}"),
+            hidden_desktop_fixture(),
+        ),
+        NewcEntry::file("usr/share/licenses/csv-align/LICENSE", "MIT\n".to_string()),
+    ]);
+
+    let output = fixture.run(["--skip-external-tools".to_string()]);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert!(!output.status.success(), "{output:#?}");
+    assert!(
+        stderr.contains("must be visible"),
+        "stderr should explain hidden expected desktop rejection, got: {stderr}"
+    );
+}
+
+#[test]
+fn linux_rpm_metadata_validator_investigate_allows_extra_desktop_file() {
+    let fixture = RpmMetadataFixture::new(vec![
+        NewcEntry::file(
+            "usr/share/metainfo/com.csvalign.desktop.metainfo.xml",
+            appstream_fixture(DESKTOP_ID),
+        ),
+        NewcEntry::file(
+            &format!("usr/share/applications/{DESKTOP_ID}"),
+            desktop_fixture(),
+        ),
+        NewcEntry::file(
+            "usr/share/applications/CSV Align.desktop",
+            desktop_fixture(),
+        ),
+        NewcEntry::file("usr/share/licenses/csv-align/LICENSE", "MIT\n".to_string()),
+    ]);
+
+    let output = fixture.run([
+        "--skip-external-tools".to_string(),
+        "--investigate".to_string(),
+    ]);
+
+    assert!(output.status.success(), "{output:#?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("CSV Align.desktop"),
+        "stdout should report detected extra desktop id, got: {stdout}"
+    );
+}
+
 struct DebMetadataFixture {
     root: tempfile::TempDir,
     deb_path: PathBuf,
@@ -492,6 +774,179 @@ impl DebMetadataFixture {
     }
 }
 
+struct RpmMetadataFixture {
+    root: tempfile::TempDir,
+    rpm_path: PathBuf,
+}
+
+impl RpmMetadataFixture {
+    fn new(entries: Vec<NewcEntry>) -> Self {
+        let root = tempdir().expect("temp dir");
+        let rpm_path = root.path().join("csv-align-9.9.9-1.x86_64.rpm");
+        let cpio_path = root.path().join("payload.cpio");
+        let bin_dir = root.path().join("bin");
+        let rpm2cpio_path = bin_dir.join("rpm2cpio");
+        let rpm_path_tool = bin_dir.join("rpm");
+        let appstreamcli_path = bin_dir.join("appstreamcli");
+        let desktop_file_validate_path = bin_dir.join("desktop-file-validate");
+
+        fs::write(&rpm_path, "fake rpm placeholder\n").expect("write fake rpm");
+        fs::write(&cpio_path, build_newc_archive(entries)).expect("write cpio payload");
+        fs::create_dir(&bin_dir).expect("create fake bin dir");
+        fs::write(
+            &rpm2cpio_path,
+            "#!/bin/sh\n/bin/cat \"$CSV_ALIGN_TEST_CPIO\"\n",
+        )
+        .expect("write fake rpm2cpio");
+        fs::write(
+            &rpm_path_tool,
+            "#!/bin/sh\nif [ \"$1\" != '-qp' ] || [ \"$2\" != '--queryformat' ] || [ ! -f \"$4\" ]; then\n  echo 'unexpected rpm query arguments' >&2\n  exit 64\nfi\ncase \"$3\" in\n  *'%{NAME}'*'%{VERSION}'*'%{ARCH}'*'%{SUMMARY}'*'%{LICENSE}'*) ;;\n  *) echo 'missing expected rpm query tags' >&2; exit 64 ;;\nesac\nprintf 'name=csv-align\\nversion=9.9.9\\narch=x86_64\\nsummary=CSV File Comparison Tool\\nlicense=MIT'\n",
+        )
+        .expect("write fake rpm query tool");
+        fs::write(&appstreamcli_path, "#!/bin/sh\nexit 0\n").expect("write fake appstreamcli");
+        fs::write(&desktop_file_validate_path, "#!/bin/sh\nexit 0\n")
+            .expect("write fake desktop-file-validate");
+        make_executable(&rpm2cpio_path);
+        make_executable(&rpm_path_tool);
+        make_executable(&appstreamcli_path);
+        make_executable(&desktop_file_validate_path);
+
+        Self { root, rpm_path }
+    }
+
+    fn run<I, S>(&self, args: I) -> Output
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<std::ffi::OsStr>,
+    {
+        let bin_dir = self.root.path().join("bin");
+        let cpio_path = self.root.path().join("payload.cpio");
+        Command::new(python3_path())
+            .arg(validator_script_path())
+            .arg(&self.rpm_path)
+            .args(args)
+            .env("PATH", &bin_dir)
+            .env("CSV_ALIGN_TEST_CPIO", &cpio_path)
+            .output()
+            .expect("run Linux RPM metadata validator")
+    }
+}
+
+struct NewcEntry {
+    name: String,
+    mode: u32,
+    nlink: u32,
+    payload: Vec<u8>,
+}
+
+impl NewcEntry {
+    fn file(name: &str, payload: String) -> Self {
+        Self {
+            name: name.to_string(),
+            mode: 0o100644,
+            nlink: 1,
+            payload: payload.into_bytes(),
+        }
+    }
+
+    fn symlink(name: &str, target: &str) -> Self {
+        Self {
+            name: name.to_string(),
+            mode: 0o120777,
+            nlink: 1,
+            payload: target.as_bytes().to_vec(),
+        }
+    }
+}
+
+fn build_newc_archive(mut entries: Vec<NewcEntry>) -> Vec<u8> {
+    entries.push(NewcEntry {
+        name: "TRAILER!!!".to_string(),
+        mode: 0,
+        nlink: 1,
+        payload: Vec::new(),
+    });
+
+    let mut archive = Vec::new();
+    for (index, entry) in entries.into_iter().enumerate() {
+        append_newc_entry(&mut archive, index as u32 + 1, entry);
+    }
+    archive
+}
+
+fn append_newc_entry(archive: &mut Vec<u8>, ino: u32, entry: NewcEntry) {
+    let name_size = entry.name.len() + 1;
+    let fields = [
+        ino,
+        entry.mode,
+        0,
+        0,
+        entry.nlink,
+        0,
+        entry.payload.len() as u32,
+        0,
+        0,
+        0,
+        0,
+        name_size as u32,
+        0,
+    ];
+    archive.extend_from_slice(b"070701");
+    for field in fields {
+        archive.extend_from_slice(format!("{field:08x}").as_bytes());
+    }
+    archive.extend_from_slice(entry.name.as_bytes());
+    archive.push(0);
+    pad_newc(archive);
+    archive.extend_from_slice(&entry.payload);
+    pad_newc(archive);
+}
+
+fn pad_newc(bytes: &mut Vec<u8>) {
+    while bytes.len() % 4 != 0 {
+        bytes.push(0);
+    }
+}
+
+fn appstream_fixture(launchable: &str) -> String {
+    format!(
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.csvalign.desktop</id>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <name>CSV Align</name>
+  <summary>CSV file comparison tool</summary>
+  <launchable type="desktop-id">{launchable}</launchable>
+  <provides>
+    <binary>csv-align</binary>
+  </provides>
+  <releases>
+    <release version="9.9.9" date="2026-05-09" />
+  </releases>
+</component>
+"#
+    )
+}
+
+fn desktop_fixture() -> String {
+    "[Desktop Entry]\nType=Application\nName=CSV Align\nExec=csv-align\nIcon=csv-align\nCategories=Utility;\n".to_string()
+}
+
+fn hidden_desktop_fixture() -> String {
+    "[Desktop Entry]\nType=Application\nName=CSV Align\nExec=csv-align\nIcon=csv-align\nNoDisplay=true\nCategories=Utility;\n".to_string()
+}
+
+fn make_executable(path: &Path) {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut permissions = fs::metadata(path).expect("script metadata").permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(path, permissions).expect("chmod fake rpm2cpio");
+    }
+}
+
 fn read_tauri_conf(root: &Path) -> Value {
     serde_json::from_str(
         &fs::read_to_string(root.join("src-tauri/tauri.conf.json"))
@@ -510,6 +965,10 @@ fn normalizer_script_path() -> PathBuf {
 
 fn apt_repository_script_path() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("scripts/build_apt_repository.py")
+}
+
+fn build_rpm_package_script_path() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("scripts/build_rpm_package.py")
 }
 
 fn python3_path() -> PathBuf {

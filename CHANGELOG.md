@@ -1,9 +1,14 @@
 # Changelog
 
+## v2.1.85 - 2026-05-21
+
+- Hardened the RPM release lore with a project-owned package build that keeps the reverse-DNS launcher, AppStream metadata, icons, binary, and license file in one software-center-ready payload.
+- Extended CI and release gates so Debian and RPM artifacts both fail fast on package metadata regressions, header drift, unsafe archive extraction, or debug subpackage surprises before publishing.
+
 ## v2.1.84 - 2026-05-20
 
 - Added RPM Linux release assets alongside the existing `.deb` and `.AppImage` downloads so RPM-based distributions have a native package option.
-- Gated CI on generated RPM artifacts and documented RPM release smoke checks while preserving the signed APT repository flow for Debian packages.
+- Gated CI and release publishing on RPM software-center metadata, including a project-owned RPM with exactly one reverse-DNS desktop launcher, AppStream metadata, binary, and license file, while preserving the signed APT repository flow for Debian packages.
 
 ## v2.1.83 - 2026-05-19
 

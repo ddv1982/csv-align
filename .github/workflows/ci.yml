@@ -54,6 +54,9 @@ jobs:
               - 'Cargo.toml'
               - 'Cargo.lock'
               - 'scripts/build_frontend_for_tauri.sh'
+              - 'scripts/build_rpm_package.py'
+              - 'scripts/normalize_linux_deb_desktop_id.py'
+              - 'scripts/validate_linux_deb_metadata.py'
               - 'src/**'
               - 'src-tauri/**'
               - 'frontend/**'
@@ -208,7 +211,7 @@ jobs:
       - name: Install dependencies (Ubuntu)
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf appstream desktop-file-utils rpm
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf appstream desktop-file-utils rpm rpm2cpio
 
       - name: Download frontend dist artifact
         uses: actions/download-artifact@v6
@@ -239,16 +242,10 @@ jobs:
           rm -rf target/${{ env.TAURI_TARGET }}/release/bundle
           cargo tauri build --target ${{ env.TAURI_TARGET }}
 
-      - name: Validate RPM package artifacts
+      - name: Build canonical RPM package
         run: |
           set -euo pipefail
-          shopt -s nullglob
-          rpm_packages=(src-tauri/target/${TAURI_TARGET}/release/bundle/rpm/*.rpm)
-          if [ ${#rpm_packages[@]} -eq 0 ]; then
-            echo "No RPM packages were produced by the Tauri build." >&2
-            exit 1
-          fi
-          printf 'Found RPM package: %s\n' "${rpm_packages[@]}"
+          python3 scripts/build_rpm_package.py --target "${TAURI_TARGET}"
 
       - name: Normalize Debian desktop id
         run: |
@@ -278,6 +275,51 @@ jobs:
           report = json.loads(report_path.read_text(encoding="utf-8"))
           lines = [
               "## Debian package metadata validation",
+              "",
+              f"Gate: {'PASS' if report['ok'] else 'FAIL'}",
+              "",
+              "| Package | Component ID | Project license | Desktop ID | Binary |",
+              "| --- | --- | --- | --- | --- |",
+          ]
+          for package in report["packages"]:
+              lines.append(
+                  "| {package} | {component_id} | {project_license} | {launchable} | {binary} |".format(
+                      package=pathlib.Path(package["package"]).name,
+                      component_id=package.get("component_id") or "",
+                      project_license=package.get("project_license") or "",
+                      launchable=package.get("launchable") or "",
+                      binary=package.get("binary") or "",
+                  )
+              )
+          lines.extend(["", f"JSON report: `{report_path}`"])
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+              summary.write("\n".join(lines) + "\n")
+          PY
+
+          exit "${validator_status}"
+
+      - name: Validate RPM package metadata
+        env:
+          RPM_METADATA_REPORT: rpm-metadata-report.json
+        run: |
+          set -euo pipefail
+
+          set +e
+          python3 scripts/validate_linux_deb_metadata.py \
+            "src-tauri/target/${TAURI_TARGET}/release/bundle/rpm/*.rpm" \
+            --json-report "${RPM_METADATA_REPORT}"
+          validator_status=$?
+          set -e
+
+          python3 <<'PY'
+          import json
+          import os
+          import pathlib
+
+          report_path = pathlib.Path(os.environ["RPM_METADATA_REPORT"])
+          report = json.loads(report_path.read_text(encoding="utf-8"))
+          lines = [
+              "## RPM package metadata validation",
               "",
               f"Gate: {'PASS' if report['ok'] else 'FAIL'}",
               "",

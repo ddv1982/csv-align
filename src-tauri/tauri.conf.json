@@ -43,6 +43,7 @@
         "depends": [],
         "files": {
           "/usr/share/licenses/csv-align/LICENSE": "../LICENSE",
+          "/usr/share/applications/com.csvalign.desktop.desktop": "linux/com.csvalign.desktop.desktop",
           "/usr/share/metainfo/com.csvalign.desktop.metainfo.xml": "appstream/com.csvalign.desktop.metainfo.xml"
         }
       }
@@ -57,5 +58,5 @@
   "productName": "CSV Align",
   "mainBinaryName": "csv-align",
   "identifier": "com.csvalign.desktop",
-  "version": "2.1.84"
+  "version": "2.1.85"
 }
