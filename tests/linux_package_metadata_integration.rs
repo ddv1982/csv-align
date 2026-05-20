@@ -14,7 +14,7 @@ const MAIN_BINARY: &str = "csv-align";
 const PROJECT_LICENSE: &str = "MIT";
 
 #[test]
-fn tauri_debian_bundle_declares_license_and_software_center_metadata() {
+fn tauri_linux_bundle_declares_license_and_software_center_metadata() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let tauri_conf = read_tauri_conf(root);
 
@@ -43,6 +43,30 @@ fn tauri_debian_bundle_declares_license_and_software_center_metadata() {
         assert!(
             root.join("src-tauri").join(source).exists(),
             "Debian bundle source file should exist: {source}"
+        );
+    }
+
+    let rpm = &bundle["linux"]["rpm"];
+    assert_eq!(rpm["depends"].as_array().map(Vec::len), Some(0));
+    let rpm_files = rpm["files"].as_object().expect("RPM custom files map");
+
+    assert_eq!(
+        rpm_files
+            .get("/usr/share/licenses/csv-align/LICENSE")
+            .and_then(Value::as_str),
+        Some("../LICENSE")
+    );
+    assert_eq!(
+        rpm_files
+            .get(&format!("/usr/share/metainfo/{APPSTREAM_ID}.metainfo.xml"))
+            .and_then(Value::as_str),
+        Some("appstream/com.csvalign.desktop.metainfo.xml")
+    );
+
+    for source in rpm_files.values().filter_map(Value::as_str) {
+        assert!(
+            root.join("src-tauri").join(source).exists(),
+            "RPM bundle source file should exist: {source}"
         );
     }
 }

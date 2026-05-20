@@ -40,7 +40,11 @@
         }
       },
       "rpm": {
-        "depends": []
+        "depends": [],
+        "files": {
+          "/usr/share/licenses/csv-align/LICENSE": "../LICENSE",
+          "/usr/share/metainfo/com.csvalign.desktop.metainfo.xml": "appstream/com.csvalign.desktop.metainfo.xml"
+        }
       }
     },
     "macOS": {
@@ -53,5 +57,5 @@
   "productName": "CSV Align",
   "mainBinaryName": "csv-align",
   "identifier": "com.csvalign.desktop",
-  "version": "2.1.83"
+  "version": "2.1.84"
 }

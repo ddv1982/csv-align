@@ -63,7 +63,7 @@ sudo apt install csv-align
 
 After the repository is enabled, use normal `sudo apt update` and `sudo apt install csv-align` commands for installs and updates. CSV Align can also be installed by searching for “CSV Align” in GNOME Software or Ubuntu Software after package/AppStream metadata has refreshed.
 
-The standalone `.AppImage` and `.deb` release assets remain available as direct-download fallback options.
+The standalone `.AppImage`, `.deb`, and `.rpm` release assets remain available as direct-download fallback options. Use the `.rpm` package on RPM-based distributions such as Fedora, RHEL-compatible, and openSUSE systems that provide WebKitGTK 4.1.
 
 ## Quick start
 

@@ -478,6 +478,7 @@ jobs:
           tag_name: ${{ github.ref_name }}
           files: |
             release-artifacts/**/*.deb
+            release-artifacts/**/*.rpm
             release-artifacts/**/*.AppImage
             csv-align-repository-setup_*.deb
             scripts/install-apt-repo.sh

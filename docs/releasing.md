@@ -227,6 +227,19 @@ appstreamcli get com.csvalign.desktop --details
 
 The `apt-cache policy` output should resolve `csv-align` from the CSV Align repository, and the AppStream details should report package `csv-align`, desktop launchable `com.csvalign.desktop.desktop`, binary `csv-align`, and project license `MIT`. Then open GNOME Software or Ubuntu Software, search for “CSV Align,” and confirm the app can be installed from the repository-backed result.
 
+## RPM release assets
+
+CI builds the Tauri Linux bundle with Debian, RPM, and AppImage targets. The Ubuntu runner installs `rpm` so `rpmbuild` is available before `cargo tauri build`, then gates the reusable release artifact on at least one generated `.rpm` under `src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/rpm/`.
+
+The tagged release workflow downloads that reusable Linux bundle from CI and uploads `release-artifacts/**/*.rpm` to the GitHub Release alongside `.deb` and `.AppImage` assets. RPM artifacts are not part of the signed APT repository and are not signed by the Debian `dpkg-sig` flow.
+
+Manual RPM smoke check for a downloaded artifact:
+
+```bash
+rpm -qip path/to/csv-align-*.rpm
+rpm -qlp path/to/csv-align-*.rpm | grep -E '(/usr/bin/csv-align|/usr/share/metainfo/com\.csvalign\.desktop\.metainfo\.xml|/usr/share/applications/.*\.desktop)'
+```
+
 ## Linux software-center metadata verification
 
 CI normalizes each built `.deb` before validation/signing because Tauri currently emits a product-name desktop file (`CSV Align.desktop`). The normalizer renames that packaged launcher to `com.csvalign.desktop.desktop` and keeps AppStream `<launchable type="desktop-id">` aligned. CI then validates the normalized `.deb` before signing/upload, and the release workflow repeats the same read-only check after signature verification and before GitHub Release upload:
@@ -263,7 +276,7 @@ If the artifact validator and `appstreamcli get com.csvalign.desktop` both repor
 
 Pushing a tag matching `v*` triggers the release workflow.
 
-The CI workflow runs Rust tests/formatting/clippy, Tauri wrapper tests, frontend tests/lint/build, and validates that release metadata stays aligned across the documented version-bearing files. For Tauri-impacting changes, CI also publishes two 7-day artifacts used by the release workflow: the Linux package bundle and `csv-align-frontend-dist`.
+The CI workflow runs Rust tests/formatting/clippy, Tauri wrapper tests, frontend tests/lint/build, and validates that release metadata stays aligned across the documented version-bearing files. For Tauri-impacting changes, CI also publishes two 7-day artifacts used by the release workflow: the Linux package bundle (`.deb`, `.rpm`, and `.AppImage`) and `csv-align-frontend-dist`.
 
 The tagged release workflow validates release metadata against the tag, checks the Rust, Tauri, and frontend validation suite, expects a matching non-empty `CHANGELOG.md` section, verifies both CI artifacts exist before creating or refreshing the draft GitHub Release, uploads the packaged assets, and only publishes the final GitHub Release after packaging succeeds.
 

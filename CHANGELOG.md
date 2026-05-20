@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.84 - 2026-05-20
+
+- Added RPM Linux release assets alongside the existing `.deb` and `.AppImage` downloads so RPM-based distributions have a native package option.
+- Gated CI on generated RPM artifacts and documented RPM release smoke checks while preserving the signed APT repository flow for Debian packages.
+
 ## v2.1.83 - 2026-05-19
 
 - Aligned the in-app results search input with the field selector height so the compact search controls read as one control group across desktop and narrow layouts.

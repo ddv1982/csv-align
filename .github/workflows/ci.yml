@@ -208,7 +208,7 @@ jobs:
       - name: Install dependencies (Ubuntu)
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf appstream desktop-file-utils
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf appstream desktop-file-utils rpm
 
       - name: Download frontend dist artifact
         uses: actions/download-artifact@v6
@@ -238,6 +238,17 @@ jobs:
         run: |
           rm -rf target/${{ env.TAURI_TARGET }}/release/bundle
           cargo tauri build --target ${{ env.TAURI_TARGET }}
+
+      - name: Validate RPM package artifacts
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          rpm_packages=(src-tauri/target/${TAURI_TARGET}/release/bundle/rpm/*.rpm)
+          if [ ${#rpm_packages[@]} -eq 0 ]; then
+            echo "No RPM packages were produced by the Tauri build." >&2
+            exit 1
+          fi
+          printf 'Found RPM package: %s\n' "${rpm_packages[@]}"
 
       - name: Normalize Debian desktop id
         run: |
@@ -399,6 +410,7 @@ jobs:
           name: ${{ env.RELEASE_ARTIFACT_NAME }}
           path: |
             src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/*.deb
+            src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/rpm/*.rpm
             src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage
           if-no-files-found: error
           retention-days: 7
