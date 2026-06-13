@@ -2,19 +2,12 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { TAURI_COMMANDS } from './tauriCommands';
 import { loadComparisonSnapshot, saveComparisonSnapshot } from './tauri';
 
-const { invokeMock, openMock, saveMock } = vi.hoisted(() => ({
+const { invokeMock } = vi.hoisted(() => ({
   invokeMock: vi.fn(),
-  openMock: vi.fn(),
-  saveMock: vi.fn(),
 }));
 
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: invokeMock,
-}));
-
-vi.mock('@tauri-apps/plugin-dialog', () => ({
-  open: openMock,
-  save: saveMock,
 }));
 
 async function importTauriModule() {
@@ -31,8 +24,6 @@ function jsonResponse(body: unknown, init: ResponseInit = {}) {
 
 beforeEach(() => {
   invokeMock.mockReset();
-  openMock.mockReset();
-  saveMock.mockReset();
   vi.stubGlobal('fetch', vi.fn());
   delete (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
 });
@@ -115,9 +106,8 @@ test('loadComparisonSnapshot reads the selected file and posts its contents in b
   }));
 });
 
-test('loadComparisonSnapshot invokes the Tauri snapshot load command when a file is chosen', async () => {
+test('loadComparisonSnapshot invokes the pathless Tauri snapshot load command', async () => {
   (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
-  openMock.mockResolvedValue('/tmp/comparison-snapshot.json');
   invokeMock.mockResolvedValue({ file_a: { name: 'left.csv' } });
 
   const { loadComparisonSnapshot } = await importTauriModule();
@@ -125,6 +115,5 @@ test('loadComparisonSnapshot invokes the Tauri snapshot load command when a file
   await expect(loadComparisonSnapshot('session-2')).resolves.toEqual({ file_a: { name: 'left.csv' } });
   expect(invokeMock).toHaveBeenCalledWith(TAURI_COMMANDS.loadComparisonSnapshot, {
     sessionId: 'session-2',
-    filePath: '/tmp/comparison-snapshot.json',
   });
 });

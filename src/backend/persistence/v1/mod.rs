@@ -159,7 +159,7 @@ impl SnapshotV1 {
         session_data.columns_a = self.file_a.columns.iter().map(ColumnInfo::from).collect();
         session_data.columns_b = self.file_b.columns.iter().map(ColumnInfo::from).collect();
         session_data.column_mappings = comparison_config.column_mappings.clone();
-        session_data.comparison_results = comparison_results;
+        session_data.comparison_results = comparison_results.clone();
         session_data.comparison_config = Some(comparison_config);
         session_data.advance_data_revision();
 
@@ -169,7 +169,10 @@ impl SnapshotV1 {
             selection: PairOrderSelection::from(&self.selection),
             mappings: self.mappings.iter().map(MappingResponse::from).collect(),
             normalization: self.normalization.clone(),
-            results: self.results.iter().map(ResultResponse::from).collect(),
+            results: comparison_results
+                .iter()
+                .map(ResultResponse::from)
+                .collect(),
             summary: SummaryResponse::from(&self.summary),
         })
     }

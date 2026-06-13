@@ -1,6 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
-import { open, save } from '@tauri-apps/plugin-dialog';
 import {
   buildCreateSessionRoute,
   buildCompareRoute,
@@ -155,13 +154,8 @@ export async function loadFile(
   fileLetter: 'a' | 'b'
 ): Promise<FileLoadResponse> {
   if (isTauri) {
-    // In Tauri, support both direct path loading and File object loading.
     if (typeof file === 'string') {
-      return invoke(TAURI_COMMANDS.loadCsv, {
-        sessionId,
-        fileLetter,
-        filePath: file,
-      });
+      throw new Error('Desktop path loading is disabled. Use Choose CSV so the file contents stay user-selected.');
     }
 
     return invoke(TAURI_COMMANDS.loadCsvBytes, {
@@ -173,10 +167,12 @@ export async function loadFile(
   }
 
   // Browser mode - use HTTP API
-  const formData = new FormData();
-  if (file instanceof File) {
-    formData.append('file', file);
+  if (!(file instanceof File)) {
+    throw new Error('No CSV file selected');
   }
+
+  const formData = new FormData();
+  formData.append('file', file);
 
   return fetchJson(buildLoadFileRoute(sessionId, fileLetter), {
     method: 'POST',
@@ -214,18 +210,8 @@ export async function compareFiles(
 
 export async function exportResults(sessionId: string): Promise<Blob | void> {
   if (isTauri) {
-    const outputPath = await save({
-      defaultPath: 'comparison-results.csv',
-      filters: [{ name: 'CSV Files', extensions: ['csv'] }],
-    });
-
-    if (!outputPath) {
-      return;
-    }
-
     await invoke(TAURI_COMMANDS.exportResults, {
       sessionId,
-      outputPath,
     });
 
     return;
@@ -238,17 +224,7 @@ export async function exportResults(sessionId: string): Promise<Blob | void> {
 
 export async function exportResultsHtml(contents: string): Promise<Blob | void> {
   if (isTauri) {
-    const outputPath = await save({
-      defaultPath: 'comparison-results.html',
-      filters: [{ name: 'HTML Files', extensions: ['html'] }],
-    });
-
-    if (!outputPath) {
-      return;
-    }
-
     await invoke(TAURI_COMMANDS.exportResultsHtml, {
-      outputPath,
       htmlContents: contents,
     });
 
@@ -263,19 +239,9 @@ export async function savePairOrder(
   selection: PairOrderSelection,
 ): Promise<Blob | void> {
   if (isTauri) {
-    const outputPath = await save({
-      defaultPath: 'pair-order.txt',
-      filters: [{ name: 'Text Files', extensions: ['txt'] }],
-    });
-
-    if (!outputPath) {
-      return;
-    }
-
     await invoke(TAURI_COMMANDS.savePairOrder, {
       sessionId,
       selection,
-      outputPath,
     });
 
     return;
@@ -293,19 +259,11 @@ export async function loadPairOrder(
   file?: File,
 ): Promise<LoadPairOrderResponse | void> {
   if (isTauri) {
-    const filePath = await open({
-      multiple: false,
-      filters: [{ name: 'Text Files', extensions: ['txt'] }],
-    });
-
-    if (!filePath || Array.isArray(filePath)) {
-      return;
-    }
-
-    return invoke(TAURI_COMMANDS.loadPairOrder, {
+    const response = await invoke<LoadPairOrderResponse | null>(TAURI_COMMANDS.loadPairOrder, {
       sessionId,
-      filePath,
     });
+
+    return response ?? undefined;
   }
 
   if (!(file instanceof File)) {
@@ -319,18 +277,8 @@ export async function loadPairOrder(
 
 export async function saveComparisonSnapshot(sessionId: string): Promise<Blob | void> {
   if (isTauri) {
-    const outputPath = await save({
-      defaultPath: 'comparison-snapshot.json',
-      filters: [{ name: 'JSON Files', extensions: ['json'] }],
-    });
-
-    if (!outputPath) {
-      return;
-    }
-
     await invoke(TAURI_COMMANDS.saveComparisonSnapshot, {
       sessionId,
-      outputPath,
     });
 
     return;
@@ -346,19 +294,11 @@ export async function loadComparisonSnapshot(
   file?: File,
 ): Promise<LoadComparisonSnapshotResponse | void> {
   if (isTauri) {
-    const filePath = await open({
-      multiple: false,
-      filters: [{ name: 'JSON Files', extensions: ['json'] }],
-    });
-
-    if (!filePath || Array.isArray(filePath)) {
-      return;
-    }
-
-    return invoke(TAURI_COMMANDS.loadComparisonSnapshot, {
+    const response = await invoke<LoadComparisonSnapshotResponse | null>(TAURI_COMMANDS.loadComparisonSnapshot, {
       sessionId,
-      filePath,
     });
+
+    return response ?? undefined;
   }
 
   if (!(file instanceof File)) {

@@ -7,7 +7,7 @@ mod commands;
 
 use commands::{
     compare, create_session, delete_session, export_results, export_results_html,
-    load_comparison_snapshot, load_csv, load_csv_bytes, load_pair_order, save_comparison_snapshot,
+    load_comparison_snapshot, load_csv_bytes, load_pair_order, save_comparison_snapshot,
     save_pair_order, suggest_mappings,
 };
 
@@ -16,7 +16,6 @@ macro_rules! tauri_commands {
         $consumer!(
             create_session,
             delete_session,
-            load_csv,
             load_csv_bytes,
             suggest_mappings,
             compare,

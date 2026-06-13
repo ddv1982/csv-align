@@ -231,6 +231,14 @@ jobs:
         working-directory: src-tauri
         run: cargo test
 
+      - name: Check Tauri Rust formatting
+        working-directory: src-tauri
+        run: cargo fmt --check
+
+      - name: Run Tauri Clippy
+        working-directory: src-tauri
+        run: cargo clippy -- -D warnings
+
       - name: Install Tauri CLI
         run: cargo install tauri-cli --locked --version "^2"
 

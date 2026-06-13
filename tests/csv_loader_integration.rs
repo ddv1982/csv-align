@@ -28,6 +28,21 @@ fn load_csv_from_bytes_semicolon_delimited() {
 }
 
 #[test]
+fn load_csv_from_bytes_ignores_quoted_delimiters_when_detecting_delimiter() {
+    let csv_data = load_csv_from_bytes(
+        b"name;description;city\nAlice;\"likes commas, a lot\";Paris\nBob;\"uses; semicolons\";Lyon\n",
+    )
+    .unwrap();
+
+    assert_eq!(csv_data.headers, vec!["name", "description", "city"]);
+    assert_eq!(
+        csv_data.rows[0],
+        vec!["Alice", "likes commas, a lot", "Paris"]
+    );
+    assert_eq!(csv_data.rows[1], vec!["Bob", "uses; semicolons", "Lyon"]);
+}
+
+#[test]
 fn load_csv_from_bytes_utf16_bom() {
     let utf16_bytes = vec![
         0xFF, 0xFE, 0x6E, 0x00, 0x61, 0x00, 0x6D, 0x00, 0x65, 0x00, 0x3B, 0x00, 0x61, 0x00, 0x67,

@@ -153,8 +153,11 @@ fn compare_key_groups_exact(
 ) {
     let mut processed_b = HashSet::new();
 
-    // Process all keys from file A, preserving the existing map-driven exact path.
-    for (key, keyed_rows_a) in map_a {
+    let mut keyed_rows_a: Vec<(&Vec<String>, &KeyedRows)> = map_a.iter().collect();
+    keyed_rows_a.sort_by(|left, right| compare_keyed_rows(left.1, right.1));
+
+    // Process all keys from file A in source-row order for stable UI/export output.
+    for (key, keyed_rows_a) in keyed_rows_a {
         if let Some(keyed_rows_b) = map_b.get(key) {
             processed_b.insert(key.clone());
             push_paired_group_results(results, keyed_rows_a, keyed_rows_b, context);
@@ -163,14 +166,23 @@ fn compare_key_groups_exact(
         }
     }
 
-    // Process keys only in File B.
-    for (key, keyed_rows_b) in map_b {
+    let mut keyed_rows_b: Vec<(&Vec<String>, &KeyedRows)> = map_b.iter().collect();
+    keyed_rows_b.sort_by(|left, right| compare_keyed_rows(left.1, right.1));
+
+    // Process keys only in File B in source-row order for stable UI/export output.
+    for (key, keyed_rows_b) in keyed_rows_b {
         if processed_b.contains(key) {
             continue;
         }
 
         push_unmatched_b_results(results, keyed_rows_b, context);
     }
+}
+
+fn compare_keyed_rows(left: &KeyedRows, right: &KeyedRows) -> Ordering {
+    left.first_index
+        .cmp(&right.first_index)
+        .then(left.normalized_key.cmp(&right.normalized_key))
 }
 
 fn compare_key_groups_flexible(

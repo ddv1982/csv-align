@@ -1,4 +1,7 @@
 use super::*;
+use crate::commands::{
+    export_results_to_path, load_comparison_snapshot_from_path, save_comparison_snapshot_to_path,
+};
 use csv_align::backend::{CompareRequest, CsvAlignError, MappingRequest};
 use csv_align::data::types::ComparisonNormalizationConfig;
 use std::sync::Arc;
@@ -57,18 +60,18 @@ fn tauri_comparison_snapshot_commands_round_trip_saved_results() {
 
     let output_path = temp_output_path("tauri-comparison-snapshot");
 
-    save_comparison_snapshot(
-        app.state::<Arc<SessionStore>>(),
-        session_id,
-        output_path.to_string_lossy().into_owned(),
+    save_comparison_snapshot_to_path(
+        app.state::<Arc<SessionStore>>().inner().as_ref(),
+        &session_id,
+        &output_path,
     )
     .unwrap();
 
     let loaded_session_id = create_session(app.state::<Arc<SessionStore>>()).session_id;
-    let loaded = load_comparison_snapshot(
-        app.state::<Arc<SessionStore>>(),
-        loaded_session_id.clone(),
-        output_path.to_string_lossy().into_owned(),
+    let loaded = load_comparison_snapshot_from_path(
+        app.state::<Arc<SessionStore>>().inner().as_ref(),
+        &loaded_session_id,
+        &output_path,
     )
     .unwrap();
 
@@ -76,10 +79,10 @@ fn tauri_comparison_snapshot_commands_round_trip_saved_results() {
         "csv-align-tauri-loaded-export-{}.csv",
         uuid::Uuid::new_v4()
     ));
-    export_results(
-        app.state::<Arc<SessionStore>>(),
-        loaded_session_id,
-        export_path.to_string_lossy().into_owned(),
+    export_results_to_path(
+        app.state::<Arc<SessionStore>>().inner().as_ref(),
+        &loaded_session_id,
+        &export_path,
     )
     .unwrap();
 
@@ -116,10 +119,10 @@ fn tauri_comparison_snapshot_command_rejects_legacy_version_before_v2_deserializ
     )
     .unwrap();
 
-    let error = load_comparison_snapshot(
-        app.state::<Arc<SessionStore>>(),
-        session_id,
-        output_path.to_string_lossy().into_owned(),
+    let error = load_comparison_snapshot_from_path(
+        app.state::<Arc<SessionStore>>().inner().as_ref(),
+        &session_id,
+        &output_path,
     )
     .unwrap_err();
 

@@ -755,6 +755,36 @@ fn save_pair_order_rejects_duplicate_columns_with_stable_message() {
 }
 
 #[test]
+fn save_pair_order_rejects_mismatched_column_counts_with_stable_message() {
+    let session = SessionData {
+        csv_a: Some(Arc::new(
+            csv_loader::load_csv_from_bytes(b"id,name,value\n1,Alice,10\n").unwrap(),
+        )),
+        csv_b: Some(Arc::new(
+            csv_loader::load_csv_from_bytes(b"id,full_name,amount\n1,Alice,10\n").unwrap(),
+        )),
+        ..SessionData::new()
+    };
+
+    let error = save_pair_order_workflow(
+        &session,
+        PairOrderSelection {
+            key_columns_a: vec!["id".to_string()],
+            key_columns_b: vec!["id".to_string()],
+            comparison_columns_a: vec!["name".to_string(), "value".to_string()],
+            comparison_columns_b: vec!["full_name".to_string()],
+        },
+    )
+    .unwrap_err();
+
+    assert!(matches!(error, CsvAlignError::BadInput(_)));
+    assert_eq!(
+        error.to_string(),
+        "Saved comparison columns for File A and Saved comparison columns for File B must contain the same number of columns (got 2 and 1)"
+    );
+}
+
+#[test]
 fn load_pair_order_rejects_unknown_version_before_full_deserialize() {
     let session = SessionData {
         csv_a: Some(Arc::new(

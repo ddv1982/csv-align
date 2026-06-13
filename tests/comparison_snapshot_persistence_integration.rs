@@ -185,6 +185,95 @@ async fn comparison_snapshot_persistence_defaults_missing_flexible_key_matching_
 }
 
 #[tokio::test]
+async fn comparison_snapshot_load_response_uses_canonical_result_fields() {
+    let state = AppState::new();
+    let session_id = state.create_session();
+
+    let contents = serde_json::json!({
+        "version": 2,
+        "file_a": {
+            "name": "left.csv",
+            "headers": ["id", "name"],
+            "columns": [
+                { "index": 0, "name": "id", "data_type": "string" },
+                { "index": 1, "name": "name", "data_type": "string" }
+            ],
+            "row_count": 1
+        },
+        "file_b": {
+            "name": "right.csv",
+            "headers": ["record_id", "display_name"],
+            "columns": [
+                { "index": 0, "name": "record_id", "data_type": "string" },
+                { "index": 1, "name": "display_name", "data_type": "string" }
+            ],
+            "row_count": 0
+        },
+        "selection": {
+            "key_columns_a": ["id"],
+            "key_columns_b": ["record_id"],
+            "comparison_columns_a": ["name"],
+            "comparison_columns_b": ["display_name"]
+        },
+        "mappings": [{
+            "file_a_column": "name",
+            "file_b_column": "display_name",
+            "mapping_type": "manual",
+            "similarity": null
+        }],
+        "normalization": ComparisonNormalizationConfig::default(),
+        "results": [{
+            "result_type": "missing_right",
+            "key": ["1"],
+            "values_a": ["Alice"],
+            "values_b": ["stale response-only value"],
+            "duplicate_values_a": [["duplicate-only"]],
+            "duplicate_values_b": [["duplicate-only"]],
+            "differences": [{
+                "column_a": "name",
+                "column_b": "display_name",
+                "value_a": "Alice",
+                "value_b": "stale"
+            }]
+        }],
+        "summary": {
+            "total_rows_a": 1,
+            "total_rows_b": 0,
+            "matches": 0,
+            "mismatches": 0,
+            "missing_left": 0,
+            "missing_right": 1,
+            "unkeyed_left": 0,
+            "unkeyed_right": 0,
+            "duplicates_a": 0,
+            "duplicates_b": 0
+        }
+    })
+    .to_string();
+
+    let load_response = handlers::load_comparison_snapshot(
+        State(state),
+        Path(session_id),
+        Json(LoadComparisonSnapshotRequest { contents }),
+    )
+    .await;
+
+    assert_eq!(load_response.status(), StatusCode::OK);
+    let json = response_json(load_response).await;
+    assert_eq!(json["results"][0]["values_a"], serde_json::json!(["Alice"]));
+    assert_eq!(json["results"][0]["values_b"], serde_json::json!([]));
+    assert_eq!(
+        json["results"][0]["duplicate_values_a"],
+        serde_json::json!([])
+    );
+    assert_eq!(
+        json["results"][0]["duplicate_values_b"],
+        serde_json::json!([])
+    );
+    assert_eq!(json["results"][0]["differences"], serde_json::json!([]));
+}
+
+#[tokio::test]
 async fn comparison_snapshot_persistence_rejects_legacy_version() {
     let state = AppState::new();
     let session_id = state.create_session();

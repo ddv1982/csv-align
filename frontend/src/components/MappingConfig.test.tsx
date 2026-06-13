@@ -86,7 +86,7 @@ test('disables copy pair order until at least one pair exists', () => {
   expect(within(screen.getByLabelText('Pair order')).getByRole('button', { name: 'Copy current pair order' })).toBeDisabled();
 });
 
-test('enables save pair order when a pair order exists', () => {
+test('disables save pair order until explicit row keys are selected', () => {
   render(
     <MappingConfig
       fileA={file}
@@ -107,7 +107,124 @@ test('enables save pair order when a pair order exists', () => {
     />
   );
 
+  expect(within(screen.getByLabelText('Pair order')).getByRole('button', { name: 'Save pair order' })).toBeDisabled();
+});
+
+test('enables save pair order when explicit row keys and pair order exist', () => {
+  render(
+    <MappingConfig
+      fileA={file}
+      fileB={file}
+      selection={{
+        keyColumnsA: ['id'],
+        keyColumnsB: ['id'],
+        comparisonColumnsA: ['name'],
+        comparisonColumnsB: ['value'],
+      }}
+      normalization={INITIAL_NORMALIZATION_CONFIG}
+      onSelectionChange={() => undefined}
+      onNormalizationChange={() => undefined}
+      onCompare={() => undefined}
+      onSavePairOrder={() => undefined}
+      onLoadPairOrder={() => undefined}
+      onAutoPairComparisonColumns={() => undefined}
+    />
+  );
+
   expect(within(screen.getByLabelText('Pair order')).getByRole('button', { name: 'Save pair order' })).toBeEnabled();
+});
+
+test('disables pair-order save and copy when comparison column counts differ', () => {
+  render(
+    <MappingConfig
+      fileA={file}
+      fileB={file}
+      selection={{
+        keyColumnsA: [],
+        keyColumnsB: [],
+        comparisonColumnsA: ['id', 'name'],
+        comparisonColumnsB: ['value'],
+      }}
+      normalization={INITIAL_NORMALIZATION_CONFIG}
+      onSelectionChange={() => undefined}
+      onNormalizationChange={() => undefined}
+      onCompare={() => undefined}
+      onSavePairOrder={() => undefined}
+      onLoadPairOrder={() => undefined}
+      onAutoPairComparisonColumns={() => undefined}
+    />
+  );
+
+  const pairOrderBox = screen.getByLabelText('Pair order');
+  expect(within(pairOrderBox).getByRole('button', { name: 'Save pair order' })).toBeDisabled();
+  expect(within(pairOrderBox).getByRole('button', { name: 'Copy current pair order' })).toBeDisabled();
+  expect(screen.getAllByText('Select the same number of comparison columns in both files to run the comparison.')).toHaveLength(2);
+});
+
+test('disables comparison when effective row-key counts differ', () => {
+  const onCompare = vi.fn();
+
+  render(
+    <MappingConfig
+      fileA={file}
+      fileB={file}
+      selection={{
+        keyColumnsA: ['id', 'name'],
+        keyColumnsB: ['id'],
+        comparisonColumnsA: ['value'],
+        comparisonColumnsB: ['value'],
+      }}
+      normalization={INITIAL_NORMALIZATION_CONFIG}
+      onSelectionChange={() => undefined}
+      onNormalizationChange={() => undefined}
+      onCompare={onCompare}
+      onSavePairOrder={() => undefined}
+      onLoadPairOrder={() => undefined}
+      onAutoPairComparisonColumns={() => undefined}
+    />
+  );
+
+  const compareButton = screen.getByRole('button', { name: 'Run Comparison' });
+  expect(compareButton).toBeDisabled();
+  expect(screen.getByText('Select the same number of row keys in both files, or enable flexible row-key matching.')).toBeInTheDocument();
+
+  fireEvent.click(compareButton);
+  expect(onCompare).not.toHaveBeenCalled();
+});
+
+test('allows mismatched row-key counts when flexible row-key matching is enabled', () => {
+  const onCompare = vi.fn();
+
+  render(
+    <MappingConfig
+      fileA={file}
+      fileB={file}
+      selection={{
+        keyColumnsA: ['id', 'name'],
+        keyColumnsB: ['id'],
+        comparisonColumnsA: ['value'],
+        comparisonColumnsB: ['value'],
+      }}
+      normalization={{ ...INITIAL_NORMALIZATION_CONFIG, flexible_key_matching: true }}
+      onSelectionChange={() => undefined}
+      onNormalizationChange={() => undefined}
+      onCompare={onCompare}
+      onSavePairOrder={() => undefined}
+      onLoadPairOrder={() => undefined}
+      onAutoPairComparisonColumns={() => undefined}
+    />
+  );
+
+  fireEvent.click(screen.getByRole('button', { name: 'Run Comparison' }));
+
+  expect(onCompare).toHaveBeenCalledWith(
+    ['id', 'name'],
+    ['id'],
+    ['value'],
+    ['value'],
+    [{ file_a_column: 'value', file_b_column: 'value', mapping_type: 'manual' }],
+    { ...INITIAL_NORMALIZATION_CONFIG, flexible_key_matching: true },
+  );
 });
 
 test('shows auto-pair controls in the comparison preview', () => {
@@ -148,8 +265,8 @@ test('copies the current pair order in the same displayed text format and shows 
       fileA={file}
       fileB={file}
       selection={{
-        keyColumnsA: [],
-        keyColumnsB: [],
+        keyColumnsA: ['id'],
+        keyColumnsB: ['id'],
         comparisonColumnsA: ['id', 'name'],
         comparisonColumnsB: ['value', 'id'],
       }}
@@ -220,8 +337,8 @@ test('copies the same whitespace-collapsed text shown in the pair preview', asyn
       fileA={file}
       fileB={file}
       selection={{
-        keyColumnsA: [],
-        keyColumnsB: [],
+        keyColumnsA: ['id'],
+        keyColumnsB: ['id'],
         comparisonColumnsA: ['full   name', 'zip\ncode'],
         comparisonColumnsB: ['customer\tid', 'postal   code'],
       }}

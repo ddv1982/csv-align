@@ -51,6 +51,11 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
       return;
     }
 
+    if (typeof selectedFile === 'string') {
+      setSelectionError('Desktop drag-and-drop paths are disabled. Use Choose CSV to load the file safely.');
+      return;
+    }
+
     if (!hasCsvExtension(getSelectedFileName(selectedFile))) {
       setSelectionError('Please choose a file with a .csv extension.');
       return;

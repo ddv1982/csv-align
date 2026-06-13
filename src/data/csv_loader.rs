@@ -137,14 +137,34 @@ fn detect_delimiter(csv_data: &str) -> u8 {
         .find(|line| !line.is_empty())
         .unwrap_or("");
 
-    let comma_count = first_row.matches(',').count();
-    let semicolon_count = first_row.matches(';').count();
+    let comma_count = count_unquoted_delimiters(first_row, ',');
+    let semicolon_count = count_unquoted_delimiters(first_row, ';');
 
     if semicolon_count > comma_count {
         b';'
     } else {
         b','
     }
+}
+
+fn count_unquoted_delimiters(row: &str, delimiter: char) -> usize {
+    let mut count = 0;
+    let mut in_quotes = false;
+    let mut chars = row.chars().peekable();
+
+    while let Some(character) = chars.next() {
+        if character == '"' {
+            if in_quotes && chars.peek() == Some(&'"') {
+                chars.next();
+            } else {
+                in_quotes = !in_quotes;
+            }
+        } else if character == delimiter && !in_quotes {
+            count += 1;
+        }
+    }
+
+    count
 }
 
 /// Detect column information from CSV data

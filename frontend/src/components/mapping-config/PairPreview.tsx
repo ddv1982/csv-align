@@ -6,6 +6,7 @@ interface PairPreviewProps {
   comparisonColumnsB: string[];
   autoPairMessage: string;
   autoPairEnabled: boolean;
+  pairOrderKeySelectionValid: boolean;
   onAutoPairFromFileA: () => void;
   onAutoPairFromFileB: () => void;
   onSavePairOrder: () => void;
@@ -21,6 +22,7 @@ export function PairPreview({
   comparisonColumnsB,
   autoPairMessage,
   autoPairEnabled,
+  pairOrderKeySelectionValid,
   onAutoPairFromFileA,
   onAutoPairFromFileB,
   onSavePairOrder,
@@ -40,6 +42,13 @@ export function PairPreview({
       };
     });
   const pairOrderText = pairs.map((pair) => pair.displayText).join('\n');
+  const hasMismatchedCounts = comparisonColumnsA.length !== comparisonColumnsB.length;
+  const hasPairOrderToSave = pairs.length > 0 && !hasMismatchedCounts && pairOrderKeySelectionValid;
+  const savePairOrderTitle = hasMismatchedCounts
+    ? 'Select the same number of comparison columns in both files before saving.'
+    : !pairOrderKeySelectionValid
+      ? 'Select the same number of row keys in both files before saving.'
+      : undefined;
 
   useEffect(() => {
     if (!copySucceeded) {
@@ -65,8 +74,6 @@ export function PairPreview({
   };
 
   const buttonLabel = copySucceeded ? 'Copied current pair order' : 'Copy current pair order';
-  const hasPairOrderToSave = pairs.length > 0;
-  const hasMismatchedCounts = comparisonColumnsA.length !== comparisonColumnsB.length;
 
   return (
     <div className="surface-panel mt-6 p-4">
@@ -109,6 +116,7 @@ export function PairPreview({
               <button
                 className={`btn btn-ghost px-2 py-1 text-xs ${!hasPairOrderToSave ? 'cursor-not-allowed opacity-50' : ''}`}
                 disabled={!hasPairOrderToSave}
+                title={savePairOrderTitle}
                 onClick={onSavePairOrder}
                 type="button"
               >

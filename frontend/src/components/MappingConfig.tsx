@@ -82,6 +82,13 @@ export function MappingConfig({
     comparisonColumnsA.length > 0 &&
     comparisonColumnsB.length > 0 &&
     comparisonColumnsA.length === comparisonColumnsB.length;
+  const effectiveKeyColumnsA = keyColumnsA.length > 0 ? keyColumnsA : [fileA.headers[0]];
+  const effectiveKeyColumnsB = keyColumnsB.length > 0 ? keyColumnsB : [fileB.headers[0]];
+  const hasValidKeySelection = normalization.flexible_key_matching || effectiveKeyColumnsA.length === effectiveKeyColumnsB.length;
+  const canCompare = hasManualPairSelection && hasValidKeySelection;
+  const compareDisabledMessage = !hasManualPairSelection
+    ? 'Select the same number of comparison columns in both files to run the comparison.'
+    : 'Select the same number of row keys in both files, or enable flexible row-key matching.';
   const hasValidAutoPairKeySelection =
     keyColumnsA.length > 0 &&
     keyColumnsB.length > 0 &&
@@ -97,13 +104,13 @@ export function MappingConfig({
   }));
 
   const handleCompare = () => {
-    if (!hasManualPairSelection) {
+    if (!canCompare) {
       return;
     }
 
     onCompare(
-      keyColumnsA.length > 0 ? keyColumnsA : [fileA.headers[0]],
-      keyColumnsB.length > 0 ? keyColumnsB : [fileB.headers[0]],
+      effectiveKeyColumnsA,
+      effectiveKeyColumnsB,
       comparisonColumnsA,
       comparisonColumnsB,
       manualMappings,
@@ -189,6 +196,7 @@ export function MappingConfig({
           comparisonColumnsB={comparisonColumnsB}
           autoPairMessage={autoPairMessage}
           autoPairEnabled={hasValidAutoPairKeySelection}
+          pairOrderKeySelectionValid={hasValidAutoPairKeySelection}
           onAutoPairFromFileA={() => onAutoPairComparisonColumns('a')}
           onAutoPairFromFileB={() => onAutoPairComparisonColumns('b')}
           onSavePairOrder={onSavePairOrder}
@@ -207,13 +215,16 @@ export function MappingConfig({
       <div className="flex justify-center">
         <button
           onClick={handleCompare}
-          disabled={!hasManualPairSelection}
-          className={`btn btn-success flex items-center gap-2 px-8 py-3 text-sm ${!hasManualPairSelection ? 'cursor-not-allowed opacity-50' : ''}`}
+          disabled={!canCompare}
+          className={`btn btn-success flex items-center gap-2 px-8 py-3 text-sm ${!canCompare ? 'cursor-not-allowed opacity-50' : ''}`}
         >
           <span aria-hidden="true">GO</span>
           Run Comparison
         </button>
       </div>
+      {!canCompare && (
+        <p className="text-center text-sm text-app-warning">{compareDisabledMessage}</p>
+      )}
     </div>
   );
 }

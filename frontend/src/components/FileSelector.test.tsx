@@ -163,7 +163,7 @@ test('drag-leave-resets-hover styling without calling onSelect', () => {
   expect(onSelect).not.toHaveBeenCalled();
 });
 
-test('accepts a Tauri path drop when the window drop lands inside the selector', async () => {
+test('rejects a Tauri path drop when the window drop lands inside the selector', async () => {
   const onSelect = vi.fn();
   let dragDropHandler: ((event: TauriDragDropEvent) => void) | undefined;
 
@@ -190,8 +190,9 @@ test('accepts a Tauri path drop when the window drop lands inside the selector',
   dragDropHandler?.({ type: 'drop', paths: ['/tmp/desktop-drop.csv'], position: { x: 50, y: 50 } });
 
   await waitFor(() => {
-    expect(onSelect).toHaveBeenCalledWith('/tmp/desktop-drop.csv');
+    expect(screen.getByText('Desktop drag-and-drop paths are disabled. Use Choose CSV to load the file safely.')).toBeInTheDocument();
   });
+  expect(onSelect).not.toHaveBeenCalled();
   expect(screen.queryByText('Please choose a file with a .csv extension.')).not.toBeInTheDocument();
 });
 

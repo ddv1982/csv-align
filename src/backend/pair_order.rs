@@ -121,6 +121,12 @@ fn validate_selection(
         &csv_b.headers,
         &selection.key_columns_b,
     )?;
+    validate_saved_matching_counts(
+        "Saved key columns for File A",
+        selection.key_columns_a.len(),
+        "Saved key columns for File B",
+        selection.key_columns_b.len(),
+    )?;
     validate_saved_selected_columns(
         "Saved comparison columns for File A",
         &csv_a.headers,
@@ -131,8 +137,29 @@ fn validate_selection(
         &csv_b.headers,
         &selection.comparison_columns_b,
     )?;
+    validate_saved_matching_counts(
+        "Saved comparison columns for File A",
+        selection.comparison_columns_a.len(),
+        "Saved comparison columns for File B",
+        selection.comparison_columns_b.len(),
+    )?;
 
     Ok(())
+}
+
+fn validate_saved_matching_counts(
+    selection_a: &'static str,
+    count_a: usize,
+    selection_b: &'static str,
+    count_b: usize,
+) -> Result<(), CsvAlignError> {
+    if count_a == count_b {
+        Ok(())
+    } else {
+        Err(CsvAlignError::BadInput(format!(
+            "{selection_a} and {selection_b} must contain the same number of columns (got {count_a} and {count_b})"
+        )))
+    }
 }
 
 fn validate_saved_selected_columns(

@@ -57,6 +57,31 @@ fn plain_metadata_check_does_not_require_changelog_entry() {
     assert!(output.status.success(), "{output:#?}");
 }
 
+#[test]
+fn metadata_check_rejects_appstream_latest_release_version_drift() {
+    let fixture = ReleaseMetadataFixture::new(
+        "# Changelog\n\n## v9.9.9 - 2026-04-21\n\n- Prepare a release.\n",
+    );
+    fs::write(
+        fixture
+            .root
+            .path()
+            .join("src-tauri/appstream/com.csvalign.desktop.metainfo.xml"),
+        "<component><releases><release version=\"9.9.8\" date=\"2026-04-21\" /></releases></component>",
+    )
+    .expect("write appstream drift");
+
+    let output = fixture.run(std::iter::empty::<&str>());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert!(!output.status.success(), "{output:#?}");
+    assert!(
+        stderr.contains(
+            "src-tauri/appstream/com.csvalign.desktop.metainfo.xml latest release: 9.9.8"
+        )
+    );
+}
+
 struct ReleaseMetadataFixture {
     root: tempfile::TempDir,
     script_path: PathBuf,
@@ -69,6 +94,7 @@ impl ReleaseMetadataFixture {
 
         fs::create_dir_all(root.path().join("scripts")).expect("create scripts dir");
         fs::create_dir_all(root.path().join("src-tauri")).expect("create src-tauri dir");
+        fs::create_dir_all(root.path().join("src-tauri/appstream")).expect("create appstream dir");
         fs::create_dir_all(root.path().join("frontend")).expect("create frontend dir");
 
         fs::write(&script_path, release_script_source()).expect("write script");
@@ -101,6 +127,13 @@ impl ReleaseMetadataFixture {
             format!("{{\"version\":\"{VERSION}\"}}"),
         )
         .expect("write tauri conf");
+        fs::write(
+            root.path().join("src-tauri/appstream/com.csvalign.desktop.metainfo.xml"),
+            format!(
+                "<component><releases><release version=\"{VERSION}\" date=\"2026-04-21\" /></releases></component>"
+            ),
+        )
+        .expect("write appstream metadata");
         fs::write(
             root.path().join("frontend/package.json"),
             format!("{{\"version\":\"{VERSION}\"}}"),

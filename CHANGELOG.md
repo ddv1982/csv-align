@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.87 - 2026-06-13
+
+- Hardened the desktop file-handling lore so import and export commands own their native dialogs, raw webview paths stay out of the production invoke surface, and saved pair-order choices obey the same pairing rules as comparisons.
+- Tightened the comparison-result trail with canonical snapshot reload responses, deterministic exact-match ordering, quote-aware delimiter detection, and release gates that now cover Tauri linting plus AppStream version drift.
+
 ## v2.1.86 - 2026-05-21
 
 - Sealed the APT repository setup lore so the one-line Linux installer now authenticates the repository setup package with a GPG-signed SHA256 sidecar before it reaches `apt install`.

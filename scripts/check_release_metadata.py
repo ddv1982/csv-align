@@ -46,6 +46,14 @@ def parse_lockfile_package_version(relative_path: str, package_name: str) -> str
     return match.group(1)
 
 
+def parse_appstream_latest_release_version(relative_path: str) -> str:
+    content = read_text(relative_path)
+    match = re.search(r'<release\s+[^>]*version="([^"]+)"', content)
+    if not match:
+        raise ValueError(f"Could not find an AppStream release entry in {relative_path}")
+    return match.group(1)
+
+
 def normalize_expected_version(expected_tag: str | None, expected_version: str | None) -> str | None:
     if expected_tag and expected_version:
         raise ValueError("Pass either --expected-tag or --expected-version, not both")
@@ -121,6 +129,9 @@ def main() -> int:
         "frontend/package.json": package_json["version"],
         "frontend/package-lock.json": package_lock_json["version"],
         "frontend/package-lock.json packages[\"\"]": package_lock_json["packages"][""]["version"],
+        "src-tauri/appstream/com.csvalign.desktop.metainfo.xml latest release": parse_appstream_latest_release_version(
+            "src-tauri/appstream/com.csvalign.desktop.metainfo.xml"
+        ),
     }
 
     unique_versions = sorted(set(versions.values()))

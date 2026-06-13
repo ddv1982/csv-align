@@ -1,6 +1,10 @@
-use std::fs;
 use std::sync::Arc;
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
+use tauri_plugin_dialog::{DialogExt, FilePath};
 use tracing::instrument;
 
 use csv_align::backend::{
@@ -16,7 +20,7 @@ use csv_align::presentation::responses::{
 };
 
 fn write_output_file(
-    output_path: &str,
+    output_path: &Path,
     contents: impl AsRef<[u8]>,
     file_kind: &str,
 ) -> Result<(), CsvAlignError> {
@@ -26,6 +30,108 @@ fn write_output_file(
             format!("Failed to save {file_kind} file: {error}"),
         ))
     })
+}
+
+fn selected_dialog_path(path: FilePath, file_kind: &str) -> Result<PathBuf, CsvAlignError> {
+    path.into_path()
+        .map_err(|error| CsvAlignError::BadInput(format!("Unsupported {file_kind} path: {error}")))
+}
+
+fn pick_file_path(
+    app: &tauri::AppHandle,
+    title: &str,
+    filter_name: &str,
+    extensions: &[&str],
+    file_kind: &str,
+) -> Result<Option<PathBuf>, CsvAlignError> {
+    app.dialog()
+        .file()
+        .set_title(title)
+        .add_filter(filter_name, extensions)
+        .blocking_pick_file()
+        .map(|path| selected_dialog_path(path, file_kind))
+        .transpose()
+}
+
+fn save_file_path(
+    app: &tauri::AppHandle,
+    default_name: &str,
+    filter_name: &str,
+    extensions: &[&str],
+    file_kind: &str,
+) -> Result<Option<PathBuf>, CsvAlignError> {
+    app.dialog()
+        .file()
+        .set_file_name(default_name)
+        .add_filter(filter_name, extensions)
+        .blocking_save_file()
+        .map(|path| selected_dialog_path(path, file_kind))
+        .transpose()
+}
+
+pub(crate) fn export_results_to_path(
+    state: &SessionStore,
+    session_id: &str,
+    output_path: &Path,
+) -> Result<(), CsvAlignError> {
+    let csv_content = export_results_for_session(state, session_id)?;
+    write_output_file(output_path, csv_content, "CSV export")
+}
+
+pub(crate) fn export_results_html_to_path(
+    output_path: &Path,
+    html_contents: &str,
+) -> Result<(), CsvAlignError> {
+    write_output_file(output_path, html_contents, "HTML export")
+}
+
+pub(crate) fn save_pair_order_to_path(
+    state: &SessionStore,
+    session_id: &str,
+    selection: PairOrderSelection,
+    output_path: &Path,
+) -> Result<(), CsvAlignError> {
+    let contents = save_pair_order_for_session(state, session_id, selection)?;
+    write_output_file(output_path, contents, "pair-order")
+}
+
+pub(crate) fn load_pair_order_from_path(
+    state: &SessionStore,
+    session_id: &str,
+    file_path: &Path,
+) -> Result<LoadPairOrderResponse, CsvAlignError> {
+    let contents = fs::read_to_string(file_path).map_err(|error| {
+        CsvAlignError::Io(std::io::Error::new(
+            error.kind(),
+            format!("Failed to read pair-order file: {error}"),
+        ))
+    })?;
+
+    load_pair_order_for_session(state, session_id, &contents)
+}
+
+pub(crate) fn save_comparison_snapshot_to_path(
+    state: &SessionStore,
+    session_id: &str,
+    output_path: &Path,
+) -> Result<(), CsvAlignError> {
+    let contents = save_comparison_snapshot_for_session(state, session_id)?;
+    write_output_file(output_path, contents, "comparison snapshot")
+}
+
+pub(crate) fn load_comparison_snapshot_from_path(
+    state: &SessionStore,
+    session_id: &str,
+    file_path: &Path,
+) -> Result<LoadComparisonSnapshotResponse, CsvAlignError> {
+    let contents = fs::read_to_string(file_path).map_err(|error| {
+        CsvAlignError::Io(std::io::Error::new(
+            error.kind(),
+            format!("Failed to read comparison snapshot file: {error}"),
+        ))
+    })?;
+
+    load_comparison_snapshot_for_session(state, session_id, &contents)
 }
 
 /// Create a new session
@@ -44,6 +150,7 @@ pub(crate) fn delete_session(state: tauri::State<Arc<SessionStore>>, session_id:
 }
 
 /// Load a CSV file from a local path
+#[cfg(test)]
 #[tauri::command]
 #[instrument(skip(state), fields(session_id = %session_id))]
 pub(crate) fn load_csv(
@@ -109,79 +216,125 @@ pub(crate) fn compare(
 /// Export comparison results to a CSV file path
 #[tauri::command]
 #[instrument(skip(state), fields(session_id = %session_id))]
-pub(crate) fn export_results(
-    state: tauri::State<Arc<SessionStore>>,
+pub(crate) async fn export_results(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, Arc<SessionStore>>,
     session_id: String,
-    output_path: String,
-) -> Result<(), CsvAlignError> {
-    let csv_content = export_results_for_session(state.inner().as_ref(), &session_id)?;
-    write_output_file(&output_path, csv_content, "CSV export")
+) -> Result<Option<()>, CsvAlignError> {
+    let Some(output_path) = save_file_path(
+        &app,
+        "comparison-results.csv",
+        "CSV Files",
+        &["csv"],
+        "CSV export",
+    )?
+    else {
+        return Ok(None);
+    };
+
+    export_results_to_path(state.inner().as_ref(), &session_id, &output_path)?;
+    Ok(Some(()))
 }
 
 #[tauri::command]
-#[instrument(skip(html_contents), fields(output_path = %output_path))]
-pub(crate) fn export_results_html(
-    output_path: String,
+#[instrument(skip(app, html_contents))]
+pub(crate) async fn export_results_html(
+    app: tauri::AppHandle,
     html_contents: String,
-) -> Result<(), CsvAlignError> {
-    write_output_file(&output_path, html_contents, "HTML export")
+) -> Result<Option<()>, CsvAlignError> {
+    let Some(output_path) = save_file_path(
+        &app,
+        "comparison-results.html",
+        "HTML Files",
+        &["html"],
+        "HTML export",
+    )?
+    else {
+        return Ok(None);
+    };
+
+    export_results_html_to_path(&output_path, &html_contents)?;
+    Ok(Some(()))
 }
 
 #[tauri::command]
-#[instrument(skip(state, selection), fields(session_id = %session_id))]
-pub(crate) fn save_pair_order(
-    state: tauri::State<Arc<SessionStore>>,
+#[instrument(skip(app, state, selection), fields(session_id = %session_id))]
+pub(crate) async fn save_pair_order(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, Arc<SessionStore>>,
     session_id: String,
     selection: PairOrderSelection,
-    output_path: String,
-) -> Result<(), CsvAlignError> {
-    let contents = save_pair_order_for_session(state.inner().as_ref(), &session_id, selection)?;
+) -> Result<Option<()>, CsvAlignError> {
+    let Some(output_path) =
+        save_file_path(&app, "pair-order.txt", "Text Files", &["txt"], "pair-order")?
+    else {
+        return Ok(None);
+    };
 
-    write_output_file(&output_path, contents, "pair-order")
+    save_pair_order_to_path(state.inner().as_ref(), &session_id, selection, &output_path)?;
+    Ok(Some(()))
 }
 
 #[tauri::command]
-#[instrument(skip(state), fields(session_id = %session_id))]
-pub(crate) fn load_pair_order(
-    state: tauri::State<Arc<SessionStore>>,
+#[instrument(skip(app, state), fields(session_id = %session_id))]
+pub(crate) async fn load_pair_order(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, Arc<SessionStore>>,
     session_id: String,
-    file_path: String,
-) -> Result<LoadPairOrderResponse, CsvAlignError> {
-    let contents = fs::read_to_string(&file_path).map_err(|error| {
-        CsvAlignError::Io(std::io::Error::new(
-            error.kind(),
-            format!("Failed to read pair-order file: {error}"),
-        ))
-    })?;
+) -> Result<Option<LoadPairOrderResponse>, CsvAlignError> {
+    let Some(file_path) = pick_file_path(
+        &app,
+        "Load pair-order file",
+        "Text Files",
+        &["txt"],
+        "pair-order",
+    )?
+    else {
+        return Ok(None);
+    };
 
-    load_pair_order_for_session(state.inner().as_ref(), &session_id, &contents)
+    load_pair_order_from_path(state.inner().as_ref(), &session_id, &file_path).map(Some)
 }
 
 #[tauri::command]
-#[instrument(skip(state), fields(session_id = %session_id))]
-pub(crate) fn save_comparison_snapshot(
-    state: tauri::State<Arc<SessionStore>>,
+#[instrument(skip(app, state), fields(session_id = %session_id))]
+pub(crate) async fn save_comparison_snapshot(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, Arc<SessionStore>>,
     session_id: String,
-    output_path: String,
-) -> Result<(), CsvAlignError> {
-    let contents = save_comparison_snapshot_for_session(state.inner().as_ref(), &session_id)?;
+) -> Result<Option<()>, CsvAlignError> {
+    let Some(output_path) = save_file_path(
+        &app,
+        "comparison-snapshot.json",
+        "JSON Files",
+        &["json"],
+        "comparison snapshot",
+    )?
+    else {
+        return Ok(None);
+    };
 
-    write_output_file(&output_path, contents, "comparison snapshot")
+    save_comparison_snapshot_to_path(state.inner().as_ref(), &session_id, &output_path)?;
+    Ok(Some(()))
 }
 
 #[tauri::command]
-#[instrument(skip(state), fields(session_id = %session_id))]
-pub(crate) fn load_comparison_snapshot(
-    state: tauri::State<Arc<SessionStore>>,
+#[instrument(skip(app, state), fields(session_id = %session_id))]
+pub(crate) async fn load_comparison_snapshot(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, Arc<SessionStore>>,
     session_id: String,
-    file_path: String,
-) -> Result<LoadComparisonSnapshotResponse, CsvAlignError> {
-    let contents = fs::read_to_string(&file_path).map_err(|error| {
-        CsvAlignError::Io(std::io::Error::new(
-            error.kind(),
-            format!("Failed to read comparison snapshot file: {error}"),
-        ))
-    })?;
+) -> Result<Option<LoadComparisonSnapshotResponse>, CsvAlignError> {
+    let Some(file_path) = pick_file_path(
+        &app,
+        "Load comparison snapshot",
+        "JSON Files",
+        &["json"],
+        "comparison snapshot",
+    )?
+    else {
+        return Ok(None);
+    };
 
-    load_comparison_snapshot_for_session(state.inner().as_ref(), &session_id, &contents)
+    load_comparison_snapshot_from_path(state.inner().as_ref(), &session_id, &file_path).map(Some)
 }

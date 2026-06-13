@@ -134,6 +134,35 @@ fn test_compare_csv_data() {
 }
 
 #[test]
+fn test_compare_csv_data_exact_results_follow_source_row_order() {
+    let csv_a = csv_data(
+        "left.csv",
+        &["id", "name"],
+        &[&["c", "Charlie"], &["a", "Alice"], &["b", "Bob"]],
+    );
+    let csv_b = csv_data(
+        "right.csv",
+        &["id", "name"],
+        &[&["a", "Alice"], &["b", "Bob"], &["d", "Dana"]],
+    );
+    let config = comparison_config(
+        &["id"],
+        &["id"],
+        &["name"],
+        &["name"],
+        &[("name", "name")],
+        ComparisonNormalizationConfig::default(),
+    );
+
+    let keys = compare_csv_data(&csv_a, &csv_b, &config)
+        .iter()
+        .map(|result| result.key().join("|"))
+        .collect::<Vec<_>>();
+
+    assert_eq!(keys, vec!["c", "a", "b", "d"]);
+}
+
+#[test]
 fn test_compare_csv_data_file_b_duplicate_skips_first_row_mismatch() {
     let csv_a = csv_data("left.csv", &["id", "name"], &[&["8", "Alpha"]]);
     let csv_b = csv_data(

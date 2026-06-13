@@ -1,5 +1,6 @@
-use super::*;
 use super::test_support::REGISTERED_TAURI_COMMAND_NAMES;
+use super::*;
+use crate::commands::{export_results_html_to_path, export_results_to_path, load_csv};
 use csv_align::backend::{CompareRequest, CsvAlignError, MappingRequest, SuggestMappingsRequest};
 use csv_align::data::types::ComparisonNormalizationConfig;
 use std::sync::Arc;
@@ -69,10 +70,10 @@ fn tauri_command_wrappers_compare_then_export_use_stored_comparison_labels() {
 
     let output_path = temp_output_path("tauri-export-labels.csv");
 
-    export_results(
-        app.state::<Arc<SessionStore>>(),
-        session_id,
-        output_path.to_string_lossy().into_owned(),
+    export_results_to_path(
+        app.state::<Arc<SessionStore>>().inner().as_ref(),
+        &session_id,
+        &output_path,
     )
     .unwrap();
 
@@ -90,11 +91,7 @@ fn tauri_export_results_html_writes_the_supplied_document() {
     let output_path = temp_output_path("tauri-export-results.html");
     let html_contents = "<!DOCTYPE html><html><body><h1>Exported Results</h1></body></html>";
 
-    export_results_html(
-        output_path.to_string_lossy().into_owned(),
-        html_contents.to_string(),
-    )
-    .unwrap();
+    export_results_html_to_path(&output_path, html_contents).unwrap();
 
     let exported = std::fs::read_to_string(&output_path).unwrap();
     std::fs::remove_file(&output_path).unwrap();

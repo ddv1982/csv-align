@@ -1,6 +1,6 @@
 [package]
 name = "csv-align-app"
-version = "2.1.86"
+version = "2.1.87"
 edition = "2024"
 description = "CSV file comparison desktop application"
 license = "MIT"
@@ -9,7 +9,7 @@ license = "MIT"
 tauri-build = { version = "2.5.6", features = [] }
 
 [dependencies]
-tauri = { version = "2.10.3", features = ["test"] }
+tauri = "2.10.3"
 tauri-plugin-dialog = "2.7.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -21,6 +21,9 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 
 # Import our core library for comparison logic
 csv-align = { path = ".." }
+
+[dev-dependencies]
+tauri = { version = "2.10.3", features = ["test"] }
 
 [features]
 default = ["custom-protocol"]
