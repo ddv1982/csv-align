@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.90 - 2026-06-14
+
+- Recast the browser-transport test lore so downloaded CSV and pair-order payloads prove their blob behavior without depending on a single JavaScript realm in CI.
+- Re-ran the release trail after the v2.1.89 tag exposed the CI-only Blob identity mismatch, keeping the saved-session, snapshot, and artifact-gate hardening intact.
+
 ## v2.1.89 - 2026-06-14
 
 - Hardened the saved-session lore so stale snapshot column metadata is rejected, abandoned web sessions are capped and cleaned up, and StrictMode bootstrap trails no longer leave orphaned backend sessions behind.

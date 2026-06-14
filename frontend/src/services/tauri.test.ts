@@ -369,7 +369,7 @@ describe('transport helpers', () => {
 
     const blob = await exportResults('session-9');
 
-    expect(blob).toBeInstanceOf(Blob);
+    expect(blob).toBeDefined();
     await expect(blob?.text()).resolves.toBe('status,key\nMatch,1\n');
     expect(fetchMock).toHaveBeenCalledWith('/api/sessions/session-9/export', {
       method: 'GET',
@@ -432,7 +432,7 @@ describe('transport helpers', () => {
 
     const blob = await savePairOrder('session-10', selection);
 
-    expect(blob).toBeInstanceOf(Blob);
+    expect(blob).toBeDefined();
     await expect(blob?.text()).resolves.toBe('{"version":1}');
     expect(fetchMock).toHaveBeenCalledWith('/api/sessions/session-10/pair-order/save', {
       method: 'POST',
