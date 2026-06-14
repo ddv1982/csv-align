@@ -39,6 +39,70 @@ async fn response_json(response: axum::response::Response) -> serde_json::Value 
     serde_json::from_slice(&body).expect("response body should be valid json")
 }
 
+fn minimal_snapshot_contents() -> serde_json::Value {
+    serde_json::json!({
+        "version": 2,
+        "file_a": {
+            "name": "left.csv",
+            "headers": ["id", "name"],
+            "columns": [
+                { "index": 0, "name": "id", "data_type": "string" },
+                { "index": 1, "name": "name", "data_type": "string" }
+            ],
+            "row_count": 0
+        },
+        "file_b": {
+            "name": "right.csv",
+            "headers": ["record_id", "display_name"],
+            "columns": [
+                { "index": 0, "name": "record_id", "data_type": "string" },
+                { "index": 1, "name": "display_name", "data_type": "string" }
+            ],
+            "row_count": 0
+        },
+        "selection": {
+            "key_columns_a": ["id"],
+            "key_columns_b": ["record_id"],
+            "comparison_columns_a": ["name"],
+            "comparison_columns_b": ["display_name"]
+        },
+        "mappings": [{
+            "file_a_column": "name",
+            "file_b_column": "display_name",
+            "mapping_type": "manual",
+            "similarity": null
+        }],
+        "normalization": ComparisonNormalizationConfig::default(),
+        "results": [],
+        "summary": {
+            "total_rows_a": 0,
+            "total_rows_b": 0,
+            "matches": 0,
+            "mismatches": 0,
+            "missing_left": 0,
+            "missing_right": 0,
+            "unkeyed_left": 0,
+            "unkeyed_right": 0,
+            "duplicates_a": 0,
+            "duplicates_b": 0
+        }
+    })
+}
+
+async fn load_snapshot_contents(contents: serde_json::Value) -> axum::response::Response {
+    let state = AppState::new();
+    let session_id = state.create_session();
+
+    handlers::load_comparison_snapshot(
+        State(state),
+        Path(session_id),
+        Json(LoadComparisonSnapshotRequest {
+            contents: contents.to_string(),
+        }),
+    )
+    .await
+}
+
 #[tokio::test]
 async fn comparison_snapshot_persistence_round_trips_through_http_handlers() {
     let state = AppState::new();
@@ -182,6 +246,48 @@ async fn comparison_snapshot_persistence_defaults_missing_flexible_key_matching_
     assert_eq!(load_response.status(), StatusCode::OK);
     let json = response_json(load_response).await;
     assert_eq!(json["normalization"]["flexible_key_matching"], false);
+}
+
+#[tokio::test]
+async fn comparison_snapshot_load_rejects_column_metadata_count_mismatches() {
+    let mut contents = minimal_snapshot_contents();
+    contents["file_a"]["columns"] = serde_json::json!([
+        { "index": 0, "name": "id", "data_type": "string" }
+    ]);
+
+    let load_response = load_snapshot_contents(contents).await;
+
+    assert_eq!(load_response.status(), StatusCode::BAD_REQUEST);
+    let body = response_text(load_response).await;
+    assert!(body.contains("Saved snapshot File A column metadata must match the header count"));
+}
+
+#[tokio::test]
+async fn comparison_snapshot_load_rejects_column_metadata_index_mismatches() {
+    let mut contents = minimal_snapshot_contents();
+    contents["file_b"]["columns"][1]["index"] = serde_json::json!(5);
+
+    let load_response = load_snapshot_contents(contents).await;
+
+    assert_eq!(load_response.status(), StatusCode::BAD_REQUEST);
+    let body = response_text(load_response).await;
+    assert!(body.contains(
+        "Saved snapshot File B column metadata has index 5 for header display_name, expected 1"
+    ));
+}
+
+#[tokio::test]
+async fn comparison_snapshot_load_rejects_column_metadata_name_mismatches() {
+    let mut contents = minimal_snapshot_contents();
+    contents["file_a"]["columns"][1]["name"] = serde_json::json!("stale_name");
+
+    let load_response = load_snapshot_contents(contents).await;
+
+    assert_eq!(load_response.status(), StatusCode::BAD_REQUEST);
+    let body = response_text(load_response).await;
+    assert!(body.contains(
+        "Saved snapshot File A column metadata name stale_name does not match header name"
+    ));
 }
 
 #[tokio::test]

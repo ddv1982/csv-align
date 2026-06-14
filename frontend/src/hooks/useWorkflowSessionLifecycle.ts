@@ -1,4 +1,4 @@
-import { useCallback, useEffect, type Dispatch } from 'react';
+import { useCallback, useEffect, useRef, type Dispatch } from 'react';
 import { createSession, deleteSession } from '../services/tauri';
 import type { WorkflowAction, WorkflowState } from './useComparisonWorkflow.reducer';
 
@@ -28,6 +28,16 @@ function isSessionNotFoundError(error: unknown): boolean {
     || candidate.message === 'Session not found';
 }
 
+async function deleteSessionIfPresent(sessionId: string) {
+  try {
+    await deleteSession(sessionId);
+  } catch (error) {
+    if (!isSessionNotFoundError(error)) {
+      throw error;
+    }
+  }
+}
+
 export function useWorkflowSessionLifecycle({
   state,
   dispatch,
@@ -36,22 +46,41 @@ export function useWorkflowSessionLifecycle({
   isCurrentWorkflowRequest,
   advanceWorkflowGeneration,
 }: UseWorkflowSessionLifecycleParams) {
+  const mountedRef = useRef(false);
+  const sessionToDeleteOnUnmountRef = useRef<string | null>(null);
+
   useEffect(() => {
+    mountedRef.current = true;
+    let cancelled = false;
+
     async function initSession() {
       const token = beginWorkflowRequest(null);
       try {
         const response = await createSession();
-        if (isCurrentWorkflowRequest(token)) {
+
+        if (!cancelled && mountedRef.current && isCurrentWorkflowRequest(token)) {
+          sessionToDeleteOnUnmountRef.current = response.session_id;
           dispatch({ type: 'sessionCreated', sessionId: response.session_id });
+        } else {
+          await deleteSessionIfPresent(response.session_id);
         }
       } catch (error) {
-        if (isCurrentWorkflowRequest(token)) {
+        if (!cancelled && mountedRef.current && isCurrentWorkflowRequest(token)) {
           setWorkflowError(error);
         }
       }
     }
 
     void initSession();
+
+    return () => {
+      cancelled = true;
+      mountedRef.current = false;
+
+      if (sessionToDeleteOnUnmountRef.current) {
+        void deleteSessionIfPresent(sessionToDeleteOnUnmountRef.current).catch(() => undefined);
+      }
+    };
   }, [beginWorkflowRequest, dispatch, isCurrentWorkflowRequest, setWorkflowError]);
 
   const handleReset = useCallback(async () => {
@@ -62,20 +91,17 @@ export function useWorkflowSessionLifecycle({
 
     try {
       if (outgoingSessionId) {
-        try {
-          await deleteSession(outgoingSessionId);
-        } catch (error) {
-          if (!isSessionNotFoundError(error)) {
-            throw error;
-          }
-        }
+        await deleteSessionIfPresent(outgoingSessionId);
       }
       const response = await createSession();
-      if (isCurrentWorkflowRequest(token)) {
+      if (mountedRef.current && isCurrentWorkflowRequest(token)) {
+        sessionToDeleteOnUnmountRef.current = response.session_id;
         dispatch({ type: 'sessionCreated', sessionId: response.session_id });
+      } else {
+        await deleteSessionIfPresent(response.session_id);
       }
     } catch (error) {
-      if (isCurrentWorkflowRequest(token)) {
+      if (mountedRef.current && isCurrentWorkflowRequest(token)) {
         setWorkflowError(error);
       }
     }

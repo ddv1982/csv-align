@@ -82,6 +82,25 @@ fn metadata_check_rejects_appstream_latest_release_version_drift() {
     );
 }
 
+#[test]
+fn release_docs_list_all_enforced_version_metadata_files() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let docs = fs::read_to_string(root.join("docs/releasing.md")).expect("read release docs");
+
+    for path in [
+        "Cargo.toml",
+        "Cargo.lock",
+        "src-tauri/Cargo.toml",
+        "src-tauri/Cargo.lock",
+        "src-tauri/tauri.conf.json",
+        "src-tauri/appstream/com.csvalign.desktop.metainfo.xml",
+        "frontend/package.json",
+        "frontend/package-lock.json",
+    ] {
+        assert!(docs.contains(path), "release docs should list {path}");
+    }
+}
+
 struct ReleaseMetadataFixture {
     root: tempfile::TempDir,
     script_path: PathBuf,

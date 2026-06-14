@@ -13,6 +13,7 @@ fn session_store_supports_create_read_update_and_delete() {
     let store = SessionStore::default();
 
     let session_id = store.create();
+    assert_eq!(store.session_count(), 1);
 
     let initial_columns_a = store.with_session(&session_id, |session| {
         (
@@ -73,6 +74,45 @@ fn session_store_supports_create_read_update_and_delete() {
         None
     );
     assert!(!store.delete(&session_id));
+    assert_eq!(store.session_count(), 0);
+}
+
+#[test]
+fn session_store_evicts_oldest_sessions_when_capacity_is_reached() {
+    let store = SessionStore::with_max_sessions(2);
+
+    let session_a = store.create();
+    let session_b = store.create();
+
+    store.with_session_mut(&session_a, |session| {
+        session.columns_a.push(ColumnInfo {
+            index: 0,
+            name: "a".to_string(),
+            data_type: ColumnDataType::String,
+        });
+    });
+
+    let session_c = store.create();
+
+    assert_eq!(store.session_count(), 2);
+    assert_eq!(store.with_session(&session_a, |_| ()), None);
+    assert!(store.with_session(&session_b, |_| ()).is_some());
+    assert!(store.with_session(&session_c, |_| ()).is_some());
+}
+
+#[test]
+fn session_store_deletion_updates_capacity_order() {
+    let store = SessionStore::with_max_sessions(2);
+
+    let session_a = store.create();
+    let session_b = store.create();
+    assert!(store.delete(&session_a));
+
+    let session_c = store.create();
+
+    assert_eq!(store.session_count(), 2);
+    assert!(store.with_session(&session_b, |_| ()).is_some());
+    assert!(store.with_session(&session_c, |_| ()).is_some());
 }
 
 #[test]

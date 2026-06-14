@@ -319,6 +319,36 @@ describe('transport helpers', () => {
     });
   });
 
+  test('suggestMappings posts JSON to the browser mapping endpoint', async () => {
+    const fetchMock = vi.mocked(globalThis.fetch);
+    fetchMock.mockResolvedValue(jsonResponse({
+      mappings: [{
+        file_a_column: 'name',
+        file_b_column: 'display_name',
+        mapping_type: 'fuzzy',
+        similarity: 0.92,
+      }],
+    }));
+
+    const { suggestMappings } = await importTauriModule();
+    const request = { columns_a: ['name'], columns_b: ['display_name'] };
+
+    await expect(suggestMappings('session-8', request)).resolves.toEqual({
+      mappings: [{
+        file_a_column: 'name',
+        file_b_column: 'display_name',
+        mapping_type: 'fuzzy',
+        similarity: 0.92,
+      }],
+    });
+    expect(fetchMock).toHaveBeenCalledWith('/api/sessions/session-8/mappings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    });
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+
   test('exportResults invokes the pathless Tauri export command', async () => {
     (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
     invokeMock.mockResolvedValue(undefined);
@@ -329,6 +359,22 @@ describe('transport helpers', () => {
     expect(invokeMock).toHaveBeenCalledWith(TAURI_COMMANDS.exportResults, {
       sessionId: 'session-9',
     });
+  });
+
+  test('exportResults downloads a browser CSV blob from the export endpoint', async () => {
+    const fetchMock = vi.mocked(globalThis.fetch);
+    fetchMock.mockResolvedValue(new Response('status,key\nMatch,1\n', { status: 200 }));
+
+    const { exportResults } = await importTauriModule();
+
+    const blob = await exportResults('session-9');
+
+    expect(blob).toBeInstanceOf(Blob);
+    await expect(blob?.text()).resolves.toBe('status,key\nMatch,1\n');
+    expect(fetchMock).toHaveBeenCalledWith('/api/sessions/session-9/export', {
+      method: 'GET',
+    });
+    expect(invokeMock).not.toHaveBeenCalled();
   });
 
   test('exportResultsHtml returns a browser blob outside Tauri', async () => {
@@ -372,6 +418,30 @@ describe('transport helpers', () => {
     });
   });
 
+  test('savePairOrder posts browser JSON and returns a pair-order blob', async () => {
+    const fetchMock = vi.mocked(globalThis.fetch);
+    fetchMock.mockResolvedValue(new Response('{"version":1}', { status: 200 }));
+
+    const { savePairOrder } = await importTauriModule();
+    const selection = {
+      key_columns_a: ['id'],
+      key_columns_b: ['record_id'],
+      comparison_columns_a: ['name'],
+      comparison_columns_b: ['display_name'],
+    };
+
+    const blob = await savePairOrder('session-10', selection);
+
+    expect(blob).toBeInstanceOf(Blob);
+    await expect(blob?.text()).resolves.toBe('{"version":1}');
+    expect(fetchMock).toHaveBeenCalledWith('/api/sessions/session-10/pair-order/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ selection }),
+    });
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+
   test('loadPairOrder invokes the pathless Tauri pair-order load command', async () => {
     (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
     invokeMock.mockResolvedValue({ selection: { key_columns_a: [], key_columns_b: [], comparison_columns_a: [], comparison_columns_b: [] } });
@@ -384,5 +454,44 @@ describe('transport helpers', () => {
     expect(invokeMock).toHaveBeenCalledWith(TAURI_COMMANDS.loadPairOrder, {
       sessionId: 'session-11',
     });
+  });
+
+  test('loadPairOrder posts browser file contents to the pair-order load endpoint', async () => {
+    const fetchMock = vi.mocked(globalThis.fetch);
+    fetchMock.mockResolvedValue(jsonResponse({
+      selection: {
+        key_columns_a: ['id'],
+        key_columns_b: ['record_id'],
+        comparison_columns_a: ['name'],
+        comparison_columns_b: ['display_name'],
+      },
+    }));
+
+    const { loadPairOrder } = await importTauriModule();
+    const file = new File(['{"version":1}'], 'order.csv-align-order.json', { type: 'application/json' });
+
+    await expect(loadPairOrder('session-11', file)).resolves.toEqual({
+      selection: {
+        key_columns_a: ['id'],
+        key_columns_b: ['record_id'],
+        comparison_columns_a: ['name'],
+        comparison_columns_b: ['display_name'],
+      },
+    });
+    expect(fetchMock).toHaveBeenCalledWith('/api/sessions/session-11/pair-order/load', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: '{"version":1}' }),
+    });
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+
+  test('loadPairOrder rejects missing browser files before fetching', async () => {
+    const fetchMock = vi.mocked(globalThis.fetch);
+    const { loadPairOrder } = await importTauriModule();
+
+    await expect(loadPairOrder('session-11')).rejects.toThrow('No pair-order file selected');
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(invokeMock).not.toHaveBeenCalled();
   });
 });

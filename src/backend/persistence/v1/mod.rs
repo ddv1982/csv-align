@@ -11,6 +11,7 @@ use crate::backend::requests::{
 use crate::backend::session::SessionData;
 use crate::backend::validation::validate_selected_columns_by_physical_or_virtual_source;
 use crate::comparison::engine;
+use crate::data::csv_loader;
 use crate::data::json_fields::{discover_virtual_headers, label_has_physical_or_virtual_source};
 use crate::data::types::{
     ColumnInfo, ColumnMapping, ComparisonConfig, ComparisonNormalizationConfig, CsvData,
@@ -124,8 +125,8 @@ impl SnapshotV1 {
 
         Ok(Self {
             version: SNAPSHOT_VERSION,
-            file_a: SnapshotFileV1::from_csv(csv_a, &session_data.columns_a, "File A"),
-            file_b: SnapshotFileV1::from_csv(csv_b, &session_data.columns_b, "File B"),
+            file_a: SnapshotFileV1::from_csv(csv_a, "File A"),
+            file_b: SnapshotFileV1::from_csv(csv_b, "File B"),
             selection: SelectionV1::from_config(comparison_config),
             mappings: comparison_config
                 .column_mappings
@@ -195,12 +196,15 @@ impl SnapshotV1 {
 }
 
 impl SnapshotFileV1 {
-    fn from_csv(csv: &CsvData, columns: &[ColumnInfo], fallback_name: &str) -> Self {
+    fn from_csv(csv: &CsvData, fallback_name: &str) -> Self {
         Self {
             name: display_name(csv.file_path.as_deref(), fallback_name),
             headers: csv.headers.clone(),
             virtual_headers: discover_virtual_headers(csv),
-            columns: columns.iter().map(ColumnV1::from).collect(),
+            columns: csv_loader::detect_columns(csv)
+                .iter()
+                .map(ColumnV1::from)
+                .collect(),
             row_count: csv.rows.len(),
         }
     }
@@ -290,6 +294,9 @@ fn display_name(file_path: Option<&str>, fallback_name: &str) -> String {
 }
 
 fn validate_snapshot(snapshot: &SnapshotV1) -> Result<(), CsvAlignError> {
+    validate_snapshot_file_metadata("File A", &snapshot.file_a)?;
+    validate_snapshot_file_metadata("File B", &snapshot.file_b)?;
+
     validate_selection(
         &snapshot.file_a.headers,
         &snapshot.file_b.headers,
@@ -318,6 +325,35 @@ fn validate_snapshot(snapshot: &SnapshotV1) -> Result<(), CsvAlignError> {
         return Err(CsvAlignError::BadInput(
             "Saved comparison snapshot summary does not match the persisted results".to_string(),
         ));
+    }
+
+    Ok(())
+}
+
+fn validate_snapshot_file_metadata(
+    file_label: &'static str,
+    file: &SnapshotFileV1,
+) -> Result<(), CsvAlignError> {
+    if file.columns.len() != file.headers.len() {
+        return Err(CsvAlignError::BadInput(format!(
+            "Saved snapshot {file_label} column metadata must match the header count"
+        )));
+    }
+
+    for (expected_index, (header, column)) in file.headers.iter().zip(&file.columns).enumerate() {
+        if column.index != expected_index {
+            return Err(CsvAlignError::BadInput(format!(
+                "Saved snapshot {file_label} column metadata has index {} for header {header}, expected {expected_index}",
+                column.index
+            )));
+        }
+
+        if column.name != *header {
+            return Err(CsvAlignError::BadInput(format!(
+                "Saved snapshot {file_label} column metadata name {} does not match header {header}",
+                column.name
+            )));
+        }
     }
 
     Ok(())

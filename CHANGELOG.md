@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.89 - 2026-06-14
+
+- Hardened the saved-session lore so stale snapshot column metadata is rejected, abandoned web sessions are capped and cleaned up, and StrictMode bootstrap trails no longer leave orphaned backend sessions behind.
+- Tightened the results and release trail so filtered inspections keep their row identities, browser transport branches carry direct coverage, and APT/release metadata changes now wake the artifact gates before tagging.
+
 ## v2.1.88 - 2026-06-14
 
 - Hardened the comparison-selection lore so missing configured columns fail explicitly, partial normalization payloads keep their defaults, and saved snapshots reject stale or malformed mapping trails.

@@ -143,6 +143,35 @@ test('lets matching rows expand paired file values for inspection', () => {
   expect(screen.getAllByText('display_name').length).toBeGreaterThan(0);
 });
 
+test('does not carry expanded details onto another row when the outer filter changes', () => {
+  const { rerender } = render(
+    <ResultsTable
+      results={RESULTS}
+      filter="mismatch"
+      comparisonColumnsA={COMPARISON_COLUMNS_A}
+      comparisonColumnsB={COMPARISON_COLUMNS_B}
+    />,
+  );
+
+  expect(screen.getByText('C-3')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: /1 diff/i }));
+  expect(screen.getByText('Value Differences')).toBeInTheDocument();
+
+  rerender(
+    <ResultsTable
+      results={RESULTS}
+      filter="match"
+      comparisonColumnsA={COMPARISON_COLUMNS_A}
+      comparisonColumnsB={COMPARISON_COLUMNS_B}
+    />,
+  );
+
+  expect(screen.getByText('B-2')).toBeInTheDocument();
+  expect(screen.queryByText('C-3')).not.toBeInTheDocument();
+  expect(screen.queryByText('Value Differences')).not.toBeInTheDocument();
+  expect(screen.queryByText('Paired Values')).not.toBeInTheDocument();
+});
+
 test('uses reusable detail value boxes on both sides for matched inspection rows', () => {
   render(
     <ResultsTable

@@ -27,6 +27,7 @@ Update version metadata in:
 - `src-tauri/Cargo.toml`
 - `src-tauri/Cargo.lock`
 - `src-tauri/tauri.conf.json`
+- `src-tauri/appstream/com.csvalign.desktop.metainfo.xml`
 - `frontend/package.json`
 - `frontend/package-lock.json`
 
@@ -59,10 +60,8 @@ Recommended pre-push validation:
 cargo fmt --check
 cargo test
 cargo clippy -- -D warnings
-cd src-tauri && cargo test
-cd frontend && npm test
-cd frontend && npm run lint
-cd frontend && npm run build
+(cd src-tauri && cargo test && cargo fmt --check && cargo clippy -- -D warnings)
+(cd frontend && npm test && npm run lint && npm run build)
 ```
 
 ## macOS release prerequisites

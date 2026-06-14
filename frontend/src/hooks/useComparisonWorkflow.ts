@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
-import { filterResults } from '../features/results/presentation';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
 import type { ComparisonNormalizationConfig } from '../types/api';
 import type { MappingSelectionState } from '../types/ui';
 import {
@@ -155,14 +154,11 @@ export function useComparisonWorkflow() {
     });
   }, [normalizationConfig]);
 
-  const filteredResults = useMemo(() => filterResults(state.results, state.filter), [state.filter, state.results]);
-
   return {
     state,
     step,
     mappingSelection,
     normalizationConfig,
-    filteredResults,
     isSnapshotReadOnly: state.snapshotReadOnly,
     unlockedSteps,
     setMappingSelection,

@@ -169,6 +169,70 @@ test('surfaces a bootstrap session error when initial session creation fails', a
   expect(result.current.state.loading).toBe(false);
 });
 
+test('deletes the bootstrap session when the workflow unmounts', async () => {
+  const { result, unmount } = renderHook(() => useComparisonWorkflow());
+
+  await waitFor(() => {
+    expect(result.current.state.sessionId).toBe('session-1');
+  });
+
+  unmount();
+
+  expect(deleteSessionMock).toHaveBeenCalledWith('session-1');
+});
+
+test('deletes a bootstrap session that resolves after unmount', async () => {
+  const sessionBootstrap = deferred<{ session_id: string }>();
+  createSessionMock.mockReturnValueOnce(sessionBootstrap.promise);
+
+  const { unmount } = renderHook(() => useComparisonWorkflow());
+
+  unmount();
+
+  await act(async () => {
+    sessionBootstrap.resolve({ session_id: 'stale-session' });
+    await sessionBootstrap.promise;
+  });
+
+  await waitFor(() => {
+    expect(deleteSessionMock).toHaveBeenCalledWith('stale-session');
+  });
+});
+
+test('deletes a reset replacement session that resolves after unmount', async () => {
+  const resetSession = deferred<{ session_id: string }>();
+  createSessionMock
+    .mockResolvedValueOnce({ session_id: 'session-1' })
+    .mockReturnValueOnce(resetSession.promise);
+
+  const { result, unmount } = renderHook(() => useComparisonWorkflow());
+
+  await waitFor(() => {
+    expect(result.current.state.sessionId).toBe('session-1');
+  });
+
+  let resetPromise!: Promise<void>;
+  act(() => {
+    resetPromise = result.current.handleReset();
+  });
+
+  await waitFor(() => {
+    expect(deleteSessionMock).toHaveBeenCalledWith('session-1');
+  });
+
+  unmount();
+
+  await act(async () => {
+    resetSession.resolve({ session_id: 'session-2' });
+    await resetSession.promise;
+    await resetPromise;
+  });
+
+  await waitFor(() => {
+    expect(deleteSessionMock).toHaveBeenCalledWith('session-2');
+  });
+});
+
 test('bootstraps a session and advances to configure after both files load', async () => {
   const { result } = renderHook(() => useComparisonWorkflow());
 
@@ -263,12 +327,12 @@ test('uses the basename when step 1 loads a Windows-style Tauri file path', asyn
   });
 });
 
-test('submits comparisons, updates filtered results, and resets with a fresh session', async () => {
+test('submits comparisons, updates filter state, and resets with a fresh session', async () => {
   createSessionMock
     .mockResolvedValueOnce({ session_id: 'session-1' })
     .mockResolvedValueOnce({ session_id: 'session-2' });
 
-  const { result } = renderHook(() => useComparisonWorkflow());
+  const { result, unmount } = renderHook(() => useComparisonWorkflow());
 
   await waitFor(() => {
     expect(result.current.state.sessionId).toBe('session-1');
@@ -325,16 +389,14 @@ test('submits comparisons, updates filtered results, and resets with a fresh ses
   });
   expect(result.current.state.mappings).toEqual(COLUMN_MAPPINGS);
   expect(result.current.state.summary).toMatchObject({ matches: 1, duplicates_a: 1 });
-  expect(result.current.filteredResults).toHaveLength(2);
+  expect(result.current.state.results).toHaveLength(2);
 
   act(() => {
     result.current.handleFilterChange('duplicate');
   });
 
   expect(result.current.state.filter).toBe('duplicate');
-  expect(result.current.filteredResults).toEqual([
-    expect.objectContaining({ result_type: 'duplicate_file_a' }),
-  ]);
+  expect(result.current.state.results).toHaveLength(2);
 
   await act(async () => {
     await result.current.handleReset();
@@ -354,6 +416,9 @@ test('submits comparisons, updates filtered results, and resets with a fresh ses
   expect(result.current.state.filter).toBe('all');
   expect(result.current.mappingSelection).toEqual(INITIAL_MAPPING_SELECTION);
   expect(result.current.normalizationConfig).toEqual(INITIAL_NORMALIZATION_CONFIG);
+
+  unmount();
+  expect(deleteSessionMock).toHaveBeenCalledWith('session-2');
 });
 
 test('ignores a stale file load response after reset creates a new session', async () => {

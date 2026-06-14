@@ -13,7 +13,6 @@ function App() {
     step,
     mappingSelection,
     normalizationConfig,
-    filteredResults,
     isSnapshotReadOnly,
     unlockedSteps,
     setMappingSelection,
@@ -81,7 +80,6 @@ function App() {
             mappings={state.mappings}
             filter={state.filter}
             results={state.results}
-            filteredResults={filteredResults}
             snapshotReadOnly={isSnapshotReadOnly}
             onFilterChange={handleFilterChange}
             onExportCsv={handleExportCsv}

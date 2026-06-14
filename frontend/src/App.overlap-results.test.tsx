@@ -72,7 +72,6 @@ vi.mock('./hooks/useComparisonWorkflow', () => ({
         decimal_rounding: { enabled: false, decimals: 0 },
         date_normalization: { enabled: false, formats: [] },
       },
-    filteredResults: [],
     isSnapshotReadOnly: false,
     unlockedSteps: ['select', 'configure', 'results'],
     setMappingSelection: vi.fn(),

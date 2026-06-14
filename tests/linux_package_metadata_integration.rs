@@ -386,6 +386,28 @@ fn release_workflow_publishes_signed_setup_checksum_sidecars() {
 }
 
 #[test]
+fn ci_tauri_artifact_job_runs_for_release_consumed_apt_scripts() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let workflow =
+        fs::read_to_string(root.join(".github/workflows/ci.yml")).expect("read CI workflow");
+
+    let run_tauri_ci = workflow
+        .split("            run_tauri_ci:")
+        .nth(1)
+        .and_then(|tail| tail.split("\n\n").next())
+        .expect("run_tauri_ci path filter block");
+
+    assert!(
+        run_tauri_ci.contains("'scripts/build_apt_repository.py'"),
+        "APT repository builder changes must produce release artifacts"
+    );
+    assert!(
+        run_tauri_ci.contains("'scripts/install-apt-repo.sh'"),
+        "APT setup installer changes must produce release artifacts"
+    );
+}
+
+#[test]
 fn apt_repository_builder_signs_release_when_gpg_is_available() {
     let Some(gpg) = gpg_path() else {
         eprintln!("skipping APT repository signing test because gpg is unavailable");

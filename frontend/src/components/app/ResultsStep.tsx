@@ -15,7 +15,6 @@ interface ResultsStepProps {
   mappings: MappingDto[];
   filter: ResultFilter;
   results: ResultResponse[];
-  filteredResults: ResultResponse[];
   snapshotReadOnly: boolean;
   onFilterChange: (filter: ResultFilter) => void;
   onExportCsv: () => void;
@@ -34,7 +33,6 @@ export function ResultsStep({
   mappings,
   filter,
   results,
-  filteredResults,
   snapshotReadOnly,
   onFilterChange,
   onExportCsv,
@@ -99,7 +97,8 @@ export function ResultsStep({
         onExportHtml={onExportHtml}
       />
       <ResultsTable
-        results={filteredResults}
+        results={results}
+        filter={filter}
         totalResultsCount={results.length}
         comparisonColumnsA={comparisonColumnsA}
         comparisonColumnsB={comparisonColumnsB}

@@ -1,5 +1,5 @@
 import { Fragment, useDeferredValue, useMemo, useState, useTransition } from 'react';
-import type { MappingDto, ResultResponse } from '../types/api';
+import type { MappingDto, ResultFilter, ResultResponse } from '../types/api';
 import {
   buildResultRows,
   filterAndSortResultRows,
@@ -23,6 +23,7 @@ import { SectionCard } from './ui/SectionCard';
 
 interface ResultsTableProps {
   results: ResultResponse[];
+  filter?: ResultFilter;
   totalResultsCount?: number;
   comparisonColumnsA?: string[];
   comparisonColumnsB?: string[];
@@ -153,6 +154,7 @@ function SortGlyph({ state }: { state: 'asc' | 'desc' | 'inactive' }) {
 
 export function ResultsTable({
   results,
+  filter = 'all',
   totalResultsCount = results.length,
   comparisonColumnsA = [],
   comparisonColumnsB = [],
@@ -182,13 +184,13 @@ export function ResultsTable({
 
   const visibleResults = useMemo(
     () => filterAndSortResultRows(resultRows, {
-      filter: 'all',
+      filter,
       query: deferredQuery,
       searchFieldId: normalizedSearchFieldId,
       sortColumn,
       sortDirection,
     }),
-    [deferredQuery, normalizedSearchFieldId, resultRows, sortColumn, sortDirection],
+    [deferredQuery, filter, normalizedSearchFieldId, resultRows, sortColumn, sortDirection],
   );
 
   const handleSearchQueryChange = (nextQuery: string) => {
