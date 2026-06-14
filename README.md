@@ -19,7 +19,8 @@ It is designed for practical reconciliation work: matching rows by selected keys
 - Save and load pair-order selections for repeat work
 - Auto-pair confident comparison columns when reliable matches are available
 - Review matches, mismatches, missing rows, ignored rows, and duplicate keys
-- Filter results and export the final comparison to CSV
+- Filter results and export the final comparison to CSV or HTML
+- Save and load comparison snapshots when you need to reopen a finished result set
 - Run as either a local web app or a native desktop app
 
 ## Install
@@ -126,6 +127,11 @@ cargo tauri dev
 3. Choose comparison columns manually or use auto-pair when confident matches are available.
 4. Run the comparison.
 5. Review the results and export if needed.
+
+### Saved work
+
+- **Pair-order files** save the selected key and comparison-column order for the currently loaded CSV pair. Load them while configuring a new comparison to reuse a known column order.
+- **Comparison snapshots** save a completed result set. Loading a snapshot opens the Results step in read-only mode so the saved rows, summary, mappings, and file labels stay consistent. Use **Reset** to start a new editable comparison after reviewing a snapshot.
 
 ## Auto-pairing
 

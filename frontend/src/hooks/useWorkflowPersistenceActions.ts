@@ -23,6 +23,7 @@ interface UseWorkflowPersistenceActionsParams {
   failLoading: (error: unknown) => void;
   blockSnapshotFollowOnWorkflow: () => boolean;
   beginWorkflowRequest: (sessionId: string | null, invalidatesExisting?: boolean) => WorkflowRequestToken;
+  invalidateWorkflowRequests: (sessionId: string | null) => WorkflowRequestToken;
   isCurrentWorkflowRequest: (token: WorkflowRequestToken) => boolean;
 }
 
@@ -40,6 +41,7 @@ export function useWorkflowPersistenceActions({
   failLoading,
   blockSnapshotFollowOnWorkflow,
   beginWorkflowRequest,
+  invalidateWorkflowRequests,
   isCurrentWorkflowRequest,
 }: UseWorkflowPersistenceActionsParams) {
   const handleExportCsv = useCallback(async () => {
@@ -228,6 +230,11 @@ export function useWorkflowPersistenceActions({
         return;
       }
       if (response) {
+        const pairOrderToken = invalidateWorkflowRequests(state.sessionId);
+        if (!isCurrentWorkflowRequest(pairOrderToken)) {
+          return;
+        }
+
         dispatch({
           type: 'pairOrderLoaded',
           selection: {
@@ -251,6 +258,7 @@ export function useWorkflowPersistenceActions({
     blockSnapshotFollowOnWorkflow,
     dispatch,
     failLoading,
+    invalidateWorkflowRequests,
     isCurrentWorkflowRequest,
     startLoading,
     state.sessionId,

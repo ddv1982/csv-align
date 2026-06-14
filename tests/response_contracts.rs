@@ -111,6 +111,94 @@ fn result_has_key(result: &Value, key: &str) -> bool {
     result.get("key") == Some(&serde_json::json!([key]))
 }
 
+fn comparison_snapshot_contents(
+    comparison_columns_a: Value,
+    comparison_columns_b: Value,
+    mappings: Value,
+) -> String {
+    serde_json::json!({
+        "version": 2,
+        "file_a": {
+            "name": "left.csv",
+            "headers": ["id", "name", "value"],
+            "columns": [
+                { "index": 0, "name": "id", "data_type": "string" },
+                { "index": 1, "name": "name", "data_type": "string" },
+                { "index": 2, "name": "value", "data_type": "string" }
+            ],
+            "row_count": 0
+        },
+        "file_b": {
+            "name": "right.csv",
+            "headers": ["id", "name", "amount"],
+            "columns": [
+                { "index": 0, "name": "id", "data_type": "string" },
+                { "index": 1, "name": "name", "data_type": "string" },
+                { "index": 2, "name": "amount", "data_type": "string" }
+            ],
+            "row_count": 0
+        },
+        "selection": {
+            "key_columns_a": ["id"],
+            "key_columns_b": ["id"],
+            "comparison_columns_a": comparison_columns_a,
+            "comparison_columns_b": comparison_columns_b
+        },
+        "mappings": mappings,
+        "normalization": ComparisonNormalizationConfig::default(),
+        "results": [],
+        "summary": {
+            "total_rows_a": 0,
+            "total_rows_b": 0,
+            "matches": 0,
+            "mismatches": 0,
+            "missing_left": 0,
+            "missing_right": 0,
+            "unkeyed_left": 0,
+            "unkeyed_right": 0,
+            "duplicates_a": 0,
+            "duplicates_b": 0
+        }
+    })
+    .to_string()
+}
+
+#[test]
+fn compare_request_deserializes_partial_normalization_with_defaults() {
+    let request: CompareRequest = serde_json::from_value(serde_json::json!({
+        "key_columns_a": ["id"],
+        "key_columns_b": ["id"],
+        "comparison_columns_a": ["name"],
+        "comparison_columns_b": ["name"],
+        "column_mappings": [],
+        "normalization": {
+            "trim_whitespace": true,
+            "date_normalization": { "enabled": true }
+        }
+    }))
+    .expect("partial normalization should merge with defaults");
+
+    assert!(request.normalization.treat_empty_as_null);
+    assert!(request.normalization.null_token_case_insensitive);
+    assert_eq!(
+        request.normalization.null_tokens,
+        vec![
+            "null".to_string(),
+            "na".to_string(),
+            "n/a".to_string(),
+            "none".to_string()
+        ]
+    );
+    assert!(request.normalization.trim_whitespace);
+    assert!(request.normalization.date_normalization.enabled);
+    assert_eq!(
+        request.normalization.date_normalization.formats,
+        ComparisonNormalizationConfig::default()
+            .date_normalization
+            .formats
+    );
+}
+
 #[tokio::test]
 async fn csv_align_error_variants_map_to_documented_http_status() {
     let cases = [
@@ -776,6 +864,107 @@ async fn response_contracts_snapshot_load_rejects_missing_mapping_columns_as_bad
     assert_eq!(
         json["error"],
         "Saved snapshot mappings reference missing File A column: missing_name"
+    );
+}
+
+#[tokio::test]
+async fn response_contracts_snapshot_load_rejects_mappings_outside_selected_columns() {
+    let state = AppState::new();
+    let session_id = state.create_session();
+    let contents = comparison_snapshot_contents(
+        serde_json::json!(["name"]),
+        serde_json::json!(["name"]),
+        serde_json::json!([{
+            "file_a_column": "name",
+            "file_b_column": "amount",
+            "mapping_type": "manual",
+            "similarity": null
+        }]),
+    );
+
+    let response = handlers::load_comparison_snapshot(
+        State(state),
+        Path(session_id),
+        Json(LoadComparisonSnapshotRequest { contents }),
+    )
+    .await;
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let json = response_json(response).await;
+    assert_eq!(json["code"], "bad_input");
+    assert_eq!(
+        json["error"],
+        "Saved snapshot mappings must only reference selected comparison columns"
+    );
+}
+
+#[tokio::test]
+async fn response_contracts_snapshot_load_rejects_reused_mapping_columns() {
+    let state = AppState::new();
+    let session_id = state.create_session();
+    let contents = comparison_snapshot_contents(
+        serde_json::json!(["name", "value"]),
+        serde_json::json!(["name", "amount"]),
+        serde_json::json!([
+            {
+                "file_a_column": "name",
+                "file_b_column": "name",
+                "mapping_type": "manual",
+                "similarity": null
+            },
+            {
+                "file_a_column": "value",
+                "file_b_column": "name",
+                "mapping_type": "manual",
+                "similarity": null
+            }
+        ]),
+    );
+
+    let response = handlers::load_comparison_snapshot(
+        State(state),
+        Path(session_id),
+        Json(LoadComparisonSnapshotRequest { contents }),
+    )
+    .await;
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let json = response_json(response).await;
+    assert_eq!(json["code"], "bad_input");
+    assert_eq!(
+        json["error"],
+        "Saved snapshot mappings must pair each selected comparison column exactly once"
+    );
+}
+
+#[tokio::test]
+async fn response_contracts_snapshot_load_rejects_out_of_range_fuzzy_similarity() {
+    let state = AppState::new();
+    let session_id = state.create_session();
+    let contents = comparison_snapshot_contents(
+        serde_json::json!(["name"]),
+        serde_json::json!(["name"]),
+        serde_json::json!([{
+            "file_a_column": "name",
+            "file_b_column": "name",
+            "mapping_type": "fuzzy",
+            "similarity": 1.2
+        }]),
+    );
+
+    let response = handlers::load_comparison_snapshot(
+        State(state),
+        Path(session_id),
+        Json(LoadComparisonSnapshotRequest { contents }),
+    )
+    .await;
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let json = response_json(response).await;
+    assert_eq!(json["code"], "bad_input");
+    assert_eq!(
+        json["error"],
+        "Saved snapshot fuzzy mapping name -> name must have a similarity score between 0.0 and 1.0"
     );
 }
 

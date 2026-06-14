@@ -66,14 +66,49 @@ pub struct ComparisonConfig {
     pub normalization: ComparisonNormalizationConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+fn default_true() -> bool {
+    true
+}
+
+fn default_null_tokens() -> Vec<String> {
+    vec![
+        "null".to_string(),
+        "na".to_string(),
+        "n/a".to_string(),
+        "none".to_string(),
+    ]
+}
+
+fn default_date_formats() -> Vec<String> {
+    vec![
+        "%Y-%m-%d".to_string(),
+        "%d/%m/%Y".to_string(),
+        "%m/%d/%Y".to_string(),
+        "%d-%m-%Y".to_string(),
+        "%m-%d-%Y".to_string(),
+    ]
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct DateNormalizationConfig {
+    #[serde(default)]
     pub enabled: bool,
+    #[serde(default = "default_date_formats")]
     pub formats: Vec<String>,
+}
+
+impl Default for DateNormalizationConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            formats: default_date_formats(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
 pub struct DecimalRoundingConfig {
+    #[serde(default)]
     pub enabled: bool,
     #[serde(default)]
     pub decimals: u32,
@@ -81,17 +116,23 @@ pub struct DecimalRoundingConfig {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ComparisonNormalizationConfig {
+    #[serde(default = "default_true")]
     pub treat_empty_as_null: bool,
+    #[serde(default = "default_null_tokens")]
     pub null_tokens: Vec<String>,
+    #[serde(default = "default_true")]
     pub null_token_case_insensitive: bool,
     #[serde(default)]
     pub flexible_key_matching: bool,
+    #[serde(default)]
     pub case_insensitive: bool,
+    #[serde(default)]
     pub trim_whitespace: bool,
     #[serde(default)]
     pub numeric_equivalence: bool,
     #[serde(default)]
     pub decimal_rounding: DecimalRoundingConfig,
+    #[serde(default)]
     pub date_normalization: DateNormalizationConfig,
 }
 
@@ -99,31 +140,14 @@ impl Default for ComparisonNormalizationConfig {
     fn default() -> Self {
         Self {
             treat_empty_as_null: true,
-            null_tokens: vec![
-                "null".to_string(),
-                "na".to_string(),
-                "n/a".to_string(),
-                "none".to_string(),
-            ],
+            null_tokens: default_null_tokens(),
             null_token_case_insensitive: true,
             flexible_key_matching: false,
             case_insensitive: false,
             trim_whitespace: false,
             numeric_equivalence: false,
-            decimal_rounding: DecimalRoundingConfig {
-                enabled: false,
-                decimals: 0,
-            },
-            date_normalization: DateNormalizationConfig {
-                enabled: false,
-                formats: vec![
-                    "%Y-%m-%d".to_string(),
-                    "%d/%m/%Y".to_string(),
-                    "%m/%d/%Y".to_string(),
-                    "%d-%m-%Y".to_string(),
-                    "%m-%d-%Y".to_string(),
-                ],
-            },
+            decimal_rounding: DecimalRoundingConfig::default(),
+            date_normalization: DateNormalizationConfig::default(),
         }
     }
 }

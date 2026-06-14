@@ -3,6 +3,7 @@ import { beforeEach, expect, test, vi } from 'vitest';
 import { useComparisonWorkflow } from './useComparisonWorkflow';
 
 const {
+  compareFilesMock,
   createSessionMock,
   downloadBlobMock,
   loadFileMock,
@@ -12,6 +13,7 @@ const {
   savePairOrderMock,
   suggestMappingsMock,
 } = vi.hoisted(() => ({
+  compareFilesMock: vi.fn(),
   createSessionMock: vi.fn(),
   downloadBlobMock: vi.fn(),
   loadFileMock: vi.fn(),
@@ -23,7 +25,7 @@ const {
 }));
 
 vi.mock('../services/tauri', () => ({
-  compareFiles: vi.fn(),
+  compareFiles: compareFilesMock,
   createSession: createSessionMock,
   exportResults: vi.fn(),
   isTauri: false,
@@ -47,7 +49,19 @@ const FILE_COLUMNS = [
 const FILE_A = new File(['id,name\n1,Alice'], 'left.csv', { type: 'text/csv' });
 const FILE_B = new File(['id,name\n1,Alice'], 'right.csv', { type: 'text/csv' });
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+
+  return { promise, resolve, reject };
+}
+
 beforeEach(() => {
+  compareFilesMock.mockReset();
   createSessionMock.mockReset();
   downloadBlobMock.mockReset();
   loadFileMock.mockReset();
@@ -185,5 +199,181 @@ test('keeps the current pair order unchanged when loading fails', async () => {
     comparisonColumnsB: ['id'],
   });
   expect(result.current.state.error).toBe('Saved pair order does not match the currently loaded File B columns');
+  expect(result.current.state.loading).toBe(false);
+});
+
+test('ignores stale comparison results after loading a newer pair order', async () => {
+  const pairOrderFile = new File(['saved'], 'pair-order.txt', { type: 'text/plain' });
+  const compareDeferred = deferred<{
+    success: boolean;
+    results: never[];
+    summary: {
+      total_rows_a: number;
+      total_rows_b: number;
+      matches: number;
+      mismatches: number;
+      missing_left: number;
+      missing_right: number;
+      unkeyed_left: number;
+      unkeyed_right: number;
+      duplicates_a: number;
+      duplicates_b: number;
+    };
+  }>();
+
+  compareFilesMock.mockReturnValue(compareDeferred.promise);
+  loadPairOrderMock.mockResolvedValue({
+    selection: {
+      key_columns_a: ['id'],
+      key_columns_b: ['id'],
+      comparison_columns_a: ['name'],
+      comparison_columns_b: ['name'],
+    },
+  });
+
+  const { result } = renderHook(() => useComparisonWorkflow());
+
+  await waitFor(() => {
+    expect(result.current.state.sessionId).toBe('session-1');
+  });
+
+  await act(async () => {
+    await result.current.handleFileSelection(FILE_A, 'a');
+    await result.current.handleFileSelection(FILE_B, 'b');
+  });
+
+  act(() => {
+    result.current.setMappingSelection({
+      keyColumnsA: ['id'],
+      keyColumnsB: ['id'],
+      comparisonColumnsA: ['id'],
+      comparisonColumnsB: ['id'],
+    });
+  });
+
+  let comparePromise!: Promise<void>;
+  await act(async () => {
+    comparePromise = result.current.handleCompare(
+      ['id'],
+      ['id'],
+      ['id'],
+      ['id'],
+      [],
+      result.current.normalizationConfig,
+    );
+  });
+
+  await act(async () => {
+    await result.current.handleLoadPairOrder(pairOrderFile);
+  });
+
+  compareDeferred.resolve({
+    success: true,
+    results: [],
+    summary: {
+      total_rows_a: 1,
+      total_rows_b: 1,
+      matches: 1,
+      mismatches: 0,
+      missing_left: 0,
+      missing_right: 0,
+      unkeyed_left: 0,
+      unkeyed_right: 0,
+      duplicates_a: 0,
+      duplicates_b: 0,
+    },
+  });
+
+  await act(async () => {
+    await comparePromise;
+  });
+
+  expect(result.current.mappingSelection).toEqual({
+    keyColumnsA: ['id'],
+    keyColumnsB: ['id'],
+    comparisonColumnsA: ['name'],
+    comparisonColumnsB: ['name'],
+  });
+  expect(result.current.step).toBe('configure');
+  expect(result.current.state.summary).toBeNull();
+  expect(result.current.state.results).toEqual([]);
+  expect(result.current.state.loading).toBe(false);
+});
+
+test('keeps in-flight comparison current when a newer pair order load fails', async () => {
+  const pairOrderFile = new File(['bad'], 'pair-order.txt', { type: 'text/plain' });
+  const compareDeferred = deferred<{
+    success: boolean;
+    results: never[];
+    summary: {
+      total_rows_a: number;
+      total_rows_b: number;
+      matches: number;
+      mismatches: number;
+      missing_left: number;
+      missing_right: number;
+      unkeyed_left: number;
+      unkeyed_right: number;
+      duplicates_a: number;
+      duplicates_b: number;
+    };
+  }>();
+
+  compareFilesMock.mockReturnValue(compareDeferred.promise);
+  loadPairOrderMock.mockRejectedValueOnce('Saved pair order does not match the currently loaded File B columns');
+
+  const { result } = renderHook(() => useComparisonWorkflow());
+
+  await waitFor(() => {
+    expect(result.current.state.sessionId).toBe('session-1');
+  });
+
+  await act(async () => {
+    await result.current.handleFileSelection(FILE_A, 'a');
+    await result.current.handleFileSelection(FILE_B, 'b');
+  });
+
+  let comparePromise!: Promise<void>;
+  await act(async () => {
+    comparePromise = result.current.handleCompare(
+      ['id'],
+      ['id'],
+      ['name'],
+      ['name'],
+      [],
+      result.current.normalizationConfig,
+    );
+  });
+
+  await act(async () => {
+    await result.current.handleLoadPairOrder(pairOrderFile);
+  });
+
+  compareDeferred.resolve({
+    success: true,
+    results: [],
+    summary: {
+      total_rows_a: 1,
+      total_rows_b: 1,
+      matches: 1,
+      mismatches: 0,
+      missing_left: 0,
+      missing_right: 0,
+      unkeyed_left: 0,
+      unkeyed_right: 0,
+      duplicates_a: 0,
+      duplicates_b: 0,
+    },
+  });
+
+  await act(async () => {
+    await comparePromise;
+  });
+
+  await waitFor(() => {
+    expect(result.current.step).toBe('results');
+  });
+  expect(result.current.state.summary).toMatchObject({ matches: 1 });
+  expect(result.current.state.error).toBeNull();
   expect(result.current.state.loading).toBe(false);
 });

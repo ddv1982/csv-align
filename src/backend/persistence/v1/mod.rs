@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
@@ -298,6 +299,7 @@ fn validate_snapshot(snapshot: &SnapshotV1) -> Result<(), CsvAlignError> {
     validate_mappings(
         &snapshot.file_a.headers,
         &snapshot.file_b.headers,
+        &snapshot.selection,
         &snapshot.mappings,
     )?;
 
@@ -379,8 +381,35 @@ fn validate_saved_selected_columns(
 fn validate_mappings(
     headers_a: &[String],
     headers_b: &[String],
+    selection: &SelectionV1,
     mappings: &[MappingV1],
 ) -> Result<(), CsvAlignError> {
+    // Empty mappings are the legacy positional-compatibility path. When mappings
+    // are present, they must satisfy the stricter selected-column invariant.
+    if mappings.is_empty() {
+        return Ok(());
+    }
+
+    if mappings.len() != selection.comparison_columns_a.len() {
+        return Err(CsvAlignError::BadInput(
+            "Saved snapshot mappings must cover every selected comparison column exactly once"
+                .to_string(),
+        ));
+    }
+
+    let allowed_a: HashSet<&str> = selection
+        .comparison_columns_a
+        .iter()
+        .map(String::as_str)
+        .collect();
+    let allowed_b: HashSet<&str> = selection
+        .comparison_columns_b
+        .iter()
+        .map(String::as_str)
+        .collect();
+    let mut seen_a = HashSet::new();
+    let mut seen_b = HashSet::new();
+
     for mapping in mappings {
         if !label_has_physical_or_virtual_source(headers_a, &mapping.file_a_column) {
             return Err(CsvAlignError::BadInput(format!(
@@ -396,12 +425,48 @@ fn validate_mappings(
             )));
         }
 
+        if !allowed_a.contains(mapping.file_a_column.as_str())
+            || !allowed_b.contains(mapping.file_b_column.as_str())
+        {
+            return Err(CsvAlignError::BadInput(
+                "Saved snapshot mappings must only reference selected comparison columns"
+                    .to_string(),
+            ));
+        }
+
+        if !seen_a.insert(mapping.file_a_column.as_str())
+            || !seen_b.insert(mapping.file_b_column.as_str())
+        {
+            return Err(CsvAlignError::BadInput(
+                "Saved snapshot mappings must pair each selected comparison column exactly once"
+                    .to_string(),
+            ));
+        }
+
         if matches!(mapping.mapping_type, MappingKind::Fuzzy) && mapping.similarity.is_none() {
             return Err(CsvAlignError::BadInput(format!(
                 "Saved snapshot fuzzy mapping {} -> {} is missing a similarity score",
                 mapping.file_a_column, mapping.file_b_column
             )));
         }
+
+        if matches!(mapping.mapping_type, MappingKind::Fuzzy)
+            && !mapping
+                .similarity
+                .is_some_and(|similarity| (0.0..=1.0).contains(&similarity))
+        {
+            return Err(CsvAlignError::BadInput(format!(
+                "Saved snapshot fuzzy mapping {} -> {} must have a similarity score between 0.0 and 1.0",
+                mapping.file_a_column, mapping.file_b_column
+            )));
+        }
+    }
+
+    if seen_a.len() != allowed_a.len() || seen_b.len() != allowed_b.len() {
+        return Err(CsvAlignError::BadInput(
+            "Saved snapshot mappings must cover every selected comparison column exactly once"
+                .to_string(),
+        ));
     }
 
     Ok(())

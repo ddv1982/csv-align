@@ -24,6 +24,17 @@ pub(super) fn get_column_selections(
         .collect()
 }
 
+pub(super) fn get_missing_column_selections(
+    headers: &[String],
+    column_names: &[String],
+) -> Vec<String> {
+    column_names
+        .iter()
+        .filter(|name| resolve_column_selection(headers, name).is_none())
+        .cloned()
+        .collect()
+}
+
 pub(super) fn split_rows_by_key_usable(
     csv_data: &CsvData,
     key_selections: &[ColumnSelection],

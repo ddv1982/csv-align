@@ -43,6 +43,16 @@ export function useComparisonWorkflow() {
     && (token.sessionId === null || currentSessionIdRef.current === token.sessionId)
   ), []);
 
+  const invalidateWorkflowRequests = useCallback((sessionId: string | null) => {
+    workflowMutationRef.current += 1;
+
+    return {
+      sessionId,
+      generation: workflowGenerationRef.current,
+      mutation: workflowMutationRef.current,
+    };
+  }, []);
+
   const advanceWorkflowGeneration = useCallback(() => {
     workflowGenerationRef.current += 1;
     workflowMutationRef.current += 1;
@@ -109,6 +119,7 @@ export function useComparisonWorkflow() {
     failLoading,
     blockSnapshotFollowOnWorkflow,
     beginWorkflowRequest,
+    invalidateWorkflowRequests,
     isCurrentWorkflowRequest,
   });
 

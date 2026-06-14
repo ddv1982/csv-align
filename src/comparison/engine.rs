@@ -1,12 +1,14 @@
 use super::super::data::types::*;
 use super::rows::{
     FlexibleKeyMatch, KeyedRows, classify_flexible_key_match, extract_columns,
-    get_column_selections, split_rows_by_key_usable, wildcard_literal_count, wildcard_token_count,
+    get_column_selections, get_missing_column_selections, split_rows_by_key_usable,
+    wildcard_literal_count, wildcard_token_count,
 };
 use super::value_compare::{find_differences, normalize_display_value};
 use crate::data::json_fields::ColumnSelection;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
+use std::fmt;
 
 pub(crate) const MAX_FLEXIBLE_KEY_CANDIDATES: usize = 10_000;
 pub(crate) const MAX_FLEXIBLE_KEY_COMPARISONS: usize = 1_000_000;
@@ -75,21 +77,103 @@ pub(crate) fn bounded_flexible_key_candidate_count(
     candidate_count
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ComparisonColumnSelectionError {
+    pub selection: &'static str,
+    pub columns: Vec<String>,
+}
+
+impl fmt::Display for ComparisonColumnSelectionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{} reference missing columns: {}",
+            self.selection,
+            self.columns.join(", ")
+        )
+    }
+}
+
+impl std::error::Error for ComparisonColumnSelectionError {}
+
+fn required_column_selections(
+    headers: &[String],
+    column_names: &[String],
+    selection: &'static str,
+) -> Result<Vec<ColumnSelection>, ComparisonColumnSelectionError> {
+    let missing = get_missing_column_selections(headers, column_names);
+    if missing.is_empty() {
+        Ok(get_column_selections(headers, column_names))
+    } else {
+        Err(ComparisonColumnSelectionError {
+            selection,
+            columns: missing,
+        })
+    }
+}
+
 /// Compare two CSV datasets based on configuration
 pub fn compare_csv_data(
     csv_a: &CsvData,
     csv_b: &CsvData,
     config: &ComparisonConfig,
 ) -> Vec<RowComparisonResult> {
-    let mut results = Vec::new();
+    try_compare_csv_data(csv_a, csv_b, config).unwrap_or_else(|error| {
+        panic!("Invalid comparison configuration: {error}");
+    })
+}
 
+/// Compare two CSV datasets, returning an error when the configuration references unknown columns.
+pub fn try_compare_csv_data(
+    csv_a: &CsvData,
+    csv_b: &CsvData,
+    config: &ComparisonConfig,
+) -> Result<Vec<RowComparisonResult>, ComparisonColumnSelectionError> {
     // Get column indices for key columns
-    let key_selections_a = get_column_selections(&csv_a.headers, &config.key_columns_a);
-    let key_selections_b = get_column_selections(&csv_b.headers, &config.key_columns_b);
+    let key_selections_a = required_column_selections(
+        &csv_a.headers,
+        &config.key_columns_a,
+        "Key columns for File A",
+    )?;
+    let key_selections_b = required_column_selections(
+        &csv_b.headers,
+        &config.key_columns_b,
+        "Key columns for File B",
+    )?;
 
     // Get column indices for comparison columns
-    let comp_selections_a = get_column_selections(&csv_a.headers, &config.comparison_columns_a);
-    let comp_selections_b = get_column_selections(&csv_b.headers, &config.comparison_columns_b);
+    let comp_selections_a = required_column_selections(
+        &csv_a.headers,
+        &config.comparison_columns_a,
+        "Comparison columns for File A",
+    )?;
+    let comp_selections_b = required_column_selections(
+        &csv_b.headers,
+        &config.comparison_columns_b,
+        "Comparison columns for File B",
+    )?;
+
+    Ok(compare_csv_data_with_selections(
+        csv_a,
+        csv_b,
+        config,
+        key_selections_a,
+        key_selections_b,
+        comp_selections_a,
+        comp_selections_b,
+    ))
+}
+
+fn compare_csv_data_with_selections(
+    csv_a: &CsvData,
+    csv_b: &CsvData,
+    config: &ComparisonConfig,
+    key_selections_a: Vec<ColumnSelection>,
+    key_selections_b: Vec<ColumnSelection>,
+    comp_selections_a: Vec<ColumnSelection>,
+    comp_selections_b: Vec<ColumnSelection>,
+) -> Vec<RowComparisonResult> {
+    let mut results = Vec::new();
 
     // Create maps for quick lookup
     let (map_a, nullish_rows_a) =

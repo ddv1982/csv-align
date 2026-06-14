@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.88 - 2026-06-14
+
+- Hardened the comparison-selection lore so missing configured columns fail explicitly, partial normalization payloads keep their defaults, and saved snapshots reject stale or malformed mapping trails.
+- Tightened the saved-work flow so loaded pair orders clear old result state, in-flight comparisons cannot overwrite newer selections, and the docs separate repeat pair-order setup from read-only comparison snapshots.
+
 ## v2.1.87 - 2026-06-13
 
 - Hardened the desktop file-handling lore so import and export commands own their native dialogs, raw webview paths stay out of the production invoke surface, and saved pair-order choices obey the same pairing rules as comparisons.

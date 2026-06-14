@@ -1,6 +1,6 @@
 mod common;
 
-use csv_align::comparison::engine::{compare_csv_data, generate_summary};
+use csv_align::comparison::engine::{compare_csv_data, generate_summary, try_compare_csv_data};
 use csv_align::data::types::{
     ColumnMapping, ComparisonConfig, ComparisonNormalizationConfig, CsvData,
     DateNormalizationConfig, MappingType, RowComparisonResult,
@@ -42,6 +42,19 @@ fn create_test_config() -> ComparisonConfig {
         &[("name", "name"), ("value", "amount")],
         ComparisonNormalizationConfig::default(),
     )
+}
+
+#[test]
+fn try_compare_csv_data_rejects_unknown_selected_columns() {
+    let csv_a = create_test_csv_a();
+    let csv_b = create_test_csv_b();
+    let mut config = create_test_config();
+    config.comparison_columns_a = vec!["missing".to_string()];
+
+    let error = try_compare_csv_data(&csv_a, &csv_b, &config).unwrap_err();
+
+    assert_eq!(error.selection, "Comparison columns for File A");
+    assert_eq!(error.columns, vec!["missing".to_string()]);
 }
 
 fn non_duplicate_results_for_key<'a>(

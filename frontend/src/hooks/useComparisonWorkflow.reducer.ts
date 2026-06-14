@@ -189,6 +189,7 @@ export function workflowReducer(state: WorkflowState, action: WorkflowAction): W
           mappings: action.mappings,
           results: action.results,
           summary: action.summary,
+          error: null,
           loading: false,
         },
       };
@@ -237,9 +238,14 @@ export function workflowReducer(state: WorkflowState, action: WorkflowAction): W
     case 'pairOrderLoaded':
       return {
         ...state,
+        step: 'configure',
         mappingSelection: action.selection,
         appState: {
           ...state.appState,
+          mappings: [],
+          results: [],
+          summary: null,
+          filter: 'all',
           loading: false,
         },
       };

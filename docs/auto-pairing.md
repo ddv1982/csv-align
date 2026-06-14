@@ -45,3 +45,11 @@ In those cases, the app leaves the current comparison selection unchanged and yo
 5. Adjust any remaining unmatched columns manually if needed.
 
 This keeps auto-pairing helpful without changing the comparison logic itself.
+
+## Saving repeat column orders
+
+After you review or adjust the key and comparison-column order, you can save it as a pair-order file. Pair-order files are for repeat setup work with the currently loaded CSV structure; they do not save comparison results.
+
+Load a pair-order file while you are still configuring the comparison. If a comparison is already running, CSV Align treats the loaded pair order as the newer workflow state so older in-flight results cannot replace the newly loaded selection.
+
+For finished comparisons, save a comparison snapshot instead. Loading a snapshot reopens the saved results in read-only mode; use **Reset** when you want to return to an editable workflow.
