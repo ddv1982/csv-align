@@ -81,10 +81,15 @@ export type ResultRowViewModel = {
   fileBValues: ResultValueCell[][];
   detailsCount: number;
   differences: ResultResponse['differences'];
+  hasExpandableDetail: boolean;
   expandableDetail: ResultExpandableDetail | null;
   searchText: string;
   searchFields: Record<SearchableFieldId, string>;
   sortValues: Record<ResultSortColumn, string | number>;
+};
+
+type ResultRowBuildOptions = {
+  includeInspectionDetails?: boolean;
 };
 
 export type SummaryStatTone = 'success' | 'warning' | 'accent' | 'danger';
@@ -393,16 +398,28 @@ function buildInspectionDetail(
   };
 }
 
-function buildExpandableDetail(
+function hasInspectionDetail(
+  fileAValues: ResultValueCell[][],
+  fileBValues: ResultValueCell[][],
+): boolean {
+  return fileAValues.some((row) => row.length > 0) || fileBValues.some((row) => row.length > 0);
+}
+
+export function buildExpandableDetail(
   result: ResultResponse,
   fileAValues: ResultValueCell[][],
   fileBValues: ResultValueCell[][],
   comparisonColumns: ComparisonColumns,
+  options: ResultRowBuildOptions = {},
 ): ResultExpandableDetail | null {
   const differenceDetail = buildDifferenceDetail(result.differences);
 
   if (differenceDetail) {
     return differenceDetail;
+  }
+
+  if (options.includeInspectionDetails === false) {
+    return null;
   }
 
   return buildInspectionDetail(fileAValues, fileBValues, comparisonColumns);
@@ -422,12 +439,17 @@ function compareResultSortValues(left: string | number, right: string | number):
 export function buildResultRows(
   results: ResultResponse[],
   comparisonColumns: ComparisonColumns = { fileA: [], fileB: [], mappings: [] },
+  options: ResultRowBuildOptions = {},
 ): ResultRowViewModel[] {
+  const includeInspectionDetails = options.includeInspectionDetails ?? true;
+
   return results.map((result, index) => {
     const badge = getResultBadge(result.result_type);
     const fileAValues = buildDisplayValueRows(result.duplicate_values_a, result.values_a, comparisonColumns.fileA);
     const fileBValues = buildDisplayValueRows(result.duplicate_values_b, result.values_b, comparisonColumns.fileB);
-    const expandableDetail = buildExpandableDetail(result, fileAValues, fileBValues, comparisonColumns);
+    const expandableDetail = buildExpandableDetail(result, fileAValues, fileBValues, comparisonColumns, { includeInspectionDetails });
+    const hasExpandableDetail = expandableDetail !== null
+      || (!includeInspectionDetails && hasInspectionDetail(fileAValues, fileBValues));
     const filterBucket = getResultFilterBucket(result);
     const description = getResultDescription(result.result_type);
     const searchFields = buildSearchFields({
@@ -453,6 +475,7 @@ export function buildResultRows(
       fileBValues,
       detailsCount: result.differences.length,
       differences: result.differences,
+      hasExpandableDetail,
       expandableDetail,
       searchText: searchFields[SEARCHABLE_FIELD_ALL],
       searchFields,

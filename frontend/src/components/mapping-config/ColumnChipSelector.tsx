@@ -24,11 +24,13 @@ function ColumnChipGroup({ label, columns, selectedColumns, onToggle }: {
         {columns.map((column) => {
           const isSelected = selectedColumns.includes(column);
           const selectedIndex = selectedColumns.indexOf(column);
+          const selectedPosition = selectedIndex + 1;
           return (
             <button
               key={column}
               type="button"
               aria-pressed={isSelected}
+              aria-label={isSelected ? `${column}, selected ${selectedPosition} of ${selectedColumns.length}` : column}
               onClick={() => onToggle(column)}
               className={`inline-flex items-center gap-2 border px-3 py-1.5 text-sm font-medium transition-colors ${
                  isSelected
@@ -38,7 +40,7 @@ function ColumnChipGroup({ label, columns, selectedColumns, onToggle }: {
             >
               {isSelected && (
                 <span aria-hidden="true" className="selected-order-badge">
-                  {selectedIndex + 1}
+                  {selectedPosition}
                 </span>
               )}
               {column}
@@ -53,9 +55,6 @@ function ColumnChipGroup({ label, columns, selectedColumns, onToggle }: {
 export function ColumnChipSelector({ title, columns, virtualColumns = [], selectedColumns, emptyHint, onToggle }: ColumnChipSelectorProps) {
   const visibleVirtualColumns = virtualColumns.filter((column) => !columns.includes(column));
   const hasVirtualColumns = visibleVirtualColumns.length > 0;
-  const selectedSummary = selectedColumns.length === 0
-    ? 'No columns selected yet.'
-    : `${selectedColumns.length} selected in order: ${selectedColumns.join(' -> ')}`;
 
   return (
     <div>
@@ -77,7 +76,6 @@ export function ColumnChipSelector({ title, columns, virtualColumns = [], select
           />
         )}
       </div>
-      <p className="mt-3 text-xs text-app-muted">{selectedSummary}</p>
       {emptyHint && selectedColumns.length === 0 && (
         <p className="mt-2 text-xs text-app-muted">{emptyHint}</p>
       )}

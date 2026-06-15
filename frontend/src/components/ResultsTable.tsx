@@ -1,8 +1,10 @@
 import { Fragment, useDeferredValue, useMemo, useState, useTransition } from 'react';
 import type { MappingDto, ResultFilter, ResultResponse } from '../types/api';
 import {
+  buildExpandableDetail,
   buildResultRows,
   filterAndSortResultRows,
+  type ResultExpandableDetail,
   type ResultDetailField,
   type ResultDetailPanel,
   type ResultRowViewModel,
@@ -115,10 +117,17 @@ function KeyChip({ row }: { row: ResultRowViewModel }) {
   );
 }
 
-function DetailCell({ row, isExpanded, onToggle }: { row: ResultRowViewModel; isExpanded: boolean; onToggle: () => void }) {
-  if (!row.expandableDetail) {
+function DetailCell({ row, detail, isExpanded, onToggle }: {
+  row: ResultRowViewModel;
+  detail: ResultExpandableDetail | null;
+  isExpanded: boolean;
+  onToggle: () => void;
+}) {
+  if (!row.hasExpandableDetail) {
     return <span className={`detail-description text-sm ${row.description ? 'app-text' : 'app-muted'}`}>{row.description ?? '—'}</span>;
   }
+
+  const toggleLabel = detail?.toggleLabel ?? 'Inspect';
 
   return (
     <div className="detail-cell-stack grid gap-2">
@@ -131,7 +140,7 @@ function DetailCell({ row, isExpanded, onToggle }: { row: ResultRowViewModel; is
         }`}
         aria-expanded={isExpanded}
       >
-        {row.expandableDetail.toggleLabel}
+        {toggleLabel}
         <ChevronRightIcon className={`diff-toggle-glyph h-3.5 w-3.5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
       </button>
       {row.description && <span className="detail-description app-text text-sm">{row.description}</span>}
@@ -178,7 +187,7 @@ export function ResultsTable({
   const searchPlaceholder = getSearchableFieldPlaceholder(normalizedSearchFieldId, searchFieldOptions);
 
   const resultRows = useMemo(
-    () => buildResultRows(results, comparisonColumns),
+    () => buildResultRows(results, comparisonColumns, { includeInspectionDetails: false }),
     [comparisonColumns, results],
   );
 
@@ -321,6 +330,9 @@ export function ResultsTable({
               <tbody className="divide-y divide-app-border">
                 {visibleResults.map((row: ResultRowViewModel) => {
                   const isExpanded = expandedRow === row.id;
+                  const expandedDetail = isExpanded
+                    ? buildExpandableDetail(row.result, row.fileAValues, row.fileBValues, comparisonColumns)
+                    : row.expandableDetail;
 
                   return (
                     <Fragment key={row.id}>
@@ -337,11 +349,11 @@ export function ResultsTable({
                         <td className="px-4 py-3.5 align-top" data-label="File A Values">{renderValueRows(row.fileAValues)}</td>
                         <td className="px-4 py-3.5 align-top" data-label="File B Values">{renderValueRows(row.fileBValues)}</td>
                         <td className="px-4 py-3.5 align-top" data-label="Details">
-                          <DetailCell row={row} isExpanded={isExpanded} onToggle={() => setExpandedRow(isExpanded ? null : row.id)} />
+                          <DetailCell row={row} detail={expandedDetail} isExpanded={isExpanded} onToggle={() => setExpandedRow(isExpanded ? null : row.id)} />
                         </td>
                       </tr>
 
-                      {isExpanded && row.expandableDetail && (
+                      {isExpanded && expandedDetail && (
                         <tr className="details-row app-surface-subtle">
                           <td colSpan={5} className="px-4 py-4">
                             <div className="surface-panel diff-panel p-4">
@@ -349,11 +361,11 @@ export function ResultsTable({
                                 <span className="diff-panel-icon app-surface-accent flex h-6 w-6 items-center justify-center border font-mono text-[11px] uppercase">
                                   +
                                 </span>
-                                <p className="diff-panel-title meta-label app-text text-xs font-semibold">{row.expandableDetail.title}</p>
-                                <span className="diff-panel-count app-muted ml-auto text-xs">{row.expandableDetail.summary}</span>
+                                <p className="diff-panel-title meta-label app-text text-xs font-semibold">{expandedDetail.title}</p>
+                                <span className="diff-panel-count app-muted ml-auto text-xs">{expandedDetail.summary}</span>
                               </div>
-                              <div className={`grid gap-3 sm:grid-cols-1 ${row.expandableDetail.variant === 'differences' ? 'diff-grid lg:grid-cols-2' : 'detail-stack'}`}>
-                                {row.expandableDetail.panels.map((panel, panelIdx) => (
+                              <div className={`grid gap-3 sm:grid-cols-1 ${expandedDetail.variant === 'differences' ? 'diff-grid lg:grid-cols-2' : 'detail-stack'}`}>
+                                {expandedDetail.panels.map((panel, panelIdx) => (
                                   <DetailPanel key={panel.label ?? panelIdx} panel={panel} isMatch={row.resultType === 'match'} />
                                 ))}
                               </div>

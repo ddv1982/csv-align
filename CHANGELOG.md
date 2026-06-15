@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.92 - 2026-06-15
+
+- Quieted the column-selection lore so chosen fields keep their numbered blue trail without repeating the full order as a wrapped text wall beneath the chips.
+- Lightened the results trail by deferring paired-value inspection panels until a row is opened, trimming eager render work and memory pressure while keeping exports and focused result tests aligned.
+
 ## v2.1.91 - 2026-06-15
 
 - Upgraded the dependency lore in one trail, carrying the frontend through TypeScript 6 and the Rust stack through `thiserror` 2, `tower-http` 0.7, and the current Tauri 2.11 line while keeping the build, lint, and wrapper gates green.
