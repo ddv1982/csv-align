@@ -101,6 +101,27 @@ fn release_docs_list_all_enforced_version_metadata_files() {
     }
 }
 
+#[test]
+fn macos_release_build_keeps_dmg_bundling_ci_safe_and_verbose() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let workflow = fs::read_to_string(root.join(".github/workflows/release.yml"))
+        .expect("read release workflow");
+    let docs = fs::read_to_string(root.join("docs/releasing.md")).expect("read release docs");
+
+    assert!(
+        workflow.contains("TAURI_BUNDLER_DMG_IGNORE_CI: 'false'"),
+        "macOS release workflow should keep Tauri DMG bundling in CI-safe mode"
+    );
+    assert!(
+        workflow.contains("cargo tauri build --verbose --target ${{ matrix.target }}"),
+        "macOS release workflow should expose generated bundle_dmg.sh stderr"
+    );
+    assert!(
+        docs.contains("TAURI_BUNDLER_DMG_IGNORE_CI=false"),
+        "release docs should explain the macOS DMG CI setting"
+    );
+}
+
 struct ReleaseMetadataFixture {
     root: tempfile::TempDir,
     script_path: PathBuf,

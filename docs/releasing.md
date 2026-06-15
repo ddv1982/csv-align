@@ -68,6 +68,8 @@ cargo clippy -- -D warnings
 
 The release workflow requires App Store Connect API key authentication for macOS notarization. Apple ID/app-specific-password notarization is not supported in CI.
 
+macOS DMG creation runs through Tauri's generated `bundle_dmg.sh` after the `.app` is signed, notarized, and stapled. The workflow sets `TAURI_BUNDLER_DMG_IGNORE_CI=false` so the generated DMG script keeps its CI-safe behavior and does not try fragile Finder/AppleScript window styling on GitHub-hosted runners. The Tauri build also runs with `--verbose` so any future DMG failure includes the underlying `hdiutil` or script error instead of only Tauri's wrapper message.
+
 Configure these GitHub Actions secrets before pushing a release tag:
 
 - `APPLE_CERTIFICATE` — base64-encoded Developer ID Application `.p12` certificate

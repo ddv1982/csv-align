@@ -684,11 +684,12 @@ jobs:
         working-directory: src-tauri
         env:
           CSV_ALIGN_USE_PREBUILT_FRONTEND: '1'
+          TAURI_BUNDLER_DMG_IGNORE_CI: 'false'
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
         run: |
           rm -rf target/${{ matrix.target }}/release/bundle
-          cargo tauri build --target ${{ matrix.target }}
+          cargo tauri build --verbose --target ${{ matrix.target }}
 
       - name: Upload macOS package
         uses: softprops/action-gh-release@v2

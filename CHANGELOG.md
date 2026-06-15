@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.93 - 2026-06-15
+
+- Hardened the macOS release lore so Tauri's generated DMG trail keeps its CI-safe mode after notarized app stapling instead of wandering into fragile Finder automation on GitHub runners.
+- Made the next macOS packaging failure easier to read by running the Tauri release build verbosely and guarding the DMG workflow setting with release documentation and regression coverage.
+
 ## v2.1.92 - 2026-06-15
 
 - Quieted the column-selection lore so chosen fields keep their numbered blue trail without repeating the full order as a wrapped text wall beneath the chips.
