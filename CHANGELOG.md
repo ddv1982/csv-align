@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.91 - 2026-06-15
+
+- Upgraded the dependency lore in one trail, carrying the frontend through TypeScript 6 and the Rust stack through `thiserror` 2, `tower-http` 0.7, and the current Tauri 2.11 line while keeping the build, lint, and wrapper gates green.
+- Polished the comparison UX trail so narrow results read as labeled cards, ordered column pair choices stay visible while selecting, disabled actions explain their lock state, and the header no longer crowds small screens.
+
 ## v2.1.90 - 2026-06-14
 
 - Recast the browser-transport test lore so downloaded CSV and pair-order payloads prove their blob behavior without depending on a single JavaScript realm in CI.

@@ -23,18 +23,24 @@ function ColumnChipGroup({ label, columns, selectedColumns, onToggle }: {
       <div className="flex flex-wrap gap-2">
         {columns.map((column) => {
           const isSelected = selectedColumns.includes(column);
+          const selectedIndex = selectedColumns.indexOf(column);
           return (
             <button
               key={column}
               type="button"
               aria-pressed={isSelected}
               onClick={() => onToggle(column)}
-              className={`border px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`inline-flex items-center gap-2 border px-3 py-1.5 text-sm font-medium transition-colors ${
                  isSelected
-                  ? 'filter-chip-active'
-                  : 'filter-chip'
+                   ? 'filter-chip-active'
+                   : 'filter-chip'
                 }`}
             >
+              {isSelected && (
+                <span aria-hidden="true" className="selected-order-badge">
+                  {selectedIndex + 1}
+                </span>
+              )}
               {column}
             </button>
           );
@@ -47,10 +53,14 @@ function ColumnChipGroup({ label, columns, selectedColumns, onToggle }: {
 export function ColumnChipSelector({ title, columns, virtualColumns = [], selectedColumns, emptyHint, onToggle }: ColumnChipSelectorProps) {
   const visibleVirtualColumns = virtualColumns.filter((column) => !columns.includes(column));
   const hasVirtualColumns = visibleVirtualColumns.length > 0;
+  const selectedSummary = selectedColumns.length === 0
+    ? 'No columns selected yet.'
+    : `${selectedColumns.length} selected in order: ${selectedColumns.join(' -> ')}`;
 
   return (
     <div>
-      <h4 className="hud-label mb-3">{title}</h4>
+      <h4 className="hud-label mb-1">{title}</h4>
+      <p className="mb-3 text-xs font-semibold text-app-muted">{selectedColumns.length} selected</p>
       <div className="space-y-3">
         <ColumnChipGroup
           label={hasVirtualColumns ? 'Physical columns' : undefined}
@@ -67,6 +77,7 @@ export function ColumnChipSelector({ title, columns, virtualColumns = [], select
           />
         )}
       </div>
+      <p className="mt-3 text-xs text-app-muted">{selectedSummary}</p>
       {emptyHint && selectedColumns.length === 0 && (
         <p className="mt-2 text-xs text-app-muted">{emptyHint}</p>
       )}

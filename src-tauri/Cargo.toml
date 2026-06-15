@@ -1,29 +1,29 @@
 [package]
 name = "csv-align-app"
-version = "2.1.90"
+version = "2.1.91"
 edition = "2024"
 description = "CSV file comparison desktop application"
 license = "MIT"
 
 [build-dependencies]
-tauri-build = { version = "2.5.6", features = [] }
+tauri-build = { version = "2.6.2", features = [] }
 
 [dependencies]
-tauri = "2.10.3"
-tauri-plugin-dialog = "2.7.0"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-uuid = { version = "1.0", features = ["v4"] }
-thiserror = "1.0"
-anyhow = "1.0"
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+tauri = "2.11.2"
+tauri-plugin-dialog = "2.7.1"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"
+uuid = { version = "1.23.3", features = ["v4"] }
+thiserror = "2.0.18"
+anyhow = "1.0.102"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"] }
 
 # Import our core library for comparison logic
 csv-align = { path = ".." }
 
 [dev-dependencies]
-tauri = { version = "2.10.3", features = ["test"] }
+tauri = { version = "2.11.2", features = ["test"] }
 
 [features]
 default = ["custom-protocol"]

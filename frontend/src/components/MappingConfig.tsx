@@ -1,5 +1,5 @@
 import type { ChangeEvent } from 'react';
-import { useRef } from 'react';
+import { useId, useRef } from 'react';
 import type { ComparisonNormalizationConfig, FileLetter, MappingDto } from '../types/api';
 import { isTauri } from '../services/tauri';
 import type { AppFile, MappingSelectionState } from '../types/ui';
@@ -48,6 +48,7 @@ export function MappingConfig({
   onAutoPairComparisonColumns,
 }: MappingConfigProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const compareDisabledReasonId = useId();
   const { keyColumnsA, keyColumnsB, comparisonColumnsA, comparisonColumnsB } = selection;
 
   const updateSelection = (updates: Partial<MappingSelectionState>) => {
@@ -216,6 +217,7 @@ export function MappingConfig({
         <button
           onClick={handleCompare}
           disabled={!canCompare}
+          aria-describedby={!canCompare ? compareDisabledReasonId : undefined}
           className={`btn btn-success flex items-center gap-2 px-8 py-3 text-sm ${!canCompare ? 'cursor-not-allowed opacity-50' : ''}`}
         >
           <span aria-hidden="true">GO</span>
@@ -223,7 +225,7 @@ export function MappingConfig({
         </button>
       </div>
       {!canCompare && (
-        <p className="text-center text-sm text-app-warning">{compareDisabledMessage}</p>
+        <p id={compareDisabledReasonId} className="text-center text-sm text-app-warning">{compareDisabledMessage}</p>
       )}
     </div>
   );

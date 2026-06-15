@@ -325,18 +325,18 @@ export function ResultsTable({
                   return (
                     <Fragment key={row.id}>
                       <tr className={`transition-colors ${isExpanded ? 'app-surface-accent-strong' : 'bg-transparent app-surface-hover'}`} data-result-tone={row.badgeTone}>
-                        <td className="px-4 py-3.5 align-top">
+                        <td className="px-4 py-3.5 align-top" data-label="Type">
                           <span className={`badge tone-${row.badgeTone} inline-flex w-fit items-center gap-1.5 whitespace-nowrap border px-2.5 py-1 text-xs font-medium uppercase tracking-[0.12em] ${row.badge.bg} ${row.badge.text}`}>
                             <span className={`badge-dot h-1.5 w-1.5 shrink-0 ${row.badge.dot}`} aria-hidden="true" />
                             {row.badge.label}
                           </span>
                         </td>
-                        <td className="results-key-cell px-4 py-3.5 align-top">
+                        <td className="results-key-cell px-4 py-3.5 align-top" data-label="Key">
                           <KeyChip row={row} />
                         </td>
-                        <td className="px-4 py-3.5 align-top">{renderValueRows(row.fileAValues)}</td>
-                        <td className="px-4 py-3.5 align-top">{renderValueRows(row.fileBValues)}</td>
-                        <td className="px-4 py-3.5 align-top">
+                        <td className="px-4 py-3.5 align-top" data-label="File A Values">{renderValueRows(row.fileAValues)}</td>
+                        <td className="px-4 py-3.5 align-top" data-label="File B Values">{renderValueRows(row.fileBValues)}</td>
+                        <td className="px-4 py-3.5 align-top" data-label="Details">
                           <DetailCell row={row} isExpanded={isExpanded} onToggle={() => setExpandedRow(isExpanded ? null : row.id)} />
                         </td>
                       </tr>

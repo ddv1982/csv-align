@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { ClipboardDocumentCheckIcon, ClipboardDocumentIcon } from '../icons';
 
 interface PairPreviewProps {
@@ -29,6 +29,8 @@ export function PairPreview({
   onLoadPairOrder,
 }: PairPreviewProps) {
   const [copySucceeded, setCopySucceeded] = useState(false);
+  const saveReasonId = useId();
+  const copyReasonId = useId();
   const pairs = comparisonColumnsA
     .slice(0, comparisonColumnsB.length)
     .map((columnA, index) => {
@@ -44,11 +46,13 @@ export function PairPreview({
   const pairOrderText = pairs.map((pair) => pair.displayText).join('\n');
   const hasMismatchedCounts = comparisonColumnsA.length !== comparisonColumnsB.length;
   const hasPairOrderToSave = pairs.length > 0 && !hasMismatchedCounts && pairOrderKeySelectionValid;
-  const savePairOrderTitle = hasMismatchedCounts
+  const disabledPairOrderReason = hasMismatchedCounts
     ? 'Select the same number of comparison columns in both files before saving.'
     : !pairOrderKeySelectionValid
       ? 'Select the same number of row keys in both files before saving.'
-      : undefined;
+      : pairs.length === 0
+        ? 'Select at least one complete comparison pair before saving or copying.'
+        : undefined;
 
   useEffect(() => {
     if (!copySucceeded) {
@@ -116,7 +120,8 @@ export function PairPreview({
               <button
                 className={`btn btn-ghost px-2 py-1 text-xs ${!hasPairOrderToSave ? 'cursor-not-allowed opacity-50' : ''}`}
                 disabled={!hasPairOrderToSave}
-                title={savePairOrderTitle}
+                aria-describedby={!hasPairOrderToSave ? saveReasonId : undefined}
+                title={hasPairOrderToSave ? undefined : disabledPairOrderReason}
                 onClick={onSavePairOrder}
                 type="button"
               >
@@ -129,6 +134,7 @@ export function PairPreview({
                 aria-label={buttonLabel}
                 className={`btn btn-ghost px-2 py-1 text-xs ${copySucceeded ? 'text-app-success' : ''}`}
                 disabled={!hasPairOrderToSave}
+                aria-describedby={!hasPairOrderToSave ? copyReasonId : undefined}
                 onClick={handleCopy}
                 title={buttonLabel}
                 type="button"
@@ -159,6 +165,16 @@ export function PairPreview({
               <p className="mt-3 text-sm text-app-warning">
                 Select the same number of comparison columns in both files to run the comparison.
               </p>
+            )}
+            {!hasPairOrderToSave && disabledPairOrderReason && (
+              <p id={saveReasonId} className="mt-3 text-sm text-app-warning">
+                {disabledPairOrderReason}
+              </p>
+            )}
+            {!hasPairOrderToSave && disabledPairOrderReason && (
+              <span id={copyReasonId} className="sr-only">
+                {disabledPairOrderReason}
+              </span>
             )}
           </div>
         </section>
