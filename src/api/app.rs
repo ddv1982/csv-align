@@ -37,6 +37,7 @@ pub const TRANSPORT_PARITY_ROUTE_PATHS: &[&str] = &[
 ];
 
 const LOAD_CSV_BODY_LIMIT_BYTES: usize = MAX_CSV_FILE_BYTES * 2;
+const LOAD_COMPARISON_SNAPSHOT_BODY_LIMIT_BYTES: usize = MAX_CSV_FILE_BYTES * 4;
 
 /// Get the path to the built frontend assets directory.
 pub fn frontend_dist_path() -> io::Result<PathBuf> {
@@ -96,7 +97,9 @@ pub fn build_api_router(state: AppState) -> Router {
         )
         .route(
             LOAD_COMPARISON_SNAPSHOT_ROUTE,
-            post(handlers::load_comparison_snapshot),
+            post(handlers::load_comparison_snapshot).layer(DefaultBodyLimit::max(
+                LOAD_COMPARISON_SNAPSHOT_BODY_LIMIT_BYTES,
+            )),
         )
         .route(EXPORT_RESULTS_ROUTE, get(handlers::export_csv))
         .with_state(state)

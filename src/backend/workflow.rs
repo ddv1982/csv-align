@@ -19,7 +19,7 @@ use crate::comparison::{engine, mapping};
 use crate::data::{
     csv_loader, export as csv_export,
     json_fields::discover_virtual_headers,
-    types::{ComparisonConfig, CsvData, FileSide, RowComparisonResult},
+    types::{ColumnInfo, ComparisonConfig, CsvData, FileSide, RowComparisonResult},
 };
 use crate::presentation::responses::{
     CompareResponse, FileLoadResponse, SuggestMappingsResponse, compare_response,
@@ -36,6 +36,7 @@ pub enum CsvLoadSource {
 #[derive(Debug)]
 pub struct LoadedCsv {
     pub csv_data: CsvData,
+    pub columns: Vec<ColumnInfo>,
     pub response: FileLoadResponse,
 }
 
@@ -140,7 +141,11 @@ pub fn load_csv_workflow(
         row_count,
     );
 
-    Ok(LoadedCsv { csv_data, response })
+    Ok(LoadedCsv {
+        csv_data,
+        columns,
+        response,
+    })
 }
 
 fn validate_file_size(size: std::io::Result<u64>) -> Result<(), CsvAlignError> {
@@ -187,6 +192,47 @@ pub fn apply_csv_to_session(
         row_count,
     );
 
+    store_csv_in_session(session_data, file_letter, csv_data, columns);
+
+    response
+}
+
+pub fn apply_loaded_csv_for_session(
+    store: &SessionStore,
+    session_id: &str,
+    file_letter: FileSide,
+    loaded: LoadedCsv,
+) -> Result<FileLoadResponse, CsvAlignError> {
+    store
+        .with_session_mut(session_id, |session_data| {
+            apply_loaded_csv_to_session(session_data, file_letter, loaded)
+        })
+        .ok_or_else(session_not_found)
+}
+
+fn apply_loaded_csv_to_session(
+    session_data: &mut SessionData,
+    file_letter: FileSide,
+    loaded: LoadedCsv,
+) -> FileLoadResponse {
+    session_data.advance_data_revision();
+    let LoadedCsv {
+        csv_data,
+        columns,
+        response,
+    } = loaded;
+
+    store_csv_in_session(session_data, file_letter, csv_data, columns);
+
+    response
+}
+
+fn store_csv_in_session(
+    session_data: &mut SessionData,
+    file_letter: FileSide,
+    csv_data: CsvData,
+    columns: Vec<ColumnInfo>,
+) {
     if file_letter == FileSide::A {
         session_data.csv_a = Some(Arc::new(csv_data));
         session_data.columns_a = columns;
@@ -216,21 +262,6 @@ pub fn apply_csv_to_session(
             session_data.csv_b.as_deref(),
         );
     }
-
-    response
-}
-
-pub fn apply_loaded_csv_for_session(
-    store: &SessionStore,
-    session_id: &str,
-    file_letter: FileSide,
-    loaded: LoadedCsv,
-) -> Result<FileLoadResponse, CsvAlignError> {
-    store
-        .with_session_mut(session_id, |session_data| {
-            apply_csv_to_session(session_data, file_letter, loaded.csv_data)
-        })
-        .ok_or_else(session_not_found)
 }
 
 pub fn suggest_mappings_workflow(

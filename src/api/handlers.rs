@@ -156,11 +156,7 @@ pub async fn load_csv_file(
 
     let load_file_letter = file_letter.clone();
     let loaded = match run_blocking(move || {
-        load_csv_workflow(
-            &load_file_letter,
-            file_name,
-            CsvLoadSource::Bytes(bytes.to_vec()),
-        )
+        load_csv_workflow(&load_file_letter, file_name, CsvLoadSource::Bytes(bytes))
     })
     .await
     {
@@ -168,7 +164,6 @@ pub async fn load_csv_file(
         Err(error) => return error.into_response(),
     };
 
-    let expected_response = loaded.response.clone();
     let update_store = state.store.clone();
     let update_session_id = session_id.clone();
     let response = match run_blocking(move || {
@@ -181,7 +176,6 @@ pub async fn load_csv_file(
         Err(error) => return error.into_response(),
     };
 
-    debug_assert_eq!(response, expected_response);
     Json(response).into_response()
 }
 

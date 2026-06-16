@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.95 - 2026-06-17
+
+- Hardened the saved-snapshot lore so large browser reloads now travel through an explicit route limit instead of falling back to Axum's smaller default JSON gate.
+- Trimmed the CSV upload trail by carrying parsed column metadata into session storage without an extra byte clone or repeat scan, and captured the broader improvement map in the codebase-quality plan.
+
 ## v2.1.94 - 2026-06-16
 
 - Hardened the codebase-quality lore so desktop CSP, Tauri capability contracts, oversized CSV uploads, and idle in-memory sessions now fail through guarded, regression-covered trails instead of relying on ambient defaults.
