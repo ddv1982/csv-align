@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.94 - 2026-06-16
+
+- Hardened the codebase-quality lore so desktop CSP, Tauri capability contracts, oversized CSV uploads, and idle in-memory sessions now fail through guarded, regression-covered trails instead of relying on ambient defaults.
+- Reworked the comparison and results evidence trail so backend execution follows the fallible API, large result fixtures stay measurable before virtualization, and the restored quality plan ships with synchronized release metadata.
+
 ## v2.1.93 - 2026-06-15
 
 - Hardened the macOS release lore so Tauri's generated DMG trail keeps its CI-safe mode after notarized app stapling instead of wandering into fragile Finder automation on GitHub runners.

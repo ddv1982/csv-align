@@ -1,6 +1,6 @@
 use csv_align::backend::{
-    CompareRequest, CompareValidationError, CsvAlignError, CsvLoadSource, MappingRequest,
-    PairOrderSelection, SessionData, apply_csv_to_session, comparison_inputs,
+    CompareRequest, CompareValidationError, CsvAlignError, CsvLoadSource, MAX_CSV_FILE_BYTES,
+    MappingRequest, PairOrderSelection, SessionData, apply_csv_to_session, comparison_inputs,
     export_results_to_bytes, export_session_results_snapshot, load_comparison_snapshot_workflow,
     load_csv_workflow, load_pair_order_workflow, run_comparison, save_comparison_snapshot_workflow,
     save_pair_order_workflow,
@@ -97,6 +97,22 @@ fn load_csv_workflow_rejects_empty_csv_bytes() {
 
     assert!(matches!(error, CsvAlignError::BadInput(_)));
     assert_eq!(error.to_string(), "CSV file is empty");
+}
+
+#[test]
+fn load_csv_workflow_rejects_oversized_csv_bytes_before_parse() {
+    let error = load_csv_workflow(
+        "a",
+        Some("large.csv".to_string()),
+        CsvLoadSource::Bytes(vec![b'x'; MAX_CSV_FILE_BYTES + 1]),
+    )
+    .expect_err("oversized csv bytes should be rejected");
+
+    assert!(matches!(error, CsvAlignError::BadInput(_)));
+    assert_eq!(
+        error.to_string(),
+        "CSV file is too large; maximum supported size is 25 MiB"
+    );
 }
 
 #[test]

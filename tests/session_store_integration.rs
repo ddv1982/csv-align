@@ -1,11 +1,12 @@
 use csv_align::{
     backend::SessionStore,
-    data::types::{ColumnDataType, ColumnInfo},
+    data::types::{ColumnDataType, ColumnInfo, CsvData},
 };
 use std::{
     collections::HashSet,
     sync::{Arc, Barrier},
     thread,
+    time::Duration,
 };
 
 #[test]
@@ -113,6 +114,42 @@ fn session_store_deletion_updates_capacity_order() {
     assert_eq!(store.session_count(), 2);
     assert!(store.with_session(&session_b, |_| ()).is_some());
     assert!(store.with_session(&session_c, |_| ()).is_some());
+}
+
+#[test]
+fn session_store_evicts_idle_sessions_on_access() {
+    let store = SessionStore::with_limits(4, Duration::from_millis(1), 1024 * 1024);
+    let session_id = store.create();
+
+    thread::sleep(Duration::from_millis(5));
+
+    assert_eq!(store.session_count(), 0);
+    assert_eq!(store.with_session(&session_id, |_| ()), None);
+}
+
+#[test]
+fn session_store_evicts_least_recently_used_sessions_when_byte_budget_is_exceeded() {
+    let store = SessionStore::with_limits(4, Duration::from_secs(60), 32);
+    let old_session = store.create();
+    let protected_session = store.create();
+
+    store.with_session_mut(&old_session, |session| {
+        session.csv_a = Some(Arc::new(CsvData {
+            file_path: None,
+            headers: vec!["id".to_string()],
+            rows: vec![vec!["older-session-is-large".to_string()]],
+        }));
+    });
+    store.with_session_mut(&protected_session, |session| {
+        session.csv_a = Some(Arc::new(CsvData {
+            file_path: None,
+            headers: vec!["id".to_string()],
+            rows: vec![vec!["protected-session-is-large".to_string()]],
+        }));
+    });
+
+    assert_eq!(store.with_session(&old_session, |_| ()), None);
+    assert!(store.with_session(&protected_session, |_| ()).is_some());
 }
 
 #[test]

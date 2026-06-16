@@ -112,7 +112,14 @@ fn required_column_selections(
     }
 }
 
-/// Compare two CSV datasets based on configuration
+/// Compare two CSV datasets based on a prevalidated configuration.
+///
+/// Prefer [`try_compare_csv_data`] when the configuration comes from user input.
+///
+/// # Panics
+///
+/// Panics when the configuration references columns that are not present in the
+/// provided CSV headers.
 pub fn compare_csv_data(
     csv_a: &CsvData,
     csv_b: &CsvData,

@@ -26,6 +26,8 @@ use crate::presentation::responses::{
     file_load_response, suggest_mappings_response,
 };
 
+pub const MAX_CSV_FILE_BYTES: usize = 25 * 1024 * 1024;
+
 pub enum CsvLoadSource {
     FilePath(String),
     Bytes(Vec<u8>),
@@ -92,6 +94,7 @@ pub fn load_csv_workflow(
 
     let mut csv_data = match source {
         CsvLoadSource::FilePath(file_path) => {
+            validate_file_size(std::fs::metadata(&file_path).map(|metadata| metadata.len()))?;
             let mut file = std::fs::File::open(&file_path).map_err(|error| {
                 CsvAlignError::Io(std::io::Error::new(
                     error.kind(),
@@ -108,8 +111,12 @@ pub fn load_csv_workflow(
             csv_loader::load_csv_from_bytes(&bytes)
                 .map_err(|error| CsvAlignError::Parse(format!("Failed to load CSV: {error}")))?
         }
-        CsvLoadSource::Bytes(bytes) => csv_loader::load_csv_from_bytes(&bytes)
-            .map_err(|error| CsvAlignError::Parse(format!("Failed to parse CSV bytes: {error}")))?,
+        CsvLoadSource::Bytes(bytes) => {
+            validate_file_size(Ok(bytes.len() as u64))?;
+            csv_loader::load_csv_from_bytes(&bytes).map_err(|error| {
+                CsvAlignError::Parse(format!("Failed to parse CSV bytes: {error}"))
+            })?
+        }
     };
 
     if let Some(file_name) = file_name.filter(|value| !value.trim().is_empty()) {
@@ -134,6 +141,24 @@ pub fn load_csv_workflow(
     );
 
     Ok(LoadedCsv { csv_data, response })
+}
+
+fn validate_file_size(size: std::io::Result<u64>) -> Result<(), CsvAlignError> {
+    let size = size.map_err(|error| {
+        CsvAlignError::Io(std::io::Error::new(
+            error.kind(),
+            format!("Failed to inspect CSV file: {error}"),
+        ))
+    })?;
+
+    if size as usize > MAX_CSV_FILE_BYTES {
+        return Err(CsvAlignError::BadInput(format!(
+            "CSV file is too large; maximum supported size is {} MiB",
+            MAX_CSV_FILE_BYTES / 1024 / 1024
+        )));
+    }
+
+    Ok(())
 }
 
 pub fn apply_csv_to_session(
@@ -293,7 +318,8 @@ pub fn run_comparison(
         .into());
     }
 
-    let results = engine::compare_csv_data(csv_a, csv_b, &config);
+    let results = engine::try_compare_csv_data(csv_a, csv_b, &config)
+        .map_err(|error| CsvAlignError::Internal(format!("Comparison setup failed: {error}")))?;
     let summary = engine::generate_summary(&results, csv_a.rows.len(), csv_b.rows.len());
 
     Ok(CompareExecution {

@@ -1,5 +1,6 @@
 use axum::{
     Router,
+    extract::DefaultBodyLimit,
     routing::{delete, get, post},
 };
 use std::io;
@@ -7,6 +8,7 @@ use std::path::{Path, PathBuf};
 use tower_http::services::ServeDir;
 
 use super::{handlers, state::AppState};
+use crate::backend::MAX_CSV_FILE_BYTES;
 
 pub const CREATE_SESSION_ROUTE: &str = "/api/sessions";
 pub const DELETE_SESSION_ROUTE: &str = "/api/sessions/{session_id}";
@@ -33,6 +35,8 @@ pub const TRANSPORT_PARITY_ROUTE_PATHS: &[&str] = &[
     SAVE_COMPARISON_SNAPSHOT_ROUTE,
     LOAD_COMPARISON_SNAPSHOT_ROUTE,
 ];
+
+const LOAD_CSV_BODY_LIMIT_BYTES: usize = MAX_CSV_FILE_BYTES * 2;
 
 /// Get the path to the built frontend assets directory.
 pub fn frontend_dist_path() -> io::Result<PathBuf> {
@@ -78,7 +82,10 @@ pub fn build_api_router(state: AppState) -> Router {
         .route("/api/health", get(handlers::health_check))
         .route(CREATE_SESSION_ROUTE, post(handlers::create_session))
         .route(DELETE_SESSION_ROUTE, delete(handlers::delete_session))
-        .route(LOAD_CSV_ROUTE, post(handlers::load_csv_file))
+        .route(
+            LOAD_CSV_ROUTE,
+            post(handlers::load_csv_file).layer(DefaultBodyLimit::max(LOAD_CSV_BODY_LIMIT_BYTES)),
+        )
         .route(SUGGEST_MAPPINGS_ROUTE, post(handlers::suggest_mappings))
         .route(COMPARE_ROUTE, post(handlers::compare))
         .route(SAVE_PAIR_ORDER_ROUTE, post(handlers::save_pair_order))

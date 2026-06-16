@@ -2,19 +2,16 @@ use axum::{
     Router,
     body::{Body, to_bytes},
     http::{Request, StatusCode},
-    routing::post,
 };
-use csv_align::api::{handlers, state::AppState};
+use csv_align::{
+    api::{app::build_api_router, state::AppState},
+    backend::MAX_CSV_FILE_BYTES,
+};
 use serde_json::Value;
 use tower::ServiceExt;
 
 fn local_file_router(state: AppState) -> Router {
-    Router::new()
-        .route(
-            "/api/sessions/{session_id}/files/{file_letter}",
-            post(handlers::load_csv_file),
-        )
-        .with_state(state)
+    build_api_router(state)
 }
 
 fn multipart_request(uri: &str, boundary: &str, body: Vec<u8>) -> Request<Body> {
@@ -127,6 +124,32 @@ async fn local_file_loading_rejects_empty_csv_files() {
     let json = response_json(response).await;
     assert_eq!(json["code"], "bad_input");
     assert_eq!(json["error"], "CSV file is empty");
+}
+
+#[tokio::test]
+async fn local_file_loading_rejects_oversized_csv_files_with_typed_error() {
+    let state = AppState::new();
+    let session_id = state.create_session();
+    let boundary = "csv-align-boundary";
+    let request = multipart_request(
+        &format!("/api/sessions/{session_id}/files/a"),
+        boundary,
+        multipart_body(
+            boundary,
+            "too-large.csv",
+            &vec![b'x'; MAX_CSV_FILE_BYTES + 1],
+        ),
+    );
+
+    let response = local_file_router(state).oneshot(request).await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let json = response_json(response).await;
+    assert_eq!(json["code"], "bad_input");
+    assert_eq!(
+        json["error"],
+        "CSV file is too large; maximum supported size is 25 MiB"
+    );
 }
 
 #[tokio::test]

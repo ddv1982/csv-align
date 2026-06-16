@@ -585,6 +585,31 @@ test('updates sort state from the transition-driven header action', () => {
   expect(keyHeader).toHaveAttribute('aria-sort', 'ascending');
 });
 
+test('renders a repeatable large-results fixture without expanding detail panels eagerly', async () => {
+  const largeResults: ResultResponse[] = Array.from({ length: 120 }, (_, index) => ({
+    result_type: index % 2 === 0 ? 'match' : 'mismatch',
+    key: [`ROW-${index.toString().padStart(3, '0')}`],
+    values_a: [`File A ${index}`],
+    values_b: [`File B ${index}`],
+    duplicate_values_a: [],
+    duplicate_values_b: [],
+    differences: index % 2 === 0
+      ? []
+      : [{ column_a: 'name', column_b: 'display_name', value_a: `A ${index}`, value_b: `B ${index}` }],
+  }));
+
+  render(<ResultsTable results={largeResults} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
+
+  expect(screen.getByText('120 of 120 rows shown')).toBeInTheDocument();
+  expect(screen.getByText('Showing 120 results. Use filters, search, or sorting to narrow down.')).toBeInTheDocument();
+  expect(screen.queryByText('Paired Values')).not.toBeInTheDocument();
+
+  fireEvent.change(screen.getByLabelText('Search comparison results'), { target: { value: 'ROW-119' } });
+
+  await waitFor(() => expect(screen.getByText('1 of 120 rows shown')).toBeInTheDocument());
+  expect(screen.getByText('ROW-119')).toBeInTheDocument();
+});
+
 test('renders long diff column names with the larger wrapped header treatment', () => {
   render(<ResultsTable results={RESULTS} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
 

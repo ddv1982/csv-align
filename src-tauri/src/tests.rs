@@ -3,9 +3,24 @@ use super::*;
 use crate::commands::{export_results_html_to_path, export_results_to_path, load_csv};
 use csv_align::backend::{CompareRequest, CsvAlignError, MappingRequest, SuggestMappingsRequest};
 use csv_align::data::types::ComparisonNormalizationConfig;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::{env, fs};
 use tauri::Manager;
+
+fn read_json_fixture(path: &str) -> serde_json::Value {
+    serde_json::from_str(path).unwrap()
+}
+
+fn csp_directives(csp: &str) -> HashMap<&str, Vec<&str>> {
+    csp.split(';')
+        .filter_map(|directive| {
+            let mut tokens = directive.split_whitespace();
+            let name = tokens.next()?;
+            Some((name, tokens.collect::<Vec<_>>()))
+        })
+        .collect()
+}
 
 fn temp_output_path(test_name: &str) -> std::path::PathBuf {
     std::env::temp_dir().join(format!("csv-align-{test_name}-{}", uuid::Uuid::new_v4()))
@@ -19,6 +34,57 @@ fn frontend_tauri_command_map_matches_registered_backend_commands() {
         .collect::<Vec<_>>();
 
     assert_eq!(frontend_commands, REGISTERED_TAURI_COMMAND_NAMES);
+}
+
+#[test]
+fn tauri_config_defines_restrictive_content_security_policy() {
+    let config = read_json_fixture(include_str!("../tauri.conf.json"));
+    let security = &config["app"]["security"];
+    let csp = security["csp"].as_str().unwrap();
+    let dev_csp = security["devCsp"].as_str().unwrap();
+    let directives = csp_directives(csp);
+    let dev_directives = csp_directives(dev_csp);
+
+    assert_eq!(directives["default-src"], ["'self'"]);
+    assert_eq!(directives["script-src"], ["'self'"]);
+    assert_eq!(directives["object-src"], ["'none'"]);
+    assert_eq!(directives["frame-ancestors"], ["'none'"]);
+    assert_eq!(
+        directives["connect-src"],
+        ["'self'", "ipc:", "http://ipc.localhost"]
+    );
+    assert!(!directives.values().flatten().any(|source| *source == "*"));
+    assert!(dev_directives["connect-src"].contains(&"http://localhost:5173"));
+    assert!(dev_directives["connect-src"].contains(&"ws://localhost:5173"));
+}
+
+#[test]
+fn tauri_capability_is_limited_to_app_window_labels_and_required_permissions() {
+    let capability = read_json_fixture(include_str!("../capabilities/default.json"));
+    let windows = capability["windows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|window| window.as_str().unwrap())
+        .collect::<Vec<_>>();
+    let permissions = capability["permissions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|permission| permission.as_str().unwrap())
+        .collect::<Vec<_>>();
+
+    assert_eq!(windows, ["main", "app-*"]);
+    assert!(!windows.contains(&"*"));
+    assert_eq!(
+        permissions,
+        [
+            "core:default",
+            "core:webview:allow-create-webview-window",
+            "dialog:allow-open",
+            "dialog:allow-save"
+        ]
+    );
 }
 
 #[test]

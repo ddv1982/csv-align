@@ -12,10 +12,10 @@ use crate::backend::parse_file_side;
 pub use crate::backend::{CompareRequest, MappingRequest, SessionResponse, SuggestMappingsRequest};
 use crate::backend::{
     CsvAlignError, CsvLoadSource, LoadComparisonSnapshotRequest, LoadPairOrderRequest,
-    SavePairOrderRequest, apply_loaded_csv_for_session, export_results_for_session,
-    load_comparison_snapshot_for_session, load_csv_workflow, load_pair_order_for_session,
-    run_comparison_for_session, save_comparison_snapshot_for_session, save_pair_order_for_session,
-    suggest_mappings_for_session,
+    MAX_CSV_FILE_BYTES, SavePairOrderRequest, apply_loaded_csv_for_session,
+    export_results_for_session, load_comparison_snapshot_for_session, load_csv_workflow,
+    load_pair_order_for_session, run_comparison_for_session, save_comparison_snapshot_for_session,
+    save_pair_order_for_session, suggest_mappings_for_session,
 };
 
 /// Response for health check
@@ -71,6 +71,29 @@ where
         .map_err(|error| CsvAlignError::Internal(format!("Blocking task failed: {error}")))?
 }
 
+async fn read_limited_multipart_file_bytes(
+    field: &mut axum::extract::multipart::Field<'_>,
+) -> Result<Vec<u8>, CsvAlignError> {
+    let mut bytes = Vec::new();
+
+    while let Some(chunk) = field
+        .chunk()
+        .await
+        .map_err(|error| CsvAlignError::BadInput(format!("Failed to read file: {error}")))?
+    {
+        if bytes.len().saturating_add(chunk.len()) > MAX_CSV_FILE_BYTES {
+            return Err(CsvAlignError::BadInput(format!(
+                "CSV file is too large; maximum supported size is {} MiB",
+                MAX_CSV_FILE_BYTES / 1024 / 1024
+            )));
+        }
+
+        bytes.extend_from_slice(&chunk);
+    }
+
+    Ok(bytes)
+}
+
 /// Health check endpoint
 #[tracing::instrument]
 pub async fn health_check() -> impl IntoResponse {
@@ -116,7 +139,7 @@ pub async fn load_csv_file(
         return session_not_found_response();
     }
 
-    let field = match multipart.next_field().await {
+    let mut field = match multipart.next_field().await {
         Ok(Some(field)) => field,
         Ok(None) => return CsvAlignError::BadInput("No file provided".to_string()).into_response(),
         Err(error) => {
@@ -126,12 +149,9 @@ pub async fn load_csv_file(
     };
 
     let file_name = field.file_name().map(str::to_string);
-    let bytes = match field.bytes().await {
+    let bytes = match read_limited_multipart_file_bytes(&mut field).await {
         Ok(bytes) => bytes,
-        Err(error) => {
-            return CsvAlignError::BadInput(format!("Failed to read file: {error}"))
-                .into_response();
-        }
+        Err(error) => return error.into_response(),
     };
 
     let load_file_letter = file_letter.clone();

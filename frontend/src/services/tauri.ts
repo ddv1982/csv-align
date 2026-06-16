@@ -28,6 +28,13 @@ import type {
 
 // Check if we're running in Tauri
 const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+const MAX_CSV_FILE_BYTES = 25 * 1024 * 1024;
+
+function validateCsvFileSize(file: File): void {
+  if (file.size > MAX_CSV_FILE_BYTES) {
+    throw new Error('CSV file is too large; maximum supported size is 25 MiB');
+  }
+}
 
 function isNotFoundError(error: unknown): boolean {
   if (typeof error !== 'object' || error === null) {
@@ -91,6 +98,7 @@ async function postJson<TResponse>(input: string, body: unknown, fallbackError: 
 }
 
 async function readFileBytes(file: File): Promise<number[]> {
+  validateCsvFileSize(file);
   return Array.from(new Uint8Array(await file.arrayBuffer()));
 }
 
@@ -170,6 +178,8 @@ export async function loadFile(
   if (!(file instanceof File)) {
     throw new Error('No CSV file selected');
   }
+
+  validateCsvFileSize(file);
 
   const formData = new FormData();
   formData.append('file', file);
