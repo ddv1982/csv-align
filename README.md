@@ -187,6 +187,7 @@ Top-level `tests/` is for public Rust integration coverage; frontend Vitest file
 
 ## Documentation
 
+- [Project wiki](https://github.com/ddv1982/csv-align/wiki)
 - [Auto-pairing](docs/auto-pairing.md)
 - [Release workflow](docs/releasing.md)
 - [Changelog](CHANGELOG.md)
