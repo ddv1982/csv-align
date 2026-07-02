@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.96 - 2026-07-02
+
+- Hardened the release-signing trail so macOS signing material is prepared only after third-party setup actions have finished, and release creation/uploads now use first-party `gh` shell steps instead of mutable third-party release actions.
+- Kept the APT signing path scoped to trusted shell execution while preserving cleanup before Pages publication and release asset upload.
+
 ## v2.1.95 - 2026-06-17
 
 - Hardened the saved-snapshot lore so large browser reloads now travel through an explicit route limit instead of falling back to Axum's smaller default JSON gate.

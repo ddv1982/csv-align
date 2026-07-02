@@ -178,14 +178,15 @@ jobs:
 
       - name: Create GitHub Release
         if: steps.release_exists.outputs.exists != 'true'
-        uses: softprops/action-gh-release@v2
-        with:
-          name: CSV Align ${{ github.ref_name }}
-          draft: true
-          prerelease: false
-          body_path: release-notes.md
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --repo "${{ github.repository }}" \
+            --title "CSV Align ${{ github.ref_name }}" \
+            --notes-file release-notes.md \
+            --draft \
+            --verify-tag
 
   build-release:
     name: Publish Release Assets
@@ -557,10 +558,13 @@ jobs:
         uses: actions/deploy-pages@v4
 
       - name: Upload Linux packages
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          files: |
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          shopt -s globstar nullglob
+
+          assets=(
             release-artifacts/**/*.deb
             release-artifacts/**/*.rpm
             release-artifacts/**/*.AppImage
@@ -568,8 +572,16 @@ jobs:
             csv-align-repository-setup_*.deb.sha256
             csv-align-repository-setup_*.deb.sha256.asc
             scripts/install-apt-repo.sh
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          )
+
+          if [ ${#assets[@]} -eq 0 ]; then
+            echo "No Linux release assets found to upload." >&2
+            exit 1
+          fi
+
+          gh release upload "${{ github.ref_name }}" "${assets[@]}" \
+            --repo "${{ github.repository }}" \
+            --clobber
 
   build-macos-release:
     name: Publish macOS Release Assets
@@ -590,6 +602,26 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+
+      - name: Download frontend dist artifact from CI
+        uses: actions/download-artifact@v6
+        with:
+          name: ${{ env.FRONTEND_DIST_ARTIFACT_NAME }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ needs.validate-release.outputs.ci_run_id }}
+          path: frontend/dist
+
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+            src-tauri -> src-tauri/target
+          key: tauri-release-${{ runner.os }}-${{ matrix.target }}
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --locked --version "^2"
 
       - name: Prepare Apple signing environment
         env:
@@ -660,26 +692,6 @@ jobs:
               env_file.write(f"APPLE_API_KEY_PATH={key_path.resolve()}\n")
           PY
 
-      - name: Download frontend dist artifact from CI
-        uses: actions/download-artifact@v6
-        with:
-          name: ${{ env.FRONTEND_DIST_ARTIFACT_NAME }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          repository: ${{ github.repository }}
-          run-id: ${{ needs.validate-release.outputs.ci_run_id }}
-          path: frontend/dist
-
-      - name: Setup Rust cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: |
-            . -> target
-            src-tauri -> src-tauri/target
-          key: tauri-release-${{ runner.os }}-${{ matrix.target }}
-
-      - name: Install Tauri CLI
-        run: cargo install tauri-cli --locked --version "^2"
-
       - name: Build Tauri app
         working-directory: src-tauri
         env:
@@ -692,12 +704,21 @@ jobs:
           cargo tauri build --verbose --target ${{ matrix.target }}
 
       - name: Upload macOS package
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          files: src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          assets=(src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg)
+          if [ ${#assets[@]} -eq 0 ]; then
+            echo "No macOS DMG assets found to upload." >&2
+            exit 1
+          fi
+
+          gh release upload "${{ github.ref_name }}" "${assets[@]}" \
+            --repo "${{ github.repository }}" \
+            --clobber
 
   publish-release:
     name: Publish Release
