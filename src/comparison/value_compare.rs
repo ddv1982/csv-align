@@ -28,13 +28,20 @@ fn values_match_with_config(
         (NormalizedValue::Null, NormalizedValue::Null) => true,
         (NormalizedValue::Null, _) | (_, NormalizedValue::Null) => false,
         (NormalizedValue::Text(a), NormalizedValue::Text(b)) => {
-            match (
-                serde_json::from_str::<Value>(&a),
-                serde_json::from_str::<Value>(&b),
-            ) {
-                (Ok(json_a), Ok(json_b)) => json_a == json_b,
-                _ => a == b,
+            // Structural equality applies only to JSON objects/arrays (virtual
+            // JSON fields); scalar values keep plain text comparison so their
+            // formatting differences stay visible.
+            if looks_like_json_container(&a)
+                && looks_like_json_container(&b)
+                && let (Ok(json_a), Ok(json_b)) = (
+                    serde_json::from_str::<Value>(&a),
+                    serde_json::from_str::<Value>(&b),
+                )
+            {
+                return json_a == json_b;
             }
+
+            a == b
         }
     }
 }
@@ -112,6 +119,13 @@ fn normalize_value(value: &str, normalization: &ComparisonNormalizationConfig) -
     }
 
     NormalizedValue::Text(normalized)
+}
+
+fn looks_like_json_container(value: &str) -> bool {
+    matches!(
+        value.trim_start().as_bytes().first(),
+        Some(b'{') | Some(b'[')
+    )
 }
 
 fn is_null_token(value: &str, normalization: &ComparisonNormalizationConfig) -> bool {

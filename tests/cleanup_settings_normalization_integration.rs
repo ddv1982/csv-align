@@ -134,6 +134,28 @@ fn cleanup_settings_keep_decimal_formatting_different_by_default() {
 }
 
 #[test]
+fn cleanup_settings_keep_json_parseable_scalars_different_by_default() {
+    let (csv_a, csv_b) = create_csv_pair("100.00", "100.0");
+    let config = create_config(ComparisonNormalizationConfig::default());
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    assert!(matches!(results[0], RowComparisonResult::Mismatch { .. }));
+}
+
+#[test]
+fn cleanup_settings_match_json_objects_regardless_of_member_order() {
+    let (csv_a, csv_b) = create_csv_pair(r#"{"a":1,"b":2}"#, r#"{"b":2,"a":1}"#);
+    let config = create_config(ComparisonNormalizationConfig::default());
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    assert!(matches!(results[0], RowComparisonResult::Match { .. }));
+}
+
+#[test]
 fn cleanup_settings_apply_numeric_equivalence_to_key_matching() {
     let csv_a = csv_data("left.csv", &["id", "value"], &[&["100", "same"]]);
     let csv_b = csv_data("right.csv", &["id", "value"], &[&["100.0", "same"]]);
