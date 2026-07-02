@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.97 - 2026-07-02
+
+- Hardened the comparison lore so structural JSON equality only walks true objects and arrays, saved snapshots reject virtual labels missing from their own metadata, desktop dialogs tell a cancelled trail apart from a saved one, and the pair-order copy path fails visibly instead of throwing into the void — while the decimal-trim setting keeps its behavior and is renamed to say what it actually does.
+- Cleared the performance trail so flexible-key matching builds its comparison plan once (dense key sets finish roughly twenty times faster), snapshot save and load plus large result tables no longer stall on the session lock or the DOM, desktop uploads cross the IPC boundary as raw bytes, and a dependency-and-CI hygiene pass pinned the Tauri toolchain, added a macOS wrapper gate, and collapsed duplicated request, load, and comparator trails.
+
 ## v2.1.96 - 2026-07-02
 
 - Hardened the release-signing trail so macOS signing material is prepared only after third-party setup actions have finished, and release creation/uploads now use first-party `gh` shell steps instead of mutable third-party release actions.

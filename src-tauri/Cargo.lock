@@ -514,7 +514,7 @@ dependencies = [
 
 [[package]]
 name = "csv-align"
-version = "2.1.96"
+version = "2.1.97"
 dependencies = [
  "axum",
  "chrono",
@@ -534,7 +534,7 @@ dependencies = [
 
 [[package]]
 name = "csv-align-app"
-version = "2.1.96"
+version = "2.1.97"
 dependencies = [
  "anyhow",
  "csv-align",
