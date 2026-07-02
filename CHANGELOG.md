@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.99 - 2026-07-02
+
+- Re-walked the release trail once more after the v2.1.98 gate caught the last straggler: the chunked results-table tests render hundreds of rows through jsdom, and slower CI runners need more than the default five seconds to finish that march.
+- Gave the two large-render frontend tests an explicit shared timeout so the chunking lore stays fully exercised on every runner speed, keeping all comparison and performance changes from the v2.1.97 trail intact.
+
 ## v2.1.98 - 2026-07-02
 
 - Re-ran the release trail after the v2.1.97 tag surfaced two CI-only failures, keeping every comparison, performance, and maintenance change from that trail intact.

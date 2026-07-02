@@ -3,6 +3,9 @@ import { expect, test } from 'vitest';
 import { ResultsTable } from './ResultsTable';
 import type { ResultResponse } from '../types/api';
 
+// Rendering hundreds of rows through jsdom exceeds the 5s default on slower CI runners.
+const LARGE_RENDER_TEST_TIMEOUT_MS = 20_000;
+
 const RESULTS: ResultResponse[] = [
   {
     result_type: 'missing_right',
@@ -633,7 +636,7 @@ test('renders very large result sets in chunks with a control to reveal more row
   fireEvent.click(screen.getByRole('button', { name: 'Show 50 more rows (50 remaining)' }));
   expect(screen.getAllByText(/^CHUNK-/)).toHaveLength(450);
   expect(screen.queryByRole('button', { name: /more rows/ })).not.toBeInTheDocument();
-});
+}, LARGE_RENDER_TEST_TIMEOUT_MS);
 
 test('resets the render window when the search query changes', async () => {
   const manyResults: ResultResponse[] = Array.from({ length: 250 }, (_, index) => ({
@@ -657,7 +660,7 @@ test('resets the render window when the search query changes', async () => {
   fireEvent.change(screen.getByLabelText('Search comparison results'), { target: { value: '' } });
   await waitFor(() => expect(screen.getByText('250 of 250 rows shown')).toBeInTheDocument());
   expect(screen.getAllByText(/^CHUNK-/)).toHaveLength(200);
-});
+}, LARGE_RENDER_TEST_TIMEOUT_MS);
 
 test('renders long diff column names with the larger wrapped header treatment', () => {
   render(<ResultsTable results={RESULTS} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
