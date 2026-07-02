@@ -23,7 +23,7 @@
 - Non-doc Rust changes should be rustfmt-clean before commit; CI runs `cargo fmt --check` on both Ubuntu and macOS.
 - CI also runs `cargo clippy -- -D warnings`, so new Rust warnings fail the build.
 - Release tags are `v*` only. The release workflow requires a matching `CHANGELOG.md` section with the exact heading format `## vX.Y.Z - YYYY-MM-DD`, or the GitHub Release job fails.
-- Real releases must bump version metadata in all of: `Cargo.toml`, `Cargo.lock`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json`, `frontend/package.json`, `frontend/package-lock.json`.
+- Real releases must bump version metadata in all of: `Cargo.toml`, `Cargo.lock`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json`, `src-tauri/appstream/com.csvalign.desktop.metainfo.xml`, `frontend/package.json`, `frontend/package-lock.json`.
 
 ## Commit Conventions
 - Use Conventional Commits. Allowed types: `feat`, `fix`, `refactor`, `chore`, `perf`, `docs`, `test`, `build`, `ci`.

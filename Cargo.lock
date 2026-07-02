@@ -268,7 +268,6 @@ dependencies = [
 name = "csv-align"
 version = "2.1.96"
 dependencies = [
- "anyhow",
  "axum",
  "chrono",
  "criterion",

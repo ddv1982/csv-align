@@ -2,6 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+  <!--
+    JIT and unsigned executable memory are granted for WKWebView's JavaScript
+    engine under the hardened runtime. Whether notarized builds still require
+    both on current macOS has not been re-verified; if a release is tested
+    without them and passes notarization plus a launch smoke test, remove
+    them. See docs/releasing.md.
+  -->
   <key>com.apple.security.cs.allow-jit</key>
   <true/>
   <key>com.apple.security.cs.allow-unsigned-executable-memory</key>

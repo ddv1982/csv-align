@@ -177,6 +177,30 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  test-tauri-macos:
+    name: Test Tauri Wrapper (macOS)
+    needs: changes
+    if: needs.changes.outputs.run_tauri_ci == 'true'
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            src-tauri -> src-tauri/target
+          key: tauri-test-${{ runner.os }}
+
+      - name: Run Tauri wrapper tests
+        working-directory: src-tauri
+        run: cargo test
+
   build-tauri:
     name: Build Tauri
     needs: [changes, test, validate-release-metadata, test-frontend]
@@ -242,7 +266,7 @@ jobs:
         run: cargo clippy -- -D warnings
 
       - name: Install Tauri CLI
-        run: cargo install tauri-cli --locked --version "^2"
+        run: cargo install tauri-cli --locked --version "2.11.3"
 
       - name: Build Tauri app
         working-directory: src-tauri

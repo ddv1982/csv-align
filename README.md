@@ -1,9 +1,9 @@
 # CSV Align
 
 ![Rust 2024](https://img.shields.io/badge/Rust-2024-b7410e?style=flat-square)
-![Tauri 2.10](https://img.shields.io/badge/Tauri-2.10-ffc131?style=flat-square)
+![Tauri 2.11](https://img.shields.io/badge/Tauri-2.11-ffc131?style=flat-square)
 ![React 19](https://img.shields.io/badge/React-19-61dafb?style=flat-square)
-![TypeScript 5.8](https://img.shields.io/badge/TypeScript-5.8-3178c6?style=flat-square)
+![TypeScript 6.0](https://img.shields.io/badge/TypeScript-6.0-3178c6?style=flat-square)
 ![Vite 8](https://img.shields.io/badge/Vite-8-646cff?style=flat-square)
 
 CSV Align is a desktop and web app for comparing two CSV files side by side.
@@ -113,7 +113,7 @@ Make sure you have already installed the frontend dependencies with `cd frontend
 Install the Tauri CLI first:
 
 ```bash
-cargo install tauri-cli --locked --version "^2"
+cargo install tauri-cli --locked --version "2.11.3"
 ```
 
 ```bash

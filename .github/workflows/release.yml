@@ -621,7 +621,7 @@ jobs:
           key: tauri-release-${{ runner.os }}-${{ matrix.target }}
 
       - name: Install Tauri CLI
-        run: cargo install tauri-cli --locked --version "^2"
+        run: cargo install tauri-cli --locked --version "2.11.3"
 
       - name: Prepare Apple signing environment
         env:
