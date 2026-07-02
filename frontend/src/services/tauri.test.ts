@@ -137,12 +137,17 @@ describe('transport helpers', () => {
       headers: ['record_id'],
       row_count: 2,
     });
-    expect(invokeMock).toHaveBeenCalledWith(TAURI_COMMANDS.loadCsvBytes, {
-      sessionId: 'session-2',
-      fileLetter: 'b',
-      fileName: 'tauri.csv',
-      fileBytes: [97, 98, 99],
-    });
+    expect(invokeMock).toHaveBeenCalledWith(
+      TAURI_COMMANDS.loadCsvBytes,
+      new Uint8Array([97, 98, 99]),
+      {
+        headers: {
+          'session-id': 'session-2',
+          'file-letter': 'b',
+          'file-name': 'tauri.csv',
+        },
+      },
+    );
   });
 
   test('loadFile rejects Tauri string paths before invoking the backend', async () => {

@@ -1,6 +1,7 @@
 use super::*;
 use crate::commands::{
-    export_results_to_path, load_comparison_snapshot_from_path, save_comparison_snapshot_to_path,
+    export_results_to_path, load_comparison_snapshot_from_path, load_csv_bytes_with_args,
+    save_comparison_snapshot_to_path,
 };
 use csv_align::backend::{CompareRequest, CsvAlignError, MappingRequest};
 use csv_align::data::types::ComparisonNormalizationConfig;
@@ -21,7 +22,7 @@ fn tauri_comparison_snapshot_commands_round_trip_saved_results() {
 
     let session_id = create_session(app.state::<Arc<SessionStore>>()).session_id;
 
-    load_csv_bytes(
+    load_csv_bytes_with_args(
         app.state::<Arc<SessionStore>>(),
         session_id.clone(),
         "a".to_string(),
@@ -30,7 +31,7 @@ fn tauri_comparison_snapshot_commands_round_trip_saved_results() {
     )
     .unwrap();
 
-    load_csv_bytes(
+    load_csv_bytes_with_args(
         app.state::<Arc<SessionStore>>(),
         session_id.clone(),
         "b".to_string(),

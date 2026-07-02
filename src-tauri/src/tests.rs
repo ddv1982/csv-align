@@ -1,6 +1,8 @@
 use super::test_support::REGISTERED_TAURI_COMMAND_NAMES;
 use super::*;
-use crate::commands::{export_results_html_to_path, export_results_to_path, load_csv};
+use crate::commands::{
+    export_results_html_to_path, export_results_to_path, load_csv, load_csv_bytes_with_args,
+};
 use csv_align::backend::{CompareRequest, CsvAlignError, MappingRequest, SuggestMappingsRequest};
 use csv_align::data::types::ComparisonNormalizationConfig;
 use std::collections::HashMap;
@@ -94,7 +96,7 @@ fn tauri_command_wrappers_compare_then_export_use_stored_comparison_labels() {
 
     let session_id = create_session(app.state::<Arc<SessionStore>>()).session_id;
 
-    load_csv_bytes(
+    load_csv_bytes_with_args(
         app.state::<Arc<SessionStore>>(),
         session_id.clone(),
         "a".to_string(),
@@ -103,7 +105,7 @@ fn tauri_command_wrappers_compare_then_export_use_stored_comparison_labels() {
     )
     .unwrap();
 
-    load_csv_bytes(
+    load_csv_bytes_with_args(
         app.state::<Arc<SessionStore>>(),
         session_id.clone(),
         "b".to_string(),
@@ -183,7 +185,7 @@ fn tauri_commands_share_the_backend_session_store() {
     });
     assert_eq!(observed, Some((true, true, 0, 0)));
 
-    load_csv_bytes(
+    load_csv_bytes_with_args(
         app.state::<Arc<SessionStore>>(),
         session_id.clone(),
         "a".to_string(),
@@ -257,7 +259,7 @@ fn tauri_load_csv_variants_reject_empty_csv_payloads() {
 
     let session_id = create_session(app.state::<Arc<SessionStore>>()).session_id;
 
-    let bytes_error = load_csv_bytes(
+    let bytes_error = load_csv_bytes_with_args(
         app.state::<Arc<SessionStore>>(),
         session_id.clone(),
         "a".to_string(),
@@ -297,7 +299,7 @@ fn tauri_load_csv_variants_return_base_file_name_in_response() {
 
     let session_id = create_session(app.state::<Arc<SessionStore>>()).session_id;
 
-    let bytes_response = load_csv_bytes(
+    let bytes_response = load_csv_bytes_with_args(
         app.state::<Arc<SessionStore>>(),
         session_id.clone(),
         "a".to_string(),
@@ -322,4 +324,17 @@ fn tauri_load_csv_variants_return_base_file_name_in_response() {
     .unwrap();
     fs::remove_file(&file_path).unwrap();
     assert_eq!(path_response.file_name, "picked-b.csv");
+}
+
+#[test]
+fn percent_decode_restores_non_ascii_file_names() {
+    use crate::commands::percent_decode;
+
+    assert_eq!(percent_decode("plain.csv"), "plain.csv");
+    assert_eq!(percent_decode("with%20space.csv"), "with space.csv");
+    assert_eq!(
+        percent_decode("r%C3%A9sultats%20d%27avril.csv"),
+        "résultats d'avril.csv"
+    );
+    assert_eq!(percent_decode("trailing%2"), "trailing%2");
 }

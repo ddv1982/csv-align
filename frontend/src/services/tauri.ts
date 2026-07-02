@@ -97,9 +97,9 @@ async function postJson<TResponse>(input: string, body: unknown, fallbackError: 
   }, fallbackError);
 }
 
-async function readFileBytes(file: File): Promise<number[]> {
+async function readFileBytes(file: File): Promise<Uint8Array> {
   validateCsvFileSize(file);
-  return Array.from(new Uint8Array(await file.arrayBuffer()));
+  return new Uint8Array(await file.arrayBuffer());
 }
 
 /** Desktop dialogs can be dismissed; browser flows never produce this value. */
@@ -172,11 +172,15 @@ export async function loadFile(
       throw new Error('Desktop path loading is disabled. Use Choose CSV so the file contents stay user-selected.');
     }
 
-    return invoke(TAURI_COMMANDS.loadCsvBytes, {
-      sessionId,
-      fileLetter,
-      fileName: file.name,
-      fileBytes: await readFileBytes(file),
+    // Raw IPC body: JSON-encoding the bytes as a number array multiplies the
+    // payload roughly eightfold for a 25 MiB file. Metadata rides in headers,
+    // percent-encoded because header values must stay ASCII.
+    return invoke(TAURI_COMMANDS.loadCsvBytes, await readFileBytes(file), {
+      headers: {
+        'session-id': sessionId,
+        'file-letter': fileLetter,
+        'file-name': encodeURIComponent(file.name),
+      },
     });
   }
 

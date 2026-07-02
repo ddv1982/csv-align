@@ -182,9 +182,36 @@ pub(crate) fn load_csv(
 }
 
 /// Load a CSV file from raw bytes (desktop/webview file selection)
+///
+/// The frontend sends the file contents as a raw IPC body with metadata in
+/// request headers. Serializing 25 MiB of bytes as a JSON number array made
+/// desktop uploads allocate and parse an order of magnitude more data.
 #[tauri::command]
-#[instrument(skip(state, file_bytes), fields(session_id = %session_id))]
+#[instrument(skip(state, request))]
 pub(crate) fn load_csv_bytes(
+    state: tauri::State<Arc<SessionStore>>,
+    request: tauri::ipc::Request<'_>,
+) -> Result<FileLoadResponse, CsvAlignError> {
+    let tauri::ipc::InvokeBody::Raw(file_bytes) = request.body() else {
+        return Err(CsvAlignError::BadInput(
+            "CSV upload must send the file contents as a raw request body".to_string(),
+        ));
+    };
+
+    let session_id = required_request_header(&request, "session-id")?;
+    let file_letter = required_request_header(&request, "file-letter")?;
+    let file_name = percent_decode(&required_request_header(&request, "file-name")?);
+
+    load_csv_bytes_with_args(
+        state,
+        session_id,
+        file_letter,
+        file_name,
+        file_bytes.clone(),
+    )
+}
+
+pub(crate) fn load_csv_bytes_with_args(
     state: tauri::State<Arc<SessionStore>>,
     session_id: String,
     file_letter: String,
@@ -200,6 +227,46 @@ pub(crate) fn load_csv_bytes(
     )?;
 
     apply_loaded_csv_for_session(state.inner().as_ref(), &session_id, file_side, loaded)
+}
+
+fn required_request_header(
+    request: &tauri::ipc::Request<'_>,
+    name: &'static str,
+) -> Result<String, CsvAlignError> {
+    request
+        .headers()
+        .get(name)
+        .and_then(|value| value.to_str().ok())
+        .map(str::to_owned)
+        .ok_or_else(|| CsvAlignError::BadInput(format!("Missing {name} header on CSV upload")))
+}
+
+/// Decode the percent-encoded file-name header; HTTP header values are
+/// ASCII-only while CSV file names are not.
+pub(crate) fn percent_decode(value: &str) -> String {
+    let bytes = value.as_bytes();
+    let mut decoded = Vec::with_capacity(bytes.len());
+    let mut index = 0;
+
+    while index < bytes.len() {
+        let is_escape = bytes[index] == b'%' && index + 2 < bytes.len();
+        let escaped = is_escape
+            .then(|| u8::from_str_radix(&value[index + 1..index + 3], 16).ok())
+            .flatten();
+
+        match escaped {
+            Some(byte) => {
+                decoded.push(byte);
+                index += 3;
+            }
+            None => {
+                decoded.push(bytes[index]);
+                index += 1;
+            }
+        }
+    }
+
+    String::from_utf8_lossy(&decoded).into_owned()
 }
 
 /// Get suggested column mappings

@@ -1,5 +1,7 @@
 use super::*;
-use crate::commands::{load_pair_order_from_path, save_pair_order_to_path};
+use crate::commands::{
+    load_csv_bytes_with_args, load_pair_order_from_path, save_pair_order_to_path,
+};
 use csv_align::backend::PairOrderSelection;
 use std::sync::Arc;
 use tauri::Manager;
@@ -18,7 +20,7 @@ fn tauri_pair_order_commands_round_trip_saved_selection() {
 
     let session_id = create_session(app.state::<Arc<SessionStore>>()).session_id;
 
-    load_csv_bytes(
+    load_csv_bytes_with_args(
         app.state::<Arc<SessionStore>>(),
         session_id.clone(),
         "a".to_string(),
@@ -27,7 +29,7 @@ fn tauri_pair_order_commands_round_trip_saved_selection() {
     )
     .unwrap();
 
-    load_csv_bytes(
+    load_csv_bytes_with_args(
         app.state::<Arc<SessionStore>>(),
         session_id.clone(),
         "b".to_string(),
