@@ -13,6 +13,8 @@ import {
   buildSuggestMappingsRoute,
 } from './apiRoutes';
 import { TAURI_COMMANDS } from './tauriCommands';
+import { validateCsvFileSize } from './contracts';
+import { errorMessageFromPayload, fetchBlob, fetchJson, postJson, readErrorMessage, readErrorPayload } from './http';
 import type { SelectedFileSource } from '../types/ui';
 import type {
   FileLoadResponse,
@@ -28,13 +30,6 @@ import type {
 
 // Check if we're running in Tauri
 const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
-const MAX_CSV_FILE_BYTES = 25 * 1024 * 1024;
-
-function validateCsvFileSize(file: File): void {
-  if (file.size > MAX_CSV_FILE_BYTES) {
-    throw new Error('CSV file is too large; maximum supported size is 25 MiB');
-  }
-}
 
 function isNotFoundError(error: unknown): boolean {
   if (typeof error !== 'object' || error === null) {
@@ -45,56 +40,6 @@ function isNotFoundError(error: unknown): boolean {
   return candidate.code === 'not_found'
     || candidate.error === 'Session not found'
     || candidate.message === 'Session not found';
-}
-
-type ErrorPayload = { code?: unknown; error?: unknown };
-
-async function readErrorPayload(response: Response): Promise<ErrorPayload | null> {
-  try {
-    return await response.json() as ErrorPayload;
-  } catch {
-    return null;
-  }
-}
-
-function errorMessageFromPayload(payload: ErrorPayload | null, fallback: string): string {
-  if (typeof payload?.error === 'string' && payload.error.trim().length > 0) {
-    return payload.error;
-  }
-
-  return fallback;
-}
-
-async function readErrorMessage(response: Response, fallback: string): Promise<string> {
-  return errorMessageFromPayload(await readErrorPayload(response), fallback);
-}
-
-async function fetchJson<T>(input: string, init: RequestInit, fallbackError: string): Promise<T> {
-  const response = await fetch(input, init);
-
-  if (!response.ok) {
-    throw new Error(await readErrorMessage(response, fallbackError));
-  }
-
-  return response.json() as Promise<T>;
-}
-
-async function fetchBlob(input: string, init: RequestInit, fallbackError: string): Promise<Blob> {
-  const response = await fetch(input, init);
-
-  if (!response.ok) {
-    throw new Error(await readErrorMessage(response, fallbackError));
-  }
-
-  return response.blob();
-}
-
-async function postJson<TResponse>(input: string, body: unknown, fallbackError: string): Promise<TResponse> {
-  return fetchJson<TResponse>(input, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  }, fallbackError);
 }
 
 async function readFileBytes(file: File): Promise<Uint8Array> {

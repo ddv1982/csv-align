@@ -392,11 +392,7 @@ fn compare_key_groups_flexible(
         .iter()
         .filter_map(|(key, keyed_rows)| (!matched_a.contains(key)).then_some(keyed_rows))
         .collect();
-    unmatched_a.sort_by(|left, right| {
-        left.first_index
-            .cmp(&right.first_index)
-            .then(left.normalized_key.cmp(&right.normalized_key))
-    });
+    unmatched_a.sort_by(|left, right| compare_keyed_rows(left, right));
     for keyed_rows_a in unmatched_a {
         push_unmatched_a_results(results, keyed_rows_a, context);
     }
@@ -405,11 +401,7 @@ fn compare_key_groups_flexible(
         .iter()
         .filter_map(|(key, keyed_rows)| (!matched_b.contains(key)).then_some(keyed_rows))
         .collect();
-    unmatched_b.sort_by(|left, right| {
-        left.first_index
-            .cmp(&right.first_index)
-            .then(left.normalized_key.cmp(&right.normalized_key))
-    });
+    unmatched_b.sort_by(|left, right| compare_keyed_rows(left, right));
     for keyed_rows_b in unmatched_b {
         push_unmatched_b_results(results, keyed_rows_b, context);
     }

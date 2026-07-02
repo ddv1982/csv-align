@@ -1,6 +1,6 @@
 use std::borrow::Borrow;
 use std::io::Read;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 
 use super::comparison_snapshot::{
@@ -47,27 +47,22 @@ fn session_not_found() -> CsvAlignError {
     }
 }
 
+fn base_file_name(value: &str) -> Option<String> {
+    Path::new(value)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .map(str::to_owned)
+}
+
 fn file_name_from_source(file_name: Option<&str>, source: &CsvLoadSource) -> String {
-    if let Some(file_name) = file_name
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .and_then(|value| {
-            Path::new(value)
-                .file_name()
-                .and_then(|name| name.to_str())
-                .map(str::to_owned)
-                .or_else(|| Some(value.to_owned()))
-        })
-    {
-        return file_name;
+    if let Some(name) = file_name.map(str::trim).filter(|value| !value.is_empty()) {
+        return base_file_name(name).unwrap_or_else(|| name.to_owned());
     }
 
     match source {
-        CsvLoadSource::FilePath(file_path) => PathBuf::from(file_path)
-            .file_name()
-            .and_then(|name| name.to_str())
-            .map(str::to_owned)
-            .unwrap_or_else(|| file_path.clone()),
+        CsvLoadSource::FilePath(file_path) => {
+            base_file_name(file_path).unwrap_or_else(|| file_path.clone())
+        }
         CsvLoadSource::Bytes(_) => String::new(),
     }
 }
@@ -129,24 +124,31 @@ pub fn load_csv_workflow(
         return Err(CsvAlignError::BadInput("CSV file is empty".to_string()));
     }
 
+    Ok(build_loaded_csv(file_side, response_file_name, csv_data))
+}
+
+/// Compute the response metadata (virtual headers, column types) for a CSV
+/// exactly once; `LoadedCsv` carries it so applying the file to a session does
+/// not repeat the discovery scans.
+fn build_loaded_csv(file_side: FileSide, file_name: String, csv_data: CsvData) -> LoadedCsv {
     let headers = csv_data.headers.clone();
     let virtual_headers = discover_virtual_headers(&csv_data);
     let columns = csv_loader::detect_columns(&csv_data);
     let row_count = csv_data.rows.len();
     let response = file_load_response(
         file_side,
-        response_file_name,
+        file_name,
         headers,
         virtual_headers,
         &columns,
         row_count,
     );
 
-    Ok(LoadedCsv {
+    LoadedCsv {
         csv_data,
         columns,
         response,
-    })
+    }
 }
 
 fn validate_file_size(size: std::io::Result<u64>) -> Result<(), CsvAlignError> {
@@ -172,30 +174,14 @@ pub fn apply_csv_to_session(
     file_letter: FileSide,
     csv_data: CsvData,
 ) -> FileLoadResponse {
-    session_data.advance_data_revision();
-
     let file_name = csv_data
         .file_path
         .as_deref()
-        .and_then(|path| Path::new(path).file_name().and_then(|name| name.to_str()))
-        .map(str::to_owned)
+        .and_then(base_file_name)
         .unwrap_or_default();
-    let headers = csv_data.headers.clone();
-    let virtual_headers = discover_virtual_headers(&csv_data);
-    let columns = csv_loader::detect_columns(&csv_data);
-    let row_count = csv_data.rows.len();
-    let response = file_load_response(
-        file_letter,
-        file_name,
-        headers,
-        virtual_headers,
-        &columns,
-        row_count,
-    );
+    let loaded = build_loaded_csv(file_letter, file_name, csv_data);
 
-    store_csv_in_session(session_data, file_letter, csv_data, columns);
-
-    response
+    apply_loaded_csv_to_session(session_data, file_letter, loaded)
 }
 
 pub fn apply_loaded_csv_for_session(

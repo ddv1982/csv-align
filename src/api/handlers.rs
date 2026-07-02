@@ -12,7 +12,7 @@ use crate::backend::parse_file_side;
 pub use crate::backend::{CompareRequest, MappingRequest, SessionResponse, SuggestMappingsRequest};
 use crate::backend::{
     CsvAlignError, CsvLoadSource, LoadComparisonSnapshotRequest, LoadPairOrderRequest,
-    MAX_CSV_FILE_BYTES, SavePairOrderRequest, apply_loaded_csv_for_session,
+    MAX_CSV_FILE_BYTES, SavePairOrderRequest, SessionStore, apply_loaded_csv_for_session,
     export_results_for_session, load_comparison_snapshot_for_session, load_csv_workflow,
     load_pair_order_for_session, run_comparison_for_session, save_comparison_snapshot_for_session,
     save_pair_order_for_session, suggest_mappings_for_session,
@@ -45,10 +45,6 @@ fn attachment(content_type: &str, filename: &str, body: impl Into<Body>) -> Resp
     let headers = response.headers_mut();
     headers.insert(
         axum::http::header::CONTENT_TYPE,
-        axum::http::HeaderValue::from_static("application/octet-stream"),
-    );
-    headers.insert(
-        axum::http::header::CONTENT_TYPE,
         axum::http::HeaderValue::from_str(content_type)
             .unwrap_or_else(|_| axum::http::HeaderValue::from_static("application/octet-stream")),
     );
@@ -69,6 +65,26 @@ where
     task::spawn_blocking(f)
         .await
         .map_err(|error| CsvAlignError::Internal(format!("Blocking task failed: {error}")))?
+}
+
+/// Run a session-scoped workflow on the blocking pool, mapping missing
+/// sessions to the shared 404 response and other errors to their canonical
+/// HTTP shape. Every session handler shares this exact flow.
+async fn run_session_workflow<T>(
+    state: AppState,
+    session_id: String,
+    workflow: impl FnOnce(&SessionStore, &str) -> Result<T, CsvAlignError> + Send + 'static,
+) -> Result<T, Response>
+where
+    T: Send + 'static,
+{
+    let store = state.store.clone();
+    run_blocking(move || workflow(store.as_ref(), &session_id))
+        .await
+        .map_err(|error| match error {
+            CsvAlignError::NotFound { .. } => session_not_found_response(),
+            error => error.into_response(),
+        })
 }
 
 async fn read_limited_multipart_file_bytes(
@@ -186,10 +202,13 @@ pub async fn suggest_mappings(
     Path(session_id): Path<String>,
     Json(request): Json<SuggestMappingsRequest>,
 ) -> Response {
-    match suggest_mappings_for_session(state.store.as_ref(), &session_id, &request) {
+    match run_session_workflow(state, session_id, move |store, id| {
+        suggest_mappings_for_session(store, id, &request)
+    })
+    .await
+    {
         Ok(response) => Json(response).into_response(),
-        Err(CsvAlignError::NotFound { .. }) => session_not_found_response(),
-        Err(error) => error.into_response(),
+        Err(response) => response,
     }
 }
 
@@ -200,37 +219,23 @@ pub async fn compare(
     Path(session_id): Path<String>,
     Json(request): Json<CompareRequest>,
 ) -> Response {
-    let compare_store = state.store.clone();
-    let compare_session_id = session_id.clone();
-    let response = match run_blocking(move || {
-        run_comparison_for_session(compare_store.as_ref(), &compare_session_id, request)
+    match run_session_workflow(state, session_id, move |store, id| {
+        run_comparison_for_session(store, id, request)
     })
     .await
     {
-        Ok(response) => response,
-        Err(CsvAlignError::NotFound { .. }) => return session_not_found_response(),
-        Err(error) => return error.into_response(),
-    };
-
-    Json(response).into_response()
+        Ok(response) => Json(response).into_response(),
+        Err(response) => response,
+    }
 }
 
 /// Export comparison results as CSV
 #[tracing::instrument(skip(state), fields(session_id = %session_id))]
 pub async fn export_csv(State(state): State<AppState>, Path(session_id): Path<String>) -> Response {
-    let export_store = state.store.clone();
-    let export_session_id = session_id.clone();
-    let csv_content = match run_blocking(move || {
-        export_results_for_session(export_store.as_ref(), &export_session_id)
-    })
-    .await
-    {
-        Ok(bytes) => bytes,
-        Err(CsvAlignError::NotFound { .. }) => return session_not_found_response(),
-        Err(error) => return error.into_response(),
-    };
-
-    attachment("text/csv", "comparison-results.csv", csv_content)
+    match run_session_workflow(state, session_id, export_results_for_session).await {
+        Ok(csv_content) => attachment("text/csv", "comparison-results.csv", csv_content),
+        Err(response) => response,
+    }
 }
 
 #[tracing::instrument(skip(state, request), fields(session_id = %session_id))]
@@ -239,19 +244,14 @@ pub async fn save_pair_order(
     Path(session_id): Path<String>,
     Json(request): Json<SavePairOrderRequest>,
 ) -> Response {
-    let save_store = state.store.clone();
-    let save_session_id = session_id.clone();
-    let contents = match run_blocking(move || {
-        save_pair_order_for_session(save_store.as_ref(), &save_session_id, request.selection)
+    match run_session_workflow(state, session_id, move |store, id| {
+        save_pair_order_for_session(store, id, request.selection)
     })
     .await
     {
-        Ok(contents) => contents,
-        Err(CsvAlignError::NotFound { .. }) => return session_not_found_response(),
-        Err(error) => return error.into_response(),
-    };
-
-    attachment("text/plain; charset=utf-8", "pair-order.txt", contents)
+        Ok(contents) => attachment("text/plain; charset=utf-8", "pair-order.txt", contents),
+        Err(response) => response,
+    }
 }
 
 #[tracing::instrument(skip(state, request), fields(session_id = %session_id))]
@@ -260,19 +260,14 @@ pub async fn load_pair_order(
     Path(session_id): Path<String>,
     Json(request): Json<LoadPairOrderRequest>,
 ) -> Response {
-    let load_store = state.store.clone();
-    let load_session_id = session_id.clone();
-    let response = match run_blocking(move || {
-        load_pair_order_for_session(load_store.as_ref(), &load_session_id, &request.contents)
+    match run_session_workflow(state, session_id, move |store, id| {
+        load_pair_order_for_session(store, id, &request.contents)
     })
     .await
     {
-        Ok(response) => response,
-        Err(CsvAlignError::NotFound { .. }) => return session_not_found_response(),
-        Err(error) => return error.into_response(),
-    };
-
-    Json(response).into_response()
+        Ok(response) => Json(response).into_response(),
+        Err(response) => response,
+    }
 }
 
 #[tracing::instrument(skip(state), fields(session_id = %session_id))]
@@ -280,23 +275,14 @@ pub async fn save_comparison_snapshot(
     State(state): State<AppState>,
     Path(session_id): Path<String>,
 ) -> Response {
-    let save_store = state.store.clone();
-    let save_session_id = session_id.clone();
-    let contents = match run_blocking(move || {
-        save_comparison_snapshot_for_session(save_store.as_ref(), &save_session_id)
-    })
-    .await
-    {
-        Ok(contents) => contents,
-        Err(CsvAlignError::NotFound { .. }) => return session_not_found_response(),
-        Err(error) => return error.into_response(),
-    };
-
-    attachment(
-        "application/json; charset=utf-8",
-        "comparison-snapshot.json",
-        contents,
-    )
+    match run_session_workflow(state, session_id, save_comparison_snapshot_for_session).await {
+        Ok(contents) => attachment(
+            "application/json; charset=utf-8",
+            "comparison-snapshot.json",
+            contents,
+        ),
+        Err(response) => response,
+    }
 }
 
 #[tracing::instrument(skip(state, request), fields(session_id = %session_id))]
@@ -305,21 +291,12 @@ pub async fn load_comparison_snapshot(
     Path(session_id): Path<String>,
     Json(request): Json<LoadComparisonSnapshotRequest>,
 ) -> Response {
-    let load_store = state.store.clone();
-    let load_session_id = session_id.clone();
-    let response = match run_blocking(move || {
-        load_comparison_snapshot_for_session(
-            load_store.as_ref(),
-            &load_session_id,
-            &request.contents,
-        )
+    match run_session_workflow(state, session_id, move |store, id| {
+        load_comparison_snapshot_for_session(store, id, &request.contents)
     })
     .await
     {
-        Ok(response) => response,
-        Err(CsvAlignError::NotFound { .. }) => return session_not_found_response(),
-        Err(error) => return error.into_response(),
-    };
-
-    Json(response).into_response()
+        Ok(response) => Json(response).into_response(),
+        Err(response) => response,
+    }
 }
