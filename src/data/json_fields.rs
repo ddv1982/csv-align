@@ -112,6 +112,12 @@ pub fn label_has_physical_or_virtual_source(headers: &[String], label: &str) -> 
     resolve_column_selection(headers, label).is_some()
 }
 
+/// True when `label` resolves as a virtual (JSON-path) selection over `headers`,
+/// as opposed to naming a physical header directly.
+pub fn virtual_label_has_source(headers: &[String], label: &str) -> bool {
+    resolve_column_selection(headers, label).is_some_and(|selection| selection.path.is_some())
+}
+
 pub fn extract_selected_columns(row: &[String], selections: &[ColumnSelection]) -> Vec<String> {
     selections
         .iter()

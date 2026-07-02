@@ -214,6 +214,16 @@ pub(crate) fn validate_selected_columns_by_physical_or_virtual_source(
     headers: &[String],
     selected: &[String],
 ) -> Result<(), CompareValidationError> {
+    validate_selected_columns_allowed(selection, selected, |column| {
+        label_has_physical_or_virtual_source(headers, column)
+    })
+}
+
+pub(crate) fn validate_selected_columns_allowed(
+    selection: &'static str,
+    selected: &[String],
+    is_allowed: impl Fn(&str) -> bool,
+) -> Result<(), CompareValidationError> {
     if selected.is_empty() {
         return Err(CompareValidationError::EmptyColumns(selection));
     }
@@ -222,7 +232,7 @@ pub(crate) fn validate_selected_columns_by_physical_or_virtual_source(
         duplicates: duplicate_values(selected),
         missing: selected
             .iter()
-            .filter(|column| !label_has_physical_or_virtual_source(headers, column))
+            .filter(|column| !is_allowed(column))
             .cloned()
             .collect(),
     };

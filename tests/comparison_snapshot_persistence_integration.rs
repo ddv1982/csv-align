@@ -291,6 +291,49 @@ async fn comparison_snapshot_load_rejects_column_metadata_name_mismatches() {
 }
 
 #[tokio::test]
+async fn comparison_snapshot_load_rejects_virtual_labels_missing_from_virtual_headers() {
+    let mut contents = minimal_snapshot_contents();
+    contents["selection"]["comparison_columns_a"] = serde_json::json!(["name.first"]);
+    contents["mappings"][0]["file_a_column"] = serde_json::json!("name.first");
+
+    let load_response = load_snapshot_contents(contents).await;
+
+    assert_eq!(load_response.status(), StatusCode::BAD_REQUEST);
+    let body = response_text(load_response).await;
+    assert!(
+        body.contains("name.first"),
+        "expected the unknown virtual label to be reported, got: {body}"
+    );
+}
+
+#[tokio::test]
+async fn comparison_snapshot_load_rejects_virtual_headers_without_source_column() {
+    let mut contents = minimal_snapshot_contents();
+    contents["file_a"]["virtual_headers"] = serde_json::json!(["missing_column.field"]);
+
+    let load_response = load_snapshot_contents(contents).await;
+
+    assert_eq!(load_response.status(), StatusCode::BAD_REQUEST);
+    let body = response_text(load_response).await;
+    assert!(
+        body.contains("missing_column.field"),
+        "expected the malformed virtual header to be reported, got: {body}"
+    );
+}
+
+#[tokio::test]
+async fn comparison_snapshot_load_accepts_virtual_labels_listed_in_virtual_headers() {
+    let mut contents = minimal_snapshot_contents();
+    contents["file_a"]["virtual_headers"] = serde_json::json!(["name.first"]);
+    contents["selection"]["comparison_columns_a"] = serde_json::json!(["name.first"]);
+    contents["mappings"][0]["file_a_column"] = serde_json::json!("name.first");
+
+    let load_response = load_snapshot_contents(contents).await;
+
+    assert_eq!(load_response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
 async fn comparison_snapshot_load_response_uses_canonical_result_fields() {
     let state = AppState::new();
     let session_id = state.create_session();

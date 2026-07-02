@@ -9,10 +9,10 @@ use crate::backend::requests::{
     PairOrderSelection,
 };
 use crate::backend::session::SessionData;
-use crate::backend::validation::validate_selected_columns_by_physical_or_virtual_source;
+use crate::backend::validation::validate_selected_columns_allowed;
 use crate::comparison::engine;
 use crate::data::csv_loader;
-use crate::data::json_fields::{discover_virtual_headers, label_has_physical_or_virtual_source};
+use crate::data::json_fields::{discover_virtual_headers, virtual_label_has_source};
 use crate::data::types::{
     ColumnInfo, ColumnMapping, ComparisonConfig, ComparisonNormalizationConfig, CsvData,
     MappingKind, MappingType, ResultType, RowComparisonResult, ValueDifference,
@@ -298,14 +298,14 @@ fn validate_snapshot(snapshot: &SnapshotV1) -> Result<(), CsvAlignError> {
     validate_snapshot_file_metadata("File B", &snapshot.file_b)?;
 
     validate_selection(
-        &snapshot.file_a.headers,
-        &snapshot.file_b.headers,
+        &snapshot.file_a,
+        &snapshot.file_b,
         &snapshot.selection,
         &snapshot.normalization,
     )?;
     validate_mappings(
-        &snapshot.file_a.headers,
-        &snapshot.file_b.headers,
+        &snapshot.file_a,
+        &snapshot.file_b,
         &snapshot.selection,
         &snapshot.mappings,
     )?;
@@ -356,33 +356,46 @@ fn validate_snapshot_file_metadata(
         }
     }
 
+    for virtual_header in &file.virtual_headers {
+        if !virtual_label_has_source(&file.headers, virtual_header) {
+            return Err(CsvAlignError::BadInput(format!(
+                "Saved snapshot {file_label} virtual header {virtual_header} does not resolve to a JSON path on a saved column"
+            )));
+        }
+    }
+
     Ok(())
 }
 
+fn saved_label_allowed(file: &SnapshotFileV1, label: &str) -> bool {
+    file.headers.iter().any(|header| header == label)
+        || file.virtual_headers.iter().any(|header| header == label)
+}
+
 fn validate_selection(
-    headers_a: &[String],
-    headers_b: &[String],
+    file_a: &SnapshotFileV1,
+    file_b: &SnapshotFileV1,
     selection: &SelectionV1,
     normalization: &ComparisonNormalizationConfig,
 ) -> Result<(), CsvAlignError> {
     validate_saved_selected_columns(
         "Saved snapshot key columns for File A",
-        headers_a,
+        file_a,
         &selection.key_columns_a,
     )?;
     validate_saved_selected_columns(
         "Saved snapshot key columns for File B",
-        headers_b,
+        file_b,
         &selection.key_columns_b,
     )?;
     validate_saved_selected_columns(
         "Saved snapshot comparison columns for File A",
-        headers_a,
+        file_a,
         &selection.comparison_columns_a,
     )?;
     validate_saved_selected_columns(
         "Saved snapshot comparison columns for File B",
-        headers_b,
+        file_b,
         &selection.comparison_columns_b,
     )?;
 
@@ -407,16 +420,21 @@ fn validate_selection(
 
 fn validate_saved_selected_columns(
     label: &'static str,
-    headers: &[String],
+    file: &SnapshotFileV1,
     selected_columns: &[String],
 ) -> Result<(), CsvAlignError> {
-    validate_selected_columns_by_physical_or_virtual_source(label, headers, selected_columns)
-        .map_err(saved_selection_validation_error)
+    // Persisted selections may only reference physical headers or virtual
+    // headers that the snapshot itself declares; a virtual-looking label whose
+    // source column merely exists is not enough.
+    validate_selected_columns_allowed(label, selected_columns, |column| {
+        saved_label_allowed(file, column)
+    })
+    .map_err(saved_selection_validation_error)
 }
 
 fn validate_mappings(
-    headers_a: &[String],
-    headers_b: &[String],
+    file_a: &SnapshotFileV1,
+    file_b: &SnapshotFileV1,
     selection: &SelectionV1,
     mappings: &[MappingV1],
 ) -> Result<(), CsvAlignError> {
@@ -447,14 +465,14 @@ fn validate_mappings(
     let mut seen_b = HashSet::new();
 
     for mapping in mappings {
-        if !label_has_physical_or_virtual_source(headers_a, &mapping.file_a_column) {
+        if !saved_label_allowed(file_a, &mapping.file_a_column) {
             return Err(CsvAlignError::BadInput(format!(
                 "Saved snapshot mappings reference missing File A column: {}",
                 mapping.file_a_column
             )));
         }
 
-        if !label_has_physical_or_virtual_source(headers_b, &mapping.file_b_column) {
+        if !saved_label_allowed(file_b, &mapping.file_b_column) {
             return Err(CsvAlignError::BadInput(format!(
                 "Saved snapshot mappings reference missing File B column: {}",
                 mapping.file_b_column
