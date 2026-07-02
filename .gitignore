@@ -69,3 +69,6 @@ yarn-error.log*
 # src-tauri/icons/*.icns
 # src-tauri/icons/*.ico
 # src-tauri/icons/*.svg
+
+# Stray root-level node_modules (tooling occasionally resolves here)
+node_modules/
