@@ -610,6 +610,55 @@ test('renders a repeatable large-results fixture without expanding detail panels
   expect(screen.getByText('ROW-119')).toBeInTheDocument();
 });
 
+test('renders very large result sets in chunks with a control to reveal more rows', () => {
+  const manyResults: ResultResponse[] = Array.from({ length: 450 }, (_, index) => ({
+    result_type: 'match',
+    key: [`CHUNK-${index.toString().padStart(3, '0')}`],
+    values_a: ['same'],
+    values_b: ['same'],
+    duplicate_values_a: [],
+    duplicate_values_b: [],
+    differences: [],
+  }));
+
+  render(<ResultsTable results={manyResults} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
+
+  expect(screen.getByText('450 of 450 rows shown')).toBeInTheDocument();
+  expect(screen.getAllByText(/^CHUNK-/)).toHaveLength(200);
+  expect(screen.getByText('Showing 200 of 450 results. Use filters, search, or sorting to narrow down.')).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Show 200 more rows (250 remaining)' }));
+  expect(screen.getAllByText(/^CHUNK-/)).toHaveLength(400);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Show 50 more rows (50 remaining)' }));
+  expect(screen.getAllByText(/^CHUNK-/)).toHaveLength(450);
+  expect(screen.queryByRole('button', { name: /more rows/ })).not.toBeInTheDocument();
+});
+
+test('resets the render window when the search query changes', async () => {
+  const manyResults: ResultResponse[] = Array.from({ length: 250 }, (_, index) => ({
+    result_type: 'match',
+    key: [`CHUNK-${index.toString().padStart(3, '0')}`],
+    values_a: ['same'],
+    values_b: ['same'],
+    duplicate_values_a: [],
+    duplicate_values_b: [],
+    differences: [],
+  }));
+
+  render(<ResultsTable results={manyResults} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Show 50 more rows (50 remaining)' }));
+  expect(screen.getAllByText(/^CHUNK-/)).toHaveLength(250);
+
+  fireEvent.change(screen.getByLabelText('Search comparison results'), { target: { value: 'CHUNK-1' } });
+  await waitFor(() => expect(screen.getByText('100 of 250 rows shown')).toBeInTheDocument());
+
+  fireEvent.change(screen.getByLabelText('Search comparison results'), { target: { value: '' } });
+  await waitFor(() => expect(screen.getByText('250 of 250 rows shown')).toBeInTheDocument());
+  expect(screen.getAllByText(/^CHUNK-/)).toHaveLength(200);
+});
+
 test('renders long diff column names with the larger wrapped header treatment', () => {
   render(<ResultsTable results={RESULTS} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
 

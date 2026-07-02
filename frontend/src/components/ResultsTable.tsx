@@ -23,6 +23,10 @@ import { ChevronRightIcon, MagnifyingGlassIcon, RectangleStackIcon } from './ico
 import { SearchFieldPicker } from './results/SearchFieldPicker';
 import { SectionCard } from './ui/SectionCard';
 
+/// Rows rendered per chunk. Large comparisons stay responsive because the DOM
+/// only grows when the user explicitly asks for more rows.
+const RENDER_CHUNK = 200;
+
 interface ResultsTableProps {
   results: ResultResponse[];
   filter?: ResultFilter;
@@ -202,6 +206,17 @@ export function ResultsTable({
     [deferredQuery, filter, normalizedSearchFieldId, resultRows, sortColumn, sortDirection],
   );
 
+  // Reset the render window whenever the visible set changes shape; adjusting
+  // state during render avoids an extra effect-driven render pass.
+  const renderWindowKey = `${deferredQuery}|${filter}|${normalizedSearchFieldId}|${sortColumn}|${sortDirection}`;
+  const [renderWindow, setRenderWindow] = useState({ key: renderWindowKey, limit: RENDER_CHUNK });
+  if (renderWindow.key !== renderWindowKey) {
+    setRenderWindow({ key: renderWindowKey, limit: RENDER_CHUNK });
+  }
+  const renderLimit = renderWindow.key === renderWindowKey ? renderWindow.limit : RENDER_CHUNK;
+  const renderedResults = visibleResults.slice(0, renderLimit);
+  const remainingCount = visibleResults.length - renderedResults.length;
+
   const handleSearchQueryChange = (nextQuery: string) => {
     setQuery(nextQuery);
     setExpandedRow(null);
@@ -328,7 +343,7 @@ export function ResultsTable({
                 </tr>
               </thead>
               <tbody className="divide-y divide-app-border">
-                {visibleResults.map((row: ResultRowViewModel) => {
+                {renderedResults.map((row: ResultRowViewModel) => {
                   const isExpanded = expandedRow === row.id;
                   const expandedDetail = isExpanded
                     ? buildExpandableDetail(row.result, row.fileAValues, row.fileBValues, comparisonColumns)
@@ -386,7 +401,20 @@ export function ResultsTable({
           </div>
         )}
 
-        {visibleResults.length > 50 && (
+        {remainingCount > 0 ? (
+          <div className="app-surface-subtle border-t border-app-border px-4 py-3 text-center">
+            <button
+              type="button"
+              className="btn btn-ghost px-3 py-1.5 text-sm"
+              onClick={() => setRenderWindow({ key: renderWindowKey, limit: renderLimit + RENDER_CHUNK })}
+            >
+              Show {Math.min(RENDER_CHUNK, remainingCount)} more rows ({remainingCount} remaining)
+            </button>
+            <p className="app-muted mt-2 text-sm">
+              Showing {renderedResults.length} of {visibleResults.length} results. Use filters, search, or sorting to narrow down.
+            </p>
+          </div>
+        ) : visibleResults.length > 50 && (
           <div className="app-surface-subtle border-t border-app-border px-4 py-3 text-center">
             <p className="app-muted text-sm">Showing {visibleResults.length} results. Use filters, search, or sorting to narrow down.</p>
           </div>
