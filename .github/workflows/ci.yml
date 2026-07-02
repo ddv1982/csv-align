@@ -197,6 +197,15 @@ jobs:
             src-tauri -> src-tauri/target
           key: tauri-test-${{ runner.os }}
 
+      # The wrapper tests compile main.rs, whose generate_context! macro
+      # requires frontendDist to exist. These tests use a mock app and never
+      # serve the UI, so a placeholder satisfies the macro without a full
+      # frontend build.
+      - name: Provide placeholder frontend assets
+        run: |
+          mkdir -p frontend/dist
+          printf '<!doctype html><title>csv-align test</title>' > frontend/dist/index.html
+
       - name: Run Tauri wrapper tests
         working-directory: src-tauri
         run: cargo test

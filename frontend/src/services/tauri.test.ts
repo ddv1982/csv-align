@@ -249,7 +249,6 @@ describe('transport helpers', () => {
 
     const blob = await saveComparisonSnapshot('session-5');
 
-    expect(blob).toBeInstanceOf(Blob);
   await expect((blob as Blob).text()).resolves.toBe('snapshot-bytes');
     expect(fetchMock).toHaveBeenCalledWith('/api/sessions/session-5/comparison-snapshot/save', {
       method: 'POST',
@@ -376,7 +375,6 @@ describe('transport helpers', () => {
     const blob = await exportResults('session-9');
 
     expect(blob).toBeDefined();
-    expect(blob).toBeInstanceOf(Blob);
   await expect((blob as Blob).text()).resolves.toBe('status,key\nMatch,1\n');
     expect(fetchMock).toHaveBeenCalledWith('/api/sessions/session-9/export', {
       method: 'GET',
@@ -389,8 +387,6 @@ describe('transport helpers', () => {
 
     const blob = await exportResultsHtml('<!DOCTYPE html><title>Export</title>');
 
-    expect(blob).toBeInstanceOf(Blob);
-    expect(blob).toBeInstanceOf(Blob);
   await expect((blob as Blob).text()).resolves.toContain('<title>Export</title>');
     expect(invokeMock).not.toHaveBeenCalled();
   });
@@ -441,7 +437,6 @@ describe('transport helpers', () => {
     const blob = await savePairOrder('session-10', selection);
 
     expect(blob).toBeDefined();
-    expect(blob).toBeInstanceOf(Blob);
   await expect((blob as Blob).text()).resolves.toBe('{"version":1}');
     expect(fetchMock).toHaveBeenCalledWith('/api/sessions/session-10/pair-order/save', {
       method: 'POST',

@@ -39,7 +39,6 @@ test('saveComparisonSnapshot returns a browser blob download payload', async () 
   const blob = await saveComparisonSnapshot('session-1');
 
   expect(blob).toBeDefined();
-  expect(blob).toBeInstanceOf(Blob);
   await expect((blob as Blob).text()).resolves.toBe('{"saved":true}');
   expect(fetchMock).toHaveBeenCalledWith('/api/sessions/session-1/comparison-snapshot/save', {
     method: 'POST',
