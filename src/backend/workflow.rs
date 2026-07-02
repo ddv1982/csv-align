@@ -15,6 +15,7 @@ use crate::backend::requests::{
 };
 use crate::backend::session::SessionData;
 use crate::backend::validation::build_comparison_config;
+use crate::comparison::engine::{FlexibleKeyExcess, FlexibleKeyLimits};
 use crate::comparison::{engine, mapping};
 use crate::data::{
     csv_loader, export as csv_export,
@@ -321,36 +322,28 @@ pub fn run_comparison(
     let csv_a = csv_a.borrow();
     let csv_b = csv_b.borrow();
     let config = build_comparison_config(csv_a, csv_b, request)?;
-    let flexible_comparison_count = engine::bounded_flexible_key_comparison_count(
-        csv_a,
-        csv_b,
-        &config,
-        engine::MAX_FLEXIBLE_KEY_COMPARISONS,
-    );
-    if flexible_comparison_count > engine::MAX_FLEXIBLE_KEY_COMPARISONS {
-        return Err(CompareValidationError::TooManyFlexibleKeyComparisons {
-            comparison_count: flexible_comparison_count,
-            limit: engine::MAX_FLEXIBLE_KEY_COMPARISONS,
-        }
-        .into());
-    }
-
-    let flexible_candidate_count = engine::bounded_flexible_key_candidate_count(
-        csv_a,
-        csv_b,
-        &config,
-        engine::MAX_FLEXIBLE_KEY_CANDIDATES,
-    );
-    if flexible_candidate_count > engine::MAX_FLEXIBLE_KEY_CANDIDATES {
-        return Err(CompareValidationError::TooManyFlexibleKeyCandidates {
-            candidate_count: flexible_candidate_count,
-            limit: engine::MAX_FLEXIBLE_KEY_CANDIDATES,
-        }
-        .into());
-    }
-
-    let results = engine::try_compare_csv_data(csv_a, csv_b, &config)
+    let plan = engine::ComparisonPlan::build(csv_a, csv_b, &config, FlexibleKeyLimits::DEFAULT)
         .map_err(|error| CsvAlignError::Internal(format!("Comparison setup failed: {error}")))?;
+
+    match plan.flexible_excess() {
+        Some(FlexibleKeyExcess::Comparisons(comparison_count)) => {
+            return Err(CompareValidationError::TooManyFlexibleKeyComparisons {
+                comparison_count,
+                limit: engine::MAX_FLEXIBLE_KEY_COMPARISONS,
+            }
+            .into());
+        }
+        Some(FlexibleKeyExcess::Candidates(candidate_count)) => {
+            return Err(CompareValidationError::TooManyFlexibleKeyCandidates {
+                candidate_count,
+                limit: engine::MAX_FLEXIBLE_KEY_CANDIDATES,
+            }
+            .into());
+        }
+        None => {}
+    }
+
+    let results = plan.execute(csv_a, csv_b, &config);
     let summary = engine::generate_summary(&results, csv_a.rows.len(), csv_b.rows.len());
 
     Ok(CompareExecution {

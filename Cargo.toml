@@ -28,6 +28,11 @@ parking_lot = "0.12.5"
 
 [dev-dependencies]
 tempfile = "3.27.0"
+criterion = "0.5"
+
+[[bench]]
+name = "flexible_key_matching"
+harness = false
 
 [[bin]]
 name = "csv-align"

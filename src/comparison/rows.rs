@@ -3,6 +3,7 @@ use super::super::data::json_fields::{
 };
 use super::super::data::types::CsvData;
 use super::value_compare::{normalize_display_value, normalize_key_value};
+use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 
 use crate::data::types::ComparisonNormalizationConfig;
@@ -92,9 +93,37 @@ impl FlexibleKeyMatch {
     }
 }
 
+/// Precomputed per-component token sets so classifying every A×B key pair does
+/// not re-tokenize the same components over and over.
+pub(super) struct KeyTokenCache {
+    sets: HashMap<String, KeyTokenSet>,
+}
+
+impl KeyTokenCache {
+    pub(super) fn for_keys<'a>(keys: impl Iterator<Item = &'a Vec<String>>) -> Self {
+        let mut sets = HashMap::new();
+        for key in keys {
+            for component in key {
+                sets.entry(component.clone())
+                    .or_insert_with(|| component_token_set(component));
+            }
+        }
+
+        Self { sets }
+    }
+
+    fn get(&self, component: &str) -> Cow<'_, KeyTokenSet> {
+        match self.sets.get(component) {
+            Some(set) => Cow::Borrowed(set),
+            None => Cow::Owned(component_token_set(component)),
+        }
+    }
+}
+
 pub(super) fn classify_flexible_key_match(
     key_a: &[String],
     key_b: &[String],
+    token_cache: &KeyTokenCache,
 ) -> Option<FlexibleKeyMatch> {
     let matching_component_count = key_a.len() == key_b.len();
 
@@ -120,7 +149,7 @@ pub(super) fn classify_flexible_key_match(
         if intersection.boundary_consumed_by_wildcard {
             return Some(FlexibleKeyMatch::BoundaryWildcard);
         }
-    } else if let Some(match_kind) = classify_shared_key_tokens(key_a, key_b) {
+    } else if let Some(match_kind) = classify_shared_key_tokens(key_a, key_b, token_cache) {
         return Some(match_kind);
     }
 
@@ -179,7 +208,11 @@ fn key_contains_wildcard(key: &[String]) -> bool {
     key.iter().any(|component| component.contains("**"))
 }
 
-fn classify_shared_key_tokens(key_a: &[String], key_b: &[String]) -> Option<FlexibleKeyMatch> {
+fn classify_shared_key_tokens(
+    key_a: &[String],
+    key_b: &[String],
+    token_cache: &KeyTokenCache,
+) -> Option<FlexibleKeyMatch> {
     if key_a.len() != key_b.len() {
         return None;
     }
@@ -199,8 +232,8 @@ fn classify_shared_key_tokens(key_a: &[String], key_b: &[String]) -> Option<Flex
             continue;
         }
 
-        let tokens_a = key_token_set(std::slice::from_ref(component_a));
-        let tokens_b = key_token_set(std::slice::from_ref(component_b));
+        let tokens_a = token_cache.get(component_a);
+        let tokens_b = token_cache.get(component_b);
         let component_shared_alpha_count = tokens_a.alpha.intersection(&tokens_b.alpha).count();
         let component_shares_number = tokens_a
             .numeric
@@ -252,7 +285,7 @@ fn classify_shared_key_tokens(key_a: &[String], key_b: &[String]) -> Option<Flex
     }
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 struct KeyTokenSet {
     alpha: HashSet<String>,
     numeric: HashSet<String>,
@@ -260,26 +293,24 @@ struct KeyTokenSet {
     has_embedded_numeric: bool,
 }
 
-fn key_token_set(key: &[String]) -> KeyTokenSet {
+fn component_token_set(component: &str) -> KeyTokenSet {
     let mut token_set = KeyTokenSet::default();
 
-    for component in key {
-        for token in alphanumeric_tokens(component) {
-            if token.chars().all(|character| character.is_ascii_digit()) {
-                token_set.numeric.insert(token);
-            } else {
-                let has_alpha = token.chars().any(|character| character.is_alphabetic());
-                let numeric_tokens = ascii_digit_runs(&token);
-                if !numeric_tokens.is_empty() {
-                    token_set.has_embedded_numeric = true;
-                    if has_alpha {
-                        token_set.embedded_identifiers.insert(token.to_lowercase());
-                    }
+    for token in alphanumeric_tokens(component) {
+        if token.chars().all(|character| character.is_ascii_digit()) {
+            token_set.numeric.insert(token);
+        } else {
+            let has_alpha = token.chars().any(|character| character.is_alphabetic());
+            let numeric_tokens = ascii_digit_runs(&token);
+            if !numeric_tokens.is_empty() {
+                token_set.has_embedded_numeric = true;
+                if has_alpha {
+                    token_set.embedded_identifiers.insert(token.to_lowercase());
                 }
+            }
 
-                if has_alpha && token.chars().count() >= 4 {
-                    token_set.alpha.insert(token.to_lowercase());
-                }
+            if has_alpha && token.chars().count() >= 4 {
+                token_set.alpha.insert(token.to_lowercase());
             }
         }
     }

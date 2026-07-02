@@ -1,6 +1,6 @@
 use super::super::data::types::*;
 use super::rows::{
-    FlexibleKeyMatch, KeyedRows, classify_flexible_key_match, extract_columns,
+    FlexibleKeyMatch, KeyTokenCache, KeyedRows, classify_flexible_key_match, extract_columns,
     get_column_selections, get_missing_column_selections, split_rows_by_key_usable,
     wildcard_literal_count, wildcard_token_count,
 };
@@ -13,68 +13,228 @@ use std::fmt;
 pub(crate) const MAX_FLEXIBLE_KEY_CANDIDATES: usize = 10_000;
 pub(crate) const MAX_FLEXIBLE_KEY_COMPARISONS: usize = 1_000_000;
 
-pub(crate) fn bounded_flexible_key_comparison_count(
-    csv_a: &CsvData,
-    csv_b: &CsvData,
-    config: &ComparisonConfig,
-    limit: usize,
-) -> usize {
-    if !config.normalization.flexible_key_matching {
-        return 0;
-    }
-
-    let key_selections_a = get_column_selections(&csv_a.headers, &config.key_columns_a);
-    let key_selections_b = get_column_selections(&csv_b.headers, &config.key_columns_b);
-    let (map_a, _) = split_rows_by_key_usable(csv_a, &key_selections_a, &config.normalization);
-    let (map_b, _) = split_rows_by_key_usable(csv_b, &key_selections_b, &config.normalization);
-
-    if map_a.is_empty() || map_b.is_empty() {
-        return 0;
-    }
-
-    if map_a.len() > limit / map_b.len() {
-        return limit + 1;
-    }
-
-    map_a.len() * map_b.len()
+/// Caps applied while planning flexible-key matching.
+#[derive(Clone, Copy)]
+pub(crate) struct FlexibleKeyLimits {
+    pub(crate) comparisons: usize,
+    pub(crate) candidates: usize,
 }
 
-pub(crate) fn bounded_flexible_key_candidate_count(
-    csv_a: &CsvData,
-    csv_b: &CsvData,
-    config: &ComparisonConfig,
-    limit: usize,
-) -> usize {
-    if !config.normalization.flexible_key_matching {
-        return 0;
+impl FlexibleKeyLimits {
+    pub(crate) const DEFAULT: Self = Self {
+        comparisons: MAX_FLEXIBLE_KEY_COMPARISONS,
+        candidates: MAX_FLEXIBLE_KEY_CANDIDATES,
+    };
+
+    const UNBOUNDED: Self = Self {
+        comparisons: usize::MAX,
+        candidates: usize::MAX,
+    };
+}
+
+/// Which flexible-key limit a plan exceeded, with the bounded count that
+/// tripped it (at most limit + 1, mirroring the previous bounded counters).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum FlexibleKeyExcess {
+    Comparisons(usize),
+    Candidates(usize),
+}
+
+/// Everything derived from the inputs that both cap validation and the actual
+/// comparison need: key splits, and (for flexible matching) the classified
+/// candidate pairs. Building this once replaces the previous flow that split
+/// and classified the same data up to four times per comparison run.
+pub(crate) struct ComparisonPlan {
+    key_selections_a: Vec<ColumnSelection>,
+    key_selections_b: Vec<ColumnSelection>,
+    comp_selections_a: Vec<ColumnSelection>,
+    comp_selections_b: Vec<ColumnSelection>,
+    map_a: HashMap<Vec<String>, KeyedRows>,
+    map_b: HashMap<Vec<String>, KeyedRows>,
+    nullish_rows_a: Vec<usize>,
+    nullish_rows_b: Vec<usize>,
+    flexible_candidates: Vec<FlexibleCandidate>,
+    flexible_excess: Option<FlexibleKeyExcess>,
+}
+
+impl ComparisonPlan {
+    pub(crate) fn build(
+        csv_a: &CsvData,
+        csv_b: &CsvData,
+        config: &ComparisonConfig,
+        limits: FlexibleKeyLimits,
+    ) -> Result<Self, ComparisonColumnSelectionError> {
+        let key_selections_a = required_column_selections(
+            &csv_a.headers,
+            &config.key_columns_a,
+            "Key columns for File A",
+        )?;
+        let key_selections_b = required_column_selections(
+            &csv_b.headers,
+            &config.key_columns_b,
+            "Key columns for File B",
+        )?;
+        let comp_selections_a = required_column_selections(
+            &csv_a.headers,
+            &config.comparison_columns_a,
+            "Comparison columns for File A",
+        )?;
+        let comp_selections_b = required_column_selections(
+            &csv_b.headers,
+            &config.comparison_columns_b,
+            "Comparison columns for File B",
+        )?;
+
+        let (map_a, nullish_rows_a) =
+            split_rows_by_key_usable(csv_a, &key_selections_a, &config.normalization);
+        let (map_b, nullish_rows_b) =
+            split_rows_by_key_usable(csv_b, &key_selections_b, &config.normalization);
+
+        let mut plan = Self {
+            key_selections_a,
+            key_selections_b,
+            comp_selections_a,
+            comp_selections_b,
+            map_a,
+            map_b,
+            nullish_rows_a,
+            nullish_rows_b,
+            flexible_candidates: Vec::new(),
+            flexible_excess: None,
+        };
+
+        if config.normalization.flexible_key_matching {
+            plan.survey_flexible_candidates(limits);
+        }
+
+        Ok(plan)
     }
 
-    let key_selections_a = get_column_selections(&csv_a.headers, &config.key_columns_a);
-    let key_selections_b = get_column_selections(&csv_b.headers, &config.key_columns_b);
-    let (map_a, _) = split_rows_by_key_usable(csv_a, &key_selections_a, &config.normalization);
-    let (map_b, _) = split_rows_by_key_usable(csv_b, &key_selections_b, &config.normalization);
+    pub(crate) fn flexible_excess(&self) -> Option<FlexibleKeyExcess> {
+        self.flexible_excess
+    }
 
-    let flexible_candidate_counts = count_flexible_candidates(&map_a, &map_b);
-    let mut candidate_count = 0;
-    for key_a in map_a.keys() {
-        for key_b in map_b.keys() {
-            let Some(match_kind) = classify_flexible_key_match(key_a, key_b) else {
-                continue;
-            };
+    /// Classify every A×B key pair exactly once, keeping the same candidate
+    /// filter as before: weak shared-text matches survive only when both keys
+    /// have no other flexible match at all.
+    fn survey_flexible_candidates(&mut self, limits: FlexibleKeyLimits) {
+        if self.map_a.is_empty() || self.map_b.is_empty() {
+            return;
+        }
 
-            if !should_keep_flexible_candidate(match_kind, key_a, key_b, &flexible_candidate_counts)
-            {
-                continue;
-            }
+        if self.map_a.len() > limits.comparisons / self.map_b.len() {
+            self.flexible_excess = Some(FlexibleKeyExcess::Comparisons(limits.comparisons + 1));
+            return;
+        }
 
-            candidate_count += 1;
-            if candidate_count > limit {
-                return candidate_count;
+        let token_cache = KeyTokenCache::for_keys(self.map_a.keys().chain(self.map_b.keys()));
+        let rows_a: Vec<&KeyedRows> = self.map_a.values().collect();
+        let rows_b: Vec<&KeyedRows> = self.map_b.values().collect();
+
+        let mut classified: Vec<(usize, usize, FlexibleKeyMatch)> = Vec::new();
+        let mut weak_by_a = vec![0usize; rows_a.len()];
+        let mut weak_by_b = vec![0usize; rows_b.len()];
+        let mut total_by_a = vec![0usize; rows_a.len()];
+        let mut total_by_b = vec![0usize; rows_b.len()];
+
+        for (index_a, keyed_rows_a) in rows_a.iter().enumerate() {
+            for (index_b, keyed_rows_b) in rows_b.iter().enumerate() {
+                let Some(match_kind) = classify_flexible_key_match(
+                    &keyed_rows_a.normalized_key,
+                    &keyed_rows_b.normalized_key,
+                    &token_cache,
+                ) else {
+                    continue;
+                };
+
+                total_by_a[index_a] += 1;
+                total_by_b[index_b] += 1;
+                if match_kind == FlexibleKeyMatch::SharedTextToken {
+                    weak_by_a[index_a] += 1;
+                    weak_by_b[index_b] += 1;
+                }
+
+                classified.push((index_a, index_b, match_kind));
             }
         }
+
+        let mut candidates = Vec::new();
+        for (index_a, index_b, match_kind) in classified {
+            let keep = match_kind != FlexibleKeyMatch::SharedTextToken
+                || (weak_by_a[index_a] == 1
+                    && weak_by_b[index_b] == 1
+                    && total_by_a[index_a] == 1
+                    && total_by_b[index_b] == 1);
+            if !keep {
+                continue;
+            }
+
+            if candidates.len() >= limits.candidates {
+                self.flexible_excess = Some(FlexibleKeyExcess::Candidates(limits.candidates + 1));
+                return;
+            }
+
+            let keyed_rows_a = rows_a[index_a];
+            let keyed_rows_b = rows_b[index_b];
+            candidates.push(FlexibleCandidate {
+                key_a: keyed_rows_a.normalized_key.clone(),
+                key_b: keyed_rows_b.normalized_key.clone(),
+                match_kind,
+                literal_count: wildcard_literal_count(
+                    &keyed_rows_a.normalized_key,
+                    &keyed_rows_b.normalized_key,
+                ),
+                wildcard_count: wildcard_token_count(
+                    &keyed_rows_a.normalized_key,
+                    &keyed_rows_b.normalized_key,
+                ),
+                first_index_a: keyed_rows_a.first_index,
+                first_index_b: keyed_rows_b.first_index,
+            });
+        }
+
+        self.flexible_candidates = candidates;
     }
 
-    candidate_count
+    pub(crate) fn execute(
+        self,
+        csv_a: &CsvData,
+        csv_b: &CsvData,
+        config: &ComparisonConfig,
+    ) -> Vec<RowComparisonResult> {
+        let mut results = Vec::new();
+        let context = ComparisonContext {
+            csv_a,
+            csv_b,
+            config,
+            key_selections_a: &self.key_selections_a,
+            key_selections_b: &self.key_selections_b,
+            comp_selections_a: &self.comp_selections_a,
+            comp_selections_b: &self.comp_selections_b,
+        };
+
+        for &row_index in &self.nullish_rows_a {
+            push_unkeyed_right(&mut results, row_index, &context);
+        }
+
+        for &row_index in &self.nullish_rows_b {
+            push_unkeyed_left(&mut results, row_index, &context);
+        }
+
+        if config.normalization.flexible_key_matching {
+            compare_key_groups_flexible(
+                &mut results,
+                &self.map_a,
+                &self.map_b,
+                self.flexible_candidates,
+                &context,
+            );
+        } else {
+            compare_key_groups_exact(&mut results, &self.map_a, &self.map_b, &context);
+        }
+
+        results
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -136,83 +296,8 @@ pub fn try_compare_csv_data(
     csv_b: &CsvData,
     config: &ComparisonConfig,
 ) -> Result<Vec<RowComparisonResult>, ComparisonColumnSelectionError> {
-    // Get column indices for key columns
-    let key_selections_a = required_column_selections(
-        &csv_a.headers,
-        &config.key_columns_a,
-        "Key columns for File A",
-    )?;
-    let key_selections_b = required_column_selections(
-        &csv_b.headers,
-        &config.key_columns_b,
-        "Key columns for File B",
-    )?;
-
-    // Get column indices for comparison columns
-    let comp_selections_a = required_column_selections(
-        &csv_a.headers,
-        &config.comparison_columns_a,
-        "Comparison columns for File A",
-    )?;
-    let comp_selections_b = required_column_selections(
-        &csv_b.headers,
-        &config.comparison_columns_b,
-        "Comparison columns for File B",
-    )?;
-
-    Ok(compare_csv_data_with_selections(
-        csv_a,
-        csv_b,
-        config,
-        key_selections_a,
-        key_selections_b,
-        comp_selections_a,
-        comp_selections_b,
-    ))
-}
-
-fn compare_csv_data_with_selections(
-    csv_a: &CsvData,
-    csv_b: &CsvData,
-    config: &ComparisonConfig,
-    key_selections_a: Vec<ColumnSelection>,
-    key_selections_b: Vec<ColumnSelection>,
-    comp_selections_a: Vec<ColumnSelection>,
-    comp_selections_b: Vec<ColumnSelection>,
-) -> Vec<RowComparisonResult> {
-    let mut results = Vec::new();
-
-    // Create maps for quick lookup
-    let (map_a, nullish_rows_a) =
-        split_rows_by_key_usable(csv_a, &key_selections_a, &config.normalization);
-    let (map_b, nullish_rows_b) =
-        split_rows_by_key_usable(csv_b, &key_selections_b, &config.normalization);
-
-    let context = ComparisonContext {
-        csv_a,
-        csv_b,
-        config,
-        key_selections_a: &key_selections_a,
-        key_selections_b: &key_selections_b,
-        comp_selections_a: &comp_selections_a,
-        comp_selections_b: &comp_selections_b,
-    };
-
-    for row_index in nullish_rows_a {
-        push_unkeyed_right(&mut results, row_index, &context);
-    }
-
-    for row_index in nullish_rows_b {
-        push_unkeyed_left(&mut results, row_index, &context);
-    }
-
-    if config.normalization.flexible_key_matching {
-        compare_key_groups_flexible(&mut results, &map_a, &map_b, &context);
-    } else {
-        compare_key_groups_exact(&mut results, &map_a, &map_b, &context);
-    }
-
-    results
+    let plan = ComparisonPlan::build(csv_a, csv_b, config, FlexibleKeyLimits::UNBOUNDED)?;
+    Ok(plan.execute(csv_a, csv_b, config))
 }
 
 struct ComparisonContext<'a> {
@@ -280,23 +365,11 @@ fn compare_key_groups_flexible(
     results: &mut Vec<RowComparisonResult>,
     map_a: &HashMap<Vec<String>, KeyedRows>,
     map_b: &HashMap<Vec<String>, KeyedRows>,
+    mut candidates: Vec<FlexibleCandidate>,
     context: &ComparisonContext,
 ) {
     let mut matched_a: HashSet<Vec<String>> = HashSet::new();
     let mut matched_b: HashSet<Vec<String>> = HashSet::new();
-    let mut candidates = Vec::new();
-    let candidate_rows_b: Vec<(&Vec<String>, &KeyedRows)> = map_b.iter().collect();
-    let flexible_candidate_counts = count_flexible_candidates(map_a, map_b);
-
-    for (key_a, keyed_rows_a) in map_a {
-        collect_flexible_candidates_for_key(
-            &mut candidates,
-            key_a,
-            keyed_rows_a,
-            candidate_rows_b.iter().copied(),
-            &flexible_candidate_counts,
-        );
-    }
 
     candidates.sort_by(compare_flexible_candidate_preference);
 
@@ -342,100 +415,6 @@ fn compare_key_groups_flexible(
     }
 }
 
-fn collect_flexible_candidates_for_key<'a>(
-    candidates: &mut Vec<FlexibleCandidate>,
-    key_a: &[String],
-    keyed_rows_a: &KeyedRows,
-    candidate_rows_b: impl Iterator<Item = (&'a Vec<String>, &'a KeyedRows)>,
-    flexible_candidate_counts: &FlexibleCandidateCounts,
-) {
-    for (key_b, keyed_rows_b) in candidate_rows_b {
-        let Some(match_kind) =
-            classify_flexible_key_match(&keyed_rows_a.normalized_key, &keyed_rows_b.normalized_key)
-        else {
-            continue;
-        };
-
-        if !should_keep_flexible_candidate(
-            match_kind,
-            &keyed_rows_a.normalized_key,
-            &keyed_rows_b.normalized_key,
-            flexible_candidate_counts,
-        ) {
-            continue;
-        }
-
-        candidates.push(FlexibleCandidate {
-            key_a: key_a.to_vec(),
-            key_b: key_b.clone(),
-            match_kind,
-            literal_count: wildcard_literal_count(
-                &keyed_rows_a.normalized_key,
-                &keyed_rows_b.normalized_key,
-            ),
-            wildcard_count: wildcard_token_count(
-                &keyed_rows_a.normalized_key,
-                &keyed_rows_b.normalized_key,
-            ),
-            first_index_a: keyed_rows_a.first_index,
-            first_index_b: keyed_rows_b.first_index,
-        });
-    }
-}
-
-struct FlexibleCandidateCounts {
-    weak_by_a: HashMap<Vec<String>, usize>,
-    weak_by_b: HashMap<Vec<String>, usize>,
-    total_by_a: HashMap<Vec<String>, usize>,
-    total_by_b: HashMap<Vec<String>, usize>,
-}
-
-fn count_flexible_candidates(
-    map_a: &HashMap<Vec<String>, KeyedRows>,
-    map_b: &HashMap<Vec<String>, KeyedRows>,
-) -> FlexibleCandidateCounts {
-    let mut weak_by_a = HashMap::new();
-    let mut weak_by_b = HashMap::new();
-    let mut total_by_a = HashMap::new();
-    let mut total_by_b = HashMap::new();
-
-    for key_a in map_a.keys() {
-        for key_b in map_b.keys() {
-            let Some(match_kind) = classify_flexible_key_match(key_a, key_b) else {
-                continue;
-            };
-
-            *total_by_a.entry(key_a.clone()).or_default() += 1;
-            *total_by_b.entry(key_b.clone()).or_default() += 1;
-
-            if match_kind == FlexibleKeyMatch::SharedTextToken {
-                *weak_by_a.entry(key_a.clone()).or_default() += 1;
-                *weak_by_b.entry(key_b.clone()).or_default() += 1;
-            }
-        }
-    }
-
-    FlexibleCandidateCounts {
-        weak_by_a,
-        weak_by_b,
-        total_by_a,
-        total_by_b,
-    }
-}
-
-fn should_keep_flexible_candidate(
-    match_kind: FlexibleKeyMatch,
-    key_a: &[String],
-    key_b: &[String],
-    flexible_candidate_counts: &FlexibleCandidateCounts,
-) -> bool {
-    match_kind != FlexibleKeyMatch::SharedTextToken
-        || (flexible_candidate_counts.weak_by_a.get(key_a) == Some(&1)
-            && flexible_candidate_counts.weak_by_b.get(key_b) == Some(&1)
-            && flexible_candidate_counts.total_by_a.get(key_a) == Some(&1)
-            && flexible_candidate_counts.total_by_b.get(key_b) == Some(&1))
-}
-
 fn compare_flexible_candidate_preference(
     left: &FlexibleCandidate,
     right: &FlexibleCandidate,
@@ -455,6 +434,16 @@ fn compare_flexible_candidate_preference(
 fn select_preferred_max_cardinality_flexible_matches(
     candidates: &[FlexibleCandidate],
 ) -> Vec<FlexibleCandidate> {
+    // Degree per key over the full candidate list. A candidate whose keys both
+    // have degree 1 is an isolated edge: it belongs to some maximum matching
+    // and can never conflict, so it skips the expensive verification below.
+    let mut degree_a: HashMap<&Vec<String>, usize> = HashMap::new();
+    let mut degree_b: HashMap<&Vec<String>, usize> = HashMap::new();
+    for candidate in candidates {
+        *degree_a.entry(&candidate.key_a).or_default() += 1;
+        *degree_b.entry(&candidate.key_b).or_default() += 1;
+    }
+
     let target_count = maximum_flexible_match_count(candidates, &[]);
     let mut selected_indices = Vec::new();
     let mut selected_a = HashSet::new();
@@ -467,6 +456,16 @@ fn select_preferred_max_cardinality_flexible_matches(
 
         let candidate = &candidates[candidate_index];
         if selected_a.contains(&candidate.key_a) || selected_b.contains(&candidate.key_b) {
+            continue;
+        }
+
+        let is_isolated_edge = degree_a.get(&candidate.key_a) == Some(&1)
+            && degree_b.get(&candidate.key_b) == Some(&1);
+
+        if is_isolated_edge {
+            selected_indices.push(candidate_index);
+            selected_a.insert(candidate.key_a.clone());
+            selected_b.insert(candidate.key_b.clone());
             continue;
         }
 
