@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use super::comparison_snapshot::{
-    load_comparison_snapshot_workflow, save_comparison_snapshot_workflow,
+    prepare_comparison_snapshot_load, serialize_comparison_snapshot, snapshot_inputs_from_session,
 };
 use super::pair_order::{load_pair_order_workflow, save_pair_order_workflow};
 use super::store::SessionStore;
@@ -483,9 +483,13 @@ pub fn save_comparison_snapshot_for_session(
     store: &SessionStore,
     session_id: &str,
 ) -> Result<String, CsvAlignError> {
-    store
-        .with_session(session_id, save_comparison_snapshot_workflow)
-        .ok_or_else(session_not_found)?
+    // Clone the Arc-backed inputs under the lock; serialize outside it so a
+    // large snapshot cannot stall unrelated sessions.
+    let inputs = store
+        .with_session(session_id, snapshot_inputs_from_session)
+        .ok_or_else(session_not_found)??;
+
+    serialize_comparison_snapshot(&inputs)
 }
 
 pub fn load_comparison_snapshot_for_session(
@@ -493,10 +497,12 @@ pub fn load_comparison_snapshot_for_session(
     session_id: &str,
     contents: &str,
 ) -> Result<LoadComparisonSnapshotResponse, CsvAlignError> {
+    // Parse and validate outside the lock; only applying the loaded snapshot
+    // to the session needs exclusive access.
+    let prepared = prepare_comparison_snapshot_load(contents)?;
+
     store
-        .with_session_mut(session_id, |session_data| {
-            load_comparison_snapshot_workflow(session_data, contents)
-        })
+        .with_session_mut(session_id, |session_data| prepared.apply(session_data))
         .ok_or_else(session_not_found)?
 }
 

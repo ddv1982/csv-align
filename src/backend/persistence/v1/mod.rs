@@ -102,28 +102,16 @@ pub struct SummaryV1 {
 }
 
 impl SnapshotV1 {
-    pub fn from_session(session_data: &SessionData) -> Result<Self, CsvAlignError> {
-        let csv_a = session_data
-            .csv_a
-            .as_ref()
-            .ok_or_else(|| CsvAlignError::BadInput("File A not selected or loaded".to_string()))?;
-        let csv_b = session_data
-            .csv_b
-            .as_ref()
-            .ok_or_else(|| CsvAlignError::BadInput("File B not selected or loaded".to_string()))?;
-        let comparison_config = session_data.comparison_config.as_ref().ok_or_else(|| {
-            CsvAlignError::BadInput(
-                "No comparison results to save. Run a comparison first.".to_string(),
-            )
-        })?;
+    pub fn from_comparison(
+        csv_a: &CsvData,
+        csv_b: &CsvData,
+        comparison_config: &ComparisonConfig,
+        comparison_results: &[RowComparisonResult],
+    ) -> Self {
+        let summary =
+            engine::generate_summary(comparison_results, csv_a.rows.len(), csv_b.rows.len());
 
-        let summary = engine::generate_summary(
-            &session_data.comparison_results,
-            csv_a.rows.len(),
-            csv_b.rows.len(),
-        );
-
-        Ok(Self {
+        Self {
             version: SNAPSHOT_VERSION,
             file_a: SnapshotFileV1::from_csv(csv_a, "File A"),
             file_b: SnapshotFileV1::from_csv(csv_b, "File B"),
@@ -134,21 +122,21 @@ impl SnapshotV1 {
                 .map(MappingV1::from)
                 .collect(),
             normalization: comparison_config.normalization.clone(),
-            results: session_data
-                .comparison_results
-                .iter()
-                .map(ResultV1::from)
-                .collect(),
+            results: comparison_results.iter().map(ResultV1::from).collect(),
             summary: SummaryV1::from(&summary),
-        })
+        }
     }
 
+    pub fn validate(&self) -> Result<(), CsvAlignError> {
+        validate_snapshot(self)
+    }
+
+    /// Callers must run [`Self::validate`] first; loading an unvalidated
+    /// snapshot can store inconsistent results in the session.
     pub fn to_load_response(
         &self,
         session_data: &mut SessionData,
     ) -> Result<LoadComparisonSnapshotResponse, CsvAlignError> {
-        validate_snapshot(self)?;
-
         let comparison_results = self
             .results
             .iter()
