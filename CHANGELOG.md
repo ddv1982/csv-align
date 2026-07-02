@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.98 - 2026-07-02
+
+- Re-ran the release trail after the v2.1.97 tag surfaced two CI-only failures, keeping every comparison, performance, and maintenance change from that trail intact.
+- Steadied the test lore so browser transport blobs prove themselves through realm-safe reads instead of cross-realm identity checks, and the new macOS wrapper gate lays down placeholder frontend assets so the mock-app tests compile without a full UI build.
+
 ## v2.1.97 - 2026-07-02
 
 - Hardened the comparison lore so structural JSON equality only walks true objects and arrays, saved snapshots reject virtual labels missing from their own metadata, desktop dialogs tell a cancelled trail apart from a saved one, and the pair-order copy path fails visibly instead of throwing into the void — while the decimal-trim setting keeps its behavior and is renamed to say what it actually does.
