@@ -16,6 +16,7 @@ const {
 }));
 
 vi.mock('../services/tauri', () => ({
+  DIALOG_CANCELLED: 'cancelled',
   compareFiles: compareFilesMock,
   createSession: createSessionMock,
   downloadBlob: vi.fn(),

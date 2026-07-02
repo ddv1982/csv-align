@@ -2,6 +2,7 @@ import { useCallback, type Dispatch } from 'react';
 import { buildResultsHtmlDocument } from '../features/results/htmlExport';
 import { downloadBlob } from '../services/browserDownload';
 import {
+  DIALOG_CANCELLED,
   exportResults,
   exportResultsHtml,
   loadComparisonSnapshot,
@@ -53,12 +54,16 @@ export function useWorkflowPersistenceActions({
     startLoading(false);
 
     try {
-      const blob = await exportResults(state.sessionId);
+      const outcome = await exportResults(state.sessionId);
       if (!isCurrentWorkflowRequest(token)) {
         return;
       }
-      if (blob) {
-        downloadBlob(blob, 'comparison-results.csv');
+      if (outcome === DIALOG_CANCELLED) {
+        dispatch({ type: 'persistenceCancelled', notice: 'CSV export cancelled.' });
+        return;
+      }
+      if (outcome instanceof Blob) {
+        downloadBlob(outcome, 'comparison-results.csv');
       }
       dispatch({ type: 'downloadCompleted' });
     } catch (error) {
@@ -89,12 +94,16 @@ export function useWorkflowPersistenceActions({
         initialFilter: state.filter,
         theme: activeTheme,
       });
-      const blob = await exportResultsHtml(htmlDocument);
+      const outcome = await exportResultsHtml(htmlDocument);
       if (!isCurrentWorkflowRequest(token)) {
         return;
       }
-      if (blob) {
-        downloadBlob(blob, 'comparison-results.html');
+      if (outcome === DIALOG_CANCELLED) {
+        dispatch({ type: 'persistenceCancelled', notice: 'HTML export cancelled.' });
+        return;
+      }
+      if (outcome instanceof Blob) {
+        downloadBlob(outcome, 'comparison-results.html');
       }
       dispatch({ type: 'downloadCompleted' });
     } catch (error) {
@@ -127,12 +136,16 @@ export function useWorkflowPersistenceActions({
     const token = beginWorkflowRequest(state.sessionId);
 
     try {
-      const blob = await saveComparisonSnapshot(state.sessionId);
+      const outcome = await saveComparisonSnapshot(state.sessionId);
       if (!isCurrentWorkflowRequest(token)) {
         return;
       }
-      if (blob) {
-        downloadBlob(blob, 'comparison-snapshot.json');
+      if (outcome === DIALOG_CANCELLED) {
+        dispatch({ type: 'persistenceCancelled', notice: 'Snapshot save cancelled.' });
+        return;
+      }
+      if (outcome instanceof Blob) {
+        downloadBlob(outcome, 'comparison-snapshot.json');
       }
       dispatch({ type: 'downloadCompleted' });
     } catch (error) {
@@ -153,6 +166,10 @@ export function useWorkflowPersistenceActions({
     try {
       const response = await loadComparisonSnapshot(state.sessionId, file);
       if (!isCurrentWorkflowRequest(token)) {
+        return;
+      }
+      if (response === DIALOG_CANCELLED) {
+        dispatch({ type: 'persistenceCancelled', notice: 'Snapshot load cancelled.' });
         return;
       }
       if (response) {
@@ -181,7 +198,7 @@ export function useWorkflowPersistenceActions({
     const token = beginWorkflowRequest(state.sessionId, true);
 
     try {
-      const blob = await savePairOrder(state.sessionId, {
+      const outcome = await savePairOrder(state.sessionId, {
         key_columns_a: mappingSelection.keyColumnsA,
         key_columns_b: mappingSelection.keyColumnsB,
         comparison_columns_a: mappingSelection.comparisonColumnsA,
@@ -191,8 +208,12 @@ export function useWorkflowPersistenceActions({
         return;
       }
 
-      if (blob) {
-        downloadBlob(blob, 'pair-order.txt');
+      if (outcome === DIALOG_CANCELLED) {
+        dispatch({ type: 'persistenceCancelled', notice: 'Pair-order save cancelled.' });
+        return;
+      }
+      if (outcome instanceof Blob) {
+        downloadBlob(outcome, 'pair-order.txt');
       }
 
       dispatch({ type: 'downloadCompleted' });
@@ -227,6 +248,10 @@ export function useWorkflowPersistenceActions({
     try {
       const response = await loadPairOrder(state.sessionId, file);
       if (!isCurrentWorkflowRequest(token)) {
+        return;
+      }
+      if (response === DIALOG_CANCELLED) {
+        dispatch({ type: 'persistenceCancelled', notice: 'Pair-order load cancelled.' });
         return;
       }
       if (response) {

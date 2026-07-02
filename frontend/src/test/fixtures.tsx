@@ -17,6 +17,7 @@ const appTauriMocks = vi.hoisted(() => ({
 
 vi.mock('../services/tauri', () => ({
   isTauri: false,
+  DIALOG_CANCELLED: 'cancelled',
   createSession: appTauriMocks.createSessionMock,
   loadFile: appTauriMocks.loadFileMock,
   compareFiles: appTauriMocks.compareFilesMock,

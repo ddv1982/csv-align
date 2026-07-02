@@ -19,6 +19,17 @@ use csv_align::presentation::responses::{
     CompareResponse, FileLoadResponse, SuggestMappingsResponse,
 };
 
+/// Result of a save/export command that goes through a native save dialog.
+///
+/// `Option<()>` cannot express this over IPC: serde serializes both `Some(())`
+/// and `None` to `null`, so the frontend could not tell saved from cancelled.
+#[derive(serde::Serialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum SaveDialogOutcome {
+    Saved,
+    Cancelled,
+}
+
 fn write_output_file(
     output_path: &Path,
     contents: impl AsRef<[u8]>,
@@ -220,7 +231,7 @@ pub(crate) async fn export_results(
     app: tauri::AppHandle,
     state: tauri::State<'_, Arc<SessionStore>>,
     session_id: String,
-) -> Result<Option<()>, CsvAlignError> {
+) -> Result<SaveDialogOutcome, CsvAlignError> {
     let Some(output_path) = save_file_path(
         &app,
         "comparison-results.csv",
@@ -229,11 +240,11 @@ pub(crate) async fn export_results(
         "CSV export",
     )?
     else {
-        return Ok(None);
+        return Ok(SaveDialogOutcome::Cancelled);
     };
 
     export_results_to_path(state.inner().as_ref(), &session_id, &output_path)?;
-    Ok(Some(()))
+    Ok(SaveDialogOutcome::Saved)
 }
 
 #[tauri::command]
@@ -241,7 +252,7 @@ pub(crate) async fn export_results(
 pub(crate) async fn export_results_html(
     app: tauri::AppHandle,
     html_contents: String,
-) -> Result<Option<()>, CsvAlignError> {
+) -> Result<SaveDialogOutcome, CsvAlignError> {
     let Some(output_path) = save_file_path(
         &app,
         "comparison-results.html",
@@ -250,11 +261,11 @@ pub(crate) async fn export_results_html(
         "HTML export",
     )?
     else {
-        return Ok(None);
+        return Ok(SaveDialogOutcome::Cancelled);
     };
 
     export_results_html_to_path(&output_path, &html_contents)?;
-    Ok(Some(()))
+    Ok(SaveDialogOutcome::Saved)
 }
 
 #[tauri::command]
@@ -264,15 +275,15 @@ pub(crate) async fn save_pair_order(
     state: tauri::State<'_, Arc<SessionStore>>,
     session_id: String,
     selection: PairOrderSelection,
-) -> Result<Option<()>, CsvAlignError> {
+) -> Result<SaveDialogOutcome, CsvAlignError> {
     let Some(output_path) =
         save_file_path(&app, "pair-order.txt", "Text Files", &["txt"], "pair-order")?
     else {
-        return Ok(None);
+        return Ok(SaveDialogOutcome::Cancelled);
     };
 
     save_pair_order_to_path(state.inner().as_ref(), &session_id, selection, &output_path)?;
-    Ok(Some(()))
+    Ok(SaveDialogOutcome::Saved)
 }
 
 #[tauri::command]
@@ -302,7 +313,7 @@ pub(crate) async fn save_comparison_snapshot(
     app: tauri::AppHandle,
     state: tauri::State<'_, Arc<SessionStore>>,
     session_id: String,
-) -> Result<Option<()>, CsvAlignError> {
+) -> Result<SaveDialogOutcome, CsvAlignError> {
     let Some(output_path) = save_file_path(
         &app,
         "comparison-snapshot.json",
@@ -311,11 +322,11 @@ pub(crate) async fn save_comparison_snapshot(
         "comparison snapshot",
     )?
     else {
-        return Ok(None);
+        return Ok(SaveDialogOutcome::Cancelled);
     };
 
     save_comparison_snapshot_to_path(state.inner().as_ref(), &session_id, &output_path)?;
-    Ok(Some(()))
+    Ok(SaveDialogOutcome::Saved)
 }
 
 #[tauri::command]

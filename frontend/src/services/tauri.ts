@@ -102,6 +102,12 @@ async function readFileBytes(file: File): Promise<number[]> {
   return Array.from(new Uint8Array(await file.arrayBuffer()));
 }
 
+/** Desktop dialogs can be dismissed; browser flows never produce this value. */
+export const DIALOG_CANCELLED = 'cancelled';
+export type DialogCancelled = typeof DIALOG_CANCELLED;
+/** Save flows resolve to a Blob to download (browser), 'saved' (desktop), or 'cancelled'. */
+export type SaveOutcome = Blob | 'saved' | DialogCancelled;
+
 export type TauriDragDropEvent =
   | { type: 'enter'; paths: string[]; position: { x: number; y: number } }
   | { type: 'over'; position: { x: number; y: number } }
@@ -218,13 +224,11 @@ export async function compareFiles(
   return postJson(buildCompareRoute(sessionId), request, 'Failed to compare files');
 }
 
-export async function exportResults(sessionId: string): Promise<Blob | void> {
+export async function exportResults(sessionId: string): Promise<SaveOutcome> {
   if (isTauri) {
-    await invoke(TAURI_COMMANDS.exportResults, {
+    return invoke<'saved' | DialogCancelled>(TAURI_COMMANDS.exportResults, {
       sessionId,
     });
-
-    return;
   }
 
   return fetchBlob(buildExportResultsRoute(sessionId), {
@@ -232,13 +236,11 @@ export async function exportResults(sessionId: string): Promise<Blob | void> {
   }, 'Failed to export results');
 }
 
-export async function exportResultsHtml(contents: string): Promise<Blob | void> {
+export async function exportResultsHtml(contents: string): Promise<SaveOutcome> {
   if (isTauri) {
-    await invoke(TAURI_COMMANDS.exportResultsHtml, {
+    return invoke<'saved' | DialogCancelled>(TAURI_COMMANDS.exportResultsHtml, {
       htmlContents: contents,
     });
-
-    return;
   }
 
   return new Blob([contents], { type: 'text/html;charset=utf-8' });
@@ -247,14 +249,12 @@ export async function exportResultsHtml(contents: string): Promise<Blob | void> 
 export async function savePairOrder(
   sessionId: string,
   selection: PairOrderSelection,
-): Promise<Blob | void> {
+): Promise<SaveOutcome> {
   if (isTauri) {
-    await invoke(TAURI_COMMANDS.savePairOrder, {
+    return invoke<'saved' | DialogCancelled>(TAURI_COMMANDS.savePairOrder, {
       sessionId,
       selection,
     });
-
-    return;
   }
 
   return fetchBlob(buildSavePairOrderRoute(sessionId), {
@@ -267,13 +267,13 @@ export async function savePairOrder(
 export async function loadPairOrder(
   sessionId: string,
   file?: File,
-): Promise<LoadPairOrderResponse | void> {
+): Promise<LoadPairOrderResponse | DialogCancelled> {
   if (isTauri) {
     const response = await invoke<LoadPairOrderResponse | null>(TAURI_COMMANDS.loadPairOrder, {
       sessionId,
     });
 
-    return response ?? undefined;
+    return response ?? DIALOG_CANCELLED;
   }
 
   if (!(file instanceof File)) {
@@ -285,13 +285,11 @@ export async function loadPairOrder(
   return postJson(buildLoadPairOrderRoute(sessionId), { contents }, 'Failed to load pair order');
 }
 
-export async function saveComparisonSnapshot(sessionId: string): Promise<Blob | void> {
+export async function saveComparisonSnapshot(sessionId: string): Promise<SaveOutcome> {
   if (isTauri) {
-    await invoke(TAURI_COMMANDS.saveComparisonSnapshot, {
+    return invoke<'saved' | DialogCancelled>(TAURI_COMMANDS.saveComparisonSnapshot, {
       sessionId,
     });
-
-    return;
   }
 
   return fetchBlob(buildSaveComparisonSnapshotRoute(sessionId), {
@@ -302,13 +300,13 @@ export async function saveComparisonSnapshot(sessionId: string): Promise<Blob | 
 export async function loadComparisonSnapshot(
   sessionId: string,
   file?: File,
-): Promise<LoadComparisonSnapshotResponse | void> {
+): Promise<LoadComparisonSnapshotResponse | DialogCancelled> {
   if (isTauri) {
     const response = await invoke<LoadComparisonSnapshotResponse | null>(TAURI_COMMANDS.loadComparisonSnapshot, {
       sessionId,
     });
 
-    return response ?? undefined;
+    return response ?? DIALOG_CANCELLED;
   }
 
   if (!(file instanceof File)) {

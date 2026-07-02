@@ -166,5 +166,6 @@ export interface AppState {
   snapshotReadOnly: boolean;
   filter: ResultFilter;
   error: string | null;
+  notice: string | null;
   loading: boolean;
 }

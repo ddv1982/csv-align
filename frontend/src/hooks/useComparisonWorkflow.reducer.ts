@@ -32,6 +32,7 @@ export type WorkflowAction =
     summary: NonNullable<AppState['summary']>;
   }
   | { type: 'downloadCompleted' }
+  | { type: 'persistenceCancelled'; notice: string }
   | {
     type: 'snapshotLoaded';
     response: LoadComparisonSnapshotResponse;
@@ -55,6 +56,7 @@ export const INITIAL_APP_STATE: AppState = {
   snapshotReadOnly: false,
   filter: 'all',
   error: null,
+  notice: null,
   loading: false,
 };
 
@@ -145,6 +147,7 @@ export function workflowReducer(state: WorkflowState, action: WorkflowAction): W
         appState: {
           ...state.appState,
           loading: true,
+          notice: null,
           ...(action.clearError ? { error: null } : {}),
         },
       };
@@ -199,6 +202,15 @@ export function workflowReducer(state: WorkflowState, action: WorkflowAction): W
         appState: {
           ...state.appState,
           loading: false,
+        },
+      };
+    case 'persistenceCancelled':
+      return {
+        ...state,
+        appState: {
+          ...state.appState,
+          loading: false,
+          notice: action.notice,
         },
       };
     case 'snapshotLoaded':

@@ -1,6 +1,7 @@
 import { AppHeader } from './components/app/AppHeader';
 import { ConfigurationStep } from './components/app/ConfigurationStep';
 import { ErrorBanner } from './components/app/ErrorBanner';
+import { NoticeBanner } from './components/app/NoticeBanner';
 import { FileSelectionStep } from './components/app/FileSelectionStep';
 import { LoadingState } from './components/app/LoadingState';
 import { ProgressSteps } from './components/app/ProgressSteps';
@@ -42,6 +43,7 @@ function App() {
         <ProgressSteps step={step} unlockedSteps={unlockedSteps} onStepChange={handleStepNavigation} />
 
         {state.error && <ErrorBanner error={state.error} />}
+        {state.notice && <NoticeBanner notice={state.notice} />}
         {state.loading && <LoadingState />}
 
         {!state.loading && step === 'select' && (

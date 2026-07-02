@@ -15,6 +15,7 @@ const {
 }));
 
 vi.mock('../services/tauri', () => ({
+  DIALOG_CANCELLED: 'cancelled',
   compareFiles: vi.fn(),
   createSession: createSessionMock,
   exportResults: vi.fn(),
@@ -57,6 +58,47 @@ test('saves the current completed comparison snapshot and downloads the returned
   expect(downloadBlobMock).toHaveBeenCalledWith(expect.any(Blob), 'comparison-snapshot.json');
   expect(result.current.state.loading).toBe(false);
   expect(result.current.state.error).toBeNull();
+});
+
+test('reports a notice instead of an error when the snapshot save dialog is cancelled', async () => {
+  saveComparisonSnapshotMock.mockResolvedValue('cancelled');
+
+  const { result } = renderHook(() => useComparisonWorkflow());
+
+  await waitFor(() => {
+    expect(result.current.state.sessionId).toBe('session-1');
+  });
+
+  await act(async () => {
+    await result.current.handleSaveComparisonSnapshot();
+  });
+
+  expect(downloadBlobMock).not.toHaveBeenCalled();
+  expect(result.current.state.loading).toBe(false);
+  expect(result.current.state.error).toBeNull();
+  expect(result.current.state.notice).toBe('Snapshot save cancelled.');
+});
+
+test('clears the cancellation notice when the next action starts', async () => {
+  saveComparisonSnapshotMock.mockResolvedValue('cancelled');
+
+  const { result } = renderHook(() => useComparisonWorkflow());
+
+  await waitFor(() => {
+    expect(result.current.state.sessionId).toBe('session-1');
+  });
+
+  await act(async () => {
+    await result.current.handleSaveComparisonSnapshot();
+  });
+  expect(result.current.state.notice).toBe('Snapshot save cancelled.');
+
+  saveComparisonSnapshotMock.mockResolvedValue(new Blob(['saved snapshot'], { type: 'application/json' }));
+  await act(async () => {
+    await result.current.handleSaveComparisonSnapshot();
+  });
+
+  expect(result.current.state.notice).toBeNull();
 });
 
 test('loads a saved comparison snapshot into the results workflow state', async () => {

@@ -325,6 +325,84 @@ test('does not copy when no pairs are selected yet', async () => {
   vi.unstubAllGlobals();
 });
 
+test('shows a failure state when the clipboard write is rejected', async () => {
+  const writeText = vi.fn().mockRejectedValue(new Error('denied'));
+  vi.stubGlobal('navigator', {
+    ...navigator,
+    clipboard: { writeText },
+  });
+
+  render(
+    <MappingConfig
+      fileA={file}
+      fileB={file}
+      selection={{
+        keyColumnsA: ['id'],
+        keyColumnsB: ['id'],
+        comparisonColumnsA: ['id'],
+        comparisonColumnsB: ['value'],
+      }}
+      normalization={INITIAL_NORMALIZATION_CONFIG}
+      onSelectionChange={() => undefined}
+      onNormalizationChange={() => undefined}
+      onCompare={() => undefined}
+      onSavePairOrder={() => undefined}
+      onLoadPairOrder={() => undefined}
+      onAutoPairComparisonColumns={() => undefined}
+    />
+  );
+
+  const pairOrderBox = screen.getByLabelText('Pair order');
+  fireEvent.click(within(pairOrderBox).getByRole('button', { name: 'Copy current pair order' }));
+
+  await waitFor(() => {
+    expect(writeText).toHaveBeenCalled();
+    expect(
+      within(pairOrderBox).getByRole('button', { name: 'Copy failed. Select the preview text to copy manually.' })
+    ).toBeInTheDocument();
+  });
+
+  vi.unstubAllGlobals();
+});
+
+test('shows a failure state when the clipboard API is unavailable', async () => {
+  vi.stubGlobal('navigator', {
+    ...navigator,
+    clipboard: undefined,
+  });
+
+  render(
+    <MappingConfig
+      fileA={file}
+      fileB={file}
+      selection={{
+        keyColumnsA: ['id'],
+        keyColumnsB: ['id'],
+        comparisonColumnsA: ['id'],
+        comparisonColumnsB: ['value'],
+      }}
+      normalization={INITIAL_NORMALIZATION_CONFIG}
+      onSelectionChange={() => undefined}
+      onNormalizationChange={() => undefined}
+      onCompare={() => undefined}
+      onSavePairOrder={() => undefined}
+      onLoadPairOrder={() => undefined}
+      onAutoPairComparisonColumns={() => undefined}
+    />
+  );
+
+  const pairOrderBox = screen.getByLabelText('Pair order');
+  fireEvent.click(within(pairOrderBox).getByRole('button', { name: 'Copy current pair order' }));
+
+  await waitFor(() => {
+    expect(
+      within(pairOrderBox).getByRole('button', { name: 'Copy failed. Select the preview text to copy manually.' })
+    ).toBeInTheDocument();
+  });
+
+  vi.unstubAllGlobals();
+});
+
 test('copies the same whitespace-collapsed text shown in the pair preview', async () => {
   const writeText = vi.fn().mockResolvedValue(undefined);
   vi.stubGlobal('navigator', {

@@ -39,7 +39,8 @@ test('saveComparisonSnapshot returns a browser blob download payload', async () 
   const blob = await saveComparisonSnapshot('session-1');
 
   expect(blob).toBeDefined();
-  await expect(blob?.text()).resolves.toBe('{"saved":true}');
+  expect(blob).toBeInstanceOf(Blob);
+  await expect((blob as Blob).text()).resolves.toBe('{"saved":true}');
   expect(fetchMock).toHaveBeenCalledWith('/api/sessions/session-1/comparison-snapshot/save', {
     method: 'POST',
   });
@@ -98,7 +99,8 @@ test('loadComparisonSnapshot reads the selected file and posts its contents in b
   const file = new File(['{"snapshot":true}'], 'comparison-snapshot.json', { type: 'application/json' });
   const response = await loadComparisonSnapshot('session-1', file);
 
-  expect(response?.file_a.name).toBe('left.csv');
+  expect(response).not.toBe('cancelled');
+  expect((response as Exclude<typeof response, 'cancelled'>).file_a.name).toBe('left.csv');
   expect(fetchMock).toHaveBeenCalledWith('/api/sessions/session-1/comparison-snapshot/load', expect.objectContaining({
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

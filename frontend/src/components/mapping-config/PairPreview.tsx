@@ -28,7 +28,7 @@ export function PairPreview({
   onSavePairOrder,
   onLoadPairOrder,
 }: PairPreviewProps) {
-  const [copySucceeded, setCopySucceeded] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
   const saveReasonId = useId();
   const copyReasonId = useId();
   const pairs = comparisonColumnsA
@@ -55,29 +55,42 @@ export function PairPreview({
         : undefined;
 
   useEffect(() => {
-    if (!copySucceeded) {
+    if (copyStatus === 'idle') {
       return undefined;
     }
 
     const timeoutId = window.setTimeout(() => {
-      setCopySucceeded(false);
+      setCopyStatus('idle');
     }, 2000);
 
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [copySucceeded]);
+  }, [copyStatus]);
 
   const handleCopy = async () => {
     if (!hasPairOrderToSave) {
       return;
     }
 
-    await navigator.clipboard.writeText(pairOrderText);
-    setCopySucceeded(true);
+    if (typeof navigator.clipboard?.writeText !== 'function') {
+      setCopyStatus('failed');
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(pairOrderText);
+      setCopyStatus('copied');
+    } catch {
+      setCopyStatus('failed');
+    }
   };
 
-  const buttonLabel = copySucceeded ? 'Copied current pair order' : 'Copy current pair order';
+  const buttonLabel = copyStatus === 'copied'
+    ? 'Copied current pair order'
+    : copyStatus === 'failed'
+      ? 'Copy failed. Select the preview text to copy manually.'
+      : 'Copy current pair order';
 
   return (
     <div className="surface-panel mt-6 p-4">
@@ -132,7 +145,7 @@ export function PairPreview({
               </button>
               <button
                 aria-label={buttonLabel}
-                className={`btn btn-ghost px-2 py-1 text-xs ${copySucceeded ? 'text-app-success' : ''}`}
+                className={`btn btn-ghost px-2 py-1 text-xs ${copyStatus === 'copied' ? 'text-app-success' : copyStatus === 'failed' ? 'text-app-warning' : ''}`}
                 disabled={!hasPairOrderToSave}
                 aria-describedby={!hasPairOrderToSave ? copyReasonId : undefined}
                 onClick={handleCopy}
@@ -140,7 +153,7 @@ export function PairPreview({
                 type="button"
               >
                 <span className="sr-only">{buttonLabel}</span>
-                {copySucceeded ? (
+                {copyStatus === 'copied' ? (
                   <ClipboardDocumentCheckIcon className="h-4 w-4" />
                 ) : (
                   <ClipboardDocumentIcon className="h-4 w-4" />
