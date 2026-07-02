@@ -48,15 +48,15 @@ test('shows grouped comparison rules and labels', () => {
   expect(screen.getByLabelText('Enable flexible row-key matching')).not.toBeChecked();
   expect(screen.getByLabelText('Treat blank cells as missing')).toBeInTheDocument();
   expect(screen.getByText('Also treat these values as missing')).toBeInTheDocument();
-  expect(screen.getByLabelText('Round numeric values to a chosen number of decimal places before comparing')).toBeInTheDocument();
+  expect(screen.getByLabelText('Trim decimal digits from the end of numeric values before comparing')).toBeInTheDocument();
   expect(screen.getByLabelText('Match dates written in different formats')).toBeInTheDocument();
   expect(screen.getByText('Select the same number of row keys in both files to enable auto-pair.')).toBeInTheDocument();
 });
 
-test('disables decimal-place input until rounding is enabled', () => {
+test('disables decimal-digit input until trimming is enabled', () => {
   renderMappingConfig();
 
-  expect(screen.getByLabelText('Decimal places')).toBeDisabled();
+  expect(screen.getByLabelText('Decimal digits to drop')).toBeDisabled();
 });
 
 test('shows save, load, and copy actions inside the pair-order box', () => {

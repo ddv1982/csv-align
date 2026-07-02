@@ -247,32 +247,7 @@ fn cleanup_settings_round_numbers_and_trim_unnecessary_zeroes() {
 }
 
 #[test]
-fn cleanup_settings_round_to_configured_decimal_places_half_up() {
-    let (csv_a, csv_b) = create_csv_pair("100.234", "100.2349");
-    let config = create_config(ComparisonNormalizationConfig {
-        decimal_rounding: DecimalRoundingConfig {
-            enabled: true,
-            decimals: 2,
-        },
-        ..ComparisonNormalizationConfig::default()
-    });
-
-    let results = compare_csv_data(&csv_a, &csv_b, &config);
-
-    assert_eq!(results.len(), 1);
-    match &results[0] {
-        RowComparisonResult::Match {
-            values_a, values_b, ..
-        } => {
-            assert_eq!(values_a, &vec!["100.23".to_string()]);
-            assert_eq!(values_b, &vec!["100.23".to_string()]);
-        }
-        other => panic!("expected both values rounded to two decimal places, got {other:?}"),
-    }
-}
-
-#[test]
-fn cleanup_settings_report_values_that_differ_within_kept_decimal_places() {
+fn cleanup_settings_trim_configured_decimal_digits_from_the_right() {
     let (csv_a, csv_b) = create_csv_pair("100.22", "100");
     let config = create_config(ComparisonNormalizationConfig {
         decimal_rounding: DecimalRoundingConfig {
@@ -286,20 +261,43 @@ fn cleanup_settings_report_values_that_differ_within_kept_decimal_places() {
 
     assert_eq!(results.len(), 1);
     match &results[0] {
-        RowComparisonResult::Mismatch {
+        RowComparisonResult::Match {
             values_a, values_b, ..
         } => {
-            assert_eq!(values_a, &vec!["100.22".to_string()]);
+            assert_eq!(values_a, &vec!["100".to_string()]);
             assert_eq!(values_b, &vec!["100".to_string()]);
         }
-        other => {
-            panic!("expected 100.22 and 100 to differ when keeping two decimals, got {other:?}")
-        }
+        other => panic!("expected two decimal digits to be trimmed, got {other:?}"),
     }
 }
 
 #[test]
-fn cleanup_settings_match_values_with_fewer_decimals_than_configured() {
+fn cleanup_settings_keep_remaining_decimal_digits_after_trimming_configured_count() {
+    let (csv_a, csv_b) = create_csv_pair("100.234", "100.2");
+    let config = create_config(ComparisonNormalizationConfig {
+        decimal_rounding: DecimalRoundingConfig {
+            enabled: true,
+            decimals: 2,
+        },
+        ..ComparisonNormalizationConfig::default()
+    });
+
+    let results = compare_csv_data(&csv_a, &csv_b, &config);
+
+    assert_eq!(results.len(), 1);
+    match &results[0] {
+        RowComparisonResult::Match {
+            values_a, values_b, ..
+        } => {
+            assert_eq!(values_a, &vec!["100.2".to_string()]);
+            assert_eq!(values_b, &vec!["100.2".to_string()]);
+        }
+        other => panic!("expected only two decimal digits to be trimmed, got {other:?}"),
+    }
+}
+
+#[test]
+fn cleanup_settings_leave_values_with_fewer_decimal_digits_than_configured_unchanged() {
     let (csv_a, csv_b) = create_csv_pair("1.5", "1.50");
     let config = create_config(ComparisonNormalizationConfig {
         decimal_rounding: DecimalRoundingConfig {
@@ -313,18 +311,20 @@ fn cleanup_settings_match_values_with_fewer_decimals_than_configured() {
 
     assert_eq!(results.len(), 1);
     match &results[0] {
-        RowComparisonResult::Match {
+        RowComparisonResult::Mismatch {
             values_a, values_b, ..
         } => {
             assert_eq!(values_a, &vec!["1.5".to_string()]);
-            assert_eq!(values_b, &vec!["1.5".to_string()]);
+            assert_eq!(values_b, &vec!["1.50".to_string()]);
         }
-        other => panic!("expected short decimals to normalize and match, got {other:?}"),
+        other => {
+            panic!("expected values with too few decimal digits to stay untouched, got {other:?}")
+        }
     }
 }
 
 #[test]
-fn cleanup_settings_rounding_carries_across_the_decimal_point() {
+fn cleanup_settings_trimming_rounds_the_last_kept_digit_half_up() {
     let (csv_a, csv_b) = create_csv_pair("99.995", "100");
     let config = create_config(ComparisonNormalizationConfig {
         decimal_rounding: DecimalRoundingConfig {
@@ -344,7 +344,7 @@ fn cleanup_settings_rounding_carries_across_the_decimal_point() {
             assert_eq!(values_a, &vec!["100".to_string()]);
             assert_eq!(values_b, &vec!["100".to_string()]);
         }
-        other => panic!("expected 99.995 to round up to 100, got {other:?}"),
+        other => panic!("expected 99.995 to round up to 100 after trimming, got {other:?}"),
     }
 }
 

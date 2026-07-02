@@ -81,7 +81,7 @@ test('allows users to enable decimal rounding cleanup', () => {
 
   renderMappingConfig({ onNormalizationChange });
 
-  fireEvent.click(screen.getByLabelText('Round numeric values to a chosen number of decimal places before comparing'));
+  fireEvent.click(screen.getByLabelText('Trim decimal digits from the end of numeric values before comparing'));
 
   expect(onNormalizationChange).toHaveBeenCalledWith({
     ...INITIAL_NORMALIZATION_CONFIG,
@@ -106,7 +106,7 @@ test('lets users change decimal rounding precision', () => {
     },
   });
 
-  fireEvent.change(screen.getByLabelText('Decimal places'), { target: { value: '2' } });
+  fireEvent.change(screen.getByLabelText('Decimal digits to drop'), { target: { value: '2' } });
 
   expect(onNormalizationChange).toHaveBeenLastCalledWith({
     ...INITIAL_NORMALIZATION_CONFIG,

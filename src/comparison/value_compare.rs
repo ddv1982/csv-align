@@ -167,15 +167,27 @@ fn normalize_numeric_value(value: &str) -> Option<String> {
     ))
 }
 
-/// Round a numeric string to `decimals` decimal places (half-up), matching the
-/// UI promise "choose how many decimal places to keep". Trailing zeros are
-/// trimmed so rounded values display consistently.
+/// Trim the `decimals` rightmost decimal digits from a numeric string,
+/// rounding the last kept digit half-up. `decimals == 0` rounds to a whole
+/// number; values with fewer decimal digits than `decimals` are left
+/// unchanged. This is a precision trim, not round-to-N-places — the UI copy
+/// is worded around dropping digits, so keep the two in sync.
 fn round_numeric_value(value: &str, decimals: u32) -> Option<String> {
     let (is_negative, integer_part, fractional_part) = parse_numeric_parts(value)?;
     let integer = normalize_integer_digits(integer_part);
     let decimals = usize::try_from(decimals).ok()?;
 
-    if fractional_part.len() <= decimals {
+    if decimals > 0 && fractional_part.len() < decimals {
+        return None;
+    }
+
+    let decimals_to_keep = if decimals == 0 {
+        0
+    } else {
+        fractional_part.len().saturating_sub(decimals)
+    };
+
+    if decimals_to_keep >= fractional_part.len() {
         return Some(format_numeric_parts(
             is_negative,
             integer,
@@ -183,22 +195,26 @@ fn round_numeric_value(value: &str, decimals: u32) -> Option<String> {
         ));
     }
 
-    let mut scaled = format!("{integer}{}", &fractional_part[..decimals]);
-    if fractional_part.as_bytes()[decimals] >= b'5' {
+    let mut scaled = format!("{integer}{}", &fractional_part[..decimals_to_keep]);
+    if scaled.is_empty() {
+        scaled.push('0');
+    }
+
+    if fractional_part.as_bytes()[decimals_to_keep] >= b'5' {
         scaled = increment_digit_string(&scaled);
     }
 
-    if decimals == 0 {
+    if decimals_to_keep == 0 {
         let number = normalize_integer_digits(&scaled).to_string();
         return Some(apply_numeric_sign(is_negative, number));
     }
 
-    let minimum_width = decimals + 1;
+    let minimum_width = decimals_to_keep + 1;
     if scaled.len() < minimum_width {
         scaled = format!("{scaled:0>minimum_width$}");
     }
 
-    let split_index = scaled.len() - decimals;
+    let split_index = scaled.len() - decimals_to_keep;
     let integer = normalize_integer_digits(&scaled[..split_index]);
     let fractional = scaled[split_index..].trim_end_matches('0');
 

@@ -139,13 +139,13 @@ export function NormalizationPanel({
             <CheckboxRule
               checked={normalization.decimal_rounding.enabled}
               onChange={(checked) => onDecimalRoundingChange({ enabled: checked })}
-              label="Round numeric values to a chosen number of decimal places before comparing"
+              label="Trim decimal digits from the end of numeric values before comparing"
             />
             <p className="text-sm text-app-muted">
-              Choose how many decimal places to keep. Use 0 for whole numbers. Rounded values will also appear in results and exports.
+              Choose how many decimal digits to drop from the right; the last kept digit is rounded half up. Use 0 to compare whole numbers. Values with fewer decimal digits stay unchanged, and trimmed values also appear in results and exports.
             </p>
             <label className="block text-sm font-medium text-app-text" htmlFor="decimal-rounding-places">
-              Decimal places
+              Decimal digits to drop
             </label>
             <input
               id="decimal-rounding-places"
