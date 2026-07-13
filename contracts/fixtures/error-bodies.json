@@ -1,0 +1,9 @@
+[
+  {"variant":"not_found","status":404,"body":{"code":"not_found","error":"Session not found"}},
+  {"variant":"validation","status":400,"body":{"code":"validation","error":"Key columns for File A must include at least one column"}},
+  {"variant":"bad_input","status":400,"body":{"code":"bad_input","error":"invalid request payload"}},
+  {"variant":"parse","status":400,"body":{"code":"parse","error":"Failed to parse CSV"}},
+  {"variant":"superseded","status":409,"body":{"code":"superseded","error":"Operation was superseded by a newer request"}},
+  {"variant":"io","status":500,"body":{"code":"io","error":"disk full"}},
+  {"variant":"internal","status":500,"body":{"code":"internal","error":"unexpected panic boundary"}}
+]

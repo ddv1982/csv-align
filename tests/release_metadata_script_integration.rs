@@ -122,6 +122,106 @@ fn macos_release_build_keeps_dmg_bundling_ci_safe_and_verbose() {
     );
 }
 
+#[test]
+fn release_workflow_stages_every_platform_and_centralizes_publication() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let workflow = fs::read_to_string(root.join(".github/workflows/release.yml"))
+        .expect("read release workflow");
+
+    assert!(workflow.contains("cancel-in-progress: false"));
+    assert!(!workflow.contains("\n  create-release:"));
+
+    let linux = workflow_job(&workflow, "stage-linux-release");
+    assert!(linux.contains("needs: validate-release"));
+    assert!(linux.contains("Upload uniquely named Linux release stage"));
+    assert!(linux.contains("Upload uniquely named APT Pages stage"));
+    assert!(!linux.contains("gh release"));
+    assert!(!linux.contains("actions/deploy-pages"));
+
+    let macos = workflow_job(&workflow, "stage-macos-release");
+    assert!(macos.contains("aarch64-apple-darwin"));
+    assert!(macos.contains("x86_64-apple-darwin"));
+    assert!(macos.contains("Upload uniquely named macOS release stage"));
+    assert!(!macos.contains("gh release"));
+    assert!(!macos.contains("actions/deploy-pages"));
+
+    let publish = workflow_job(&workflow, "publish-release");
+    assert!(
+        publish.contains("needs: [validate-release, stage-linux-release, stage-macos-release]")
+    );
+    assert!(publish.contains("--write-manifest"));
+    assert!(publish.contains("group: csv-align-release-publication"));
+    assert!(publish.contains("state=\"published\""));
+    assert!(publish.contains("Immutable release mismatch"));
+    assert!(publish.contains("if: steps.release_state.outputs.state != 'published'"));
+    assert!(publish.contains("(.draft | type == \"boolean\")"));
+    assert!(publish.contains("immutable release metadata mismatch"));
+    assert!(publish.contains("remaining_assets="));
+    assert!(!publish.contains("done < <(gh api"));
+    assert!(publish.contains("pool/main/c/csv-align/csv-align_${version}_amd64.deb"));
+    assert!(publish.contains("dists/stable/main/binary-amd64/Packages"));
+    assert!(publish.contains("dists/stable/main/dep11/Components-amd64.yml"));
+    assert!(publish.contains("scripts/check_release_version_order.py"));
+    assert!(publish.contains(
+        "gh api --paginate \"repos/${REPOSITORY}/releases/${release_id}/assets?per_page=100\""
+    ));
+    assert!(publish.contains(
+        "GitHub Pages is not enabled. Configure Pages to use GitHub Actions before the first release."
+    ));
+    assert!(publish.contains("steps.deploy_apt_pages.outputs.page_url"));
+    assert!(!publish.contains("https://ddv1982.github.io/csv-align/apt"));
+
+    let local_verify = publish
+        .find("Assemble and verify complete managed release set")
+        .expect("local complete-set verification");
+    let classify = publish
+        .find("Classify existing release")
+        .expect("release classification");
+    let rollback_guard = publish
+        .find("Reject release and APT version rollback")
+        .expect("monotonic release and APT guard");
+    let replace = publish
+        .find("Replace complete draft asset set")
+        .expect("draft asset replacement");
+    let draft_verify = publish
+        .find("Redownload and verify exact draft assets")
+        .expect("draft asset verification");
+    let deploy = publish
+        .find("Deploy verified APT repository to GitHub Pages")
+        .expect("Pages deployment");
+    let public_verify = publish
+        .find("Verify public APT repository matches the staged site")
+        .expect("public Pages verification");
+    let undraft = publish
+        .find("Publish GitHub Release after Pages verification")
+        .expect("final undraft");
+
+    assert!(local_verify < classify);
+    assert!(classify < rollback_guard);
+    assert!(rollback_guard < replace);
+    assert!(replace < draft_verify);
+    assert!(draft_verify < deploy);
+    assert!(deploy < public_verify);
+    assert!(public_verify < undraft);
+    assert!(
+        publish.trim_end().ends_with(
+            "run: gh release edit \"${{ github.ref_name }}\" --repo \"${{ github.repository }}\" --draft=false --prerelease=false"
+        ),
+        "undrafting must remain the final publication operation"
+    );
+}
+
+#[test]
+fn release_workflow_pins_actionlint_and_setup_go() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let workflow = fs::read_to_string(root.join(".github/workflows/release.yml"))
+        .expect("read release workflow");
+
+    assert!(workflow.contains("actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16"));
+    assert!(workflow.contains("go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12"));
+    assert!(workflow.contains("\"$(go env GOPATH)/bin/actionlint\" .github/workflows/release.yml"));
+}
+
 struct ReleaseMetadataFixture {
     root: tempfile::TempDir,
     script_path: PathBuf,
@@ -210,6 +310,23 @@ fn release_script_source() -> String {
         Path::new(env!("CARGO_MANIFEST_DIR")).join("scripts/check_release_metadata.py"),
     )
     .expect("read release metadata script")
+}
+
+fn workflow_job<'a>(workflow: &'a str, job: &str) -> &'a str {
+    let marker = format!("  {job}:\n");
+    let tail = workflow
+        .split_once(&marker)
+        .unwrap_or_else(|| panic!("missing workflow job {job}"))
+        .1;
+    tail.match_indices("\n  ")
+        .find_map(|(index, _)| {
+            tail[index + 3..]
+                .chars()
+                .next()
+                .is_some_and(|character| !character.is_whitespace())
+                .then_some(&tail[..index])
+        })
+        .unwrap_or(tail)
 }
 
 fn lockfile_entry(package_name: &str, version: &str) -> String {

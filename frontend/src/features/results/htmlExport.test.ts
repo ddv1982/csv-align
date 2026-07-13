@@ -1,6 +1,8 @@
 import { fireEvent, screen } from '@testing-library/react';
 import { expect, test } from 'vitest';
 import { buildResultsHtmlDocument, normalizeHtmlExportTheme } from './htmlExport';
+import { HtmlExportLimitError } from './htmlExportLimits';
+import { RESOURCE_LIMITS } from '../../services/contracts';
 import type { MappingDto, ResultResponse, SummaryResponse } from '../../types/api';
 
 const SUMMARY: SummaryResponse = {
@@ -56,6 +58,45 @@ const RESULTS: ResultResponse[] = [
 const MAPPINGS: MappingDto[] = [
   { file_a_column: 'name', file_b_column: 'display_name', mapping_type: 'manual' },
 ];
+
+test('rejects HTML exports above the row limit before building the standalone representation', () => {
+  const oversizedResults = Array.from(
+    { length: RESOURCE_LIMITS.htmlExportRows + 1 },
+    () => RESULTS[0],
+  );
+
+  expect(() => buildResultsHtmlDocument({
+    summary: SUMMARY,
+    fileAName: 'left.csv',
+    fileBName: 'right.csv',
+    comparisonColumnsA: ['name'],
+    comparisonColumnsB: ['display_name'],
+    mappings: MAPPINGS,
+    results: oversizedResults,
+    initialFilter: 'all',
+  })).toThrow(HtmlExportLimitError);
+
+  try {
+    buildResultsHtmlDocument({
+      summary: SUMMARY,
+      fileAName: 'left.csv',
+      fileBName: 'right.csv',
+      comparisonColumnsA: ['name'],
+      comparisonColumnsB: ['display_name'],
+      mappings: MAPPINGS,
+      results: oversizedResults,
+      initialFilter: 'all',
+    });
+  } catch (error) {
+    expect(error).toMatchObject({
+      code: 'html_export_limit',
+      kind: 'rows',
+      actual: RESOURCE_LIMITS.htmlExportRows + 1,
+      limit: RESOURCE_LIMITS.htmlExportRows,
+    });
+    expect((error as Error).message).toContain('Use CSV export or reduce the result set.');
+  }
+});
 
 test('buildResultsHtmlDocument embeds the current comparison view state for standalone review', () => {
   const html = buildResultsHtmlDocument({

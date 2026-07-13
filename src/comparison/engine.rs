@@ -9,6 +9,7 @@ use crate::data::json_fields::ColumnSelection;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
+use std::mem::size_of;
 
 pub(crate) const MAX_FLEXIBLE_KEY_CANDIDATES: usize = 10_000;
 pub(crate) const MAX_FLEXIBLE_KEY_COMPARISONS: usize = 1_000_000;
@@ -202,7 +203,18 @@ impl ComparisonPlan {
         csv_b: &CsvData,
         config: &ComparisonConfig,
     ) -> Vec<RowComparisonResult> {
-        let mut results = Vec::new();
+        self.execute_bounded(csv_a, csv_b, config, usize::MAX)
+            .expect("an unbounded comparison collector cannot exceed usize::MAX")
+    }
+
+    pub(crate) fn execute_bounded(
+        self,
+        csv_a: &CsvData,
+        csv_b: &CsvData,
+        config: &ComparisonConfig,
+        retained_limit: usize,
+    ) -> Result<Vec<RowComparisonResult>, ComparisonResultLimitError> {
+        let mut results = BoundedResultCollector::new(retained_limit);
         let context = ComparisonContext {
             csv_a,
             csv_b,
@@ -214,11 +226,11 @@ impl ComparisonPlan {
         };
 
         for &row_index in &self.nullish_rows_a {
-            push_unkeyed_right(&mut results, row_index, &context);
+            push_unkeyed_right(&mut results, row_index, &context)?;
         }
 
         for &row_index in &self.nullish_rows_b {
-            push_unkeyed_left(&mut results, row_index, &context);
+            push_unkeyed_left(&mut results, row_index, &context)?;
         }
 
         if config.normalization.flexible_key_matching {
@@ -228,12 +240,12 @@ impl ComparisonPlan {
                 &self.map_b,
                 self.flexible_candidates,
                 &context,
-            );
+            )?;
         } else {
-            compare_key_groups_exact(&mut results, &self.map_a, &self.map_b, &context);
+            compare_key_groups_exact(&mut results, &self.map_a, &self.map_b, &context)?;
         }
 
-        results
+        Ok(results.into_inner())
     }
 }
 
@@ -255,6 +267,99 @@ impl fmt::Display for ComparisonColumnSelectionError {
 }
 
 impl std::error::Error for ComparisonColumnSelectionError {}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct ComparisonResultLimitError {
+    pub(crate) retained_bytes: usize,
+    pub(crate) limit: usize,
+}
+
+struct BoundedResultCollector {
+    values: Vec<RowComparisonResult>,
+    nested_bytes: usize,
+    limit: usize,
+}
+
+impl BoundedResultCollector {
+    fn new(limit: usize) -> Self {
+        Self {
+            values: Vec::new(),
+            nested_bytes: 0,
+            limit,
+        }
+    }
+
+    fn push(&mut self, result: RowComparisonResult) -> Result<(), ComparisonResultLimitError> {
+        let nested_bytes = self
+            .nested_bytes
+            .saturating_add(result.retained_heap_size_bytes());
+        let required_len = self.values.len().saturating_add(1);
+        let minimum_capacity = self.values.capacity().max(required_len);
+        let minimum_retained = self.retained_bytes(minimum_capacity, nested_bytes);
+        if minimum_retained > self.limit {
+            return Err(self.limit_error(minimum_retained));
+        }
+
+        if required_len > self.values.capacity() {
+            let fixed_and_nested =
+                size_of::<Vec<RowComparisonResult>>().saturating_add(nested_bytes);
+            let maximum_capacity =
+                self.limit.saturating_sub(fixed_and_nested) / size_of::<RowComparisonResult>();
+            let target_capacity = self
+                .values
+                .capacity()
+                .saturating_mul(2)
+                .max(required_len)
+                .min(maximum_capacity);
+
+            if target_capacity < required_len
+                || self
+                    .values
+                    .try_reserve_exact(target_capacity.saturating_sub(self.values.len()))
+                    .is_err()
+            {
+                tracing::warn!(
+                    limit_name = "comparison results retained bytes",
+                    limit = self.limit,
+                    "comparison result allocation failed"
+                );
+                return Err(self.limit_error(self.limit.saturating_add(1)));
+            }
+        }
+
+        let retained_bytes = self.retained_bytes(self.values.capacity(), nested_bytes);
+        if retained_bytes > self.limit {
+            return Err(self.limit_error(retained_bytes));
+        }
+
+        self.nested_bytes = nested_bytes;
+        self.values.push(result);
+        Ok(())
+    }
+
+    fn retained_bytes(&self, capacity: usize, nested_bytes: usize) -> usize {
+        size_of::<Vec<RowComparisonResult>>()
+            .saturating_add(capacity.saturating_mul(size_of::<RowComparisonResult>()))
+            .saturating_add(nested_bytes)
+    }
+
+    fn limit_error(&self, retained_bytes: usize) -> ComparisonResultLimitError {
+        tracing::warn!(
+            limit_name = "comparison results retained bytes",
+            retained_bytes,
+            limit = self.limit,
+            "resource limit exceeded"
+        );
+        ComparisonResultLimitError {
+            retained_bytes,
+            limit: self.limit,
+        }
+    }
+
+    fn into_inner(self) -> Vec<RowComparisonResult> {
+        self.values
+    }
+}
 
 fn required_column_selections(
     headers: &[String],
@@ -322,11 +427,11 @@ struct FlexibleCandidate {
 }
 
 fn compare_key_groups_exact(
-    results: &mut Vec<RowComparisonResult>,
+    results: &mut BoundedResultCollector,
     map_a: &HashMap<Vec<String>, KeyedRows>,
     map_b: &HashMap<Vec<String>, KeyedRows>,
     context: &ComparisonContext,
-) {
+) -> Result<(), ComparisonResultLimitError> {
     let mut processed_b = HashSet::new();
 
     let mut keyed_rows_a: Vec<(&Vec<String>, &KeyedRows)> = map_a.iter().collect();
@@ -336,9 +441,9 @@ fn compare_key_groups_exact(
     for (key, keyed_rows_a) in keyed_rows_a {
         if let Some(keyed_rows_b) = map_b.get(key) {
             processed_b.insert(key.clone());
-            push_paired_group_results(results, keyed_rows_a, keyed_rows_b, context);
+            push_paired_group_results(results, keyed_rows_a, keyed_rows_b, context)?;
         } else {
-            push_unmatched_a_results(results, keyed_rows_a, context);
+            push_unmatched_a_results(results, keyed_rows_a, context)?;
         }
     }
 
@@ -351,8 +456,10 @@ fn compare_key_groups_exact(
             continue;
         }
 
-        push_unmatched_b_results(results, keyed_rows_b, context);
+        push_unmatched_b_results(results, keyed_rows_b, context)?;
     }
+
+    Ok(())
 }
 
 fn compare_keyed_rows(left: &KeyedRows, right: &KeyedRows) -> Ordering {
@@ -362,12 +469,12 @@ fn compare_keyed_rows(left: &KeyedRows, right: &KeyedRows) -> Ordering {
 }
 
 fn compare_key_groups_flexible(
-    results: &mut Vec<RowComparisonResult>,
+    results: &mut BoundedResultCollector,
     map_a: &HashMap<Vec<String>, KeyedRows>,
     map_b: &HashMap<Vec<String>, KeyedRows>,
     mut candidates: Vec<FlexibleCandidate>,
     context: &ComparisonContext,
-) {
+) -> Result<(), ComparisonResultLimitError> {
     let mut matched_a: HashSet<Vec<String>> = HashSet::new();
     let mut matched_b: HashSet<Vec<String>> = HashSet::new();
 
@@ -385,7 +492,7 @@ fn compare_key_groups_flexible(
                 .get(&candidate.key_b)
                 .expect("candidate File B key should exist"),
             context,
-        );
+        )?;
     }
 
     let mut unmatched_a: Vec<&KeyedRows> = map_a
@@ -394,7 +501,7 @@ fn compare_key_groups_flexible(
         .collect();
     unmatched_a.sort_by(|left, right| compare_keyed_rows(left, right));
     for keyed_rows_a in unmatched_a {
-        push_unmatched_a_results(results, keyed_rows_a, context);
+        push_unmatched_a_results(results, keyed_rows_a, context)?;
     }
 
     let mut unmatched_b: Vec<&KeyedRows> = map_b
@@ -403,8 +510,10 @@ fn compare_key_groups_flexible(
         .collect();
     unmatched_b.sort_by(|left, right| compare_keyed_rows(left, right));
     for keyed_rows_b in unmatched_b {
-        push_unmatched_b_results(results, keyed_rows_b, context);
+        push_unmatched_b_results(results, keyed_rows_b, context)?;
     }
+
+    Ok(())
 }
 
 fn compare_flexible_candidate_preference(
@@ -569,10 +678,10 @@ fn try_match_flexible_key(
 }
 
 fn push_unkeyed_right(
-    results: &mut Vec<RowComparisonResult>,
+    results: &mut BoundedResultCollector,
     row_index: usize,
     context: &ComparisonContext,
-) {
+) -> Result<(), ComparisonResultLimitError> {
     results.push(RowComparisonResult::UnkeyedRight {
         key: display_values(
             extract_columns(&context.csv_a.rows[row_index], context.key_selections_a),
@@ -582,14 +691,14 @@ fn push_unkeyed_right(
             extract_columns(&context.csv_a.rows[row_index], context.comp_selections_a),
             &context.config.normalization,
         ),
-    });
+    })
 }
 
 fn push_unkeyed_left(
-    results: &mut Vec<RowComparisonResult>,
+    results: &mut BoundedResultCollector,
     row_index: usize,
     context: &ComparisonContext,
-) {
+) -> Result<(), ComparisonResultLimitError> {
     results.push(RowComparisonResult::UnkeyedLeft {
         key: display_values(
             extract_columns(&context.csv_b.rows[row_index], context.key_selections_b),
@@ -599,60 +708,56 @@ fn push_unkeyed_left(
             extract_columns(&context.csv_b.rows[row_index], context.comp_selections_b),
             &context.config.normalization,
         ),
-    });
+    })
 }
 
 fn push_paired_group_results(
-    results: &mut Vec<RowComparisonResult>,
+    results: &mut BoundedResultCollector,
     keyed_rows_a: &KeyedRows,
     keyed_rows_b: &KeyedRows,
     context: &ComparisonContext,
-) {
+) -> Result<(), ComparisonResultLimitError> {
     // Paired rows intentionally use File A's display key as the canonical result key.
     // Flexible matching can pair different key shapes, so the left-side key preserves
     // the existing API/export contract while unmatched File B rows still show File B keys.
     if keyed_rows_a.indices.len() > 1 && keyed_rows_b.indices.len() > 1 {
-        results.push(RowComparisonResult::Duplicate {
+        return results.push(RowComparisonResult::Duplicate {
             key: keyed_rows_a.display_key.clone(),
             values_a: comparison_display_values_a(keyed_rows_a, context),
             values_b: comparison_display_values_b(keyed_rows_b, context),
         });
-        return;
     }
 
     if keyed_rows_a.indices.len() > 1 {
-        results.push(RowComparisonResult::Duplicate {
+        return results.push(RowComparisonResult::Duplicate {
             key: keyed_rows_a.display_key.clone(),
             values_a: comparison_display_values_a(keyed_rows_a, context),
             values_b: Vec::new(),
         });
-        return;
     }
 
     if keyed_rows_b.indices.len() > 1 {
-        results.push(RowComparisonResult::Duplicate {
+        return results.push(RowComparisonResult::Duplicate {
             key: keyed_rows_a.display_key.clone(),
             values_a: Vec::new(),
             values_b: comparison_display_values_b(keyed_rows_b, context),
         });
-        return;
     }
 
-    results.push(compare_first_rows(keyed_rows_a, keyed_rows_b, context));
+    results.push(compare_first_rows(keyed_rows_a, keyed_rows_b, context))
 }
 
 fn push_unmatched_a_results(
-    results: &mut Vec<RowComparisonResult>,
+    results: &mut BoundedResultCollector,
     keyed_rows_a: &KeyedRows,
     context: &ComparisonContext,
-) {
+) -> Result<(), ComparisonResultLimitError> {
     if keyed_rows_a.indices.len() > 1 {
-        results.push(RowComparisonResult::Duplicate {
+        return results.push(RowComparisonResult::Duplicate {
             key: keyed_rows_a.display_key.clone(),
             values_a: comparison_display_values_a(keyed_rows_a, context),
             values_b: Vec::new(),
         });
-        return;
     }
 
     let values_a = extract_columns(
@@ -662,21 +767,20 @@ fn push_unmatched_a_results(
     results.push(RowComparisonResult::MissingRight {
         key: keyed_rows_a.display_key.clone(),
         values_a: display_values(values_a, &context.config.normalization),
-    });
+    })
 }
 
 fn push_unmatched_b_results(
-    results: &mut Vec<RowComparisonResult>,
+    results: &mut BoundedResultCollector,
     keyed_rows_b: &KeyedRows,
     context: &ComparisonContext,
-) {
+) -> Result<(), ComparisonResultLimitError> {
     if keyed_rows_b.indices.len() > 1 {
-        results.push(RowComparisonResult::Duplicate {
+        return results.push(RowComparisonResult::Duplicate {
             key: keyed_rows_b.display_key.clone(),
             values_a: Vec::new(),
             values_b: comparison_display_values_b(keyed_rows_b, context),
         });
-        return;
     }
 
     let values_b = extract_columns(
@@ -686,7 +790,7 @@ fn push_unmatched_b_results(
     results.push(RowComparisonResult::MissingLeft {
         key: keyed_rows_b.display_key.clone(),
         values_b: display_values(values_b, &context.config.normalization),
-    });
+    })
 }
 
 fn compare_first_rows(
@@ -759,8 +863,6 @@ fn compare_single_match(
     values_b: Vec<String>,
     config: &ComparisonConfig,
 ) -> RowComparisonResult {
-    let display_values_a = display_values(values_a.clone(), &config.normalization);
-    let display_values_b = display_values(values_b.clone(), &config.normalization);
     let differences = find_differences(
         &config.comparison_columns_a,
         &config.comparison_columns_b,
@@ -769,6 +871,8 @@ fn compare_single_match(
         &config.column_mappings,
         &config.normalization,
     );
+    let display_values_a = display_values(values_a, &config.normalization);
+    let display_values_b = display_values(values_b, &config.normalization);
 
     if differences.is_empty() {
         RowComparisonResult::Match {
@@ -833,4 +937,36 @@ pub fn generate_summary(
     }
 
     summary
+}
+
+#[cfg(test)]
+mod resource_limit_tests {
+    use super::*;
+    use crate::data::types::retained_comparison_results_bytes;
+
+    fn sample_result() -> RowComparisonResult {
+        let mut value = String::with_capacity(128);
+        value.push_str("value");
+        RowComparisonResult::MissingRight {
+            key: vec!["key".to_string()],
+            values_a: vec![value],
+        }
+    }
+
+    #[test]
+    fn bounded_result_collector_accepts_exact_bytes_and_rejects_one_more() {
+        let mut measured = BoundedResultCollector::new(usize::MAX);
+        measured.push(sample_result()).unwrap();
+        let values = measured.into_inner();
+        let exact = retained_comparison_results_bytes(&values, values.capacity());
+
+        let mut at_limit = BoundedResultCollector::new(exact);
+        at_limit.push(sample_result()).unwrap();
+
+        let mut over_limit = BoundedResultCollector::new(exact - 1);
+        let error = over_limit.push(sample_result()).unwrap_err();
+        assert_eq!(error.retained_bytes, exact);
+        assert_eq!(error.limit, exact - 1);
+        assert!(over_limit.values.is_empty());
+    }
 }

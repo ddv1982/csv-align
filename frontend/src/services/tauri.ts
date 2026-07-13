@@ -11,10 +11,12 @@ import {
   buildSaveComparisonSnapshotRoute,
   buildSavePairOrderRoute,
   buildSuggestMappingsRoute,
+  API_TRANSPORT_OPERATIONS,
 } from './apiRoutes';
 import { TAURI_COMMANDS } from './tauriCommands';
-import { validateCsvFileSize } from './contracts';
-import { errorMessageFromPayload, fetchBlob, fetchJson, postJson, readErrorMessage, readErrorPayload } from './http';
+import { validateCsvFileSize, validateSnapshotFileSize } from './contracts';
+import { validateHtmlExportDocument } from '../features/results/htmlExportLimits';
+import { ApiError, errorMessageFromPayload, fetchBlob, fetchJson, postJson, readErrorMessage, readErrorPayload } from './http';
 import type { SelectedFileSource } from '../types/ui';
 import type {
   FileLoadResponse,
@@ -76,7 +78,11 @@ export async function createSession(): Promise<SessionResponse> {
     return invoke(TAURI_COMMANDS.createSession);
   }
 
-  return fetchJson(buildCreateSessionRoute(), { method: 'POST' }, 'Failed to create session');
+  return fetchJson(
+    buildCreateSessionRoute(),
+    { method: API_TRANSPORT_OPERATIONS.createSession.method },
+    'Failed to create session',
+  );
 }
 
 export async function deleteSession(sessionId: string): Promise<void> {
@@ -91,7 +97,9 @@ export async function deleteSession(sessionId: string): Promise<void> {
     return;
   }
 
-  const response = await fetch(buildDeleteSessionRoute(sessionId), { method: 'DELETE' });
+  const response = await fetch(buildDeleteSessionRoute(sessionId), {
+    method: API_TRANSPORT_OPERATIONS.deleteSession.method,
+  });
 
   if (response.status === 404) {
     const payload = await readErrorPayload(response);
@@ -110,7 +118,8 @@ export async function deleteSession(sessionId: string): Promise<void> {
 export async function loadFile(
   sessionId: string,
   file: SelectedFileSource,
-  fileLetter: 'a' | 'b'
+  fileLetter: 'a' | 'b',
+  isStillCurrent?: () => boolean,
 ): Promise<FileLoadResponse> {
   if (isTauri) {
     if (typeof file === 'string') {
@@ -120,7 +129,12 @@ export async function loadFile(
     // Raw IPC body: JSON-encoding the bytes as a number array multiplies the
     // payload roughly eightfold for a 25 MiB file. Metadata rides in headers,
     // percent-encoded because header values must stay ASCII.
-    return invoke(TAURI_COMMANDS.loadCsvBytes, await readFileBytes(file), {
+    const bytes = await readFileBytes(file);
+    if (isStillCurrent && !isStillCurrent()) {
+      throw new ApiError('Operation was superseded by a newer request', 'superseded');
+    }
+
+    return invoke(TAURI_COMMANDS.loadCsvBytes, bytes, {
       headers: {
         'session-id': sessionId,
         'file-letter': fileLetter,
@@ -135,12 +149,15 @@ export async function loadFile(
   }
 
   validateCsvFileSize(file);
+  if (isStillCurrent && !isStillCurrent()) {
+    throw new ApiError('Operation was superseded by a newer request', 'superseded');
+  }
 
   const formData = new FormData();
   formData.append('file', file);
 
   return fetchJson(buildLoadFileRoute(sessionId, fileLetter), {
-    method: 'POST',
+    method: API_TRANSPORT_OPERATIONS.loadFile.method,
     body: formData,
   }, 'Failed to load file');
 }
@@ -181,11 +198,13 @@ export async function exportResults(sessionId: string): Promise<SaveOutcome> {
   }
 
   return fetchBlob(buildExportResultsRoute(sessionId), {
-    method: 'GET',
+    method: API_TRANSPORT_OPERATIONS.exportResults.method,
   }, 'Failed to export results');
 }
 
 export async function exportResultsHtml(contents: string): Promise<SaveOutcome> {
+  validateHtmlExportDocument(contents);
+
   if (isTauri) {
     return invoke<'saved' | DialogCancelled>(TAURI_COMMANDS.exportResultsHtml, {
       htmlContents: contents,
@@ -207,7 +226,7 @@ export async function savePairOrder(
   }
 
   return fetchBlob(buildSavePairOrderRoute(sessionId), {
-    method: 'POST',
+    method: API_TRANSPORT_OPERATIONS.savePairOrder.method,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ selection }),
   }, 'Failed to save pair order');
@@ -242,15 +261,19 @@ export async function saveComparisonSnapshot(sessionId: string): Promise<SaveOut
   }
 
   return fetchBlob(buildSaveComparisonSnapshotRoute(sessionId), {
-    method: 'POST',
+    method: API_TRANSPORT_OPERATIONS.saveComparisonSnapshot.method,
   }, 'Failed to save comparison snapshot');
 }
 
 export async function loadComparisonSnapshot(
   sessionId: string,
   file?: File,
+  isStillCurrent?: () => boolean,
 ): Promise<LoadComparisonSnapshotResponse | DialogCancelled> {
   if (isTauri) {
+    if (isStillCurrent && !isStillCurrent()) {
+      throw new ApiError('Operation was superseded by a newer request', 'superseded');
+    }
     const response = await invoke<LoadComparisonSnapshotResponse | null>(TAURI_COMMANDS.loadComparisonSnapshot, {
       sessionId,
     });
@@ -262,11 +285,18 @@ export async function loadComparisonSnapshot(
     throw new Error('No comparison snapshot file selected');
   }
 
-  const contents = await file.text();
+  validateSnapshotFileSize(file);
+  if (isStillCurrent && !isStillCurrent()) {
+    throw new ApiError('Operation was superseded by a newer request', 'superseded');
+  }
 
-  return postJson(
+  return fetchJson(
     buildLoadComparisonSnapshotRoute(sessionId),
-    { contents },
+    {
+      method: API_TRANSPORT_OPERATIONS.loadComparisonSnapshot.method,
+      headers: { 'Content-Type': 'application/json' },
+      body: file,
+    },
     'Failed to load comparison snapshot',
   );
 }

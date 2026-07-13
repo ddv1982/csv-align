@@ -1,0 +1,26 @@
+{
+  "success": true,
+  "results": [
+    {"result_type":"match","key":["match-key"],"values_a":["Alice"],"values_b":["Alice"],"duplicate_values_a":[],"duplicate_values_b":[],"differences":[]},
+    {"result_type":"mismatch","key":["mismatch-key"],"values_a":["Alice"],"values_b":["Alicia"],"duplicate_values_a":[],"duplicate_values_b":[],"differences":[{"column_a":"name","column_b":"display_name","value_a":"Alice","value_b":"Alicia"}]},
+    {"result_type":"missing_left","key":["missing-left-key"],"values_a":[],"values_b":["right only"],"duplicate_values_a":[],"duplicate_values_b":[],"differences":[]},
+    {"result_type":"missing_right","key":["missing-right-key"],"values_a":["left only"],"values_b":[],"duplicate_values_a":[],"duplicate_values_b":[],"differences":[]},
+    {"result_type":"unkeyed_left","key":[""],"values_a":[],"values_b":["unkeyed right"],"duplicate_values_a":[],"duplicate_values_b":[],"differences":[]},
+    {"result_type":"unkeyed_right","key":[""],"values_a":["unkeyed left"],"values_b":[],"duplicate_values_a":[],"duplicate_values_b":[],"differences":[]},
+    {"result_type":"duplicate_file_a","key":["duplicate-a-key"],"values_a":["left one"],"values_b":[],"duplicate_values_a":[["left one"],["left two"]],"duplicate_values_b":[],"differences":[]},
+    {"result_type":"duplicate_file_b","key":["duplicate-b-key"],"values_a":[],"values_b":["right one"],"duplicate_values_a":[],"duplicate_values_b":[["right one"],["right two"]],"differences":[]},
+    {"result_type":"duplicate_both","key":["duplicate-both-key"],"values_a":["left one"],"values_b":["right one"],"duplicate_values_a":[["left one"],["left two"]],"duplicate_values_b":[["right one"],["right two"]],"differences":[]}
+  ],
+  "summary": {
+    "total_rows_a": 8,
+    "total_rows_b": 8,
+    "matches": 1,
+    "mismatches": 1,
+    "missing_left": 1,
+    "missing_right": 1,
+    "unkeyed_left": 1,
+    "unkeyed_right": 1,
+    "duplicates_a": 2,
+    "duplicates_b": 2
+  }
+}

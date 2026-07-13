@@ -1,3 +1,4 @@
+use csv_align::backend::limits::{MAX_CSV_COLUMNS, MAX_CSV_ROWS};
 use csv_align::data::csv_loader::{detect_columns, load_csv, load_csv_from_bytes};
 use csv_align::data::types::{ColumnDataType, CsvData};
 use std::io::Write;
@@ -110,4 +111,38 @@ fn detect_columns_infers_common_types() {
     assert_eq!(columns[0].data_type, ColumnDataType::String);
     assert_eq!(columns[1].data_type, ColumnDataType::Integer);
     assert_eq!(columns[2].data_type, ColumnDataType::Float);
+}
+
+#[test]
+fn csv_column_limit_accepts_the_boundary_and_rejects_one_more() {
+    let at_limit = (0..MAX_CSV_COLUMNS)
+        .map(|index| format!("column_{index}"))
+        .collect::<Vec<_>>()
+        .join(",");
+    let csv = load_csv_from_bytes(at_limit.as_bytes()).expect("column boundary should pass");
+    assert_eq!(csv.headers.len(), MAX_CSV_COLUMNS);
+
+    let over_limit = format!("{at_limit},one_more");
+    let error =
+        load_csv_from_bytes(over_limit.as_bytes()).expect_err("column limit plus one should fail");
+    assert!(error.to_string().contains("CSV columns limit exceeded"));
+    assert!(error.to_string().contains(&MAX_CSV_COLUMNS.to_string()));
+}
+
+#[test]
+fn csv_row_limit_accepts_the_boundary_and_rejects_one_more() {
+    let mut contents = String::with_capacity(MAX_CSV_ROWS * 2 + 3);
+    contents.push_str("id\n");
+    for _ in 0..MAX_CSV_ROWS {
+        contents.push_str("1\n");
+    }
+
+    let csv = load_csv_from_bytes(contents.as_bytes()).expect("row boundary should pass");
+    assert_eq!(csv.rows.len(), MAX_CSV_ROWS);
+
+    contents.push_str("1\n");
+    let error =
+        load_csv_from_bytes(contents.as_bytes()).expect_err("row limit plus one should fail");
+    assert!(error.to_string().contains("CSV rows limit exceeded"));
+    assert!(error.to_string().contains(&MAX_CSV_ROWS.to_string()));
 }

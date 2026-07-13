@@ -1,8 +1,10 @@
+use csv_align::backend::limits::{MAX_JSON_PATH_DEPTH, MAX_VIRTUAL_LABELS};
 use csv_align::backend::{
     CompareRequest, CsvLoadSource, MappingRequest, load_csv_workflow, run_comparison,
 };
 use csv_align::data::csv_loader;
-use csv_align::data::types::{ComparisonNormalizationConfig, FileSide, ResultType};
+use csv_align::data::types::{ComparisonNormalizationConfig, CsvData, FileSide, ResultType};
+use serde_json::{Map, Value};
 
 #[test]
 fn load_csv_response_includes_discovered_virtual_json_headers() {
@@ -301,4 +303,53 @@ fn virtual_field_validation_rejects_undiscovered_json_paths() {
     .expect_err("undiscovered virtual field should be rejected");
 
     assert!(error.to_string().contains("metrics.missing"));
+}
+
+fn csv_with_json_value(value: Value) -> CsvData {
+    CsvData {
+        file_path: None,
+        headers: vec!["payload".to_string()],
+        rows: vec![vec![value.to_string()]],
+    }
+}
+
+fn nested_object(depth: usize) -> Value {
+    let mut value = Value::String("leaf".to_string());
+    for index in (0..depth).rev() {
+        let mut object = Map::new();
+        object.insert(format!("level_{index}"), value);
+        value = Value::Object(object);
+    }
+    value
+}
+
+#[test]
+fn virtual_json_path_depth_accepts_the_boundary_and_rejects_one_more() {
+    let catalog =
+        csv_loader::detect_column_catalog(&csv_with_json_value(nested_object(MAX_JSON_PATH_DEPTH)))
+            .expect("path-depth boundary should pass");
+    assert_eq!(catalog.virtual_headers().len(), MAX_JSON_PATH_DEPTH);
+
+    let error = csv_loader::detect_column_catalog(&csv_with_json_value(nested_object(
+        MAX_JSON_PATH_DEPTH + 1,
+    )))
+    .expect_err("path-depth limit plus one should fail");
+    assert!(error.to_string().contains("path-depth limit"));
+}
+
+#[test]
+fn virtual_json_label_limit_accepts_the_boundary_and_rejects_one_more() {
+    let object = (0..MAX_VIRTUAL_LABELS)
+        .map(|index| (format!("field_{index}"), Value::Bool(true)))
+        .collect::<Map<_, _>>();
+    let catalog =
+        csv_loader::detect_column_catalog(&csv_with_json_value(Value::Object(object.clone())))
+            .expect("virtual-label boundary should pass");
+    assert_eq!(catalog.virtual_headers().len(), MAX_VIRTUAL_LABELS);
+
+    let mut over_limit = object;
+    over_limit.insert("one_more".to_string(), Value::Bool(true));
+    let error = csv_loader::detect_column_catalog(&csv_with_json_value(Value::Object(over_limit)))
+        .expect_err("virtual-label limit plus one should fail");
+    assert!(error.to_string().contains("label limit"));
 }

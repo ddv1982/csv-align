@@ -171,6 +171,7 @@ test('loads a saved result from step 1 through the app workflow', async () => {
   expect(loadComparisonSnapshotMock).toHaveBeenCalledWith(
     'session-789',
     expect.objectContaining({ name: 'comparison-snapshot.json' }),
+    expect.any(Function),
   );
   expect(
     screen.getByText(

@@ -15,6 +15,11 @@ import {
   type WorkflowAction,
   type WorkflowState,
 } from './useComparisonWorkflow.reducer';
+import { isSupersededError } from '../services/http';
+import type {
+  WorkflowOperationKind,
+  WorkflowRequestToken,
+} from './workflowRequestToken';
 
 interface UseWorkflowPersistenceActionsParams {
   state: WorkflowState['appState'];
@@ -24,15 +29,10 @@ interface UseWorkflowPersistenceActionsParams {
   failLoading: (error: unknown) => void;
   blockSnapshotFollowOnWorkflow: () => boolean;
   beginWorkflowRequest: (sessionId: string | null, invalidatesExisting?: boolean) => WorkflowRequestToken;
+  beginWorkflowOperation: (sessionId: string, kind: WorkflowOperationKind) => WorkflowRequestToken;
   invalidateWorkflowRequests: (sessionId: string | null) => WorkflowRequestToken;
   isCurrentWorkflowRequest: (token: WorkflowRequestToken) => boolean;
 }
-
-type WorkflowRequestToken = {
-  sessionId: string | null;
-  generation: number;
-  mutation: number;
-};
 
 export function useWorkflowPersistenceActions({
   state,
@@ -42,6 +42,7 @@ export function useWorkflowPersistenceActions({
   failLoading,
   blockSnapshotFollowOnWorkflow,
   beginWorkflowRequest,
+  beginWorkflowOperation,
   invalidateWorkflowRequests,
   isCurrentWorkflowRequest,
 }: UseWorkflowPersistenceActionsParams) {
@@ -161,10 +162,14 @@ export function useWorkflowPersistenceActions({
     }
 
     startLoading();
-    const token = beginWorkflowRequest(state.sessionId, true);
+    const token = beginWorkflowOperation(state.sessionId, 'snapshot_restore');
 
     try {
-      const response = await loadComparisonSnapshot(state.sessionId, file);
+      const response = await loadComparisonSnapshot(
+        state.sessionId,
+        file,
+        () => isCurrentWorkflowRequest(token),
+      );
       if (!isCurrentWorkflowRequest(token)) {
         return;
       }
@@ -180,10 +185,14 @@ export function useWorkflowPersistenceActions({
       dispatch({ type: 'downloadCompleted' });
     } catch (error) {
       if (isCurrentWorkflowRequest(token)) {
-        failLoading(error);
+        if (isSupersededError(error)) {
+          dispatch({ type: 'downloadCompleted' });
+        } else {
+          failLoading(error);
+        }
       }
     }
-  }, [beginWorkflowRequest, dispatch, failLoading, isCurrentWorkflowRequest, startLoading, state.sessionId]);
+  }, [beginWorkflowOperation, dispatch, failLoading, isCurrentWorkflowRequest, startLoading, state.sessionId]);
 
   const handleSavePairOrder = useCallback(async () => {
     if (!state.sessionId) {

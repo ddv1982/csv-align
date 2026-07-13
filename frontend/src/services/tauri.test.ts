@@ -119,6 +119,33 @@ describe('transport helpers', () => {
     expect(invokeMock).not.toHaveBeenCalled();
   });
 
+  test('preserves typed superseded errors from browser HTTP responses', async () => {
+    const fetchMock = vi.mocked(globalThis.fetch);
+    fetchMock.mockResolvedValue(jsonResponse({
+      code: 'superseded',
+      error: 'Operation was superseded by a newer request',
+    }, { status: 409 }));
+
+    const { loadFile } = await importTauriModule();
+    const file = new File(['id\n1'], 'example.csv', { type: 'text/csv' });
+
+    await expect(loadFile('session-1', file, 'a')).rejects.toMatchObject({
+      code: 'superseded',
+      message: 'Operation was superseded by a newer request',
+    });
+  });
+
+  test('does not invoke a stale desktop file load after reading its bytes', async () => {
+    (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
+    const { loadFile } = await importTauriModule();
+    const file = new File([new Uint8Array([97, 98, 99])], 'stale.csv', { type: 'text/csv' });
+
+    await expect(loadFile('session-2', file, 'a', () => false)).rejects.toMatchObject({
+      code: 'superseded',
+    });
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+
   test('loadFile uses invoke with file bytes in Tauri mode', async () => {
     (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
     invokeMock.mockResolvedValue({
@@ -388,6 +415,19 @@ describe('transport helpers', () => {
     const blob = await exportResultsHtml('<!DOCTYPE html><title>Export</title>');
 
   await expect((blob as Blob).text()).resolves.toContain('<title>Export</title>');
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+
+  test('exportResultsHtml rejects oversized UTF-8 documents before browser download or Tauri invoke', async () => {
+    const { exportResultsHtml } = await importTauriModule();
+    const oversizedDocument = 'x'.repeat(40 * 1024 * 1024) + 'é';
+
+    await expect(exportResultsHtml(oversizedDocument)).rejects.toMatchObject({
+      code: 'html_export_limit',
+      kind: 'document',
+      actual: (40 * 1024 * 1024) + 2,
+      limit: 40 * 1024 * 1024,
+    });
     expect(invokeMock).not.toHaveBeenCalled();
   });
 

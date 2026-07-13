@@ -1,19 +1,25 @@
 use std::sync::Arc;
 use std::{
     fs,
+    io::Read,
     path::{Path, PathBuf},
 };
 
 use tauri_plugin_dialog::{DialogExt, FilePath};
 use tracing::instrument;
 
+use csv_align::backend::limits::{MAX_HTML_EXPORT_DOCUMENT_BYTES, MAX_SNAPSHOT_BYTES};
 use csv_align::backend::{
     CompareRequest, CsvAlignError, CsvLoadSource, LoadComparisonSnapshotResponse,
-    LoadPairOrderResponse, PairOrderSelection, SessionResponse, SessionStore,
-    SuggestMappingsRequest, apply_loaded_csv_for_session, export_results_for_session,
-    load_comparison_snapshot_for_session, load_csv_workflow, load_pair_order_for_session,
-    parse_file_side, run_comparison_for_session, save_comparison_snapshot_for_session,
+    LoadPairOrderResponse, OperationToken, PairOrderSelection, SessionResponse, SessionStore,
+    SuggestMappingsRequest, begin_comparison_for_session,
+    begin_comparison_snapshot_load_for_session, begin_file_load_for_session,
+    commit_comparison_for_session, commit_comparison_snapshot_load_for_session,
+    commit_file_load_for_session, ensure_snapshot_size, execute_comparison_for_session,
+    load_csv_workflow, load_pair_order_for_session, parse_file_side,
+    prepare_comparison_snapshot_load_bytes, save_comparison_snapshot_for_session,
     save_pair_order_for_session, suggest_mappings_for_session, validate_file_letter,
+    write_export_results_for_session,
 };
 use csv_align::presentation::responses::{
     CompareResponse, FileLoadResponse, SuggestMappingsResponse,
@@ -28,6 +34,17 @@ use csv_align::presentation::responses::{
 pub(crate) enum SaveDialogOutcome {
     Saved,
     Cancelled,
+}
+
+pub(crate) async fn run_blocking<T>(
+    task: impl FnOnce() -> Result<T, CsvAlignError> + Send + 'static,
+) -> Result<T, CsvAlignError>
+where
+    T: Send + 'static,
+{
+    tauri::async_runtime::spawn_blocking(task)
+        .await
+        .map_err(|error| CsvAlignError::Internal(format!("Blocking task failed: {error}")))?
 }
 
 fn write_output_file(
@@ -85,14 +102,26 @@ pub(crate) fn export_results_to_path(
     session_id: &str,
     output_path: &Path,
 ) -> Result<(), CsvAlignError> {
-    let csv_content = export_results_for_session(state, session_id)?;
-    write_output_file(output_path, csv_content, "CSV export")
+    write_export_results_for_session(state, session_id, output_path)
+}
+
+pub(crate) fn validate_html_export_document(html_contents: &str) -> Result<(), CsvAlignError> {
+    let byte_length = html_contents.len();
+    if byte_length > MAX_HTML_EXPORT_DOCUMENT_BYTES {
+        return Err(CsvAlignError::BadInput(format!(
+            "HTML export document exceeds the {} MiB limit ({byte_length} UTF-8 bytes). Use CSV export or reduce the result set.",
+            MAX_HTML_EXPORT_DOCUMENT_BYTES / 1024 / 1024
+        )));
+    }
+
+    Ok(())
 }
 
 pub(crate) fn export_results_html_to_path(
     output_path: &Path,
     html_contents: &str,
 ) -> Result<(), CsvAlignError> {
+    validate_html_export_document(html_contents)?;
     write_output_file(output_path, html_contents, "HTML export")
 }
 
@@ -130,19 +159,75 @@ pub(crate) fn save_comparison_snapshot_to_path(
     write_output_file(output_path, contents, "comparison snapshot")
 }
 
+pub(crate) fn begin_comparison_snapshot_before_selection(
+    state: &SessionStore,
+    session_id: &str,
+    select_file: impl FnOnce() -> Result<Option<PathBuf>, CsvAlignError>,
+) -> Result<Option<(OperationToken, PathBuf)>, CsvAlignError> {
+    let token = begin_comparison_snapshot_load_for_session(state, session_id)?;
+    Ok(select_file()?.map(|file_path| (token, file_path)))
+}
+
+#[cfg(test)]
 pub(crate) fn load_comparison_snapshot_from_path(
     state: &SessionStore,
     session_id: &str,
     file_path: &Path,
 ) -> Result<LoadComparisonSnapshotResponse, CsvAlignError> {
-    let contents = fs::read_to_string(file_path).map_err(|error| {
+    let selection = begin_comparison_snapshot_before_selection(state, session_id, || {
+        Ok(Some(file_path.to_path_buf()))
+    })?
+    .expect("the test path is always selected");
+    load_claimed_comparison_snapshot_from_path(state, session_id, selection.0, &selection.1)
+}
+
+fn load_claimed_comparison_snapshot_from_path(
+    state: &SessionStore,
+    session_id: &str,
+    token: OperationToken,
+    file_path: &Path,
+) -> Result<LoadComparisonSnapshotResponse, CsvAlignError> {
+    let contents = read_comparison_snapshot_file(file_path)?;
+    let prepared = prepare_comparison_snapshot_load_bytes(&contents)?;
+
+    commit_comparison_snapshot_load_for_session(state, session_id, token, prepared)
+}
+
+fn snapshot_read_error(error: std::io::Error) -> CsvAlignError {
+    CsvAlignError::Io(std::io::Error::new(
+        error.kind(),
+        format!("Failed to read comparison snapshot file: {error}"),
+    ))
+}
+
+pub(crate) fn read_limited(mut reader: impl Read, limit: usize) -> Result<Vec<u8>, std::io::Error> {
+    let mut contents = Vec::new();
+    reader
+        .by_ref()
+        .take(limit.saturating_add(1) as u64)
+        .read_to_end(&mut contents)?;
+    Ok(contents)
+}
+
+pub(crate) fn validate_snapshot_file_metadata(file: &fs::File) -> Result<(), CsvAlignError> {
+    let metadata = file.metadata().map_err(snapshot_read_error)?;
+    if metadata.len() > MAX_SNAPSHOT_BYTES as u64 {
+        ensure_snapshot_size(MAX_SNAPSHOT_BYTES + 1)?;
+    }
+    Ok(())
+}
+
+pub(crate) fn read_comparison_snapshot_file(file_path: &Path) -> Result<Vec<u8>, CsvAlignError> {
+    let file = fs::File::open(file_path).map_err(snapshot_read_error)?;
+    validate_snapshot_file_metadata(&file)?;
+    let contents = read_limited(file, MAX_SNAPSHOT_BYTES).map_err(|error| {
         CsvAlignError::Io(std::io::Error::new(
             error.kind(),
             format!("Failed to read comparison snapshot file: {error}"),
         ))
     })?;
-
-    load_comparison_snapshot_for_session(state, session_id, &contents)
+    ensure_snapshot_size(contents.len())?;
+    Ok(contents)
 }
 
 /// Create a new session
@@ -164,21 +249,25 @@ pub(crate) fn delete_session(state: tauri::State<Arc<SessionStore>>, session_id:
 #[cfg(test)]
 #[tauri::command]
 #[instrument(skip(state), fields(session_id = %session_id))]
-pub(crate) fn load_csv(
-    state: tauri::State<Arc<SessionStore>>,
+pub(crate) async fn load_csv(
+    state: tauri::State<'_, Arc<SessionStore>>,
     session_id: String,
     file_letter: String,
     file_path: String,
 ) -> Result<FileLoadResponse, CsvAlignError> {
     validate_file_letter(&file_letter)?;
     let file_side = parse_file_side(&file_letter)?;
-    let loaded = load_csv_workflow(
-        &file_letter,
-        Some(file_path.clone()),
-        CsvLoadSource::FilePath(file_path),
-    )?;
-
-    apply_loaded_csv_for_session(state.inner().as_ref(), &session_id, file_side, loaded)
+    let state = Arc::clone(state.inner());
+    let token = begin_file_load_for_session(state.as_ref(), &session_id, file_side)?;
+    run_blocking(move || {
+        let loaded = load_csv_workflow(
+            &file_letter,
+            Some(file_path.clone()),
+            CsvLoadSource::FilePath(file_path),
+        )?;
+        commit_file_load_for_session(state.as_ref(), &session_id, token, file_side, loaded)
+    })
+    .await
 }
 
 /// Load a CSV file from raw bytes (desktop/webview file selection)
@@ -188,8 +277,8 @@ pub(crate) fn load_csv(
 /// desktop uploads allocate and parse an order of magnitude more data.
 #[tauri::command]
 #[instrument(skip(state, request))]
-pub(crate) fn load_csv_bytes(
-    state: tauri::State<Arc<SessionStore>>,
+pub(crate) async fn load_csv_bytes(
+    state: tauri::State<'_, Arc<SessionStore>>,
     request: tauri::ipc::Request<'_>,
 ) -> Result<FileLoadResponse, CsvAlignError> {
     let tauri::ipc::InvokeBody::Raw(file_bytes) = request.body() else {
@@ -200,17 +289,69 @@ pub(crate) fn load_csv_bytes(
 
     let session_id = required_request_header(&request, "session-id")?;
     let file_letter = required_request_header(&request, "file-letter")?;
-    let file_name = percent_decode(&required_request_header(&request, "file-name")?);
+    let encoded_file_name = required_request_header(&request, "file-name")?;
+    validate_file_letter(&file_letter)?;
+    let file_side = parse_file_side(&file_letter)?;
+    let state = Arc::clone(state.inner());
+    let token = begin_file_load_for_session(state.as_ref(), &session_id, file_side)?;
 
-    load_csv_bytes_with_args(
+    load_csv_bytes_async_with_claim(
+        state,
+        session_id,
+        file_letter,
+        percent_decode(&encoded_file_name),
+        file_side,
+        token,
+        file_bytes.clone(),
+    )
+    .await
+}
+
+#[cfg(test)]
+pub(crate) async fn load_csv_bytes_async_with_args(
+    state: Arc<SessionStore>,
+    session_id: String,
+    file_letter: String,
+    file_name: String,
+    file_bytes: Vec<u8>,
+) -> Result<FileLoadResponse, CsvAlignError> {
+    validate_file_letter(&file_letter)?;
+    let file_side = parse_file_side(&file_letter)?;
+    let token = begin_file_load_for_session(state.as_ref(), &session_id, file_side)?;
+
+    load_csv_bytes_async_with_claim(
         state,
         session_id,
         file_letter,
         file_name,
-        file_bytes.clone(),
+        file_side,
+        token,
+        file_bytes,
     )
+    .await
 }
 
+async fn load_csv_bytes_async_with_claim(
+    state: Arc<SessionStore>,
+    session_id: String,
+    file_letter: String,
+    file_name: String,
+    file_side: csv_align::data::types::FileSide,
+    token: OperationToken,
+    file_bytes: Vec<u8>,
+) -> Result<FileLoadResponse, CsvAlignError> {
+    run_blocking(move || {
+        let loaded = load_csv_workflow(
+            &file_letter,
+            Some(file_name),
+            CsvLoadSource::Bytes(file_bytes),
+        )?;
+        commit_file_load_for_session(state.as_ref(), &session_id, token, file_side, loaded)
+    })
+    .await
+}
+
+#[cfg(test)]
 pub(crate) fn load_csv_bytes_with_args(
     state: tauri::State<Arc<SessionStore>>,
     session_id: String,
@@ -220,13 +361,20 @@ pub(crate) fn load_csv_bytes_with_args(
 ) -> Result<FileLoadResponse, CsvAlignError> {
     validate_file_letter(&file_letter)?;
     let file_side = parse_file_side(&file_letter)?;
+    let token = begin_file_load_for_session(state.inner().as_ref(), &session_id, file_side)?;
     let loaded = load_csv_workflow(
         &file_letter,
         Some(file_name),
         CsvLoadSource::Bytes(file_bytes),
     )?;
 
-    apply_loaded_csv_for_session(state.inner().as_ref(), &session_id, file_side, loaded)
+    commit_file_load_for_session(
+        state.inner().as_ref(),
+        &session_id,
+        token,
+        file_side,
+        loaded,
+    )
 }
 
 fn required_request_header(
@@ -283,12 +431,18 @@ pub(crate) fn suggest_mappings(
 /// Run comparison
 #[tauri::command]
 #[instrument(skip(state, request), fields(session_id = %session_id))]
-pub(crate) fn compare(
-    state: tauri::State<Arc<SessionStore>>,
+pub(crate) async fn compare(
+    state: tauri::State<'_, Arc<SessionStore>>,
     session_id: String,
     request: CompareRequest,
 ) -> Result<CompareResponse, CsvAlignError> {
-    run_comparison_for_session(state.inner().as_ref(), &session_id, request)
+    let state = Arc::clone(state.inner());
+    let pending = begin_comparison_for_session(state.as_ref(), &session_id, request)?;
+    run_blocking(move || {
+        let execution = execute_comparison_for_session(&pending)?;
+        commit_comparison_for_session(state.as_ref(), &session_id, pending, execution)
+    })
+    .await
 }
 
 /// Export comparison results to a CSV file path
@@ -310,7 +464,8 @@ pub(crate) async fn export_results(
         return Ok(SaveDialogOutcome::Cancelled);
     };
 
-    export_results_to_path(state.inner().as_ref(), &session_id, &output_path)?;
+    let state = Arc::clone(state.inner());
+    run_blocking(move || export_results_to_path(state.as_ref(), &session_id, &output_path)).await?;
     Ok(SaveDialogOutcome::Saved)
 }
 
@@ -320,6 +475,8 @@ pub(crate) async fn export_results_html(
     app: tauri::AppHandle,
     html_contents: String,
 ) -> Result<SaveDialogOutcome, CsvAlignError> {
+    validate_html_export_document(&html_contents)?;
+
     let Some(output_path) = save_file_path(
         &app,
         "comparison-results.html",
@@ -331,7 +488,7 @@ pub(crate) async fn export_results_html(
         return Ok(SaveDialogOutcome::Cancelled);
     };
 
-    export_results_html_to_path(&output_path, &html_contents)?;
+    run_blocking(move || export_results_html_to_path(&output_path, &html_contents)).await?;
     Ok(SaveDialogOutcome::Saved)
 }
 
@@ -349,7 +506,11 @@ pub(crate) async fn save_pair_order(
         return Ok(SaveDialogOutcome::Cancelled);
     };
 
-    save_pair_order_to_path(state.inner().as_ref(), &session_id, selection, &output_path)?;
+    let state = Arc::clone(state.inner());
+    run_blocking(move || {
+        save_pair_order_to_path(state.as_ref(), &session_id, selection, &output_path)
+    })
+    .await?;
     Ok(SaveDialogOutcome::Saved)
 }
 
@@ -371,7 +532,11 @@ pub(crate) async fn load_pair_order(
         return Ok(None);
     };
 
-    load_pair_order_from_path(state.inner().as_ref(), &session_id, &file_path).map(Some)
+    let state = Arc::clone(state.inner());
+    run_blocking(move || {
+        load_pair_order_from_path(state.as_ref(), &session_id, &file_path).map(Some)
+    })
+    .await
 }
 
 #[tauri::command]
@@ -392,7 +557,11 @@ pub(crate) async fn save_comparison_snapshot(
         return Ok(SaveDialogOutcome::Cancelled);
     };
 
-    save_comparison_snapshot_to_path(state.inner().as_ref(), &session_id, &output_path)?;
+    let state = Arc::clone(state.inner());
+    run_blocking(move || {
+        save_comparison_snapshot_to_path(state.as_ref(), &session_id, &output_path)
+    })
+    .await?;
     Ok(SaveDialogOutcome::Saved)
 }
 
@@ -403,16 +572,24 @@ pub(crate) async fn load_comparison_snapshot(
     state: tauri::State<'_, Arc<SessionStore>>,
     session_id: String,
 ) -> Result<Option<LoadComparisonSnapshotResponse>, CsvAlignError> {
-    let Some(file_path) = pick_file_path(
-        &app,
-        "Load comparison snapshot",
-        "JSON Files",
-        &["json"],
-        "comparison snapshot",
-    )?
+    let Some((token, file_path)) =
+        begin_comparison_snapshot_before_selection(state.inner().as_ref(), &session_id, || {
+            pick_file_path(
+                &app,
+                "Load comparison snapshot",
+                "JSON Files",
+                &["json"],
+                "comparison snapshot",
+            )
+        })?
     else {
         return Ok(None);
     };
 
-    load_comparison_snapshot_from_path(state.inner().as_ref(), &session_id, &file_path).map(Some)
+    let state = Arc::clone(state.inner());
+    run_blocking(move || {
+        load_claimed_comparison_snapshot_from_path(state.as_ref(), &session_id, token, &file_path)
+            .map(Some)
+    })
+    .await
 }

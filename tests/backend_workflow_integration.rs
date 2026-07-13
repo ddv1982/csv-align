@@ -1,3 +1,4 @@
+use csv_align::backend::limits::MAX_CSV_COLUMNS;
 use csv_align::backend::{
     CompareRequest, CompareValidationError, CsvAlignError, CsvLoadSource, MAX_CSV_FILE_BYTES,
     MappingRequest, PairOrderSelection, SessionData, apply_csv_to_session, comparison_inputs,
@@ -20,8 +21,8 @@ fn prepared_snapshot_session() -> SessionData {
         csv_loader::load_csv_from_bytes(b"record_id,display_name\n1,Alice\n2,Robert\n").unwrap();
     csv_b.file_path = Some("/tmp/right.csv".to_string());
 
-    apply_csv_to_session(&mut session, FileSide::A, csv_a);
-    apply_csv_to_session(&mut session, FileSide::B, csv_b);
+    apply_csv_to_session(&mut session, FileSide::A, csv_a).unwrap();
+    apply_csv_to_session(&mut session, FileSide::B, csv_b).unwrap();
 
     let (csv_a, csv_b) = comparison_inputs(&session).unwrap();
     let execution = run_comparison(
@@ -56,11 +57,11 @@ fn apply_csv_to_session_autosuggests_after_both_files_load() {
     let csv_a = csv_loader::load_csv_from_bytes(b"id,name\n1,Alice\n").unwrap();
     let csv_b = csv_loader::load_csv_from_bytes(b"id,full_name\n1,Alice\n").unwrap();
 
-    let first = apply_csv_to_session(&mut session, FileSide::A, csv_a);
+    let first = apply_csv_to_session(&mut session, FileSide::A, csv_a).unwrap();
     assert_eq!(first.file_letter, FileSide::A);
     assert!(session.column_mappings.is_empty());
 
-    let second = apply_csv_to_session(&mut session, FileSide::B, csv_b);
+    let second = apply_csv_to_session(&mut session, FileSide::B, csv_b).unwrap();
     assert_eq!(second.file_letter, FileSide::B);
     assert!(
         session
@@ -150,7 +151,7 @@ fn apply_csv_to_session_uses_uploaded_file_base_name_in_response() {
     let mut csv = csv_loader::load_csv_from_bytes(b"id,name\n1,Alice\n").unwrap();
     csv.file_path = Some("uploads/customer-data.csv".to_string());
 
-    let response = apply_csv_to_session(&mut session, FileSide::A, csv);
+    let response = apply_csv_to_session(&mut session, FileSide::A, csv).unwrap();
 
     assert_eq!(response.file_name, "customer-data.csv");
 }
@@ -160,7 +161,7 @@ fn apply_csv_to_session_clears_stale_comparison_state_after_file_reload() {
     let mut session = prepared_snapshot_session();
     let replacement_csv = csv_loader::load_csv_from_bytes(b"id,full_name\n1,Alicia\n").unwrap();
 
-    let response = apply_csv_to_session(&mut session, FileSide::A, replacement_csv);
+    let response = apply_csv_to_session(&mut session, FileSide::A, replacement_csv).unwrap();
 
     assert_eq!(response.file_letter, FileSide::A);
     assert!(session.comparison_results.is_empty());
@@ -173,14 +174,49 @@ fn apply_csv_to_session_clears_stale_comparison_state_after_file_reload() {
 }
 
 #[test]
+fn rejected_csv_apply_preserves_the_prior_session_and_catalog() {
+    let mut session = prepared_snapshot_session();
+    let prior_csv_a = Arc::clone(session.csv_a.as_ref().unwrap());
+    let prior_catalog_a = Arc::clone(&session.columns_a);
+    let prior_revision = session.data_revision;
+    let prior_results = session.comparison_results.clone();
+    let prior_key_columns = session
+        .comparison_config
+        .as_ref()
+        .unwrap()
+        .key_columns_a
+        .clone();
+
+    let oversized = CsvData {
+        file_path: Some("oversized.csv".to_string()),
+        headers: (0..=MAX_CSV_COLUMNS)
+            .map(|index| format!("column_{index}"))
+            .collect(),
+        rows: Vec::new(),
+    };
+    let error = apply_csv_to_session(&mut session, FileSide::A, oversized)
+        .expect_err("structurally oversized CSV should not commit");
+
+    assert!(error.to_string().contains("CSV columns limit exceeded"));
+    assert!(Arc::ptr_eq(session.csv_a.as_ref().unwrap(), &prior_csv_a));
+    assert!(Arc::ptr_eq(&session.columns_a, &prior_catalog_a));
+    assert_eq!(session.data_revision, prior_revision);
+    assert_eq!(session.comparison_results, prior_results);
+    assert_eq!(
+        session.comparison_config.as_ref().unwrap().key_columns_a,
+        prior_key_columns
+    );
+}
+
+#[test]
 fn comparison_inputs_return_shared_csv_arcs() {
     let mut session = SessionData::new();
 
     let csv_a = csv_loader::load_csv_from_bytes(b"id,name\n1,Alice\n").unwrap();
     let csv_b = csv_loader::load_csv_from_bytes(b"id,full_name\n1,Alice\n").unwrap();
 
-    apply_csv_to_session(&mut session, FileSide::A, csv_a);
-    apply_csv_to_session(&mut session, FileSide::B, csv_b);
+    apply_csv_to_session(&mut session, FileSide::A, csv_a).unwrap();
+    apply_csv_to_session(&mut session, FileSide::B, csv_b).unwrap();
 
     let original_a = Arc::clone(session.csv_a.as_ref().expect("file A stored in session"));
     let original_b = Arc::clone(session.csv_b.as_ref().expect("file B stored in session"));
@@ -904,8 +940,8 @@ fn comparison_snapshot_round_trips_flexible_mismatched_key_counts() {
     let csv_b =
         csv_loader::load_csv_from_bytes(b"part_a,part_b,value\nGROUP,TAILCODE,same\n").unwrap();
 
-    apply_csv_to_session(&mut session, FileSide::A, csv_a);
-    apply_csv_to_session(&mut session, FileSide::B, csv_b);
+    apply_csv_to_session(&mut session, FileSide::A, csv_a).unwrap();
+    apply_csv_to_session(&mut session, FileSide::B, csv_b).unwrap();
 
     let (csv_a, csv_b) = comparison_inputs(&session).unwrap();
     let execution = run_comparison(

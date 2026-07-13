@@ -1,9 +1,12 @@
 [package]
 name = "csv-align"
-version = "2.1.99"
+version = "2.2.0"
 edition = "2024"
 description = "CSV file comparison tool with modern web UI"
 license = "MIT"
+
+[features]
+benchmark-owned-snapshot = []
 
 [dependencies]
 # Core dependencies
@@ -16,6 +19,7 @@ strsim = "0.11.1"  # String similarity for column matching
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"] }
 thiserror = "2.0.18"
+tempfile = "3.27.0"
 
 # Web server dependencies
 axum = { version = "0.8.9", features = ["multipart"] }
@@ -25,13 +29,17 @@ uuid = { version = "1.23.3", features = ["v4"] }
 parking_lot = "0.12.5"
 
 [dev-dependencies]
-tempfile = "3.27.0"
 criterion = "0.5"
 tower = { version = "0.5.3", features = ["util"] }
 
 [[bench]]
 name = "flexible_key_matching"
 harness = false
+
+[[bench]]
+name = "result_representation"
+harness = false
+required-features = ["benchmark-owned-snapshot"]
 
 [[bin]]
 name = "csv-align"

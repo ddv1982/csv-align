@@ -1,13 +1,13 @@
 use axum::{
     Json,
-    body::to_bytes,
-    extract::{Path, State},
+    body::{Body, to_bytes},
+    extract::{Path, Request, State},
     http::StatusCode,
 };
 use csv_align::{
     api::{handlers, state::AppState},
-    backend::{CompareRequest, LoadComparisonSnapshotRequest, MappingRequest, SessionData},
-    data::types::ComparisonNormalizationConfig,
+    backend::{CompareRequest, MappingRequest, SessionData, limits::MAX_CSV_ROWS},
+    data::types::{ComparisonNormalizationConfig, DecimalRoundingConfig},
 };
 
 fn csv_data(
@@ -96,9 +96,7 @@ async fn load_snapshot_contents(contents: serde_json::Value) -> axum::response::
     handlers::load_comparison_snapshot(
         State(state),
         Path(session_id),
-        Json(LoadComparisonSnapshotRequest {
-            contents: contents.to_string(),
-        }),
+        Request::new(Body::from(contents.to_string())),
     )
     .await
 }
@@ -168,7 +166,7 @@ async fn comparison_snapshot_persistence_round_trips_through_http_handlers() {
     let load_response = handlers::load_comparison_snapshot(
         State(state.clone()),
         Path(loaded_session_id.clone()),
-        Json(LoadComparisonSnapshotRequest { contents }),
+        Request::new(Body::from(contents)),
     )
     .await;
 
@@ -220,11 +218,19 @@ async fn comparison_snapshot_persistence_defaults_missing_flexible_key_matching_
             "trim_whitespace": false,
             "date_normalization": { "enabled": false, "formats": [] }
         },
-        "results": [],
+        "results": [{
+            "result_type": "match",
+            "key": ["1"],
+            "values_a": ["1"],
+            "values_b": ["1"],
+            "duplicate_values_a": [],
+            "duplicate_values_b": [],
+            "differences": []
+        }],
         "summary": {
             "total_rows_a": 1,
             "total_rows_b": 1,
-            "matches": 0,
+            "matches": 1,
             "mismatches": 0,
             "missing_left": 0,
             "missing_right": 0,
@@ -239,13 +245,73 @@ async fn comparison_snapshot_persistence_defaults_missing_flexible_key_matching_
     let load_response = handlers::load_comparison_snapshot(
         State(state),
         Path(session_id),
-        Json(LoadComparisonSnapshotRequest { contents }),
+        Request::new(Body::from(contents)),
     )
     .await;
 
     assert_eq!(load_response.status(), StatusCode::OK);
     let json = response_json(load_response).await;
     assert_eq!(json["normalization"]["flexible_key_matching"], false);
+}
+
+#[tokio::test]
+async fn comparison_snapshot_load_defaults_partial_decimal_rounding_from_the_domain_contract() {
+    let mut contents = minimal_snapshot_contents();
+    contents["normalization"]["decimal_rounding"] = serde_json::json!({"enabled": true});
+
+    let response = load_snapshot_contents(contents).await;
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let json = response_json(response).await;
+    assert_eq!(json["normalization"]["decimal_rounding"]["enabled"], true);
+    assert_eq!(
+        json["normalization"]["decimal_rounding"]["decimals"],
+        DecimalRoundingConfig::default().decimals
+    );
+}
+
+#[tokio::test]
+async fn comparison_snapshot_load_accepts_the_exact_csv_row_limit() {
+    let mut contents = minimal_snapshot_contents();
+    contents["file_a"]["row_count"] = serde_json::json!(MAX_CSV_ROWS);
+    contents["file_b"]["row_count"] = serde_json::json!(MAX_CSV_ROWS);
+    contents["summary"]["total_rows_a"] = serde_json::json!(MAX_CSV_ROWS);
+    contents["summary"]["total_rows_b"] = serde_json::json!(MAX_CSV_ROWS);
+    contents["summary"]["duplicates_a"] = serde_json::json!(1);
+    contents["summary"]["duplicates_b"] = serde_json::json!(1);
+    let duplicate_rows = (0..MAX_CSV_ROWS)
+        .map(|_| serde_json::json!([]))
+        .collect::<Vec<_>>();
+    contents["results"] = serde_json::json!([{
+        "result_type": "duplicate_both",
+        "key": ["duplicate-key"],
+        "values_a": [],
+        "values_b": [],
+        "duplicate_values_a": duplicate_rows,
+        "duplicate_values_b": (0..MAX_CSV_ROWS)
+            .map(|_| serde_json::json!([]))
+            .collect::<Vec<_>>(),
+        "differences": []
+    }]);
+
+    let load_response = load_snapshot_contents(contents).await;
+
+    assert_eq!(load_response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn comparison_snapshot_load_rejects_csv_row_limit_plus_one() {
+    let mut contents = minimal_snapshot_contents();
+    contents["file_b"]["row_count"] = serde_json::json!(MAX_CSV_ROWS + 1);
+    contents["summary"]["total_rows_b"] = serde_json::json!(MAX_CSV_ROWS + 1);
+
+    let load_response = load_snapshot_contents(contents).await;
+
+    assert_eq!(load_response.status(), StatusCode::BAD_REQUEST);
+    let body = response_text(load_response).await;
+    assert!(body.contains(&format!(
+        "Saved snapshot File B exceeds the {MAX_CSV_ROWS} row limit"
+    )));
 }
 
 #[tokio::test]
@@ -334,7 +400,7 @@ async fn comparison_snapshot_load_accepts_virtual_labels_listed_in_virtual_heade
 }
 
 #[tokio::test]
-async fn comparison_snapshot_load_response_uses_canonical_result_fields() {
+async fn comparison_snapshot_load_rejects_irrelevant_result_fields_instead_of_discarding_them() {
     let state = AppState::new();
     let session_id = state.create_session();
 
@@ -403,23 +469,18 @@ async fn comparison_snapshot_load_response_uses_canonical_result_fields() {
     let load_response = handlers::load_comparison_snapshot(
         State(state),
         Path(session_id),
-        Json(LoadComparisonSnapshotRequest { contents }),
+        Request::new(Body::from(contents)),
     )
     .await;
 
-    assert_eq!(load_response.status(), StatusCode::OK);
+    assert_eq!(load_response.status(), StatusCode::BAD_REQUEST);
     let json = response_json(load_response).await;
-    assert_eq!(json["results"][0]["values_a"], serde_json::json!(["Alice"]));
-    assert_eq!(json["results"][0]["values_b"], serde_json::json!([]));
-    assert_eq!(
-        json["results"][0]["duplicate_values_a"],
-        serde_json::json!([])
+    assert!(
+        json["error"]
+            .as_str()
+            .unwrap()
+            .contains("missing_right result has contradictory fields")
     );
-    assert_eq!(
-        json["results"][0]["duplicate_values_b"],
-        serde_json::json!([])
-    );
-    assert_eq!(json["results"][0]["differences"], serde_json::json!([]));
 }
 
 #[tokio::test]
@@ -475,7 +536,7 @@ async fn comparison_snapshot_persistence_rejects_legacy_version() {
     let load_response = handlers::load_comparison_snapshot(
         State(state),
         Path(session_id),
-        Json(LoadComparisonSnapshotRequest { contents }),
+        Request::new(Body::from(contents)),
     )
     .await;
 
@@ -548,7 +609,7 @@ async fn comparison_snapshot_persistence_rejects_tampered_results() {
     let load_response = handlers::load_comparison_snapshot(
         State(state),
         Path(session_id),
-        Json(LoadComparisonSnapshotRequest { contents }),
+        Request::new(Body::from(contents)),
     )
     .await;
 
@@ -558,4 +619,216 @@ async fn comparison_snapshot_persistence_rejects_tampered_results() {
         json["error"],
         "Saved comparison snapshot summary does not match the persisted results"
     );
+}
+
+#[tokio::test]
+async fn comparison_snapshot_load_preserves_every_valid_prior_release_v2_result_variant() {
+    let fixture: serde_json::Value =
+        serde_json::from_str(include_str!("../contracts/fixtures/compare-response.json")).unwrap();
+    let mut snapshot = minimal_snapshot_contents();
+    snapshot["file_a"]["row_count"] = fixture["summary"]["total_rows_a"].clone();
+    snapshot["file_b"]["row_count"] = fixture["summary"]["total_rows_b"].clone();
+    snapshot["results"] = fixture["results"].clone();
+    snapshot["summary"] = fixture["summary"].clone();
+
+    let response = load_snapshot_contents(snapshot).await;
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let json = response_json(response).await;
+    assert_eq!(json["results"].as_array().unwrap().len(), 9);
+}
+
+#[tokio::test]
+async fn comparison_snapshot_load_rejects_differences_outside_configured_mappings() {
+    let fixture: serde_json::Value =
+        serde_json::from_str(include_str!("../contracts/fixtures/compare-response.json")).unwrap();
+    let mut snapshot = minimal_snapshot_contents();
+    snapshot["file_a"]["row_count"] = fixture["summary"]["total_rows_a"].clone();
+    snapshot["file_b"]["row_count"] = fixture["summary"]["total_rows_b"].clone();
+    snapshot["results"] = fixture["results"].clone();
+    snapshot["summary"] = fixture["summary"].clone();
+    snapshot["results"][1]["differences"][0]["column_a"] = serde_json::json!("unknown_name");
+
+    let response = load_snapshot_contents(snapshot).await;
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let json = response_json(response).await;
+    assert_eq!(
+        json["error"],
+        "Saved snapshot mismatch difference unknown_name -> display_name is outside the configured mappings"
+    );
+}
+
+#[tokio::test]
+async fn comparison_snapshot_load_rejects_row_totals_not_represented_by_results() {
+    let fixture: serde_json::Value =
+        serde_json::from_str(include_str!("../contracts/fixtures/compare-response.json")).unwrap();
+    let mut snapshot = minimal_snapshot_contents();
+    snapshot["file_a"]["row_count"] = serde_json::json!(9);
+    snapshot["file_b"]["row_count"] = fixture["summary"]["total_rows_b"].clone();
+    snapshot["results"] = fixture["results"].clone();
+    snapshot["summary"] = fixture["summary"].clone();
+    snapshot["summary"]["total_rows_a"] = serde_json::json!(9);
+
+    let response = load_snapshot_contents(snapshot).await;
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let json = response_json(response).await;
+    assert_eq!(
+        json["error"],
+        "Saved snapshot results represent 8/8 File A/File B rows, but metadata declares 9/8"
+    );
+}
+
+#[tokio::test]
+async fn comparison_snapshot_load_rejects_the_exact_result_conflict_matrix() {
+    let difference = serde_json::json!({
+        "column_a": "name",
+        "column_b": "display_name",
+        "value_a": "Alice",
+        "value_b": "Alicia"
+    });
+    let cases = vec![
+        (
+            "match differences",
+            serde_json::json!({
+                "result_type":"match","key":["1"],"values_a":["Alice"],"values_b":["Alice"],
+                "duplicate_values_a":[],"duplicate_values_b":[],"differences":[difference.clone()]
+            }),
+        ),
+        (
+            "mismatch duplicates",
+            serde_json::json!({
+                "result_type":"mismatch","key":["1"],"values_a":["Alice"],"values_b":["Alicia"],
+                "duplicate_values_a":[["Alice"]],"duplicate_values_b":[],"differences":[difference]
+            }),
+        ),
+        (
+            "missing left values a",
+            serde_json::json!({
+                "result_type":"missing_left","key":["1"],"values_a":["stale"],"values_b":["right"],
+                "duplicate_values_a":[],"duplicate_values_b":[],"differences":[]
+            }),
+        ),
+        (
+            "missing right values b",
+            serde_json::json!({
+                "result_type":"missing_right","key":["1"],"values_a":["left"],"values_b":["stale"],
+                "duplicate_values_a":[],"duplicate_values_b":[],"differences":[]
+            }),
+        ),
+        (
+            "unkeyed left values a",
+            serde_json::json!({
+                "result_type":"unkeyed_left","key":[""],"values_a":["stale"],"values_b":["right"],
+                "duplicate_values_a":[],"duplicate_values_b":[],"differences":[]
+            }),
+        ),
+        (
+            "unkeyed right values b",
+            serde_json::json!({
+                "result_type":"unkeyed_right","key":[""],"values_a":["left"],"values_b":["stale"],
+                "duplicate_values_a":[],"duplicate_values_b":[],"differences":[]
+            }),
+        ),
+        (
+            "duplicate file a has file b duplicates",
+            serde_json::json!({
+                "result_type":"duplicate_file_a","key":["1"],"values_a":["left"],"values_b":["right"],
+                "duplicate_values_a":[["left"],["left 2"]],"duplicate_values_b":[["right"]],"differences":[]
+            }),
+        ),
+        (
+            "duplicate file b has file a duplicates",
+            serde_json::json!({
+                "result_type":"duplicate_file_b","key":["1"],"values_a":["left"],"values_b":["right"],
+                "duplicate_values_a":[["left"]],"duplicate_values_b":[["right"],["right 2"]],"differences":[]
+            }),
+        ),
+        (
+            "duplicate both lacks one side",
+            serde_json::json!({
+                "result_type":"duplicate_both","key":["1"],"values_a":["left"],"values_b":[],
+                "duplicate_values_a":[["left"],["left 2"]],"duplicate_values_b":[],"differences":[]
+            }),
+        ),
+        (
+            "duplicate first row disagrees",
+            serde_json::json!({
+                "result_type":"duplicate_both","key":["1"],"values_a":["stale"],"values_b":["right"],
+                "duplicate_values_a":[["left"],["left 2"]],"duplicate_values_b":[["right"],["right 2"]],"differences":[]
+            }),
+        ),
+    ];
+
+    for (name, result) in cases {
+        let mut snapshot = minimal_snapshot_contents();
+        snapshot["results"] = serde_json::json!([result]);
+        let response = load_snapshot_contents(snapshot).await;
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST, "{name}");
+        let json = response_json(response).await;
+        assert!(
+            json["error"]
+                .as_str()
+                .unwrap()
+                .contains("contradictory fields"),
+            "{name}: {json}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn comparison_snapshot_load_rejects_unknown_fields_at_every_v2_object_level_without_mutation()
+{
+    let mut baseline = minimal_snapshot_contents();
+    baseline["results"] = serde_json::json!([{
+        "result_type":"mismatch","key":["1"],"values_a":["Alice"],"values_b":["Alicia"],
+        "duplicate_values_a":[],"duplicate_values_b":[],
+        "differences":[{"column_a":"name","column_b":"display_name","value_a":"Alice","value_b":"Alicia"}]
+    }]);
+    baseline["normalization"]["date_normalization"] =
+        serde_json::json!({"enabled":false,"formats":[]});
+    baseline["normalization"]["decimal_rounding"] =
+        serde_json::json!({"enabled":false,"decimals":0});
+
+    let object_paths = [
+        "",
+        "/file_a",
+        "/file_a/columns/0",
+        "/selection",
+        "/mappings/0",
+        "/normalization",
+        "/normalization/date_normalization",
+        "/normalization/decimal_rounding",
+        "/results/0",
+        "/results/0/differences/0",
+        "/summary",
+    ];
+    let state = AppState::new();
+    let session_id = state.create_session();
+    let mut sentinel = SessionData::new();
+    sentinel.data_revision = 41;
+    assert!(state.update_session(&session_id, sentinel));
+
+    for path in object_paths {
+        let mut snapshot = baseline.clone();
+        let object = if path.is_empty() {
+            snapshot.as_object_mut().unwrap()
+        } else {
+            snapshot.pointer_mut(path).unwrap().as_object_mut().unwrap()
+        };
+        object.insert("future_field".to_string(), serde_json::json!(true));
+
+        let response = handlers::load_comparison_snapshot(
+            State(state.clone()),
+            Path(session_id.clone()),
+            Request::new(Body::from(snapshot.to_string())),
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST, "{path}");
+        let current = state.get_session(&session_id).unwrap();
+        assert_eq!(current.data_revision, 41, "{path}");
+        assert!(current.comparison_config.is_none(), "{path}");
+        assert!(current.comparison_results.is_empty(), "{path}");
+    }
 }

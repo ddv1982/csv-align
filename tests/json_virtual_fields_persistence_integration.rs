@@ -22,8 +22,8 @@ fn pair_order_persistence_round_trips_virtual_field_labels() {
     )
     .unwrap();
 
-    apply_csv_to_session(&mut session, FileSide::A, csv_a);
-    apply_csv_to_session(&mut session, FileSide::B, csv_b);
+    apply_csv_to_session(&mut session, FileSide::A, csv_a).unwrap();
+    apply_csv_to_session(&mut session, FileSide::B, csv_b).unwrap();
 
     let selection = PairOrderSelection {
         key_columns_a: vec!["metrics.row_key".to_string()],
@@ -44,8 +44,8 @@ fn pair_order_load_validates_virtual_labels_against_current_physical_sources() {
     let csv_a = csv_loader::load_csv_from_bytes(b"id,metrics\n1,{}\n").unwrap();
     let csv_b = csv_loader::load_csv_from_bytes(b"id,metrics\n1,{}\n").unwrap();
 
-    apply_csv_to_session(&mut session, FileSide::A, csv_a);
-    apply_csv_to_session(&mut session, FileSide::B, csv_b);
+    apply_csv_to_session(&mut session, FileSide::A, csv_a).unwrap();
+    apply_csv_to_session(&mut session, FileSide::B, csv_b).unwrap();
 
     let contents = serde_json::json!({
         "version": 1,
@@ -86,8 +86,8 @@ b,"{""row_key"":""K2"",""score"":7}"
     .unwrap();
     csv_b.file_path = Some("right.csv".to_string());
 
-    apply_csv_to_session(&mut session, FileSide::A, csv_a);
-    apply_csv_to_session(&mut session, FileSide::B, csv_b);
+    apply_csv_to_session(&mut session, FileSide::A, csv_a).unwrap();
+    apply_csv_to_session(&mut session, FileSide::B, csv_b).unwrap();
 
     let csv_a = session.csv_a.as_ref().unwrap();
     let csv_b = session.csv_b.as_ref().unwrap();

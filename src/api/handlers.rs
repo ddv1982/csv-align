@@ -1,6 +1,6 @@
 use axum::{
-    body::Body,
-    extract::{Multipart, Path, State},
+    body::{Body, to_bytes},
+    extract::{Multipart, Path, Request, State},
     http::StatusCode,
     response::{IntoResponse, Json, Response},
 };
@@ -8,14 +8,18 @@ use serde::Serialize;
 use tokio::task;
 
 use super::state::AppState;
+use crate::backend::limits::MAX_SNAPSHOT_BYTES;
 use crate::backend::parse_file_side;
 pub use crate::backend::{CompareRequest, MappingRequest, SessionResponse, SuggestMappingsRequest};
 use crate::backend::{
-    CsvAlignError, CsvLoadSource, LoadComparisonSnapshotRequest, LoadPairOrderRequest,
-    MAX_CSV_FILE_BYTES, SavePairOrderRequest, SessionStore, apply_loaded_csv_for_session,
-    export_results_for_session, load_comparison_snapshot_for_session, load_csv_workflow,
-    load_pair_order_for_session, run_comparison_for_session, save_comparison_snapshot_for_session,
-    save_pair_order_for_session, suggest_mappings_for_session,
+    CsvAlignError, CsvLoadSource, LoadPairOrderRequest, MAX_CSV_FILE_BYTES, SavePairOrderRequest,
+    SessionStore, begin_comparison_for_session, begin_comparison_snapshot_load_for_session,
+    begin_file_load_for_session, commit_comparison_for_session,
+    commit_comparison_snapshot_load_for_session, commit_file_load_for_session,
+    ensure_snapshot_size, execute_comparison_for_session, export_results_for_session,
+    load_csv_workflow, load_pair_order_for_session, prepare_comparison_snapshot_load_bytes,
+    save_comparison_snapshot_for_session, save_pair_order_for_session,
+    suggest_mappings_for_session,
 };
 
 /// Response for health check
@@ -151,10 +155,6 @@ pub async fn load_csv_file(
         Err(error) => return error.into_response(),
     };
 
-    if state.with_session(&session_id, |_| ()).is_none() {
-        return session_not_found_response();
-    }
-
     let mut field = match multipart.next_field().await {
         Ok(Some(field)) => field,
         Ok(None) => return CsvAlignError::BadInput("No file provided".to_string()).into_response(),
@@ -165,6 +165,12 @@ pub async fn load_csv_file(
     };
 
     let file_name = field.file_name().map(str::to_string);
+    let operation_token =
+        match begin_file_load_for_session(state.store.as_ref(), &session_id, file_side) {
+            Ok(token) => token,
+            Err(CsvAlignError::NotFound { .. }) => return session_not_found_response(),
+            Err(error) => return error.into_response(),
+        };
     let bytes = match read_limited_multipart_file_bytes(&mut field).await {
         Ok(bytes) => bytes,
         Err(error) => return error.into_response(),
@@ -183,7 +189,13 @@ pub async fn load_csv_file(
     let update_store = state.store.clone();
     let update_session_id = session_id.clone();
     let response = match run_blocking(move || {
-        apply_loaded_csv_for_session(update_store.as_ref(), &update_session_id, file_side, loaded)
+        commit_file_load_for_session(
+            update_store.as_ref(),
+            &update_session_id,
+            operation_token,
+            file_side,
+            loaded,
+        )
     })
     .await
     {
@@ -219,13 +231,22 @@ pub async fn compare(
     Path(session_id): Path<String>,
     Json(request): Json<CompareRequest>,
 ) -> Response {
-    match run_session_workflow(state, session_id, move |store, id| {
-        run_comparison_for_session(store, id, request)
+    let pending = match begin_comparison_for_session(state.store.as_ref(), &session_id, request) {
+        Ok(pending) => pending,
+        Err(CsvAlignError::NotFound { .. }) => return session_not_found_response(),
+        Err(error) => return error.into_response(),
+    };
+
+    let store = state.store.clone();
+    match run_blocking(move || {
+        let execution = execute_comparison_for_session(&pending)?;
+        commit_comparison_for_session(store.as_ref(), &session_id, pending, execution)
     })
     .await
     {
         Ok(response) => Json(response).into_response(),
-        Err(response) => response,
+        Err(CsvAlignError::NotFound { .. }) => session_not_found_response(),
+        Err(error) => error.into_response(),
     }
 }
 
@@ -289,14 +310,47 @@ pub async fn save_comparison_snapshot(
 pub async fn load_comparison_snapshot(
     State(state): State<AppState>,
     Path(session_id): Path<String>,
-    Json(request): Json<LoadComparisonSnapshotRequest>,
+    request: Request,
 ) -> Response {
-    match run_session_workflow(state, session_id, move |store, id| {
-        load_comparison_snapshot_for_session(store, id, &request.contents)
+    let token = match begin_comparison_snapshot_load_for_session(state.store.as_ref(), &session_id)
+    {
+        Ok(token) => token,
+        Err(CsvAlignError::NotFound { .. }) => return session_not_found_response(),
+        Err(error) => return error.into_response(),
+    };
+    if let Some(content_length) = request
+        .headers()
+        .get(axum::http::header::CONTENT_LENGTH)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.parse::<usize>().ok())
+        && let Err(error) = ensure_snapshot_size(content_length)
+    {
+        return error.into_response();
+    }
+    let body = match to_bytes(request.into_body(), MAX_SNAPSHOT_BYTES).await {
+        Ok(body) => body,
+        Err(_) => {
+            return match ensure_snapshot_size(MAX_SNAPSHOT_BYTES + 1) {
+                Err(error) => error.into_response(),
+                Ok(()) => unreachable!("one byte above the snapshot limit must fail"),
+            };
+        }
+    };
+
+    let store = state.store.clone();
+    let commit_session_id = session_id.clone();
+    match run_blocking(move || {
+        let prepared = prepare_comparison_snapshot_load_bytes(&body)?;
+        commit_comparison_snapshot_load_for_session(
+            store.as_ref(),
+            &commit_session_id,
+            token,
+            prepared,
+        )
     })
     .await
     {
         Ok(response) => Json(response).into_response(),
-        Err(response) => response,
+        Err(error) => error.into_response(),
     }
 }

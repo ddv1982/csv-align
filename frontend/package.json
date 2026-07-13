@@ -1,13 +1,14 @@
 {
   "name": "csv-align-frontend",
   "private": true,
-  "version": "2.1.99",
+  "version": "2.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "lint": "oxlint . --deny-warnings",
     "test": "vitest run",
+    "measure:html-export": "for rows in 1000 10000 50000; do HTML_EXPORT_MEASURE=1 HTML_EXPORT_MEASURE_ROWS=$rows vitest run src/features/results/htmlExport.measurement.test.ts --reporter=verbose || exit 1; done",
     "preview": "vite preview",
     "tauri": "tauri"
   },

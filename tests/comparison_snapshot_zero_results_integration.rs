@@ -1,12 +1,12 @@
 use axum::{
     Json,
-    body::to_bytes,
-    extract::{Path, State},
+    body::{Body, to_bytes},
+    extract::{Path, Request, State},
     http::StatusCode,
 };
 use csv_align::{
     api::{handlers, state::AppState},
-    backend::{CompareRequest, LoadComparisonSnapshotRequest, MappingRequest, SessionData},
+    backend::{CompareRequest, MappingRequest, SessionData},
     data::types::ComparisonNormalizationConfig,
 };
 
@@ -87,7 +87,7 @@ async fn comparison_snapshot_persistence_round_trips_zero_result_comparisons() {
     let load_response = handlers::load_comparison_snapshot(
         State(state.clone()),
         Path(loaded_session_id.clone()),
-        Json(LoadComparisonSnapshotRequest { contents }),
+        Request::new(Body::from(contents)),
     )
     .await;
 

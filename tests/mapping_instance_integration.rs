@@ -18,8 +18,8 @@ fn mapping_suggestions_use_loaded_column_values_when_headers_do_not_match() {
     )
     .expect("csv b should parse");
 
-    apply_csv_to_session(&mut session, FileSide::A, csv_a);
-    apply_csv_to_session(&mut session, FileSide::B, csv_b);
+    apply_csv_to_session(&mut session, FileSide::A, csv_a).unwrap();
+    apply_csv_to_session(&mut session, FileSide::B, csv_b).unwrap();
 
     let response = suggest_mappings_workflow(
         Some(&mut session),
@@ -41,7 +41,8 @@ fn mapping_suggestions_use_loaded_column_values_when_headers_do_not_match() {
                 "rank_value".to_string(),
             ],
         },
-    );
+    )
+    .unwrap();
 
     assert!(response.mappings.iter().any(|mapping| {
         mapping.file_a_column == "source_id"

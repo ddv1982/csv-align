@@ -1,8 +1,19 @@
 use std::collections::BTreeSet;
 
 use serde_json::{Map, Value};
+use thiserror::Error;
+
+use crate::backend::limits::{MAX_JSON_PATH_DEPTH, MAX_VIRTUAL_LABELS};
 
 use super::types::CsvData;
+
+#[derive(Debug, Error, Clone, PartialEq, Eq)]
+pub enum JsonFieldDiscoveryError {
+    #[error("JSON virtual-field discovery exceeds the {limit} label limit")]
+    TooManyLabels { limit: usize },
+    #[error("JSON virtual-field discovery exceeds the {limit} segment path-depth limit")]
+    PathTooDeep { limit: usize },
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ColumnSelection {
@@ -11,7 +22,9 @@ pub struct ColumnSelection {
     path: Option<Vec<String>>,
 }
 
-pub fn discover_virtual_headers(csv_data: &CsvData) -> Vec<String> {
+pub fn discover_virtual_headers(
+    csv_data: &CsvData,
+) -> Result<Vec<String>, JsonFieldDiscoveryError> {
     let mut headers = BTreeSet::new();
 
     for (index, header) in csv_data.headers.iter().enumerate() {
@@ -19,7 +32,11 @@ pub fn discover_virtual_headers(csv_data: &CsvData) -> Vec<String> {
             let Some(value) = row.get(index) else {
                 continue;
             };
-            let Ok(Value::Object(object)) = serde_json::from_str::<Value>(value) else {
+            let trimmed = value.trim();
+            if !trimmed.starts_with('{') || !trimmed.ends_with('}') {
+                continue;
+            }
+            let Ok(Value::Object(object)) = serde_json::from_str::<Value>(trimmed) else {
                 continue;
             };
 
@@ -29,11 +46,11 @@ pub fn discover_virtual_headers(csv_data: &CsvData) -> Vec<String> {
                 &object,
                 &mut Vec::new(),
                 &mut headers,
-            );
+            )?;
         }
     }
 
-    headers.into_iter().collect()
+    Ok(headers.into_iter().collect())
 }
 
 pub fn resolve_column_selection(headers: &[String], label: &str) -> Option<ColumnSelection> {
@@ -99,13 +116,15 @@ fn resolve_explicit_virtual_column_selection(
     Some((source_index, path))
 }
 
-pub fn valid_column_labels(csv_data: &CsvData) -> BTreeSet<String> {
-    csv_data
+pub fn valid_column_labels(
+    csv_data: &CsvData,
+) -> Result<BTreeSet<String>, JsonFieldDiscoveryError> {
+    Ok(csv_data
         .headers
         .iter()
         .cloned()
-        .chain(discover_virtual_headers(csv_data))
-        .collect()
+        .chain(discover_virtual_headers(csv_data)?)
+        .collect())
 }
 
 pub fn label_has_physical_or_virtual_source(headers: &[String], label: &str) -> bool {
@@ -150,21 +169,41 @@ fn collect_object_paths(
     object: &Map<String, Value>,
     prefix: &mut Vec<String>,
     headers: &mut BTreeSet<String>,
-) {
+) -> Result<(), JsonFieldDiscoveryError> {
     for (key, value) in object {
+        if prefix.len() >= MAX_JSON_PATH_DEPTH {
+            tracing::warn!(
+                limit_name = "JSON path depth",
+                limit = MAX_JSON_PATH_DEPTH,
+                "resource limit exceeded"
+            );
+            return Err(JsonFieldDiscoveryError::PathTooDeep {
+                limit: MAX_JSON_PATH_DEPTH,
+            });
+        }
+
         prefix.push(key.clone());
-        headers.insert(format_virtual_label(
-            physical_headers,
-            source_header,
-            prefix,
-        ));
+        let label = format_virtual_label(physical_headers, source_header, prefix);
+        if !headers.contains(&label) && headers.len() >= MAX_VIRTUAL_LABELS {
+            tracing::warn!(
+                limit_name = "JSON virtual labels",
+                limit = MAX_VIRTUAL_LABELS,
+                "resource limit exceeded"
+            );
+            return Err(JsonFieldDiscoveryError::TooManyLabels {
+                limit: MAX_VIRTUAL_LABELS,
+            });
+        }
+        headers.insert(label);
 
         if let Value::Object(nested) = value {
-            collect_object_paths(physical_headers, source_header, nested, prefix, headers);
+            collect_object_paths(physical_headers, source_header, nested, prefix, headers)?;
         }
 
         prefix.pop();
     }
+
+    Ok(())
 }
 
 fn format_virtual_label(
@@ -223,6 +262,9 @@ fn parse_virtual_path(path: &str) -> Option<Vec<String>> {
                 if current.is_empty() {
                     return None;
                 }
+                if segments.len() >= MAX_JSON_PATH_DEPTH {
+                    return None;
+                }
                 segments.push(std::mem::take(&mut current));
             }
             _ => current.push(character),
@@ -234,6 +276,9 @@ fn parse_virtual_path(path: &str) -> Option<Vec<String>> {
     }
 
     if current.is_empty() {
+        return None;
+    }
+    if segments.len() >= MAX_JSON_PATH_DEPTH {
         return None;
     }
     segments.push(current);

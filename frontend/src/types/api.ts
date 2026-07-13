@@ -34,7 +34,7 @@ export interface MappingDto {
   file_a_column: string;
   file_b_column: string;
   mapping_type: MappingType;
-  similarity?: number;
+  similarity?: number | null;
 }
 
 export interface SuggestMappingsRequest {

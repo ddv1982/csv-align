@@ -1,0 +1,31 @@
+{
+  "operations": [
+    {"key":"createSession","http":{"method":"POST","path":"/api/sessions"},"tauriCommand":"create_session"},
+    {"key":"deleteSession","http":{"method":"DELETE","path":"/api/sessions/{sessionId}"},"tauriCommand":"delete_session"},
+    {"key":"loadFile","http":{"method":"POST","path":"/api/sessions/{sessionId}/files/{fileLetter}"},"tauriCommand":"load_csv_bytes"},
+    {"key":"suggestMappings","http":{"method":"POST","path":"/api/sessions/{sessionId}/mappings"},"tauriCommand":"suggest_mappings"},
+    {"key":"compare","http":{"method":"POST","path":"/api/sessions/{sessionId}/compare"},"tauriCommand":"compare"},
+    {"key":"exportResults","http":{"method":"GET","path":"/api/sessions/{sessionId}/export"},"tauriCommand":"export_results"},
+    {"key":"exportResultsHtml","http":null,"tauriCommand":"export_results_html"},
+    {"key":"savePairOrder","http":{"method":"POST","path":"/api/sessions/{sessionId}/pair-order/save"},"tauriCommand":"save_pair_order"},
+    {"key":"loadPairOrder","http":{"method":"POST","path":"/api/sessions/{sessionId}/pair-order/load"},"tauriCommand":"load_pair_order"},
+    {"key":"saveComparisonSnapshot","http":{"method":"POST","path":"/api/sessions/{sessionId}/comparison-snapshot/save"},"tauriCommand":"save_comparison_snapshot"},
+    {"key":"loadComparisonSnapshot","http":{"method":"POST","path":"/api/sessions/{sessionId}/comparison-snapshot/load","requestBody":"rawSnapshotJson"},"tauriCommand":"load_comparison_snapshot"}
+  ],
+  "limits": {
+    "rawCsvBytes": 26214400,
+    "decodedCsvBytes": 104857600,
+    "csvColumns": 4096,
+    "csvRows": 250000,
+    "csvCells": 5000000,
+    "retainedCsvBytes": 134217728,
+    "comparisonResultsBytes": 134217728,
+    "virtualLabels": 10000,
+    "jsonPathDepth": 64,
+    "retainedSessionBytes": 402653184,
+    "snapshotBytes": 134217728,
+    "htmlExportRows": 50000,
+    "htmlExportDataBytes": 33554432,
+    "htmlExportDocumentBytes": 41943040
+  }
+}

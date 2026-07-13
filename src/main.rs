@@ -4,6 +4,7 @@ use tracing::info;
 
 use csv_align::api::{
     app::{build_app, frontend_dist_path},
+    loopback_security::LOOPBACK_PORT,
     state::AppState,
 };
 
@@ -27,7 +28,7 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let app = build_app(state, &frontend_path);
 
     // Start the server
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3001));
+    let addr = SocketAddr::from(([127, 0, 0, 1], LOOPBACK_PORT));
     info!(listen_url = %format!("http://{addr}"), "csv-align server starting");
     info!(frontend_path = %frontend_path.display(), "serving built frontend assets");
     info!(open_url = %format!("http://{addr}"), "open the app in your browser");

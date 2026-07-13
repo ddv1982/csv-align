@@ -7,19 +7,20 @@ on:
 
 permissions:
   actions: read
-  contents: write
-  pages: write
-  id-token: write
+  contents: read
 
 concurrency:
   group: release-${{ github.ref_name }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
   CARGO_TERM_COLOR: always
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   RELEASE_ARTIFACT_NAME: csv-align-linux-x86_64-release-bundle
   FRONTEND_DIST_ARTIFACT_NAME: csv-align-frontend-dist
+  LINUX_STAGE_ARTIFACT_NAME: csv-align-release-linux-${{ github.run_id }}-${{ github.run_attempt }}
+  APT_STAGE_ARTIFACT_NAME: csv-align-apt-pages-${{ github.run_id }}-${{ github.run_attempt }}
+  MACOS_STAGE_ARTIFACT_PREFIX: csv-align-release-macos-${{ github.run_id }}-${{ github.run_attempt }}
 
 jobs:
   validate-release:
@@ -31,6 +32,19 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
+      - name: Set up Go for Actionlint
+        # actions/setup-go v6
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
+        with:
+          go-version: '1.25.x'
+          check-latest: false
+          cache: false
+
+      - name: Validate release workflow with pinned Actionlint
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+          "$(go env GOPATH)/bin/actionlint" .github/workflows/release.yml
 
       - name: Validate release metadata
         run: python3 scripts/check_release_metadata.py --expected-tag "${{ github.ref_name }}"
@@ -90,107 +104,9 @@ jobs:
           echo "Timed out waiting for CI to finish for ${TAGGED_SHA}." >&2
           exit 1
 
-  create-release:
-    name: Create Release
+  stage-linux-release:
+    name: Stage Linux and APT Assets
     needs: validate-release
-    runs-on: ubuntu-22.04
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Extract changelog notes
-        env:
-          RELEASE_TAG: ${{ github.ref_name }}
-        run: |
-          python3 <<'PY'
-          import os
-          import pathlib
-          import re
-          import sys
-
-          tag = os.environ["RELEASE_TAG"]
-          changelog_path = pathlib.Path("CHANGELOG.md")
-          release_notes_path = pathlib.Path("release-notes.md")
-          heading_pattern = re.compile(r"^## (?P<tag>v[^\s]+) - \d{4}-\d{2}-\d{2}$")
-
-          if not changelog_path.exists():
-              print(
-                  "::error title=Missing changelog::CHANGELOG.md was not found in the repository checkout.",
-                  file=sys.stderr,
-              )
-              sys.exit(1)
-
-          section_lines = []
-          in_target_section = False
-
-          for raw_line in changelog_path.read_text(encoding="utf-8").splitlines():
-              heading_match = heading_pattern.match(raw_line)
-              if heading_match:
-                  if in_target_section:
-                      break
-                  in_target_section = heading_match.group("tag") == tag
-                  continue
-
-              if in_target_section:
-                  section_lines.append(raw_line)
-
-          if not in_target_section:
-              print(
-                  f"::error title=Missing changelog entry::No CHANGELOG.md section found for tag {tag}. Expected a heading like `## {tag} - YYYY-MM-DD`.",
-                  file=sys.stderr,
-              )
-              sys.exit(1)
-
-          notes = "\n".join(section_lines).strip()
-          if not notes:
-              print(
-                  f"::error title=Empty changelog entry::CHANGELOG.md section for tag {tag} is empty. Add at least one release note bullet under the heading.",
-                  file=sys.stderr,
-              )
-              sys.exit(1)
-
-          release_notes_path.write_text(f"{notes}\n", encoding="utf-8")
-          PY
-
-      - name: Check if release already exists
-        id: release_exists
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if gh release view "${{ github.ref_name }}" --repo "${{ github.repository }}" >/dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Refresh existing release as draft
-        if: steps.release_exists.outputs.exists == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release edit "${{ github.ref_name }}" \
-            --repo "${{ github.repository }}" \
-            --title "CSV Align ${{ github.ref_name }}" \
-            --notes-file release-notes.md \
-            --draft=true \
-            --prerelease=false
-
-      - name: Create GitHub Release
-        if: steps.release_exists.outputs.exists != 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create "${{ github.ref_name }}" \
-            --repo "${{ github.repository }}" \
-            --title "CSV Align ${{ github.ref_name }}" \
-            --notes-file release-notes.md \
-            --draft \
-            --verify-tag
-
-  build-release:
-    name: Publish Release Assets
-    needs: [validate-release, create-release]
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout repository
@@ -479,6 +395,7 @@ jobs:
           fi
 
           setup_package="csv-align-repository-setup_1.0_all.deb"
+          mkdir -p staged-linux-assets
           python3 scripts/build_apt_repository.py \
             --clean \
             --output apt-repository \
@@ -496,12 +413,13 @@ jobs:
           import pathlib
 
           fingerprint = os.environ["EXPECTED_FINGERPRINT"]
-          script_path = pathlib.Path("scripts/install-apt-repo.sh")
-          script = script_path.read_text(encoding="utf-8")
+          source_path = pathlib.Path("scripts/install-apt-repo.sh")
+          destination_path = pathlib.Path("staged-linux-assets/install-apt-repo.sh")
+          script = source_path.read_text(encoding="utf-8")
           placeholder = "__CSV_ALIGN_APT_SIGNING_KEY_FINGERPRINT__"
           if placeholder not in script:
               raise SystemExit(f"missing installer fingerprint placeholder {placeholder}")
-          script_path.write_text(script.replace(placeholder, fingerprint), encoding="utf-8")
+          destination_path.write_text(script.replace(placeholder, fingerprint), encoding="utf-8")
           PY
 
           sha256sum "${setup_package}" > "${setup_package}.sha256"
@@ -529,8 +447,11 @@ jobs:
           grep -Fx "Components: main" "${setup_extract_dir}/etc/apt/sources.list.d/csv-align.sources"
           grep -E '^Architectures: .*amd64( |$)' "${setup_extract_dir}/etc/apt/sources.list.d/csv-align.sources"
           grep -Fx "Signed-By: /usr/share/keyrings/csv-align-archive-keyring.pgp" "${setup_extract_dir}/etc/apt/sources.list.d/csv-align.sources"
-          sh -n scripts/install-apt-repo.sh
-          ! grep -F "__CSV_ALIGN_APT_SIGNING_KEY_FINGERPRINT__" scripts/install-apt-repo.sh
+          sh -n staged-linux-assets/install-apt-repo.sh
+          if grep -F "__CSV_ALIGN_APT_SIGNING_KEY_FINGERPRINT__" staged-linux-assets/install-apt-repo.sh; then
+            echo "Staged installer still contains the signing fingerprint placeholder." >&2
+            exit 1
+          fi
 
           chmod 700 "${verification_home}"
           GNUPGHOME="${verification_home}" gpg --batch --import apt-repository/csv-align-archive-keyring.pgp
@@ -545,54 +466,61 @@ jobs:
           mkdir -p pages-site/apt
           cp -a apt-repository/. pages-site/apt/
 
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload APT repository Pages artifact
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: pages-site
-
-      - name: Deploy APT repository to GitHub Pages
-        id: deploy_apt_pages
-        uses: actions/deploy-pages@v4
-
-      - name: Upload Linux packages
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Assemble and verify exact Linux release assets
         run: |
           set -euo pipefail
           shopt -s globstar nullglob
 
-          assets=(
-            release-artifacts/**/*.deb
-            release-artifacts/**/*.rpm
-            release-artifacts/**/*.AppImage
-            csv-align-repository-setup_*.deb
-            csv-align-repository-setup_*.deb.sha256
-            csv-align-repository-setup_*.deb.sha256.asc
-            scripts/install-apt-repo.sh
-          )
-
-          if [ ${#assets[@]} -eq 0 ]; then
-            echo "No Linux release assets found to upload." >&2
+          deb_assets=(release-artifacts/**/*.deb)
+          rpm_assets=(release-artifacts/**/*.rpm)
+          appimage_assets=(release-artifacts/**/*.AppImage)
+          if [ ${#deb_assets[@]} -ne 1 ] || [ ${#rpm_assets[@]} -ne 1 ] || [ ${#appimage_assets[@]} -ne 1 ]; then
+            echo "Expected exactly one app .deb, .rpm, and .AppImage before staging." >&2
             exit 1
           fi
 
-          gh release upload "${{ github.ref_name }}" "${assets[@]}" \
-            --repo "${{ github.repository }}" \
-            --clobber
+          cp "${deb_assets[0]}" staged-linux-assets/
+          cp "${rpm_assets[0]}" staged-linux-assets/
+          cp "${appimage_assets[0]}" staged-linux-assets/
+          cp csv-align-repository-setup_1.0_all.deb staged-linux-assets/
+          cp csv-align-repository-setup_1.0_all.deb.sha256 staged-linux-assets/
+          cp csv-align-repository-setup_1.0_all.deb.sha256.asc staged-linux-assets/
 
-  build-macos-release:
-    name: Publish macOS Release Assets
-    needs: [validate-release, create-release]
+          python3 scripts/verify_release_assets.py staged-linux-assets \
+            --tag "${{ github.ref_name }}" \
+            --platform linux \
+            --verify-package-metadata
+
+      - name: Upload uniquely named Linux release stage
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ env.LINUX_STAGE_ARTIFACT_NAME }}
+          path: staged-linux-assets/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload uniquely named APT Pages stage
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ env.APT_STAGE_ARTIFACT_NAME }}
+          path: pages-site/
+          if-no-files-found: error
+          retention-days: 7
+
+  stage-macos-release:
+    name: Stage macOS Asset (${{ matrix.target }})
+    needs: validate-release
     runs-on: macos-latest
     strategy:
       fail-fast: false
       matrix:
         include:
           - target: aarch64-apple-darwin
+            asset_arch: aarch64
+            verifier_platform: macos-aarch64
           - target: x86_64-apple-darwin
+            asset_arch: x64
+            verifier_platform: macos-x86_64
 
     steps:
       - name: Checkout repository
@@ -703,30 +631,438 @@ jobs:
           rm -rf target/${{ matrix.target }}/release/bundle
           cargo tauri build --verbose --target ${{ matrix.target }}
 
-      - name: Upload macOS package
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Assemble and verify exact macOS release asset
         run: |
           set -euo pipefail
           shopt -s nullglob
 
           assets=(src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg)
-          if [ ${#assets[@]} -eq 0 ]; then
-            echo "No macOS DMG assets found to upload." >&2
+          if [ ${#assets[@]} -ne 1 ]; then
+            echo "Expected exactly one macOS DMG asset for ${{ matrix.target }}." >&2
+            exit 1
+          fi
+          hdiutil verify "${assets[0]}"
+
+          version="${GITHUB_REF_NAME#v}"
+          expected_name="CSV.Align_${version}_${{ matrix.asset_arch }}.dmg"
+          if [ "$(basename "${assets[0]}")" != "${expected_name}" ]; then
+            echo "macOS asset basename/version mismatch: expected ${expected_name}, found $(basename "${assets[0]}")." >&2
             exit 1
           fi
 
-          gh release upload "${{ github.ref_name }}" "${assets[@]}" \
-            --repo "${{ github.repository }}" \
-            --clobber
+          mkdir -p staged-macos-assets
+          cp "${assets[0]}" staged-macos-assets/
+          python3 scripts/verify_release_assets.py staged-macos-assets \
+            --tag "${{ github.ref_name }}" \
+            --platform "${{ matrix.verifier_platform }}"
+
+      - name: Upload uniquely named macOS release stage
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ env.MACOS_STAGE_ARTIFACT_PREFIX }}-${{ matrix.target }}
+          path: staged-macos-assets/
+          if-no-files-found: error
+          retention-days: 7
 
   publish-release:
-    name: Publish Release
-    needs: [create-release, build-release, build-macos-release]
+    name: Publish Verified Release
+    needs: [validate-release, stage-linux-release, stage-macos-release]
     runs-on: ubuntu-22.04
+    concurrency:
+      group: csv-align-release-publication
+      cancel-in-progress: false
+    permissions:
+      actions: read
+      contents: write
+      pages: write
+      id-token: write
 
     steps:
-      - name: Publish GitHub Release
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install release asset inspection tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gnupg rpm
+
+      - name: Download Linux release stage
+        uses: actions/download-artifact@v6
+        with:
+          name: ${{ env.LINUX_STAGE_ARTIFACT_NAME }}
+          path: publication-inputs/linux
+
+      - name: Download macOS ARM64 release stage
+        uses: actions/download-artifact@v6
+        with:
+          name: ${{ env.MACOS_STAGE_ARTIFACT_PREFIX }}-aarch64-apple-darwin
+          path: publication-inputs/macos-aarch64
+
+      - name: Download macOS Intel release stage
+        uses: actions/download-artifact@v6
+        with:
+          name: ${{ env.MACOS_STAGE_ARTIFACT_PREFIX }}-x86_64-apple-darwin
+          path: publication-inputs/macos-x86_64
+
+      - name: Download staged APT Pages site
+        uses: actions/download-artifact@v6
+        with:
+          name: ${{ env.APT_STAGE_ARTIFACT_NAME }}
+          path: staged-pages
+
+      - name: Assemble and verify complete managed release set
+        run: |
+          set -euo pipefail
+          mkdir -p managed-assets
+          cp publication-inputs/linux/* managed-assets/
+          cp publication-inputs/macos-aarch64/* managed-assets/
+          cp publication-inputs/macos-x86_64/* managed-assets/
+
+          python3 scripts/verify_release_assets.py managed-assets \
+            --tag "${{ github.ref_name }}" \
+            --write-manifest \
+            --verify-package-metadata
+          python3 scripts/verify_release_assets.py managed-assets \
+            --tag "${{ github.ref_name }}" \
+            --verify-manifest \
+            --verify-package-metadata
+
+          version="${GITHUB_REF_NAME#v}"
+          expected_repository_paths=(
+            "csv-align-archive-keyring.pgp"
+            "dists/stable/InRelease"
+            "dists/stable/Release"
+            "dists/stable/Release.gpg"
+            "dists/stable/main/binary-amd64/Packages"
+            "dists/stable/main/binary-amd64/Packages.gz"
+            "dists/stable/main/dep11/Components-amd64.yml"
+            "dists/stable/main/dep11/Components-amd64.yml.gz"
+            "pool/main/c/csv-align/csv-align_${version}_amd64.deb"
+          )
+          printf '%s\n' "${expected_repository_paths[@]}" | sort > expected-repository-paths.txt
+          find staged-pages/apt -type f -print \
+            | sed 's#^staged-pages/apt/##' \
+            | sort > actual-repository-paths.txt
+          diff -u expected-repository-paths.txt actual-repository-paths.txt
+          while IFS= read -r relative_path; do
+            test -s "staged-pages/apt/${relative_path}"
+          done < expected-repository-paths.txt
+
+          cmp \
+            "managed-assets/CSV.Align_${version}_amd64.deb" \
+            "staged-pages/apt/pool/main/c/csv-align/csv-align_${version}_amd64.deb"
+          gzip --decompress --stdout \
+            staged-pages/apt/dists/stable/main/binary-amd64/Packages.gz \
+            | cmp - staged-pages/apt/dists/stable/main/binary-amd64/Packages
+          gzip --decompress --stdout \
+            staged-pages/apt/dists/stable/main/dep11/Components-amd64.yml.gz \
+            | cmp - staged-pages/apt/dists/stable/main/dep11/Components-amd64.yml
+          grep -Fx "Package: csv-align" staged-pages/apt/dists/stable/main/binary-amd64/Packages
+          grep -Fx "Version: ${version}" staged-pages/apt/dists/stable/main/binary-amd64/Packages
+          grep -Fx "Filename: pool/main/c/csv-align/csv-align_${version}_amd64.deb" \
+            staged-pages/apt/dists/stable/main/binary-amd64/Packages
+
+      - name: Extract release notes
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python3 <<'PY'
+          import os
+          import pathlib
+          import re
+
+          tag = os.environ["RELEASE_TAG"]
+          lines = pathlib.Path("CHANGELOG.md").read_text(encoding="utf-8").splitlines()
+          heading = re.compile(r"^## (?P<tag>v[^\s]+) - \d{4}-\d{2}-\d{2}$")
+          notes = []
+          collecting = False
+          for line in lines:
+              match = heading.match(line)
+              if match:
+                  if collecting:
+                      break
+                  collecting = match.group("tag") == tag
+                  continue
+              if collecting:
+                  notes.append(line)
+          text = "\n".join(notes).strip()
+          if not text:
+              raise SystemExit(f"missing or empty changelog notes for {tag}")
+          pathlib.Path("release-notes.md").write_text(text + "\n", encoding="utf-8")
+          PY
+
+      - name: Classify existing release
+        id: release_state
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if release_json="$(gh api "repos/${REPOSITORY}/releases/tags/${RELEASE_TAG}" 2>release-error.txt)"; then
+            printf '%s' "${release_json}" > release-response.json
+            if ! jq --exit-status --arg tag "${RELEASE_TAG}" \
+              '.tag_name == $tag and (.id | type == "number") and (.draft | type == "boolean") and (.prerelease | type == "boolean")' \
+              release-response.json >/dev/null; then
+              echo "Release API response is missing required typed fields or does not match ${RELEASE_TAG}." >&2
+              exit 1
+            fi
+            release_id="$(jq -r '.id' release-response.json)"
+            is_draft="$(jq -r '.draft' release-response.json)"
+            if [ "${is_draft}" = "true" ]; then
+              state="draft"
+            else
+              state="published"
+            fi
+          elif grep -q "HTTP 404" release-error.txt; then
+            state="absent"
+            release_id=""
+          else
+            cat release-error.txt >&2
+            echo "Unable to classify existing release; refusing to treat an API failure as absence." >&2
+            exit 1
+          fi
+          echo "state=${state}" >> "$GITHUB_OUTPUT"
+          echo "release_id=${release_id}" >> "$GITHUB_OUTPUT"
+          echo "Release state: ${state}"
+
+      - name: Reject release and APT version rollback
+        if: steps.release_state.outputs.state != 'published'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          candidate_version="${GITHUB_REF_NAME#v}"
+          published_tags_file="$(mktemp)"
+          gh api --paginate "repos/${REPOSITORY}/releases?per_page=100" \
+            --jq '.[] | select(.draft == false and .prerelease == false) | .tag_name' \
+            > "${published_tags_file}"
+
+          version_check_args=(
+            --candidate "${candidate_version}"
+            --published-tags-file "${published_tags_file}"
+          )
+          pages_error="$(mktemp)"
+          if pages_json="$(gh api "repos/${REPOSITORY}/pages" 2>"${pages_error}")"; then
+            pages_url="$(printf '%s' "${pages_json}" | jq -r '.html_url // empty')"
+            if [ -z "${pages_url}" ]; then
+              echo "GitHub Pages API response did not include html_url; refusing publication." >&2
+              exit 1
+            fi
+
+            hosted_packages_file="$(mktemp)"
+            hosted_packages_url="${pages_url%/}/apt/dists/stable/main/binary-amd64/Packages"
+            if curl --fail --silent --show-error --location \
+              --header 'Cache-Control: no-cache' \
+              "${hosted_packages_url}?release-order-check=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+              --output "${hosted_packages_file}"; then
+              version_check_args+=(--hosted-packages-file "${hosted_packages_file}")
+            elif [ -s "${published_tags_file}" ]; then
+              echo "Published releases exist but the hosted APT version could not be read; refusing publication." >&2
+              exit 1
+            else
+              echo "No hosted APT package exists yet; treating this as the first publication."
+            fi
+          elif grep -q "HTTP 404" "${pages_error}"; then
+            echo "GitHub Pages is not enabled. Configure Pages to use GitHub Actions before the first release." >&2
+            exit 1
+          else
+            cat "${pages_error}" >&2
+            echo "Unable to inspect the current GitHub Pages repository; refusing publication." >&2
+            exit 1
+          fi
+
+          python3 scripts/check_release_version_order.py "${version_check_args[@]}"
+
+      - name: Verify immutable published release and no-op
+        if: steps.release_state.outputs.state == 'published'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import json
+          import os
+          import pathlib
+
+          release = json.loads(pathlib.Path("release-response.json").read_text(encoding="utf-8"))
+          tag = os.environ["GITHUB_REF_NAME"]
+          notes = pathlib.Path("release-notes.md").read_text(encoding="utf-8")
+          normalize = lambda value: value.replace("\r\n", "\n").strip()
+          expected = {
+              "tag_name": tag,
+              "name": f"CSV Align {tag}",
+              "draft": False,
+              "prerelease": False,
+          }
+          for field, value in expected.items():
+              if release.get(field) != value:
+                  raise SystemExit(
+                      f"immutable release metadata mismatch for {field}: "
+                      f"expected {value!r}, found {release.get(field)!r}"
+                  )
+          if normalize(release.get("body") or "") != normalize(notes):
+              raise SystemExit("immutable release notes do not match the tagged changelog section")
+          PY
+
+          mkdir published-assets
+          gh release download "${{ github.ref_name }}" \
+            --repo "${{ github.repository }}" \
+            --dir published-assets
+
+          if ! python3 scripts/verify_release_assets.py published-assets \
+            --tag "${{ github.ref_name }}" \
+            --verify-manifest \
+            --verify-package-metadata; then
+            echo "::error title=Immutable release mismatch::Published release ${{ github.ref_name }} is immutable and does not match the exact managed asset contract. No release or Pages content was changed." >&2
+            exit 1
+          fi
+          echo "Published release ${{ github.ref_name }} is consistent and immutable; no publication mutation is required."
+
+      - name: Create or refresh draft release
+        if: steps.release_state.outputs.state != 'published'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ "${{ steps.release_state.outputs.state }}" = "absent" ]; then
+            gh release create "${{ github.ref_name }}" \
+              --repo "${{ github.repository }}" \
+              --title "CSV Align ${{ github.ref_name }}" \
+              --notes-file release-notes.md \
+              --draft \
+              --verify-tag
+          else
+            gh release edit "${{ github.ref_name }}" \
+              --repo "${{ github.repository }}" \
+              --title "CSV Align ${{ github.ref_name }}" \
+              --notes-file release-notes.md \
+              --draft=true \
+              --prerelease=false
+          fi
+
+      - name: Replace complete draft asset set
+        if: steps.release_state.outputs.state != 'published'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          release_id="$(gh api "repos/${REPOSITORY}/releases/tags/${RELEASE_TAG}" --jq '.id')"
+          asset_ids="$(gh api --paginate "repos/${REPOSITORY}/releases/${release_id}/assets?per_page=100" --jq '.[].id')"
+          while IFS= read -r asset_id; do
+            [ -z "${asset_id}" ] || gh api --method DELETE "repos/${REPOSITORY}/releases/assets/${asset_id}"
+          done <<< "${asset_ids}"
+
+          remaining_assets="$(gh api --paginate "repos/${REPOSITORY}/releases/${release_id}/assets?per_page=100" --jq '.[].id')"
+          if [ -n "${remaining_assets}" ]; then
+            echo "Draft release assets were not completely removed; refusing partial replacement." >&2
+            exit 1
+          fi
+
+          assets=(managed-assets/*)
+          gh release upload "${RELEASE_TAG}" "${assets[@]}" --repo "${REPOSITORY}"
+
+      - name: Redownload and verify exact draft assets
+        if: steps.release_state.outputs.state != 'published'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir verified-draft-assets
+          gh release download "${{ github.ref_name }}" \
+            --repo "${{ github.repository }}" \
+            --dir verified-draft-assets
+          python3 scripts/verify_release_assets.py verified-draft-assets \
+            --tag "${{ github.ref_name }}" \
+            --verify-manifest \
+            --verify-package-metadata
+
+      - name: Configure GitHub Pages
+        if: steps.release_state.outputs.state != 'published'
+        uses: actions/configure-pages@v5
+
+      - name: Upload verified staged APT Pages artifact
+        if: steps.release_state.outputs.state != 'published'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: staged-pages
+
+      - name: Deploy verified APT repository to GitHub Pages
+        if: steps.release_state.outputs.state != 'published'
+        id: deploy_apt_pages
+        uses: actions/deploy-pages@v4
+
+      - name: Verify public APT repository matches the staged site
+        if: steps.release_state.outputs.state != 'published'
+        env:
+          PAGES_DEPLOYMENT_URL: ${{ steps.deploy_apt_pages.outputs.page_url }}
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          pages_base_url="${PAGES_DEPLOYMENT_URL%/}/apt"
+          paths=(
+            csv-align-archive-keyring.pgp
+            dists/stable/InRelease
+            dists/stable/Release
+            dists/stable/Release.gpg
+            dists/stable/main/binary-amd64/Packages
+            dists/stable/main/binary-amd64/Packages.gz
+            dists/stable/main/dep11/Components-amd64.yml
+            dists/stable/main/dep11/Components-amd64.yml.gz
+            "pool/main/c/csv-align/csv-align_${version}_amd64.deb"
+          )
+          verified=false
+          remote_dir="$(mktemp -d)"
+          trap 'rm -rf "${remote_dir}"' EXIT
+
+          for attempt in $(seq 1 30); do
+            rm -rf "${remote_dir}"
+            mkdir -p "${remote_dir}"
+            matched=true
+            for relative_path in "${paths[@]}"; do
+              mkdir -p "${remote_dir}/$(dirname "${relative_path}")"
+              if ! curl --fail --silent --show-error --location \
+                --header 'Cache-Control: no-cache' \
+                "${pages_base_url}/${relative_path}?run=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${attempt}" \
+                --output "${remote_dir}/${relative_path}"; then
+                matched=false
+                break
+              fi
+              if ! cmp "staged-pages/apt/${relative_path}" "${remote_dir}/${relative_path}"; then
+                matched=false
+                break
+              fi
+            done
+            if [ "${matched}" = "true" ]; then
+              verified=true
+              break
+            fi
+            echo "Hosted APT repository has not converged yet (attempt ${attempt}/30)."
+            sleep 20
+          done
+
+          if [ "${verified}" != "true" ]; then
+            echo "Hosted APT repository did not match the staged repository within 10 minutes." >&2
+            exit 1
+          fi
+
+          verification_home="$(mktemp -d)"
+          chmod 700 "${verification_home}"
+          GNUPGHOME="${verification_home}" gpg --batch --import "${remote_dir}/csv-align-archive-keyring.pgp"
+          GNUPGHOME="${verification_home}" gpg --batch --verify "${remote_dir}/dists/stable/InRelease"
+          GNUPGHOME="${verification_home}" gpg --batch --verify \
+            "${remote_dir}/dists/stable/Release.gpg" \
+            "${remote_dir}/dists/stable/Release"
+          GNUPGHOME="${verification_home}" gpg --batch --verify \
+            verified-draft-assets/csv-align-repository-setup_1.0_all.deb.sha256.asc \
+            verified-draft-assets/csv-align-repository-setup_1.0_all.deb.sha256
+          rm -rf "${verification_home}"
+
+      - name: Publish GitHub Release after Pages verification
+        if: steps.release_state.outputs.state != 'published'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release edit "${{ github.ref_name }}" --repo "${{ github.repository }}" --draft=false --prerelease=false

@@ -62,6 +62,8 @@ cargo test
 cargo clippy -- -D warnings
 (cd src-tauri && cargo test && cargo fmt --check && cargo clippy -- -D warnings)
 (cd frontend && npm test && npm run lint && npm run build)
+go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+"$(go env GOPATH)/bin/actionlint" .github/workflows/release.yml
 ```
 
 ## macOS release prerequisites
@@ -166,7 +168,11 @@ python3 scripts/build_apt_repository.py \
 
 Use `--unsigned` only for local smoke tests; do not publish an unsigned APT repository.
 
-The release workflow copies the generated tree into the Pages artifact at `apt/`, so the `dists/`, `pool/`, and `csv-align-archive-keyring.pgp` entries should be reachable under `https://ddv1982.github.io/csv-align/apt/` after the Pages deploy completes.
+The Linux job copies the generated tree into an ordinary, uniquely named Actions staging artifact at `apt/`; it does not deploy Pages. Only the final publication job downloads that staged tree, after both macOS builds and the exact release-asset verification succeed. Before any release mutation, the final job requires the exact repository tree: the pool `.deb`, signed `Release` variants, compressed and uncompressed `Packages` and DEP-11 indexes, and the archive keyring. It verifies the pool package equals the managed release `.deb` and that compressed indexes expand to their staged counterparts.
+
+GitHub Pages must be enabled for the repository with **GitHub Actions** selected as its publishing source before the first release; the release token intentionally does not receive repository-administration permission to enable Pages itself.
+
+The publication job also compares the candidate version with every published stable release and with the currently hosted APT `Packages` index. It fails before draft assets or Pages are changed if the candidate is older. An intentional rollback therefore requires a separate operator-controlled process rather than rerunning an older tag. The job then uploads the verified tree as the Pages artifact, deploys it, and byte-compares every public file with the staged files before it undrafts the GitHub Release. Verification uses the URL returned by the Pages deployment, so forks, repository renames, and configured Pages domains verify their own deployment. The `dists/`, `pool/`, and `csv-align-archive-keyring.pgp` entries should then be reachable under `https://ddv1982.github.io/csv-align/apt/`.
 
 After the Pages deploy, verify the hosted repository metadata, setup script URL, and direct setup package URL before announcing the release:
 
@@ -301,7 +307,30 @@ Pushing a tag matching `v*` triggers the release workflow.
 
 The CI workflow runs Rust tests/formatting/clippy, Tauri wrapper tests, frontend tests/lint/build, and validates that release metadata stays aligned across the documented version-bearing files. For Tauri-impacting changes, CI also publishes two 7-day artifacts used by the release workflow: the Linux package bundle (`.deb`, `.rpm`, and `.AppImage`) and `csv-align-frontend-dist`.
 
-The tagged release workflow validates release metadata against the tag, checks the Rust, Tauri, and frontend validation suite, expects a matching non-empty `CHANGELOG.md` section, verifies both CI artifacts exist before creating or refreshing the draft GitHub Release, uploads the packaged assets, and only publishes the final GitHub Release after packaging succeeds.
+The tagged release workflow validates release metadata against the tag, runs Actionlint v1.7.12 installed with a commit-pinned `actions/setup-go`, waits for the successful CI run on the tagged commit, and verifies the reusable Linux/frontend artifacts exist. Linux/APT and both macOS matrix runs then upload only uniquely named Actions staging artifacts. They do not create releases, upload release assets, or deploy Pages.
+
+The final publication job depends on every staging result. Before it queries or mutates a GitHub Release, it downloads all stages and requires this exact versioned payload:
+
+- `CSV.Align_<version>_amd64.deb`
+- `csv-align-<version>-1.x86_64.rpm`
+- `CSV.Align_<version>_amd64.AppImage`
+- `CSV.Align_<version>_aarch64.dmg`
+- `CSV.Align_<version>_x64.dmg`
+- `csv-align-repository-setup_1.0_all.deb`
+- `csv-align-repository-setup_1.0_all.deb.sha256`
+- `csv-align-repository-setup_1.0_all.deb.sha256.asc`
+- `install-apt-repo.sh`
+
+`scripts/verify_release_assets.py` rejects missing, extra, duplicate-basename, empty, or tag/version-mismatched payloads. It also checks the setup checksum, optionally inspects Debian/RPM package fields, and writes `release-assets-manifest.json` with the exact tag, byte size, and SHA-256 for every payload. The manifest is the tenth managed GitHub Release asset and is redownloaded and verified before Pages deployment.
+
+Reruns use fail-closed release-state handling:
+
+- If the tag has no release, the final job creates a draft only after all local verification passes.
+- If a draft exists, the job refreshes its notes, deletes its complete old asset set, uploads the complete verified managed set, and redownloads it for verification.
+- If a published release exists, the job never redrafts, edits, uploads, deletes, or redeploys. It verifies the published asset set and its own manifest; a consistent release is a no-op, while drift fails with an immutable-release error.
+- Same-tag runs queue because workflow concurrency uses `cancel-in-progress: false`; the final publication job also uses one repository-wide concurrency group so different tags cannot race on the single Pages site.
+
+For an absent/draft release, publication order is: verify all stages, create/refresh the draft, replace and redownload its assets, deploy the staged APT site, verify the public repository, then undraft as the final mutation. GitHub Releases and Pages are not transactional; if Pages succeeds but undrafting fails, the release remains a draft and a rerun converges by replacing the draft assets and redeploying the complete staged site. Published releases created before `release-assets-manifest.json` was introduced cannot be repaired by rerunning this workflow.
 
 If the CI artifacts expire before publishing, rerun CI on the `main` push commit that the tag points to; the tag push itself does not create those artifacts. Then rerun the release workflow for the tag.
 

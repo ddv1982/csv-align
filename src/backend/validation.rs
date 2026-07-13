@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
 use crate::backend::requests::{CompareRequest, CompareValidationError, MappingRequest};
-use crate::data::json_fields::{label_has_physical_or_virtual_source, valid_column_labels};
-use crate::data::types::{ColumnMapping, ComparisonConfig, CsvData, MappingType};
+use crate::data::json_fields::label_has_physical_or_virtual_source;
+use crate::data::types::{ColumnCatalog, ColumnMapping, ComparisonConfig, MappingType};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub(crate) struct SelectedColumnsAudit {
@@ -11,8 +11,8 @@ pub(crate) struct SelectedColumnsAudit {
 }
 
 pub(crate) fn build_comparison_config(
-    csv_a: &CsvData,
-    csv_b: &CsvData,
+    catalog_a: &ColumnCatalog,
+    catalog_b: &ColumnCatalog,
     request: CompareRequest,
 ) -> Result<ComparisonConfig, CompareValidationError> {
     let CompareRequest {
@@ -24,8 +24,8 @@ pub(crate) fn build_comparison_config(
         normalization,
     } = request;
 
-    validate_selected_columns("Key columns for File A", csv_a, &key_columns_a)?;
-    validate_selected_columns("Key columns for File B", csv_b, &key_columns_b)?;
+    validate_selected_columns("Key columns for File A", catalog_a, &key_columns_a)?;
+    validate_selected_columns("Key columns for File B", catalog_b, &key_columns_b)?;
     if !normalization.flexible_key_matching {
         validate_matching_counts(
             "Key columns for File A",
@@ -37,12 +37,12 @@ pub(crate) fn build_comparison_config(
 
     validate_selected_columns(
         "Comparison columns for File A",
-        csv_a,
+        catalog_a,
         &comparison_columns_a,
     )?;
     validate_selected_columns(
         "Comparison columns for File B",
-        csv_b,
+        catalog_b,
         &comparison_columns_b,
     )?;
     validate_matching_counts(
@@ -53,8 +53,8 @@ pub(crate) fn build_comparison_config(
     )?;
 
     let column_mappings = build_column_mappings(
-        csv_a,
-        csv_b,
+        catalog_a,
+        catalog_b,
         &comparison_columns_a,
         &comparison_columns_b,
         column_mappings,
@@ -71,8 +71,8 @@ pub(crate) fn build_comparison_config(
 }
 
 fn build_column_mappings(
-    csv_a: &CsvData,
-    csv_b: &CsvData,
+    catalog_a: &ColumnCatalog,
+    catalog_b: &ColumnCatalog,
     comparison_columns_a: &[String],
     comparison_columns_b: &[String],
     column_mappings: Vec<MappingRequest>,
@@ -98,21 +98,19 @@ fn build_column_mappings(
 
     let allowed_a: HashSet<&str> = comparison_columns_a.iter().map(String::as_str).collect();
     let allowed_b: HashSet<&str> = comparison_columns_b.iter().map(String::as_str).collect();
-    let available_a = valid_column_labels(csv_a);
-    let available_b = valid_column_labels(csv_b);
     let mut seen_a = HashSet::new();
     let mut seen_b = HashSet::new();
     let mut parsed_mappings = Vec::with_capacity(column_mappings.len());
 
     for mapping in column_mappings {
-        if !available_a.contains(&mapping.file_a_column) {
+        if !catalog_a.contains_label(&mapping.file_a_column) {
             return Err(CompareValidationError::MissingColumns {
                 selection: "Column mappings for File A",
                 columns: vec![mapping.file_a_column],
             });
         }
 
-        if !available_b.contains(&mapping.file_b_column) {
+        if !catalog_b.contains_label(&mapping.file_b_column) {
             return Err(CompareValidationError::MissingColumns {
                 selection: "Column mappings for File B",
                 columns: vec![mapping.file_b_column],
@@ -183,14 +181,14 @@ fn parse_mapping_request(mapping: MappingRequest) -> Result<ColumnMapping, Compa
 
 pub(crate) fn validate_selected_columns(
     selection: &'static str,
-    csv_data: &CsvData,
+    catalog: &ColumnCatalog,
     selected: &[String],
 ) -> Result<(), CompareValidationError> {
     if selected.is_empty() {
         return Err(CompareValidationError::EmptyColumns(selection));
     }
 
-    let audit = audit_selected_columns(csv_data, selected);
+    let audit = audit_selected_columns(catalog, selected);
 
     if !audit.duplicates.is_empty() {
         return Err(CompareValidationError::DuplicateColumns {
@@ -286,16 +284,14 @@ fn duplicate_values(values: &[String]) -> Vec<String> {
 }
 
 pub(crate) fn audit_selected_columns(
-    csv_data: &CsvData,
+    catalog: &ColumnCatalog,
     selected: &[String],
 ) -> SelectedColumnsAudit {
-    let labels = valid_column_labels(csv_data);
-
     SelectedColumnsAudit {
         duplicates: duplicate_values(selected),
         missing: selected
             .iter()
-            .filter(|column| !labels.contains(*column))
+            .filter(|column| !catalog.contains_label(column))
             .cloned()
             .collect(),
     }

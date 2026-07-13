@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { TAURI_COMMANDS } from './tauriCommands';
+import { RESOURCE_LIMITS, validateSnapshotFileSize } from './contracts';
 import { loadComparisonSnapshot, saveComparisonSnapshot } from './tauri';
 
 const { invokeMock } = vi.hoisted(() => ({
@@ -45,7 +46,7 @@ test('saveComparisonSnapshot returns a browser blob download payload', async () 
   });
 });
 
-test('loadComparisonSnapshot reads the selected file and posts its contents in browser mode', async () => {
+test('loadComparisonSnapshot posts the raw selected snapshot document in browser mode', async () => {
   const fetchMock = vi.mocked(globalThis.fetch);
   fetchMock.mockResolvedValue(jsonResponse({
     file_a: {
@@ -103,8 +104,26 @@ test('loadComparisonSnapshot reads the selected file and posts its contents in b
   expect(fetchMock).toHaveBeenCalledWith('/api/sessions/session-1/comparison-snapshot/load', expect.objectContaining({
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents: '{"snapshot":true}' }),
+    body: file,
   }));
+});
+
+test('snapshot browser preflight accepts exactly 128 MiB and rejects one byte more', () => {
+  expect(() => validateSnapshotFileSize({ size: RESOURCE_LIMITS.snapshotBytes })).not.toThrow();
+  expect(() => validateSnapshotFileSize({ size: RESOURCE_LIMITS.snapshotBytes + 1 }))
+    .toThrow('Comparison snapshot is too large; maximum supported size is 128 MiB');
+});
+
+test('loadComparisonSnapshot rejects an oversized browser file before transport', async () => {
+  const file = Object.create(File.prototype) as File;
+  Object.defineProperties(file, {
+    size: { value: RESOURCE_LIMITS.snapshotBytes + 1 },
+  });
+
+  await expect(loadComparisonSnapshot('session-1', file)).rejects.toThrow(
+    'Comparison snapshot is too large; maximum supported size is 128 MiB',
+  );
+  expect(globalThis.fetch).not.toHaveBeenCalled();
 });
 
 test('loadComparisonSnapshot invokes the pathless Tauri snapshot load command', async () => {

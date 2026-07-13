@@ -65,11 +65,6 @@ pub struct ComparisonSnapshotFile {
     pub row_count: usize,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct LoadComparisonSnapshotRequest {
-    pub contents: String,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct LoadComparisonSnapshotResponse {
     pub file_a: ComparisonSnapshotFile,

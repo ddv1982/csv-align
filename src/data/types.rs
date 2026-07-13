@@ -1,3 +1,6 @@
+use std::mem::size_of;
+use std::ops::Deref;
+
 use serde::{Deserialize, Serialize};
 
 /// Represents a loaded CSV file with its metadata
@@ -8,12 +11,76 @@ pub struct CsvData {
     pub rows: Vec<Vec<String>>,
 }
 
+impl CsvData {
+    /// Conservative retained allocation for this value, including spare vector
+    /// and string capacity but excluding any external `Arc` control block.
+    pub fn retained_size_bytes(&self) -> usize {
+        let rows_allocation = self.rows.iter().fold(
+            vec_allocation_bytes::<Vec<String>>(self.rows.capacity()),
+            |total, row| total.saturating_add(retained_strings_vec_allocation_bytes(row)),
+        );
+
+        size_of::<Self>()
+            .saturating_add(
+                self.file_path
+                    .as_ref()
+                    .map(String::capacity)
+                    .unwrap_or_default(),
+            )
+            .saturating_add(retained_strings_vec_allocation_bytes(&self.headers))
+            .saturating_add(rows_allocation)
+    }
+}
+
 /// Information about a column in a CSV file
 #[derive(Debug, Clone)]
 pub struct ColumnInfo {
     pub index: usize,
     pub name: String,
     pub data_type: ColumnDataType,
+}
+
+/// Immutable metadata discovered once for one side of a comparison session.
+#[derive(Debug, Default)]
+pub struct ColumnCatalog {
+    columns: Vec<ColumnInfo>,
+    virtual_headers: Vec<String>,
+}
+
+impl ColumnCatalog {
+    pub fn new(columns: Vec<ColumnInfo>, virtual_headers: Vec<String>) -> Self {
+        Self {
+            columns,
+            virtual_headers,
+        }
+    }
+
+    pub fn virtual_headers(&self) -> &[String] {
+        &self.virtual_headers
+    }
+
+    pub fn contains_label(&self, label: &str) -> bool {
+        self.columns.iter().any(|column| column.name == label)
+            || self.virtual_headers.iter().any(|header| header == label)
+    }
+
+    pub fn retained_size_bytes(&self) -> usize {
+        size_of::<Self>()
+            .saturating_add(retained_vec_with_strings_bytes(
+                self.columns.capacity(),
+                &self.columns,
+                |column| column.name.capacity(),
+            ))
+            .saturating_add(retained_strings_vec_allocation_bytes(&self.virtual_headers))
+    }
+}
+
+impl Deref for ColumnCatalog {
+    type Target = [ColumnInfo];
+
+    fn deref(&self) -> &Self::Target {
+        &self.columns
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -64,6 +131,24 @@ pub struct ComparisonConfig {
     pub comparison_columns_b: Vec<String>,
     pub column_mappings: Vec<ColumnMapping>,
     pub normalization: ComparisonNormalizationConfig,
+}
+
+impl ComparisonConfig {
+    pub fn retained_heap_size_bytes(&self) -> usize {
+        retained_strings_vec_allocation_bytes(&self.key_columns_a)
+            .saturating_add(retained_strings_vec_allocation_bytes(&self.key_columns_b))
+            .saturating_add(retained_strings_vec_allocation_bytes(
+                &self.comparison_columns_a,
+            ))
+            .saturating_add(retained_strings_vec_allocation_bytes(
+                &self.comparison_columns_b,
+            ))
+            .saturating_add(retained_column_mappings_allocation_bytes(
+                &self.column_mappings,
+                self.column_mappings.capacity(),
+            ))
+            .saturating_add(self.normalization.retained_heap_size_bytes())
+    }
 }
 
 fn default_true() -> bool {
@@ -134,6 +219,14 @@ pub struct ComparisonNormalizationConfig {
     pub decimal_rounding: DecimalRoundingConfig,
     #[serde(default)]
     pub date_normalization: DateNormalizationConfig,
+}
+
+impl ComparisonNormalizationConfig {
+    pub fn retained_heap_size_bytes(&self) -> usize {
+        retained_strings_vec_allocation_bytes(&self.null_tokens).saturating_add(
+            retained_strings_vec_allocation_bytes(&self.date_normalization.formats),
+        )
+    }
 }
 
 impl Default for ComparisonNormalizationConfig {
@@ -216,6 +309,54 @@ const EMPTY_DUPLICATE_VALUES: &[Vec<String>] = &[];
 const EMPTY_DIFFERENCES: &[ValueDifference] = &[];
 
 impl RowComparisonResult {
+    /// Heap allocation retained below the enum value itself. The containing
+    /// result vector accounts for the enum storage using its capacity.
+    pub fn retained_heap_size_bytes(&self) -> usize {
+        match self {
+            Self::Match {
+                key,
+                values_a,
+                values_b,
+            } => retained_strings_vec_allocation_bytes(key)
+                .saturating_add(retained_strings_vec_allocation_bytes(values_a))
+                .saturating_add(retained_strings_vec_allocation_bytes(values_b)),
+            Self::Mismatch {
+                key,
+                values_a,
+                values_b,
+                differences,
+            } => retained_strings_vec_allocation_bytes(key)
+                .saturating_add(retained_strings_vec_allocation_bytes(values_a))
+                .saturating_add(retained_strings_vec_allocation_bytes(values_b))
+                .saturating_add(retained_vec_with_strings_bytes(
+                    differences.capacity(),
+                    differences,
+                    |difference| {
+                        difference
+                            .column_a
+                            .capacity()
+                            .saturating_add(difference.column_b.capacity())
+                            .saturating_add(difference.value_a.capacity())
+                            .saturating_add(difference.value_b.capacity())
+                    },
+                )),
+            Self::MissingLeft { key, values_b } | Self::UnkeyedLeft { key, values_b } => {
+                retained_strings_vec_allocation_bytes(key)
+                    .saturating_add(retained_strings_vec_allocation_bytes(values_b))
+            }
+            Self::MissingRight { key, values_a } | Self::UnkeyedRight { key, values_a } => {
+                retained_strings_vec_allocation_bytes(key)
+                    .saturating_add(retained_strings_vec_allocation_bytes(values_a))
+            }
+            Self::Duplicate {
+                key,
+                values_a,
+                values_b,
+            } => retained_strings_vec_allocation_bytes(key)
+                .saturating_add(retained_nested_strings_vec_allocation_bytes(values_a))
+                .saturating_add(retained_nested_strings_vec_allocation_bytes(values_b)),
+        }
+    }
     pub fn key(&self) -> &[String] {
         match self {
             Self::Match { key, .. }
@@ -306,6 +447,58 @@ pub enum DuplicateSource {
     FileA,
     FileB,
     Both,
+}
+
+pub fn retained_comparison_results_bytes(
+    results: &[RowComparisonResult],
+    capacity: usize,
+) -> usize {
+    results.iter().fold(
+        size_of::<Vec<RowComparisonResult>>()
+            .saturating_add(vec_allocation_bytes::<RowComparisonResult>(capacity)),
+        |total, result| total.saturating_add(result.retained_heap_size_bytes()),
+    )
+}
+
+pub fn retained_column_mappings_allocation_bytes(
+    mappings: &[ColumnMapping],
+    capacity: usize,
+) -> usize {
+    retained_vec_with_strings_bytes(capacity, mappings, |mapping| {
+        mapping
+            .file_a_column
+            .capacity()
+            .saturating_add(mapping.file_b_column.capacity())
+    })
+}
+
+#[allow(clippy::ptr_arg)]
+fn retained_nested_strings_vec_allocation_bytes(values: &Vec<Vec<String>>) -> usize {
+    values.iter().fold(
+        vec_allocation_bytes::<Vec<String>>(values.capacity()),
+        |total, row| total.saturating_add(retained_strings_vec_allocation_bytes(row)),
+    )
+}
+
+#[allow(clippy::ptr_arg)]
+fn retained_strings_vec_allocation_bytes(values: &Vec<String>) -> usize {
+    retained_vec_with_strings_bytes(values.capacity(), values, String::capacity)
+}
+
+fn retained_vec_with_strings_bytes<T>(
+    capacity: usize,
+    values: &[T],
+    string_bytes: impl Fn(&T) -> usize,
+) -> usize {
+    values
+        .iter()
+        .fold(vec_allocation_bytes::<T>(capacity), |total, value| {
+            total.saturating_add(string_bytes(value))
+        })
+}
+
+fn vec_allocation_bytes<T>(capacity: usize) -> usize {
+    capacity.saturating_mul(size_of::<T>())
 }
 
 impl DuplicateSource {

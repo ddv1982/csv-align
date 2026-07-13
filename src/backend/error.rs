@@ -19,6 +19,8 @@ pub enum CsvAlignError {
     BadInput(String),
     #[error("{0}")]
     Parse(String),
+    #[error("Operation was superseded by a newer request")]
+    Superseded,
     #[error(transparent)]
     Io(#[from] std::io::Error),
     #[error("{0}")]
@@ -38,6 +40,7 @@ impl CsvAlignError {
             Self::Validation(_) => "validation",
             Self::BadInput(_) => "bad_input",
             Self::Parse(_) => "parse",
+            Self::Superseded => "superseded",
             Self::Io(_) => "io",
             Self::Internal(_) => "internal",
         }
@@ -47,6 +50,7 @@ impl CsvAlignError {
         match self {
             Self::NotFound { .. } => StatusCode::NOT_FOUND,
             Self::Validation(_) | Self::BadInput(_) | Self::Parse(_) => StatusCode::BAD_REQUEST,
+            Self::Superseded => StatusCode::CONFLICT,
             Self::Io(_) | Self::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }

@@ -379,10 +379,17 @@ fn release_workflow_publishes_signed_setup_checksum_sidecars() {
     assert!(workflow.contains("--output \"${setup_package}.sha256.asc\""));
     assert!(workflow.contains("EXPECTED_FINGERPRINT=\"${expected_fingerprint}\" python3"));
     assert!(workflow.contains(
-        "! grep -F \"__CSV_ALIGN_APT_SIGNING_KEY_FINGERPRINT__\" scripts/install-apt-repo.sh"
+        "if grep -F \"__CSV_ALIGN_APT_SIGNING_KEY_FINGERPRINT__\" staged-linux-assets/install-apt-repo.sh; then"
     ));
-    assert!(workflow.contains("csv-align-repository-setup_*.deb.sha256"));
-    assert!(workflow.contains("csv-align-repository-setup_*.deb.sha256.asc"));
+    assert!(
+        workflow.contains("cp csv-align-repository-setup_1.0_all.deb.sha256 staged-linux-assets/")
+    );
+    assert!(
+        workflow
+            .contains("cp csv-align-repository-setup_1.0_all.deb.sha256.asc staged-linux-assets/")
+    );
+    assert!(workflow.contains("python3 scripts/build_apt_repository.py \\\n            --clean"));
+    assert!(workflow.contains("Upload uniquely named APT Pages stage"));
 }
 
 #[test]
@@ -978,7 +985,7 @@ fn append_newc_entry(archive: &mut Vec<u8>, ino: u32, entry: NewcEntry) {
 }
 
 fn pad_newc(bytes: &mut Vec<u8>) {
-    while bytes.len() % 4 != 0 {
+    while !bytes.len().is_multiple_of(4) {
         bytes.push(0);
     }
 }

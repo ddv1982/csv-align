@@ -1,14 +1,15 @@
 use axum::{
     Router,
     extract::DefaultBodyLimit,
+    middleware,
     routing::{delete, get, post},
 };
 use std::io;
 use std::path::{Path, PathBuf};
 use tower_http::services::ServeDir;
 
-use super::{handlers, state::AppState};
-use crate::backend::MAX_CSV_FILE_BYTES;
+use super::{handlers, loopback_security::enforce_loopback_request, state::AppState};
+use crate::backend::{MAX_CSV_FILE_BYTES, limits::MAX_SNAPSHOT_BYTES};
 
 pub const CREATE_SESSION_ROUTE: &str = "/api/sessions";
 pub const DELETE_SESSION_ROUTE: &str = "/api/sessions/{session_id}";
@@ -22,6 +23,66 @@ pub const SAVE_COMPARISON_SNAPSHOT_ROUTE: &str =
     "/api/sessions/{session_id}/comparison-snapshot/save";
 pub const LOAD_COMPARISON_SNAPSHOT_ROUTE: &str =
     "/api/sessions/{session_id}/comparison-snapshot/load";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct HttpTransportOperation {
+    pub key: &'static str,
+    pub method: &'static str,
+    pub path: &'static str,
+}
+
+pub const HTTP_TRANSPORT_OPERATIONS: &[HttpTransportOperation] = &[
+    HttpTransportOperation {
+        key: "createSession",
+        method: "POST",
+        path: CREATE_SESSION_ROUTE,
+    },
+    HttpTransportOperation {
+        key: "deleteSession",
+        method: "DELETE",
+        path: DELETE_SESSION_ROUTE,
+    },
+    HttpTransportOperation {
+        key: "loadFile",
+        method: "POST",
+        path: LOAD_CSV_ROUTE,
+    },
+    HttpTransportOperation {
+        key: "suggestMappings",
+        method: "POST",
+        path: SUGGEST_MAPPINGS_ROUTE,
+    },
+    HttpTransportOperation {
+        key: "compare",
+        method: "POST",
+        path: COMPARE_ROUTE,
+    },
+    HttpTransportOperation {
+        key: "exportResults",
+        method: "GET",
+        path: EXPORT_RESULTS_ROUTE,
+    },
+    HttpTransportOperation {
+        key: "savePairOrder",
+        method: "POST",
+        path: SAVE_PAIR_ORDER_ROUTE,
+    },
+    HttpTransportOperation {
+        key: "loadPairOrder",
+        method: "POST",
+        path: LOAD_PAIR_ORDER_ROUTE,
+    },
+    HttpTransportOperation {
+        key: "saveComparisonSnapshot",
+        method: "POST",
+        path: SAVE_COMPARISON_SNAPSHOT_ROUTE,
+    },
+    HttpTransportOperation {
+        key: "loadComparisonSnapshot",
+        method: "POST",
+        path: LOAD_COMPARISON_SNAPSHOT_ROUTE,
+    },
+];
 
 pub const TRANSPORT_PARITY_ROUTE_PATHS: &[&str] = &[
     CREATE_SESSION_ROUTE,
@@ -37,7 +98,6 @@ pub const TRANSPORT_PARITY_ROUTE_PATHS: &[&str] = &[
 ];
 
 const LOAD_CSV_BODY_LIMIT_BYTES: usize = MAX_CSV_FILE_BYTES * 2;
-const LOAD_COMPARISON_SNAPSHOT_BODY_LIMIT_BYTES: usize = MAX_CSV_FILE_BYTES * 4;
 
 /// Get the path to the built frontend assets directory.
 pub fn frontend_dist_path() -> io::Result<PathBuf> {
@@ -97,9 +157,8 @@ pub fn build_api_router(state: AppState) -> Router {
         )
         .route(
             LOAD_COMPARISON_SNAPSHOT_ROUTE,
-            post(handlers::load_comparison_snapshot).layer(DefaultBodyLimit::max(
-                LOAD_COMPARISON_SNAPSHOT_BODY_LIMIT_BYTES,
-            )),
+            post(handlers::load_comparison_snapshot)
+                .layer(DefaultBodyLimit::max(MAX_SNAPSHOT_BYTES)),
         )
         .route(EXPORT_RESULTS_ROUTE, get(handlers::export_csv))
         .with_state(state)
@@ -109,4 +168,5 @@ pub fn build_app(state: AppState, frontend_path: &Path) -> Router {
     Router::new()
         .merge(build_api_router(state))
         .fallback_service(ServeDir::new(frontend_path).append_index_html_on_directories(true))
+        .layer(middleware::from_fn(enforce_loopback_request))
 }

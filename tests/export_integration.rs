@@ -270,6 +270,138 @@ fn test_export_results_to_bytes_duplicate_rows_include_stable_side_specific_colu
 }
 
 #[test]
+fn test_export_results_neutralizes_spreadsheet_formulas_at_the_writer_boundary() {
+    let dangerous = [
+        "=SUM(A1:A2)",
+        "+cmd",
+        "-10",
+        "@name",
+        "  =leading-space",
+        "\tleading-tab",
+        "\rleading-carriage-return",
+        "\nleading-line-feed",
+    ];
+    let results = vec![
+        RowComparisonResult::Mismatch {
+            key: dangerous.iter().map(|value| (*value).to_string()).collect(),
+            values_a: dangerous[..4]
+                .iter()
+                .map(|value| (*value).to_string())
+                .collect(),
+            values_b: dangerous[4..]
+                .iter()
+                .map(|value| (*value).to_string())
+                .collect(),
+            differences: vec![ValueDifference {
+                column_a: "=column".to_string(),
+                column_b: "=column".to_string(),
+                value_a: "safe-left".to_string(),
+                value_b: "safe-right".to_string(),
+            }],
+        },
+        RowComparisonResult::Match {
+            key: vec![
+                "plain".to_string(),
+                "  plain".to_string(),
+                "'=already-safe".to_string(),
+            ],
+            values_a: vec!["42".to_string()],
+            values_b: vec!["text".to_string()],
+        },
+    ];
+
+    let bytes = export_results_to_bytes(&results, None).unwrap();
+    let mut reader = Reader::from_reader(bytes.as_slice());
+    let headers = reader.headers().unwrap().clone();
+    let records: Vec<csv::StringRecord> = reader.records().map(Result::unwrap).collect();
+
+    assert_eq!(headers.get(0), Some("Result"));
+    assert_eq!(records.len(), 2);
+    assert_eq!(records[0].len(), headers.len());
+    assert_eq!(records[1].len(), headers.len());
+
+    for (offset, original) in dangerous.iter().enumerate() {
+        let expected = format!("'{original}");
+        assert_eq!(records[0].get(1 + offset), Some(expected.as_str()));
+    }
+
+    let file_a_start = 1 + dangerous.len();
+    for (offset, original) in dangerous[..4].iter().enumerate() {
+        let expected = format!("'{original}");
+        assert_eq!(
+            records[0].get(file_a_start + offset),
+            Some(expected.as_str())
+        );
+    }
+
+    let file_b_start = file_a_start + 4;
+    for (offset, original) in dangerous[4..].iter().enumerate() {
+        let expected = format!("'{original}");
+        assert_eq!(
+            records[0].get(file_b_start + offset),
+            Some(expected.as_str())
+        );
+    }
+
+    let difference_summary = headers
+        .iter()
+        .position(|header| header == "Difference Summary")
+        .unwrap();
+    assert_eq!(
+        records[0].get(difference_summary),
+        Some("'=column: safe-left -> safe-right")
+    );
+
+    assert_eq!(records[1].get(1), Some("plain"));
+    assert_eq!(records[1].get(2), Some("  plain"));
+    assert_eq!(records[1].get(3), Some("'=already-safe"));
+    assert_eq!(records[1].get(file_a_start), Some("42"));
+    assert_eq!(records[1].get(file_b_start), Some("text"));
+}
+
+#[test]
+fn test_export_results_preserves_duplicate_payloads_and_rectangular_shape() {
+    let results = vec![RowComparisonResult::Duplicate {
+        key: vec!["=duplicate-key".to_string()],
+        values_a: vec![vec!["=formula".to_string(), "+command".to_string()]],
+        values_b: vec![vec!["-value".to_string(), "@value".to_string()]],
+    }];
+
+    let bytes = export_results_to_bytes(&results, None).unwrap();
+    let mut reader = Reader::from_reader(bytes.as_slice());
+    let headers = reader.headers().unwrap().clone();
+    let duplicate_file_a = headers
+        .iter()
+        .position(|header| header == "Duplicate Rows File A")
+        .unwrap();
+    let duplicate_file_b = headers
+        .iter()
+        .position(|header| header == "Duplicate Rows File B")
+        .unwrap();
+    let duplicate_summary = headers
+        .iter()
+        .position(|header| header == "Duplicate Summary")
+        .unwrap();
+    let records: Vec<csv::StringRecord> = reader.records().map(Result::unwrap).collect();
+
+    assert_eq!(records.len(), 1);
+    assert_eq!(records[0].len(), headers.len());
+    assert_eq!(records[0].get(1), Some("'=duplicate-key"));
+    assert_eq!(
+        records[0].get(duplicate_file_a),
+        Some("[[\"=formula\",\"+command\"]]")
+    );
+    assert_eq!(
+        records[0].get(duplicate_file_b),
+        Some("[[\"-value\",\"@value\"]]")
+    );
+    assert_eq!(
+        records[0].get(duplicate_summary),
+        Some("File A: [=formula, +command] ; File B: [-value, @value]")
+    );
+}
+
+#[test]
 fn test_export_results_uses_clearer_labels_for_one_sided_and_ignored_rows() {
     let results = vec![
         RowComparisonResult::MissingLeft {

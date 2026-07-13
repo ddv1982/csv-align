@@ -2,8 +2,8 @@ mod common;
 
 use axum::{
     Json,
-    body::to_bytes,
-    extract::{Path, State},
+    body::{Body, to_bytes},
+    extract::{Path, Request, State},
     http::StatusCode,
     response::{IntoResponse, Response},
 };
@@ -11,8 +11,11 @@ use csv_align::api::{
     handlers::{self, CompareRequest, MappingRequest, SuggestMappingsRequest},
     state::{AppState, SessionData},
 };
-use csv_align::backend::{CompareValidationError, CsvAlignError, LoadComparisonSnapshotRequest};
-use csv_align::data::types::{ComparisonNormalizationConfig, CsvData};
+use csv_align::backend::{CompareValidationError, CsvAlignError};
+use csv_align::{
+    data::types::{ComparisonNormalizationConfig, CsvData},
+    presentation::CompareResponse,
+};
 use serde_json::Value;
 
 use common::csv_data;
@@ -200,72 +203,87 @@ fn compare_request_deserializes_partial_normalization_with_defaults() {
 }
 
 #[tokio::test]
-async fn csv_align_error_variants_map_to_documented_http_status() {
-    let cases = [
-        (
-            CsvAlignError::NotFound {
+async fn csv_align_error_variants_match_canonical_error_body_fixture() {
+    let fixtures: Value =
+        serde_json::from_str(include_str!("../contracts/fixtures/error-bodies.json"))
+            .expect("canonical error fixture should be valid JSON");
+
+    for fixture in fixtures
+        .as_array()
+        .expect("canonical error fixture should be an array")
+    {
+        let variant = fixture["variant"]
+            .as_str()
+            .expect("error fixture variant should be a string");
+        let error = match variant {
+            "not_found" => CsvAlignError::NotFound {
                 resource: "Session".to_string(),
             },
-            StatusCode::NOT_FOUND,
-            "not_found",
-            "Session not found",
-        ),
-        (
-            CsvAlignError::Validation(CompareValidationError::EmptyColumns(
+            "validation" => CsvAlignError::Validation(CompareValidationError::EmptyColumns(
                 "Key columns for File A",
             )),
-            StatusCode::BAD_REQUEST,
-            "validation",
-            "Key columns for File A must include at least one column",
-        ),
-        (
-            CsvAlignError::BadInput("invalid request payload".to_string()),
-            StatusCode::BAD_REQUEST,
-            "bad_input",
-            "invalid request payload",
-        ),
-        (
-            CsvAlignError::Parse("Failed to parse CSV".to_string()),
-            StatusCode::BAD_REQUEST,
-            "parse",
-            "Failed to parse CSV",
-        ),
-        (
-            CsvAlignError::Io(std::io::Error::other("disk full")),
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "io",
-            "disk full",
-        ),
-        (
-            CsvAlignError::Internal("unexpected panic boundary".to_string()),
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "internal",
-            "unexpected panic boundary",
-        ),
-    ];
+            "bad_input" => CsvAlignError::BadInput("invalid request payload".to_string()),
+            "parse" => CsvAlignError::Parse("Failed to parse CSV".to_string()),
+            "superseded" => CsvAlignError::Superseded,
+            "io" => CsvAlignError::Io(std::io::Error::other("disk full")),
+            "internal" => CsvAlignError::Internal("unexpected panic boundary".to_string()),
+            other => panic!("unsupported canonical error fixture variant: {other}"),
+        };
+        let status = StatusCode::from_u16(
+            fixture["status"]
+                .as_u64()
+                .expect("error fixture status should be an integer") as u16,
+        )
+        .expect("error fixture status should be valid");
+        let expected_body = &fixture["body"];
 
-    for (error, status, code, message) in cases {
         let tauri_json = serde_json::to_value(&error).expect("serialize error");
-        assert_eq!(
-            tauri_json,
-            serde_json::json!({
-                "code": code,
-                "error": message,
-            })
-        );
+        assert_eq!(&tauri_json, expected_body);
 
         let response = error.into_response();
         assert_eq!(response.status(), status);
-
-        let json = response_json(response).await;
-        assert_eq!(
-            json,
-            serde_json::json!({
-                "code": code,
-                "error": message,
-            })
-        );
+        assert_eq!(&response_json(response).await, expected_body);
     }
+}
+
+#[test]
+fn compare_response_fixture_covers_every_wire_variant_and_round_trips_exactly() {
+    let fixture: Value =
+        serde_json::from_str(include_str!("../contracts/fixtures/compare-response.json"))
+            .expect("compare response fixture should be valid JSON");
+    let response: CompareResponse =
+        serde_json::from_value(fixture.clone()).expect("fixture should match the Rust DTO");
+
+    assert_eq!(
+        serde_json::to_value(response).expect("serialize compare response"),
+        fixture
+    );
+
+    let result_types = fixture["results"]
+        .as_array()
+        .expect("fixture results should be an array")
+        .iter()
+        .map(|result| {
+            result["result_type"]
+                .as_str()
+                .expect("result type should be a string")
+        })
+        .collect::<std::collections::BTreeSet<_>>();
+
+    assert_eq!(
+        result_types,
+        std::collections::BTreeSet::from([
+            "match",
+            "mismatch",
+            "missing_left",
+            "missing_right",
+            "unkeyed_left",
+            "unkeyed_right",
+            "duplicate_file_a",
+            "duplicate_file_b",
+            "duplicate_both",
+        ])
+    );
 }
 
 #[tokio::test]
@@ -854,7 +872,7 @@ async fn response_contracts_snapshot_load_rejects_missing_mapping_columns_as_bad
     let response = handlers::load_comparison_snapshot(
         State(state),
         Path(session_id),
-        Json(LoadComparisonSnapshotRequest { contents }),
+        Request::new(Body::from(contents)),
     )
     .await;
 
@@ -885,7 +903,7 @@ async fn response_contracts_snapshot_load_rejects_mappings_outside_selected_colu
     let response = handlers::load_comparison_snapshot(
         State(state),
         Path(session_id),
-        Json(LoadComparisonSnapshotRequest { contents }),
+        Request::new(Body::from(contents)),
     )
     .await;
 
@@ -924,7 +942,7 @@ async fn response_contracts_snapshot_load_rejects_reused_mapping_columns() {
     let response = handlers::load_comparison_snapshot(
         State(state),
         Path(session_id),
-        Json(LoadComparisonSnapshotRequest { contents }),
+        Request::new(Body::from(contents)),
     )
     .await;
 
@@ -955,7 +973,7 @@ async fn response_contracts_snapshot_load_rejects_out_of_range_fuzzy_similarity(
     let response = handlers::load_comparison_snapshot(
         State(state),
         Path(session_id),
-        Json(LoadComparisonSnapshotRequest { contents }),
+        Request::new(Body::from(contents)),
     )
     .await;
 
@@ -988,7 +1006,7 @@ async fn response_contracts_snapshot_load_rejects_legacy_version_before_v2_deser
     let response = handlers::load_comparison_snapshot(
         State(state),
         Path(session_id),
-        Json(LoadComparisonSnapshotRequest { contents }),
+        Request::new(Body::from(contents)),
     )
     .await;
 

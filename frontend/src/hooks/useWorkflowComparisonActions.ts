@@ -5,6 +5,11 @@ import type { ComparisonNormalizationConfig, FileLetter, MappingDto } from '../t
 import type { MappingSelectionState, SelectedFileSource } from '../types/ui';
 import { buildCompareRequestPayload, type WorkflowAction, type WorkflowState } from './useComparisonWorkflow.reducer';
 import { getSelectedFileName } from '../utils/selectedFileSource';
+import { isSupersededError } from '../services/http';
+import type {
+  WorkflowOperationKind,
+  WorkflowRequestToken,
+} from './workflowRequestToken';
 
 interface UseWorkflowComparisonActionsParams {
   state: WorkflowState['appState'];
@@ -14,14 +19,9 @@ interface UseWorkflowComparisonActionsParams {
   failLoading: (error: unknown) => void;
   blockSnapshotFollowOnWorkflow: () => boolean;
   beginWorkflowRequest: (sessionId: string | null, invalidatesExisting?: boolean) => WorkflowRequestToken;
+  beginWorkflowOperation: (sessionId: string, kind: WorkflowOperationKind) => WorkflowRequestToken;
   isCurrentWorkflowRequest: (token: WorkflowRequestToken) => boolean;
 }
-
-type WorkflowRequestToken = {
-  sessionId: string | null;
-  generation: number;
-  mutation: number;
-};
 
 export function useWorkflowComparisonActions({
   state,
@@ -31,6 +31,7 @@ export function useWorkflowComparisonActions({
   failLoading,
   blockSnapshotFollowOnWorkflow,
   beginWorkflowRequest,
+  beginWorkflowOperation,
   isCurrentWorkflowRequest,
 }: UseWorkflowComparisonActionsParams) {
   const handleFileSelection = useCallback(async (file: SelectedFileSource, fileLetter: 'a' | 'b') => {
@@ -42,11 +43,16 @@ export function useWorkflowComparisonActions({
       return;
     }
 
-    const token = beginWorkflowRequest(state.sessionId, true);
+    const token = beginWorkflowOperation(state.sessionId, fileLetter === 'a' ? 'file_a' : 'file_b');
     startLoading();
 
     try {
-      const response = await loadFile(state.sessionId, file, fileLetter);
+      const response = await loadFile(
+        state.sessionId,
+        file,
+        fileLetter,
+        () => isCurrentWorkflowRequest(token),
+      );
       if (!isCurrentWorkflowRequest(token)) {
         return;
       }
@@ -61,11 +67,15 @@ export function useWorkflowComparisonActions({
       dispatch({ type: 'fileLoaded', fileLetter, fileData });
     } catch (error) {
       if (isCurrentWorkflowRequest(token)) {
-        failLoading(error);
+        if (isSupersededError(error)) {
+          dispatch({ type: 'downloadCompleted' });
+        } else {
+          failLoading(error);
+        }
       }
     }
   }, [
-    beginWorkflowRequest,
+    beginWorkflowOperation,
     blockSnapshotFollowOnWorkflow,
     dispatch,
     failLoading,
@@ -100,7 +110,7 @@ export function useWorkflowComparisonActions({
     );
 
     startLoading();
-    const token = beginWorkflowRequest(state.sessionId, true);
+    const token = beginWorkflowOperation(state.sessionId, 'compare');
 
     try {
       const response = await compareFiles(state.sessionId, request);
@@ -116,11 +126,15 @@ export function useWorkflowComparisonActions({
       });
     } catch (error) {
       if (isCurrentWorkflowRequest(token)) {
-        failLoading(error);
+        if (isSupersededError(error)) {
+          dispatch({ type: 'downloadCompleted' });
+        } else {
+          failLoading(error);
+        }
       }
     }
   }, [
-    beginWorkflowRequest,
+    beginWorkflowOperation,
     blockSnapshotFollowOnWorkflow,
     dispatch,
     failLoading,

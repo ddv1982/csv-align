@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, expect, test, vi } from 'vitest';
 import { INITIAL_NORMALIZATION_CONFIG } from '../config/normalization';
+import { RESOURCE_LIMITS } from '../services/contracts';
 import type { ComparisonNormalizationConfig, MappingDto } from '../types/api';
 import { INITIAL_MAPPING_SELECTION } from '../types/ui';
 import { useComparisonWorkflow } from './useComparisonWorkflow';
@@ -261,8 +262,8 @@ test('bootstraps a session and advances to configure after both files load', asy
     expect(result.current.step).toBe('configure');
   });
 
-  expect(loadFileMock).toHaveBeenNthCalledWith(1, 'session-1', FILE_A, 'a');
-  expect(loadFileMock).toHaveBeenNthCalledWith(2, 'session-1', FILE_B, 'b');
+  expect(loadFileMock).toHaveBeenNthCalledWith(1, 'session-1', FILE_A, 'a', expect.any(Function));
+  expect(loadFileMock).toHaveBeenNthCalledWith(2, 'session-1', FILE_B, 'b', expect.any(Function));
   expect(result.current.state.fileB).toMatchObject({
     name: 'right.csv',
     headers: ['id', 'name'],
@@ -292,7 +293,7 @@ test('uses the basename when step 1 loads a Tauri file path', async () => {
     await result.current.handleFileSelection(tauriFilePath, 'a');
   });
 
-  expect(loadFileMock).toHaveBeenCalledWith('session-1', tauriFilePath, 'a');
+  expect(loadFileMock).toHaveBeenCalledWith('session-1', tauriFilePath, 'a', expect.any(Function));
   expect(result.current.state.fileA).toMatchObject({
     name: 'from-drop.csv',
     headers: ['id', 'name'],
@@ -320,7 +321,7 @@ test('uses the basename when step 1 loads a Windows-style Tauri file path', asyn
     await result.current.handleFileSelection(tauriFilePath, 'b');
   });
 
-  expect(loadFileMock).toHaveBeenCalledWith('session-1', tauriFilePath, 'b');
+  expect(loadFileMock).toHaveBeenCalledWith('session-1', tauriFilePath, 'b', expect.any(Function));
   expect(result.current.state.fileB).toMatchObject({
     name: 'from-drop.csv',
     headers: ['id', 'name'],
@@ -447,7 +448,7 @@ test('ignores a stale file load response after reset creates a new session', asy
   });
 
   await waitFor(() => {
-    expect(loadFileMock).toHaveBeenCalledWith('session-1', FILE_A, 'a');
+    expect(loadFileMock).toHaveBeenCalledWith('session-1', FILE_A, 'a', expect.any(Function));
   });
 
   await act(async () => {
@@ -724,6 +725,140 @@ test('exports a standalone html review file from the current results state', asy
   expect(exportResultsHtmlMock).toHaveBeenCalledWith(expect.stringContaining('"initialFilter":"duplicate"'));
   expect(downloadBlobMock).toHaveBeenCalledWith(expect.any(Blob), 'comparison-results.html');
   expect(result.current.state.loading).toBe(false);
+});
+
+test('surfaces a typed HTML row-limit error through workflow error state', async () => {
+  const resultRow = {
+    result_type: 'match' as const,
+    key: ['1'],
+    values_a: ['Alice'],
+    values_b: ['Alice'],
+    duplicate_values_a: [],
+    duplicate_values_b: [],
+    differences: [],
+  };
+  compareFilesMock.mockResolvedValueOnce({
+    success: true,
+    results: Array.from({ length: RESOURCE_LIMITS.htmlExportRows + 1 }, () => resultRow),
+    summary: {
+      total_rows_a: RESOURCE_LIMITS.htmlExportRows + 1,
+      total_rows_b: RESOURCE_LIMITS.htmlExportRows + 1,
+      matches: RESOURCE_LIMITS.htmlExportRows + 1,
+      mismatches: 0,
+      missing_left: 0,
+      missing_right: 0,
+      unkeyed_left: 0,
+      unkeyed_right: 0,
+      duplicates_a: 0,
+      duplicates_b: 0,
+    },
+  });
+
+  const { result } = renderHook(() => useComparisonWorkflow());
+
+  await waitFor(() => {
+    expect(result.current.state.sessionId).toBe('session-1');
+  });
+
+  await act(async () => {
+    await result.current.handleFileSelection(FILE_A, 'a');
+    await result.current.handleFileSelection(FILE_B, 'b');
+  });
+
+  await act(async () => {
+    await result.current.handleCompare(
+      ['id'],
+      ['id'],
+      ['name'],
+      ['name'],
+      COLUMN_MAPPINGS,
+      NORMALIZATION,
+    );
+  });
+
+  await act(async () => {
+    await result.current.handleExportHtml();
+  });
+
+  expect(exportResultsHtmlMock).not.toHaveBeenCalled();
+  expect(result.current.state.error).toContain('HTML export supports at most 50,000 rows');
+  expect(result.current.state.error).toContain('Use CSV export or reduce the result set.');
+  expect(result.current.state.loading).toBe(false);
+});
+
+test('allows different-side file loads to finish in reverse order', async () => {
+  const fileALoad = deferred<{
+    success: boolean;
+    file_letter: 'a';
+    headers: string[];
+    columns: typeof FILE_COLUMNS;
+    row_count: number;
+  }>();
+  const fileBLoad = deferred<{
+    success: boolean;
+    file_letter: 'b';
+    headers: string[];
+    columns: typeof FILE_COLUMNS;
+    row_count: number;
+  }>();
+  loadFileMock
+    .mockReturnValueOnce(fileALoad.promise)
+    .mockReturnValueOnce(fileBLoad.promise);
+
+  const { result } = renderHook(() => useComparisonWorkflow());
+  await waitFor(() => expect(result.current.state.sessionId).toBe('session-1'));
+
+  let pendingA!: Promise<void>;
+  let pendingB!: Promise<void>;
+  act(() => {
+    pendingA = result.current.handleFileSelection(FILE_A, 'a');
+    pendingB = result.current.handleFileSelection(FILE_B, 'b');
+  });
+
+  await act(async () => {
+    fileBLoad.resolve({
+      success: true,
+      file_letter: 'b',
+      headers: ['id', 'name'],
+      columns: FILE_COLUMNS,
+      row_count: 3,
+    });
+    await pendingB;
+  });
+  expect(result.current.state.fileB?.name).toBe('right.csv');
+
+  await act(async () => {
+    fileALoad.resolve({
+      success: true,
+      file_letter: 'a',
+      headers: ['id', 'name'],
+      columns: FILE_COLUMNS,
+      row_count: 2,
+    });
+    await pendingA;
+  });
+
+  expect(result.current.state.fileA?.name).toBe('left.csv');
+  expect(result.current.state.fileB?.name).toBe('right.csv');
+  expect(result.current.step).toBe('configure');
+  expect(result.current.state.loading).toBe(false);
+});
+
+test('silently clears loading for a current superseded operation', async () => {
+  loadFileMock.mockRejectedValueOnce({
+    code: 'superseded',
+    error: 'Operation was superseded by a newer request',
+  });
+  const { result } = renderHook(() => useComparisonWorkflow());
+  await waitFor(() => expect(result.current.state.sessionId).toBe('session-1'));
+
+  await act(async () => {
+    await result.current.handleFileSelection(FILE_A, 'a');
+  });
+
+  expect(result.current.state.loading).toBe(false);
+  expect(result.current.state.error).toBeNull();
+  expect(result.current.state.fileA).toBeNull();
 });
 
 test('preserves overlapping key pairs through compare and html export', async () => {

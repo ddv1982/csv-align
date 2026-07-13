@@ -11,6 +11,11 @@ import { useWorkflowSessionLifecycle } from './useWorkflowSessionLifecycle';
 import { useWorkflowComparisonActions } from './useWorkflowComparisonActions';
 import { useWorkflowPersistenceActions } from './useWorkflowPersistenceActions';
 import { useWorkflowNavigation } from './useWorkflowNavigation';
+import {
+  SUPERSEDED_OPERATION_KINDS,
+  type WorkflowOperationKind,
+  type WorkflowRequestToken,
+} from './workflowRequestToken';
 
 export function useComparisonWorkflow() {
   const [workflowState, dispatch] = useReducer(workflowReducer, INITIAL_WORKFLOW_STATE);
@@ -19,6 +24,8 @@ export function useComparisonWorkflow() {
   const currentSessionIdRef = useRef<string | null>(state.sessionId);
   const workflowGenerationRef = useRef(0);
   const workflowMutationRef = useRef(0);
+  const operationSequenceRef = useRef(0);
+  const operationClaimsRef = useRef<Partial<Record<WorkflowOperationKind, number>>>({});
 
   useEffect(() => {
     currentSessionIdRef.current = state.sessionId;
@@ -27,6 +34,7 @@ export function useComparisonWorkflow() {
   const beginWorkflowRequest = useCallback((sessionId: string | null, invalidatesExisting = false) => {
     if (invalidatesExisting) {
       workflowMutationRef.current += 1;
+      operationClaimsRef.current = {};
     }
 
     return {
@@ -36,14 +44,44 @@ export function useComparisonWorkflow() {
     };
   }, []);
 
-  const isCurrentWorkflowRequest = useCallback((token: { sessionId: string | null; generation: number; mutation: number }) => (
-    workflowGenerationRef.current === token.generation
-    && workflowMutationRef.current === token.mutation
-    && (token.sessionId === null || currentSessionIdRef.current === token.sessionId)
-  ), []);
+  const beginWorkflowOperation = useCallback((
+    sessionId: string,
+    operationKind: WorkflowOperationKind,
+  ): WorkflowRequestToken => {
+    workflowMutationRef.current += 1;
+    operationSequenceRef.current += 1;
+    const operationSequence = operationSequenceRef.current;
+
+    for (const supersededKind of SUPERSEDED_OPERATION_KINDS[operationKind]) {
+      delete operationClaimsRef.current[supersededKind];
+    }
+    operationClaimsRef.current[operationKind] = operationSequence;
+
+    return {
+      sessionId,
+      generation: workflowGenerationRef.current,
+      mutation: workflowMutationRef.current,
+      operationKind,
+      operationSequence,
+    };
+  }, []);
+
+  const isCurrentWorkflowRequest = useCallback((token: WorkflowRequestToken) => {
+    const sessionIsCurrent = token.sessionId === null || currentSessionIdRef.current === token.sessionId;
+    if (workflowGenerationRef.current !== token.generation || !sessionIsCurrent) {
+      return false;
+    }
+
+    if (token.operationKind !== undefined) {
+      return operationClaimsRef.current[token.operationKind] === token.operationSequence;
+    }
+
+    return workflowMutationRef.current === token.mutation;
+  }, []);
 
   const invalidateWorkflowRequests = useCallback((sessionId: string | null) => {
     workflowMutationRef.current += 1;
+    operationClaimsRef.current = {};
 
     return {
       sessionId,
@@ -55,6 +93,7 @@ export function useComparisonWorkflow() {
   const advanceWorkflowGeneration = useCallback(() => {
     workflowGenerationRef.current += 1;
     workflowMutationRef.current += 1;
+    operationClaimsRef.current = {};
     currentSessionIdRef.current = null;
   }, []);
 
@@ -100,6 +139,7 @@ export function useComparisonWorkflow() {
     failLoading,
     blockSnapshotFollowOnWorkflow,
     beginWorkflowRequest,
+    beginWorkflowOperation,
     isCurrentWorkflowRequest,
   });
 
@@ -118,6 +158,7 @@ export function useComparisonWorkflow() {
     failLoading,
     blockSnapshotFollowOnWorkflow,
     beginWorkflowRequest,
+    beginWorkflowOperation,
     invalidateWorkflowRequests,
     isCurrentWorkflowRequest,
   });

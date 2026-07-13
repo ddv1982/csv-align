@@ -1,27 +1,11 @@
-import type { ResultFilter, SummaryResponse } from '../../types/api';
+import type { HtmlExportDocument } from './htmlExport';
 import {
   buildSummaryOverview,
-  type ResultFilterTone,
-  type ResultRowViewModel,
   type SummaryBannerViewModel,
   type SummaryStatViewModel,
 } from './presentation';
-import type { SearchableFieldOption } from './search';
 import { RESULTS_EXPORT_STYLES } from './htmlExportTheme';
-
-type HtmlExportTheme = 'dark';
-
-type HtmlExportDocument = {
-  generatedAt: string;
-  theme: HtmlExportTheme;
-  fileAName: string;
-  fileBName: string;
-  summary: SummaryResponse;
-  filterOptions: Array<{ value: ResultFilter; label: string; count: number; tone: ResultFilterTone }>;
-  searchFields: SearchableFieldOption[];
-  initialFilter: ResultFilter;
-  rows: ResultRowViewModel[];
-};
+import type { SearchableFieldOption } from './search';
 
 type ExportIconName = 'chart' | 'funnel' | 'stack' | 'check' | 'warning' | 'info' | 'chevron' | 'plus' | 'search';
 

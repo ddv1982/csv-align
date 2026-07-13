@@ -1,5 +1,6 @@
 pub mod app;
 pub mod handlers;
+pub mod loopback_security;
 pub mod state;
 
 pub use handlers::{

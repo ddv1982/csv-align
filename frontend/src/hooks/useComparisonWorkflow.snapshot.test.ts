@@ -190,7 +190,11 @@ test('loads a saved comparison snapshot into the results workflow state', async 
     await result.current.handleLoadComparisonSnapshot(snapshotFile);
   });
 
-  expect(loadComparisonSnapshotMock).toHaveBeenCalledWith('session-1', snapshotFile);
+  expect(loadComparisonSnapshotMock).toHaveBeenCalledWith(
+    'session-1',
+    snapshotFile,
+    expect.any(Function),
+  );
   expect(result.current.step).toBe('results');
   expect(result.current.state.fileA).toEqual({
     name: 'left.csv',
