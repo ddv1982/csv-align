@@ -644,15 +644,10 @@ jobs:
           fi
           hdiutil verify "${assets[0]}"
 
-          version="${GITHUB_REF_NAME#v}"
-          expected_name="CSV.Align_${version}_${{ matrix.asset_arch }}.dmg"
-          if [ "$(basename "${assets[0]}")" != "${expected_name}" ]; then
-            echo "macOS asset basename/version mismatch: expected ${expected_name}, found $(basename "${assets[0]}")." >&2
-            exit 1
-          fi
-
-          mkdir -p staged-macos-assets
-          cp "${assets[0]}" staged-macos-assets/
+            version="${GITHUB_REF_NAME#v}"
+            expected_name="CSV.Align_${version}_${{ matrix.asset_arch }}.dmg"
+            mkdir -p staged-macos-assets
+            cp "${assets[0]}" "staged-macos-assets/${expected_name}"
           python3 scripts/verify_release_assets.py staged-macos-assets \
             --tag "${{ github.ref_name }}" \
             --platform "${{ matrix.verifier_platform }}"

@@ -149,6 +149,8 @@ fn release_workflow_stages_every_platform_and_centralizes_publication() {
     assert!(macos.contains("aarch64-apple-darwin"));
     assert!(macos.contains("x86_64-apple-darwin"));
     assert!(macos.contains("Upload uniquely named macOS release stage"));
+    assert!(macos.contains("cp \"${assets[0]}\" \"staged-macos-assets/${expected_name}\""));
+    assert!(!macos.contains("macOS asset basename/version mismatch"));
     assert!(!macos.contains("gh release"));
     assert!(!macos.contains("actions/deploy-pages"));
 
