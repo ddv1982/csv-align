@@ -167,6 +167,12 @@ fn release_workflow_stages_every_platform_and_centralizes_publication() {
     assert!(publish.contains("immutable release metadata mismatch"));
     assert!(publish.contains("remaining_assets="));
     assert!(!publish.contains("done < <(gh api"));
+    assert!(
+        publish.contains("gh api --paginate --slurp \"repos/${REPOSITORY}/releases?per_page=100\"")
+    );
+    assert!(publish.contains("'[.[][] | select(.tag_name == $tag)]'"));
+    assert!(publish.contains("'[.[][] | select(.tag_name == $tag and .draft == true)]'"));
+    assert!(!publish.contains("releases/tags/${RELEASE_TAG}"));
     assert!(publish.contains("pool/main/c/csv-align/csv-align_${version}_amd64.deb"));
     assert!(publish.contains("dists/stable/main/binary-amd64/Packages"));
     assert!(publish.contains("dists/stable/main/dep11/Components-amd64.yml"));

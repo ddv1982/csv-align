@@ -795,8 +795,19 @@ jobs:
           REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
-          if release_json="$(gh api "repos/${REPOSITORY}/releases/tags/${RELEASE_TAG}" 2>release-error.txt)"; then
-            printf '%s' "${release_json}" > release-response.json
+          releases_pages="$(mktemp)"
+          release_matches="$(mktemp)"
+          gh api --paginate --slurp "repos/${REPOSITORY}/releases?per_page=100" > "${releases_pages}"
+          jq --arg tag "${RELEASE_TAG}" \
+            '[.[][] | select(.tag_name == $tag)]' \
+            "${releases_pages}" > "${release_matches}"
+
+          match_count="$(jq 'length' "${release_matches}")"
+          if [ "${match_count}" -eq 0 ]; then
+            state="absent"
+            release_id=""
+          elif [ "${match_count}" -eq 1 ]; then
+            jq '.[0]' "${release_matches}" > release-response.json
             if ! jq --exit-status --arg tag "${RELEASE_TAG}" \
               '.tag_name == $tag and (.id | type == "number") and (.draft | type == "boolean") and (.prerelease | type == "boolean")' \
               release-response.json >/dev/null; then
@@ -810,12 +821,8 @@ jobs:
             else
               state="published"
             fi
-          elif grep -q "HTTP 404" release-error.txt; then
-            state="absent"
-            release_id=""
           else
-            cat release-error.txt >&2
-            echo "Unable to classify existing release; refusing to treat an API failure as absence." >&2
+            echo "Multiple releases claim tag ${RELEASE_TAG}; refusing ambiguous publication." >&2
             exit 1
           fi
           echo "state=${state}" >> "$GITHUB_OUTPUT"
@@ -946,7 +953,19 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          release_id="$(gh api "repos/${REPOSITORY}/releases/tags/${RELEASE_TAG}" --jq '.id')"
+          releases_pages="$(mktemp)"
+          release_matches="$(mktemp)"
+          gh api --paginate --slurp "repos/${REPOSITORY}/releases?per_page=100" > "${releases_pages}"
+          jq --arg tag "${RELEASE_TAG}" \
+            '[.[][] | select(.tag_name == $tag and .draft == true)]' \
+            "${releases_pages}" > "${release_matches}"
+          if ! jq --exit-status \
+            'length == 1 and (.[0].id | type == "number")' \
+            "${release_matches}" >/dev/null; then
+            echo "Expected exactly one draft release for ${RELEASE_TAG} before asset replacement." >&2
+            exit 1
+          fi
+          release_id="$(jq -r '.[0].id' "${release_matches}")"
           asset_ids="$(gh api --paginate "repos/${REPOSITORY}/releases/${release_id}/assets?per_page=100" --jq '.[].id')"
           while IFS= read -r asset_id; do
             [ -z "${asset_id}" ] || gh api --method DELETE "repos/${REPOSITORY}/releases/assets/${asset_id}"
