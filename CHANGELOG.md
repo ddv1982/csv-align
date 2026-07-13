@@ -5,7 +5,7 @@
 - Hardened the resource and concurrency lore so CSV, session, result, and snapshot limits fail before mutation; overlapping load, compare, and restore work obeys latest-issued-wins claims; and per-session locks keep unrelated sessions moving while blocking desktop work leaves the command thread.
 - Sealed the transport and export lore so snapshots share one bounded raw contract, loopback requests reject foreign hosts and origins, HTML exports stop before amplification, and CSV exports neutralize spreadsheet formulas while native saves publish atomically without a second full buffer.
 - Trimmed the ownership lore by caching immutable column catalogs, removing confirmed comparison and snapshot copies, borrowing ordinary export fields, and measuring larger representation changes before accepting added serializer complexity.
-- Rebuilt the release lore around staged, manifest-verified artifacts: Linux and macOS must all pass before Pages or GitHub Release publication, reruns converge without mutating published releases, and version-order plus transport-contract fixtures keep every package and runtime trail aligned.
+- Rebuilt the release lore around stable public basenames and staged, manifest-verified artifacts: Linux and macOS must all pass before Pages or GitHub Release publication, reruns converge without mutating published releases, and version-order plus transport-contract fixtures keep every package and runtime trail aligned.
 
 ## v2.1.99 - 2026-07-02
 

@@ -135,6 +135,13 @@ fn release_workflow_stages_every_platform_and_centralizes_publication() {
     assert!(linux.contains("needs: validate-release"));
     assert!(linux.contains("Upload uniquely named Linux release stage"));
     assert!(linux.contains("Upload uniquely named APT Pages stage"));
+    assert!(linux.contains("version=\"${GITHUB_REF_NAME#v}\""));
+    assert!(linux.contains(
+        "cp \"${deb_assets[0]}\" \"staged-linux-assets/CSV.Align_${version}_amd64.deb\""
+    ));
+    assert!(linux.contains(
+        "cp \"${appimage_assets[0]}\" \"staged-linux-assets/CSV.Align_${version}_amd64.AppImage\""
+    ));
     assert!(!linux.contains("gh release"));
     assert!(!linux.contains("actions/deploy-pages"));
 

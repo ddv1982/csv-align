@@ -479,9 +479,10 @@ jobs:
             exit 1
           fi
 
-          cp "${deb_assets[0]}" staged-linux-assets/
+          version="${GITHUB_REF_NAME#v}"
+          cp "${deb_assets[0]}" "staged-linux-assets/CSV.Align_${version}_amd64.deb"
           cp "${rpm_assets[0]}" staged-linux-assets/
-          cp "${appimage_assets[0]}" staged-linux-assets/
+          cp "${appimage_assets[0]}" "staged-linux-assets/CSV.Align_${version}_amd64.AppImage"
           cp csv-align-repository-setup_1.0_all.deb staged-linux-assets/
           cp csv-align-repository-setup_1.0_all.deb.sha256 staged-linux-assets/
           cp csv-align-repository-setup_1.0_all.deb.sha256.asc staged-linux-assets/
