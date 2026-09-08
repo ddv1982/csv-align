@@ -11,6 +11,19 @@ export interface AppFile {
 }
 
 export type SelectedFileSource = File | string;
+export type WorkflowOperationKind =
+  | 'file_a'
+  | 'file_b'
+  | 'compare'
+  | 'snapshot_restore';
+
+export interface WorkflowRequestToken {
+  sessionId: string | null;
+  generation: number;
+  mutation: number;
+  operationKind?: WorkflowOperationKind;
+  operationSequence?: number;
+}
 
 export interface MappingSelectionState {
   keyColumnsA: string[];

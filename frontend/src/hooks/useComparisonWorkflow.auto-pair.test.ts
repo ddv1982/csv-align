@@ -19,6 +19,7 @@ vi.mock('../services/tauri', () => ({
   DIALOG_CANCELLED: 'cancelled',
   compareFiles: compareFilesMock,
   createSession: createSessionMock,
+  deleteSession: vi.fn().mockResolvedValue(undefined),
   downloadBlob: vi.fn(),
   exportResults: vi.fn(),
   isTauri: false,

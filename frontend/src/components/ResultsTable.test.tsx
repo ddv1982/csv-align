@@ -3,8 +3,6 @@ import { expect, test } from 'vitest';
 import { ResultsTable } from './ResultsTable';
 import type { ResultResponse } from '../types/api';
 
-// Rendering hundreds of rows through jsdom exceeds the 5s default on slower CI runners.
-const LARGE_RENDER_TEST_TIMEOUT_MS = 20_000;
 
 const RESULTS: ResultResponse[] = [
   {
@@ -323,7 +321,7 @@ test('filters visible rows by search query across keys and values', () => {
   expect(screen.getByText('C-3')).toBeInTheDocument();
   expect(screen.queryByText('A-1')).not.toBeInTheDocument();
   expect(screen.queryByText('B-2')).not.toBeInTheDocument();
-  expect(screen.getByText('1 of 4 rows shown')).toBeInTheDocument();
+  expect(screen.getByText('1 of 4 rows match')).toBeInTheDocument();
 });
 
 test('filters visible rows by the selected search field', () => {
@@ -347,7 +345,7 @@ test('filters visible rows by the selected search field', () => {
   fireEvent.change(search, { target: { value: 'C-3' } });
 
   expect(screen.getByText('C-3')).toBeInTheDocument();
-  expect(screen.getByText('1 of 4 rows shown')).toBeInTheDocument();
+  expect(screen.getByText('1 of 4 rows match')).toBeInTheDocument();
 });
 
 test('closes the search field picker with keyboard and outside click', async () => {
@@ -572,7 +570,7 @@ test('updates the controlled search input value synchronously on each keystroke'
 
   fireEvent.change(search, { target: { value: 'gamma' } });
   expect(search).toHaveValue('gamma');
-  expect(screen.getByText('1 of 4 rows shown')).toBeInTheDocument();
+  expect(screen.getByText('1 of 4 rows match')).toBeInTheDocument();
 });
 
 test('updates sort state from the transition-driven header action', () => {
@@ -588,7 +586,7 @@ test('updates sort state from the transition-driven header action', () => {
   expect(keyHeader).toHaveAttribute('aria-sort', 'ascending');
 });
 
-test('renders a repeatable large-results fixture without expanding detail panels eagerly', async () => {
+test('paginates large results while keeping filtering and sorting global', async () => {
   const largeResults: ResultResponse[] = Array.from({ length: 120 }, (_, index) => ({
     result_type: index % 2 === 0 ? 'match' : 'mismatch',
     key: [`ROW-${index.toString().padStart(3, '0')}`],
@@ -603,64 +601,48 @@ test('renders a repeatable large-results fixture without expanding detail panels
 
   render(<ResultsTable results={largeResults} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
 
-  expect(screen.getByText('120 of 120 rows shown')).toBeInTheDocument();
-  expect(screen.getByText('Showing 120 results. Use filters, search, or sorting to narrow down.')).toBeInTheDocument();
+  expect(screen.getByText('120 of 120 rows match')).toBeInTheDocument();
+  expect(screen.getByText('Showing 1–50 of 120 results')).toBeInTheDocument();
+  expect(screen.getByText('Page 1 of 3')).toBeInTheDocument();
+  expect(screen.getAllByRole('row')).toHaveLength(51);
+  expect(screen.getByText('ROW-000')).toBeInTheDocument();
+  expect(screen.getByText('ROW-049')).toBeInTheDocument();
+  expect(screen.queryByText('ROW-050')).not.toBeInTheDocument();
   expect(screen.queryByText('Paired Values')).not.toBeInTheDocument();
 
-  fireEvent.change(screen.getByLabelText('Search comparison results'), { target: { value: 'ROW-119' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Next results page' }));
+  expect(screen.getByText('Showing 51–100 of 120 results')).toBeInTheDocument();
+  expect(screen.getByText('ROW-050')).toBeInTheDocument();
+  expect(screen.getByText('ROW-099')).toBeInTheDocument();
+  expect(screen.queryByText('ROW-000')).not.toBeInTheDocument();
 
-  await waitFor(() => expect(screen.getByText('1 of 120 rows shown')).toBeInTheDocument());
+  const secondPageMismatch = screen.getByText('ROW-051').closest('tr') as HTMLElement;
+  fireEvent.click(within(secondPageMismatch).getByRole('button', { name: /1 diff/i }));
+  expect(screen.getByText('Value Differences')).toBeInTheDocument();
+
+  const nextButton = screen.getByRole('button', { name: 'Next results page' });
+  fireEvent.click(nextButton);
+  expect(screen.queryByText('Value Differences')).not.toBeInTheDocument();
+  expect(screen.getByText('Showing 101–120 of 120 results')).toBeInTheDocument();
+  expect(screen.getByText('ROW-119')).toBeInTheDocument();
+  expect(nextButton).toBeDisabled();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Previous results page' }));
+  expect(screen.getByText('Showing 51–100 of 120 results')).toBeInTheDocument();
+
+  fireEvent.change(screen.getByLabelText('Search comparison results'), { target: { value: 'ROW-119' } });
+  await waitFor(() => expect(screen.getByText('Showing 1–1 of 1 results')).toBeInTheDocument());
+  expect(screen.getByText('ROW-119')).toBeInTheDocument();
+  expect(screen.queryByRole('navigation', { name: 'Results pages' })).not.toBeInTheDocument();
+
+  fireEvent.change(screen.getByLabelText('Search comparison results'), { target: { value: '' } });
+  await waitFor(() => expect(screen.getByText('Showing 1–50 of 120 results')).toBeInTheDocument());
+  fireEvent.click(screen.getByRole('button', { name: /key/i }));
+  expect(screen.getByText('ROW-000')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: /key/i }));
   expect(screen.getByText('ROW-119')).toBeInTheDocument();
 });
 
-test('renders very large result sets in chunks with a control to reveal more rows', () => {
-  const manyResults: ResultResponse[] = Array.from({ length: 450 }, (_, index) => ({
-    result_type: 'match',
-    key: [`CHUNK-${index.toString().padStart(3, '0')}`],
-    values_a: ['same'],
-    values_b: ['same'],
-    duplicate_values_a: [],
-    duplicate_values_b: [],
-    differences: [],
-  }));
-
-  render(<ResultsTable results={manyResults} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
-
-  expect(screen.getByText('450 of 450 rows shown')).toBeInTheDocument();
-  expect(screen.getAllByText(/^CHUNK-/)).toHaveLength(200);
-  expect(screen.getByText('Showing 200 of 450 results. Use filters, search, or sorting to narrow down.')).toBeInTheDocument();
-
-  fireEvent.click(screen.getByRole('button', { name: 'Show 200 more rows (250 remaining)' }));
-  expect(screen.getAllByText(/^CHUNK-/)).toHaveLength(400);
-
-  fireEvent.click(screen.getByRole('button', { name: 'Show 50 more rows (50 remaining)' }));
-  expect(screen.getAllByText(/^CHUNK-/)).toHaveLength(450);
-  expect(screen.queryByRole('button', { name: /more rows/ })).not.toBeInTheDocument();
-}, LARGE_RENDER_TEST_TIMEOUT_MS);
-
-test('resets the render window when the search query changes', async () => {
-  const manyResults: ResultResponse[] = Array.from({ length: 250 }, (_, index) => ({
-    result_type: 'match',
-    key: [`CHUNK-${index.toString().padStart(3, '0')}`],
-    values_a: ['same'],
-    values_b: ['same'],
-    duplicate_values_a: [],
-    duplicate_values_b: [],
-    differences: [],
-  }));
-
-  render(<ResultsTable results={manyResults} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);
-
-  fireEvent.click(screen.getByRole('button', { name: 'Show 50 more rows (50 remaining)' }));
-  expect(screen.getAllByText(/^CHUNK-/)).toHaveLength(250);
-
-  fireEvent.change(screen.getByLabelText('Search comparison results'), { target: { value: 'CHUNK-1' } });
-  await waitFor(() => expect(screen.getByText('100 of 250 rows shown')).toBeInTheDocument());
-
-  fireEvent.change(screen.getByLabelText('Search comparison results'), { target: { value: '' } });
-  await waitFor(() => expect(screen.getByText('250 of 250 rows shown')).toBeInTheDocument());
-  expect(screen.getAllByText(/^CHUNK-/)).toHaveLength(200);
-}, LARGE_RENDER_TEST_TIMEOUT_MS);
 
 test('renders long diff column names with the larger wrapped header treatment', () => {
   render(<ResultsTable results={RESULTS} comparisonColumnsA={COMPARISON_COLUMNS_A} comparisonColumnsB={COMPARISON_COLUMNS_B} />);

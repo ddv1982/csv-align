@@ -2,14 +2,11 @@ import { useCallback, type Dispatch } from 'react';
 import { buildAutoPairSelection } from '../features/mapping/autoPair';
 import { compareFiles, loadFile, suggestMappings } from '../services/tauri';
 import type { ComparisonNormalizationConfig, FileLetter, MappingDto } from '../types/api';
-import type { MappingSelectionState, SelectedFileSource } from '../types/ui';
+import type { MappingSelectionState, SelectedFileSource, WorkflowRequestToken } from '../types/ui';
 import { buildCompareRequestPayload, type WorkflowAction, type WorkflowState } from './useComparisonWorkflow.reducer';
 import { getSelectedFileName } from '../utils/selectedFileSource';
 import { isSupersededError } from '../services/http';
-import type {
-  WorkflowOperationKind,
-  WorkflowRequestToken,
-} from './workflowRequestToken';
+import type { WorkflowOperationKind } from './workflowRequestToken';
 
 interface UseWorkflowComparisonActionsParams {
   state: WorkflowState['appState'];
