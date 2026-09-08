@@ -10,16 +10,13 @@ import {
   saveComparisonSnapshot,
   savePairOrder,
 } from '../services/tauri';
-import type { MappingSelectionState } from '../types/ui';
+import type { MappingSelectionState, WorkflowRequestToken } from '../types/ui';
 import {
   type WorkflowAction,
   type WorkflowState,
 } from './useComparisonWorkflow.reducer';
 import { isSupersededError } from '../services/http';
-import type {
-  WorkflowOperationKind,
-  WorkflowRequestToken,
-} from './workflowRequestToken';
+import type { WorkflowOperationKind } from './workflowRequestToken';
 
 interface UseWorkflowPersistenceActionsParams {
   state: WorkflowState['appState'];

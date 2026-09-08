@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.2.1 - 2026-09-08
+
+- Replaced incremental result-table chunking with fixed 50-row pages, retaining global filters, search, sorting, and full exports while bounding mounted result rows.
+- Centralized workflow request tokens and session deletion handling, and made HTML export limit messages use stable US-English numeric grouping across runtimes.
+
 ## v2.2.0 - 2026-07-13
 
 - Hardened the resource and concurrency lore so CSV, session, result, and snapshot limits fail before mutation; overlapping load, compare, and restore work obeys latest-issued-wins claims; and per-session locks keep unrelated sessions moving while blocking desktop work leaves the command thread.

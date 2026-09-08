@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 import type { ComparisonNormalizationConfig } from '../types/api';
-import type { MappingSelectionState } from '../types/ui';
+import type { MappingSelectionState, WorkflowRequestToken } from '../types/ui';
 import {
   INITIAL_WORKFLOW_STATE,
   SNAPSHOT_READ_ONLY_ERROR,
@@ -14,7 +14,6 @@ import { useWorkflowNavigation } from './useWorkflowNavigation';
 import {
   SUPERSEDED_OPERATION_KINDS,
   type WorkflowOperationKind,
-  type WorkflowRequestToken,
 } from './workflowRequestToken';
 
 export function useComparisonWorkflow() {

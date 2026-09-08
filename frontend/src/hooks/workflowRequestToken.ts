@@ -1,16 +1,7 @@
-export type WorkflowOperationKind =
-  | 'file_a'
-  | 'file_b'
-  | 'compare'
-  | 'snapshot_restore';
+import type { WorkflowOperationKind } from '../types/ui';
 
-export type WorkflowRequestToken = {
-  sessionId: string | null;
-  generation: number;
-  mutation: number;
-  operationKind?: WorkflowOperationKind;
-  operationSequence?: number;
-};
+export type { WorkflowOperationKind } from '../types/ui';
+
 
 export const SUPERSEDED_OPERATION_KINDS: Record<
   WorkflowOperationKind,

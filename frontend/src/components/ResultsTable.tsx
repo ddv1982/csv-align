@@ -1,4 +1,4 @@
-import { Fragment, useDeferredValue, useMemo, useState, useTransition } from 'react';
+import { Fragment, useDeferredValue, useEffect, useMemo, useState, useTransition } from 'react';
 import type { MappingDto, ResultFilter, ResultResponse } from '../types/api';
 import {
   buildExpandableDetail,
@@ -22,10 +22,9 @@ import {
 import { ChevronRightIcon, MagnifyingGlassIcon, RectangleStackIcon } from './icons';
 import { SearchFieldPicker } from './results/SearchFieldPicker';
 import { SectionCard } from './ui/SectionCard';
+import { NavButton } from './ui/NavButton';
 
-/// Rows rendered per chunk. Large comparisons stay responsive because the DOM
-/// only grows when the user explicitly asks for more rows.
-const RENDER_CHUNK = 200;
+const RESULTS_PAGE_SIZE = 50;
 
 interface ResultsTableProps {
   results: ResultResponse[];
@@ -178,9 +177,9 @@ export function ResultsTable({
   const [searchFieldId, setSearchFieldId] = useState<SearchableFieldId>(SEARCHABLE_FIELD_ALL);
   const [sortColumn, setSortColumn] = useState<ResultSortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<ResultSortDirection>('asc');
+  const [currentPage, setCurrentPage] = useState(0);
   const [isPending, startTransition] = useTransition();
   const deferredQuery = useDeferredValue(query);
-
   const comparisonColumns = useMemo(
     () => ({ fileA: comparisonColumnsA, fileB: comparisonColumnsB, mappings }),
     [comparisonColumnsA, comparisonColumnsB, mappings],
@@ -206,28 +205,37 @@ export function ResultsTable({
     [deferredQuery, filter, normalizedSearchFieldId, resultRows, sortColumn, sortDirection],
   );
 
-  // Reset the render window whenever the visible set changes shape; adjusting
-  // state during render avoids an extra effect-driven render pass.
-  const renderWindowKey = `${deferredQuery}|${filter}|${normalizedSearchFieldId}|${sortColumn}|${sortDirection}`;
-  const [renderWindow, setRenderWindow] = useState({ key: renderWindowKey, limit: RENDER_CHUNK });
-  if (renderWindow.key !== renderWindowKey) {
-    setRenderWindow({ key: renderWindowKey, limit: RENDER_CHUNK });
-  }
-  const renderLimit = renderWindow.key === renderWindowKey ? renderWindow.limit : RENDER_CHUNK;
-  const renderedResults = visibleResults.slice(0, renderLimit);
-  const remainingCount = visibleResults.length - renderedResults.length;
+  const pageCount = Math.ceil(visibleResults.length / RESULTS_PAGE_SIZE);
+  const effectivePage = pageCount === 0 ? 0 : Math.min(currentPage, pageCount - 1);
+  const pageStart = effectivePage * RESULTS_PAGE_SIZE;
+  const pagedResults = visibleResults.slice(pageStart, pageStart + RESULTS_PAGE_SIZE);
+
+  useEffect(() => {
+    setCurrentPage((page) => (pageCount === 0 ? 0 : Math.min(page, pageCount - 1)));
+  }, [pageCount]);
+
+  useEffect(() => {
+    setCurrentPage(0);
+    setExpandedRow(null);
+  }, [results, filter, query, deferredQuery, normalizedSearchFieldId, sortColumn, sortDirection]);
+
+  const resetPageAndExpansion = () => {
+    setCurrentPage(0);
+    setExpandedRow(null);
+  };
 
   const handleSearchQueryChange = (nextQuery: string) => {
     setQuery(nextQuery);
-    setExpandedRow(null);
+    resetPageAndExpansion();
   };
 
   const handleSearchFieldChange = (nextFieldId: SearchableFieldId) => {
     setSearchFieldId(nextFieldId);
-    setExpandedRow(null);
+    resetPageAndExpansion();
   };
 
   const handleSort = (column: ResultSortColumn) => {
+    resetPageAndExpansion();
     startTransition(() => {
       if (sortColumn === column) {
         setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'));
@@ -299,7 +307,7 @@ export function ResultsTable({
     <SectionCard
       eyebrow="Detailed results"
       title="Comparison results"
-      description={`${visibleResults.length} of ${results.length} rows shown`}
+      description={`${visibleResults.length} of ${results.length} rows match`}
       className="overflow-hidden"
       icon={<RectangleStackIcon className="h-5 w-5" />}
       action={
@@ -343,7 +351,7 @@ export function ResultsTable({
                 </tr>
               </thead>
               <tbody className="divide-y divide-app-border">
-                {renderedResults.map((row: ResultRowViewModel) => {
+                {pagedResults.map((row: ResultRowViewModel) => {
                   const isExpanded = expandedRow === row.id;
                   const expandedDetail = isExpanded
                     ? buildExpandableDetail(row.result, row.fileAValues, row.fileBValues, comparisonColumns)
@@ -401,22 +409,40 @@ export function ResultsTable({
           </div>
         )}
 
-        {remainingCount > 0 ? (
-          <div className="app-surface-subtle border-t border-app-border px-4 py-3 text-center">
-            <button
-              type="button"
-              className="btn btn-ghost px-3 py-1.5 text-sm"
-              onClick={() => setRenderWindow({ key: renderWindowKey, limit: renderLimit + RENDER_CHUNK })}
-            >
-              Show {Math.min(RENDER_CHUNK, remainingCount)} more rows ({remainingCount} remaining)
-            </button>
-            <p className="app-muted mt-2 text-sm">
-              Showing {renderedResults.length} of {visibleResults.length} results. Use filters, search, or sorting to narrow down.
-            </p>
-          </div>
-        ) : visibleResults.length > 50 && (
-          <div className="app-surface-subtle border-t border-app-border px-4 py-3 text-center">
-            <p className="app-muted text-sm">Showing {visibleResults.length} results. Use filters, search, or sorting to narrow down.</p>
+        {visibleResults.length > 0 && (
+          <div className="app-surface-subtle border-t border-app-border px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="app-muted text-sm">
+                Showing {pageStart + 1}–{Math.min(pageStart + RESULTS_PAGE_SIZE, visibleResults.length)} of {visibleResults.length} results
+              </p>
+              {pageCount > 1 && (
+                <nav aria-label="Results pages" className="flex items-center gap-2">
+                  <NavButton
+                    direction="back"
+                    aria-label="Previous results page"
+                    disabled={effectivePage === 0}
+                    onClick={() => {
+                      setCurrentPage((page) => Math.max(0, page - 1));
+                      setExpandedRow(null);
+                    }}
+                  >
+                    Previous
+                  </NavButton>
+                  <span className="app-muted text-sm">Page {effectivePage + 1} of {pageCount}</span>
+                  <NavButton
+                    direction="forward"
+                    aria-label="Next results page"
+                    disabled={effectivePage === pageCount - 1}
+                    onClick={() => {
+                      setCurrentPage((page) => Math.min(pageCount - 1, page + 1));
+                      setExpandedRow(null);
+                    }}
+                  >
+                    Next
+                  </NavButton>
+                </nav>
+              )}
+            </div>
           </div>
         )}
       </div>

@@ -78,16 +78,18 @@ async fn run_session_workflow<T>(
     state: AppState,
     session_id: String,
     workflow: impl FnOnce(&SessionStore, &str) -> Result<T, CsvAlignError> + Send + 'static,
-) -> Result<T, Response>
+) -> Result<T, Box<Response>>
 where
     T: Send + 'static,
 {
     let store = state.store.clone();
     run_blocking(move || workflow(store.as_ref(), &session_id))
         .await
-        .map_err(|error| match error {
-            CsvAlignError::NotFound { .. } => session_not_found_response(),
-            error => error.into_response(),
+        .map_err(|error| {
+            Box::new(match error {
+                CsvAlignError::NotFound { .. } => session_not_found_response(),
+                error => error.into_response(),
+            })
         })
 }
 
@@ -220,7 +222,7 @@ pub async fn suggest_mappings(
     .await
     {
         Ok(response) => Json(response).into_response(),
-        Err(response) => response,
+        Err(response) => *response,
     }
 }
 
@@ -255,7 +257,7 @@ pub async fn compare(
 pub async fn export_csv(State(state): State<AppState>, Path(session_id): Path<String>) -> Response {
     match run_session_workflow(state, session_id, export_results_for_session).await {
         Ok(csv_content) => attachment("text/csv", "comparison-results.csv", csv_content),
-        Err(response) => response,
+        Err(response) => *response,
     }
 }
 
@@ -271,7 +273,7 @@ pub async fn save_pair_order(
     .await
     {
         Ok(contents) => attachment("text/plain; charset=utf-8", "pair-order.txt", contents),
-        Err(response) => response,
+        Err(response) => *response,
     }
 }
 
@@ -287,7 +289,7 @@ pub async fn load_pair_order(
     .await
     {
         Ok(response) => Json(response).into_response(),
-        Err(response) => response,
+        Err(response) => *response,
     }
 }
 
@@ -302,7 +304,7 @@ pub async fn save_comparison_snapshot(
             "comparison-snapshot.json",
             contents,
         ),
-        Err(response) => response,
+        Err(response) => *response,
     }
 }
 
