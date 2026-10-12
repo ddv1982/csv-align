@@ -16,6 +16,8 @@ export const RESOURCE_LIMITS = {
   jsonPathDepth: 64,
   retainedSessionBytes: 384 * 1024 * 1024,
   snapshotBytes: 128 * 1024 * 1024,
+  pairOrderBytes: 2 * 1024 * 1024,
+  pairOrderRequestBytes: 6 * (2 * 1024 * 1024) + 1024,
   htmlExportRows: 50_000,
   htmlExportDataBytes: 32 * 1024 * 1024,
   htmlExportDocumentBytes: 40 * 1024 * 1024,
@@ -23,6 +25,7 @@ export const RESOURCE_LIMITS = {
 
 /** Compatibility alias for existing frontend callers. */
 export const MAX_CSV_FILE_BYTES = RESOURCE_LIMITS.rawCsvBytes;
+export const MAX_PAIR_ORDER_BYTES = RESOURCE_LIMITS.pairOrderBytes;
 
 export function validateCsvFileSize(file: File): void {
   if (file.size > MAX_CSV_FILE_BYTES) {
@@ -34,4 +37,14 @@ export function validateSnapshotFileSize(file: Pick<File, 'size'>): void {
   if (file.size > RESOURCE_LIMITS.snapshotBytes) {
     throw new Error('Comparison snapshot is too large; maximum supported size is 128 MiB');
   }
+}
+
+export function validatePairOrderFileSize(file: Pick<File, 'size'>): void {
+  if (file.size > MAX_PAIR_ORDER_BYTES) {
+    throw new Error('Pair-order file is too large; maximum supported size is 2 MiB');
+  }
+}
+
+export function validatePairOrderContents(contents: string): void {
+  validatePairOrderFileSize({ size: new TextEncoder().encode(contents).byteLength });
 }

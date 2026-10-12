@@ -1,3 +1,4 @@
+pub mod atomic_write;
 pub mod csv_loader;
 pub mod export;
 pub mod json_fields;

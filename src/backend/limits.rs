@@ -17,6 +17,9 @@ pub const MAX_VIRTUAL_LABELS: usize = 10_000;
 pub const MAX_JSON_PATH_DEPTH: usize = 64;
 pub const MAX_RETAINED_SESSION_BYTES: usize = 384 * MIB;
 pub const MAX_SNAPSHOT_BYTES: usize = 128 * MIB;
+pub const MAX_PAIR_ORDER_BYTES: usize = 2 * MIB;
+/// Allow worst-case JSON string escaping plus the request envelope.
+pub const MAX_PAIR_ORDER_REQUEST_BYTES: usize = MAX_PAIR_ORDER_BYTES * 6 + 1024;
 pub const MAX_HTML_EXPORT_ROWS: usize = 50_000;
 pub const MAX_HTML_EXPORT_DATA_BYTES: usize = 32 * MIB;
 pub const MAX_HTML_EXPORT_DOCUMENT_BYTES: usize = 40 * MIB;

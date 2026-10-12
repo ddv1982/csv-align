@@ -10,7 +10,7 @@ import type {
   SummaryResponse,
 } from '../types/api';
 import { API_TRANSPORT_OPERATIONS } from './apiRoutes';
-import { RESOURCE_LIMITS } from './contracts';
+import { MAX_PAIR_ORDER_BYTES, RESOURCE_LIMITS } from './contracts';
 import { TAURI_COMMANDS } from './tauriCommands';
 
 const frontendOperations = [
@@ -94,6 +94,12 @@ describe('checked transport contract', () => {
 
   test('matches every frontend-visible resource limit', () => {
     expect(RESOURCE_LIMITS).toEqual(transportContract.limits);
+  });
+
+  test('locks pair-order content and JSON request byte limits', () => {
+    expect(MAX_PAIR_ORDER_BYTES).toBe(2 * 1024 * 1024);
+    expect(RESOURCE_LIMITS.pairOrderBytes).toBe(MAX_PAIR_ORDER_BYTES);
+    expect(RESOURCE_LIMITS.pairOrderRequestBytes).toBe(6 * MAX_PAIR_ORDER_BYTES + 1024);
   });
 
   test('locks the frontend compare DTO and all result variants', () => {

@@ -301,27 +301,13 @@ impl fmt::Display for DuplicateHeaderError {
 impl Error for DuplicateHeaderError {}
 
 fn detect_delimiter(csv_data: &str) -> u8 {
-    let first_row = csv_data
-        .lines()
-        .map(str::trim)
-        .find(|line| !line.is_empty())
-        .unwrap_or("");
-
-    let comma_count = count_unquoted_delimiters(first_row, ',');
-    let semicolon_count = count_unquoted_delimiters(first_row, ';');
-
-    if semicolon_count > comma_count {
-        b';'
-    } else {
-        b','
-    }
-}
-
-fn count_unquoted_delimiters(row: &str, delimiter: char) -> usize {
-    let mut count = 0;
+    let mut comma_count = 0;
+    let mut semicolon_count = 0;
     let mut in_quotes = false;
-    let mut chars = row.chars().peekable();
+    let mut chars = csv_data.trim_start().chars().peekable();
 
+    // Quoted headers can span physical lines. Stop only at the end of the
+    // first logical record, so data-row delimiters cannot bias detection.
     while let Some(character) = chars.next() {
         if character == '"' {
             if in_quotes && chars.peek() == Some(&'"') {
@@ -329,12 +315,21 @@ fn count_unquoted_delimiters(row: &str, delimiter: char) -> usize {
             } else {
                 in_quotes = !in_quotes;
             }
-        } else if character == delimiter && !in_quotes {
-            count += 1;
+        } else if !in_quotes {
+            match character {
+                '\r' | '\n' => break,
+                ',' => comma_count += 1,
+                ';' => semicolon_count += 1,
+                _ => {}
+            }
         }
     }
 
-    count
+    if semicolon_count > comma_count {
+        b';'
+    } else {
+        b','
+    }
 }
 
 /// Detect column information from CSV data

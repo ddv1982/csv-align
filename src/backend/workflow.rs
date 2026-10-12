@@ -429,7 +429,7 @@ fn write_comparison_if_inputs_current(
     catalog_b: &Arc<ColumnCatalog>,
     input_revision: u64,
     execution: CompareExecution,
-) -> Result<(), CsvAlignError> {
+) -> Result<CompareResponse, CsvAlignError> {
     let inputs_changed = session_data.data_revision != input_revision
         || !session_data
             .csv_a
@@ -460,7 +460,7 @@ fn write_comparison_if_inputs_current(
     };
     ensure_session_size_limit(prospective.retained_size_bytes())?;
     *session_data = prospective;
-    Ok(())
+    Ok(execution.response)
 }
 
 pub struct PendingComparison {
@@ -533,7 +533,6 @@ pub fn commit_comparison_for_session(
     pending: PendingComparison,
     execution: CompareExecution,
 ) -> Result<CompareResponse, CsvAlignError> {
-    let response = execution.response.clone();
     store.commit_operation(session_id, pending.token, |session_data| {
         write_comparison_if_inputs_current(
             session_data,
@@ -544,8 +543,7 @@ pub fn commit_comparison_for_session(
             pending.input_revision,
             execution,
         )
-    })?;
-    Ok(response)
+    })
 }
 
 pub fn run_comparison_for_session(

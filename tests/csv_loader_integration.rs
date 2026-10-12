@@ -29,6 +29,34 @@ fn load_csv_from_bytes_semicolon_delimited() {
 }
 
 #[test]
+fn delimiter_detection_reads_the_complete_multiline_header() {
+    for newline in ["\n", "\r\n"] {
+        let contents = format!("\"customer{newline}name\";amount{newline}Alice;12{newline}");
+        let csv = load_csv_from_bytes(contents.as_bytes()).unwrap();
+        assert_eq!(
+            csv.headers,
+            [format!("customer{newline}name"), "amount".into()]
+        );
+        assert_eq!(csv.rows, [vec!["Alice".to_string(), "12".to_string()]]);
+    }
+}
+
+#[test]
+fn delimiter_detection_ignores_escaped_quotes_and_delimiters_in_multiline_headers() {
+    let csv =
+        load_csv_from_bytes(b"\xef\xbb\xbf\"customer\"\"s,\nname\";amount\nAlice;12\n").unwrap();
+    assert_eq!(csv.headers, ["customer\"s,\nname", "amount"]);
+    assert_eq!(csv.rows, [vec!["Alice".to_string(), "12".to_string()]]);
+}
+
+#[test]
+fn delimiter_detection_retains_comma_ties_and_stops_before_data_rows() {
+    let csv = load_csv_from_bytes(b"\"customer\nname\",amount;unit\nAlice,12;;;;\n").unwrap();
+    assert_eq!(csv.headers, ["customer\nname", "amount;unit"]);
+    assert_eq!(csv.rows, [vec!["Alice".to_string(), "12;;;;".to_string()]]);
+}
+
+#[test]
 fn load_csv_from_bytes_ignores_quoted_delimiters_when_detecting_delimiter() {
     let csv_data = load_csv_from_bytes(
         b"name;description;city\nAlice;\"likes commas, a lot\";Paris\nBob;\"uses; semicolons\";Lyon\n",

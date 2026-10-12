@@ -36,10 +36,9 @@ jobs:
         with:
           filters: |
             run_full_ci:
-              - '**'
-              - '!**/*.md'
-              - '!LICENSE'
+              - '!{*.md,**/*.md,LICENSE}'
             run_rust_ci:
+              - 'contracts/**'
               - '.github/workflows/**'
               - 'Cargo.toml'
               - 'Cargo.lock'
@@ -47,9 +46,11 @@ jobs:
               - 'src/**'
               - 'tests/**'
             run_frontend_ci:
+              - 'contracts/**'
               - '.github/workflows/**'
               - 'frontend/**'
             run_tauri_ci:
+              - 'contracts/**'
               - '.github/workflows/**'
               - 'Cargo.toml'
               - 'Cargo.lock'
@@ -71,6 +72,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-22.04, macos-latest]
+        toolchain: [stable, '1.88.0']
 
     steps:
       - name: Checkout repository
@@ -78,6 +80,8 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ matrix.toolchain }}
 
       - name: Setup Rust cache
         uses: Swatinem/rust-cache@v2
@@ -87,12 +91,14 @@ jobs:
           key: rust-${{ runner.os }}-root
 
       - name: Run Rust tests
-        run: cargo test --verbose
+        run: cargo test --locked --verbose
 
       - name: Check Rust formatting
+        if: matrix.toolchain == 'stable'
         run: cargo fmt --check
 
       - name: Run Clippy
+        if: matrix.toolchain == 'stable'
         run: cargo clippy -- -D warnings
 
   validate-release-metadata:
@@ -182,6 +188,9 @@ jobs:
     needs: changes
     if: needs.changes.outputs.run_tauri_ci == 'true'
     runs-on: macos-latest
+    strategy:
+      matrix:
+        toolchain: [stable, '1.88.0']
 
     steps:
       - name: Checkout repository
@@ -189,6 +198,8 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ matrix.toolchain }}
 
       - name: Setup Rust cache
         uses: Swatinem/rust-cache@v2
@@ -208,7 +219,7 @@ jobs:
 
       - name: Run Tauri wrapper tests
         working-directory: src-tauri
-        run: cargo test
+        run: cargo test --locked
 
   build-tauri:
     name: Build Tauri

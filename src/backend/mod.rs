@@ -18,7 +18,7 @@ pub use comparison_snapshot::{
 pub use error::CsvAlignError;
 pub use limits::MAX_CSV_FILE_BYTES;
 pub use operation::{OperationKind, OperationToken};
-pub use pair_order::{load_pair_order_workflow, save_pair_order_workflow};
+pub use pair_order::{ensure_pair_order_size, load_pair_order_workflow, save_pair_order_workflow};
 pub use persistence::v1::SNAPSHOT_VERSION;
 #[cfg(feature = "benchmark-owned-snapshot")]
 #[doc(hidden)]

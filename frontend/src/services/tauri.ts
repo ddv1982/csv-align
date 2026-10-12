@@ -14,7 +14,7 @@ import {
   API_TRANSPORT_OPERATIONS,
 } from './apiRoutes';
 import { TAURI_COMMANDS } from './tauriCommands';
-import { validateCsvFileSize, validateSnapshotFileSize } from './contracts';
+import { validateCsvFileSize, validatePairOrderContents, validatePairOrderFileSize, validateSnapshotFileSize } from './contracts';
 import { validateHtmlExportDocument } from '../features/results/htmlExportLimits';
 import { ApiError, errorMessageFromPayload, fetchBlob, fetchJson, postJson, readErrorMessage, readErrorPayload } from './http';
 import type { SelectedFileSource } from '../types/ui';
@@ -248,7 +248,9 @@ export async function loadPairOrder(
     throw new Error('No pair-order file selected');
   }
 
+  validatePairOrderFileSize(file);
   const contents = await file.text();
+  validatePairOrderContents(contents);
 
   return postJson(buildLoadPairOrderRoute(sessionId), { contents }, 'Failed to load pair order');
 }

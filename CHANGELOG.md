@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.2.2 - 2026-10-12
+
+- Publish desktop HTML, pair-order and comparison snapshot saves atomically, preserving existing files on write or synchronization failure.
+- Apply a consistent 2 MiB UTF-8 pair-order file limit across browser, desktop and HTTP loading and saving, with bounded native reads and an allowance for JSON request escaping.
+- Correct delimiter detection for quoted multiline CSV headers while preserving escaped quotes and comma tie-breaking.
+- Remove an unnecessary deep clone when committing comparison responses, retaining stored results and stale-operation protection.
+- Run contract consumers for contract-only CI changes, fix docs-only filtering, and declare and test Rust 1.88 as the minimum supported compiler.
+- Document the researched architecture review, complexity hotspots and verified phased improvements.
+
 ## v2.2.1 - 2026-09-08
 
 - Replaced incremental result-table chunking with fixed 50-row pages, retaining global filters, search, sorting, and full exports while bounding mounted result rows.

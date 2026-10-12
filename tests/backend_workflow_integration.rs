@@ -51,6 +51,68 @@ fn prepared_snapshot_session() -> SessionData {
 }
 
 #[test]
+fn comparison_commit_preserves_response_allocations_and_stored_results() {
+    use csv_align::backend::{
+        SessionStore, begin_comparison_for_session, commit_comparison_for_session,
+        execute_comparison_for_session,
+    };
+    let store = SessionStore::default();
+    let session_id = store.create();
+    let session = prepared_snapshot_session();
+    let config = session.comparison_config.as_ref().unwrap().clone();
+    let request = || CompareRequest {
+        key_columns_a: config.key_columns_a.clone(),
+        key_columns_b: config.key_columns_b.clone(),
+        comparison_columns_a: config.comparison_columns_a.clone(),
+        comparison_columns_b: config.comparison_columns_b.clone(),
+        column_mappings: vec![],
+        normalization: config.normalization.clone(),
+    };
+    store
+        .with_session_mut(&session_id, |data| *data = session)
+        .unwrap();
+    let pending = begin_comparison_for_session(&store, &session_id, request()).unwrap();
+    let execution = execute_comparison_for_session(&pending).unwrap();
+    assert!(!execution.response.results.is_empty());
+    let results_address = execution.response.results.as_ptr();
+    let value_address = execution.response.results[0].values_a[0].as_ptr();
+    let expected = execution.response.clone();
+    let response = commit_comparison_for_session(&store, &session_id, pending, execution).unwrap();
+    assert_eq!(response, expected);
+    assert_eq!(
+        response.results.as_ptr(),
+        results_address,
+        "response vector must move, not clone"
+    );
+    assert_eq!(
+        response.results[0].values_a[0].as_ptr(),
+        value_address,
+        "nested values must move"
+    );
+    let stored_before = store
+        .with_session(&session_id, |data| format!("{data:?}"))
+        .unwrap();
+    assert!(
+        store
+            .with_session(&session_id, |data| data.comparison_results.len()
+                == response.results.len()
+                && data.comparison_config.is_some())
+            .unwrap()
+    );
+
+    let stale = begin_comparison_for_session(&store, &session_id, request()).unwrap();
+    let execution = execute_comparison_for_session(&stale).unwrap();
+    let _newer = begin_comparison_for_session(&store, &session_id, request()).unwrap();
+    assert!(commit_comparison_for_session(&store, &session_id, stale, execution).is_err());
+    assert_eq!(
+        store
+            .with_session(&session_id, |data| format!("{data:?}"))
+            .unwrap(),
+        stored_before
+    );
+}
+
+#[test]
 fn apply_csv_to_session_autosuggests_after_both_files_load() {
     let mut session = SessionData::new();
 

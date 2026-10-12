@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { TAURI_COMMANDS } from './tauriCommands';
+import { MAX_PAIR_ORDER_BYTES } from './contracts';
 
 const invokeMock = vi.fn();
 const onDragDropEventMock = vi.fn();
@@ -527,6 +528,72 @@ describe('transport helpers', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: '{"version":1}' }),
     });
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+
+  test('loadPairOrder rejects oversized browser files before reading or fetching', async () => {
+    const fetchMock = vi.mocked(globalThis.fetch);
+    const { loadPairOrder } = await importTauriModule();
+    const file = new File(['{"version":1}'], 'order.json', { type: 'application/json' });
+    Object.defineProperty(file, 'size', { value: MAX_PAIR_ORDER_BYTES + 1 });
+    const textMock = vi.spyOn(file, 'text');
+    const fileReaderMock = vi.fn();
+    vi.stubGlobal('FileReader', fileReaderMock);
+
+    await expect(loadPairOrder('session-11', file)).rejects.toThrow(
+      'Pair-order file is too large; maximum supported size is 2 MiB',
+    );
+    expect(textMock).not.toHaveBeenCalled();
+    expect(fileReaderMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+
+  test('loadPairOrder accepts the exact browser preflight and UTF-8 byte boundary', async () => {
+    const fetchMock = vi.mocked(globalThis.fetch);
+    const selection = { key_columns_a: [], key_columns_b: [], comparison_columns_a: [], comparison_columns_b: [] };
+    fetchMock.mockResolvedValue(jsonResponse({ selection }));
+    const { loadPairOrder } = await importTauriModule();
+    const fixture = '{"version":1}';
+    const contents = fixture + ' '.repeat(MAX_PAIR_ORDER_BYTES - fixture.length);
+    const file = new File([contents], 'order.json', { type: 'application/json' });
+    const textMock = vi.spyOn(file, 'text').mockResolvedValue(contents);
+
+    expect(file.size).toBe(MAX_PAIR_ORDER_BYTES);
+    await expect(loadPairOrder('session-11', file)).resolves.toEqual({ selection });
+    expect(textMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith('/api/sessions/session-11/pair-order/load', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents }),
+    });
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+
+  test('loadPairOrder rejects oversized actual text despite a small reported file size', async () => {
+    const fetchMock = vi.mocked(globalThis.fetch);
+    const { loadPairOrder } = await importTauriModule();
+    const file = new File(['{}'], 'order.json', { type: 'application/json' });
+    const textMock = vi.spyOn(file, 'text').mockResolvedValue(' '.repeat(MAX_PAIR_ORDER_BYTES + 1));
+
+    await expect(loadPairOrder('session-11', file)).rejects.toThrow('maximum supported size is 2 MiB');
+    expect(textMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+
+  test('loadPairOrder measures actual UTF-8 bytes rather than string length', async () => {
+    const fetchMock = vi.mocked(globalThis.fetch);
+    const { loadPairOrder } = await importTauriModule();
+    const contents = JSON.stringify({ label: 'é'.repeat(MAX_PAIR_ORDER_BYTES / 2) });
+    const file = new File(['{}'], 'order.json', { type: 'application/json' });
+    const textMock = vi.spyOn(file, 'text').mockResolvedValue(contents);
+
+    expect(contents.length).toBeLessThan(MAX_PAIR_ORDER_BYTES);
+    expect(new TextEncoder().encode(contents).byteLength).toBeGreaterThan(MAX_PAIR_ORDER_BYTES);
+    await expect(loadPairOrder('session-11', file)).rejects.toThrow('maximum supported size is 2 MiB');
+    expect(textMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).not.toHaveBeenCalled();
     expect(invokeMock).not.toHaveBeenCalled();
   });
 

@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::backend::error::CsvAlignError;
+use crate::backend::limits::MAX_PAIR_ORDER_BYTES;
 use crate::backend::requests::CompareValidationError;
 use crate::backend::requests::{LoadPairOrderResponse, PairOrderSelection};
 use crate::backend::session::SessionData;
@@ -11,6 +12,15 @@ use crate::backend::validation::validate_selected_columns_by_physical_or_virtual
 use crate::data::types::CsvData;
 
 const PAIR_ORDER_FILE_VERSION: u8 = 1;
+
+pub fn ensure_pair_order_size(byte_length: usize) -> Result<(), CsvAlignError> {
+    if byte_length > MAX_PAIR_ORDER_BYTES {
+        return Err(CsvAlignError::BadInput(format!(
+            "pair-order file exceeds the 2 MiB limit ({byte_length} UTF-8 bytes)"
+        )));
+    }
+    Ok(())
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 struct PersistedPairOrder {
@@ -27,19 +37,22 @@ pub fn save_pair_order_workflow(
     let (csv_a, csv_b) = session_csvs(session_data)?;
     validate_selection(csv_a, csv_b, &selection)?;
 
-    serde_json::to_string_pretty(&PersistedPairOrder {
+    let contents = serde_json::to_string_pretty(&PersistedPairOrder {
         version: PAIR_ORDER_FILE_VERSION,
         headers_a: csv_a.headers.clone(),
         headers_b: csv_b.headers.clone(),
         selection,
     })
-    .map_err(|error| CsvAlignError::Internal(format!("Failed to serialize pair order: {error}")))
+    .map_err(|error| CsvAlignError::Internal(format!("Failed to serialize pair order: {error}")))?;
+    ensure_pair_order_size(contents.len())?;
+    Ok(contents)
 }
 
 pub fn load_pair_order_workflow(
     session_data: &SessionData,
     contents: &str,
 ) -> Result<LoadPairOrderResponse, CsvAlignError> {
+    ensure_pair_order_size(contents.len())?;
     validate_pair_order_version(contents)?;
 
     let persisted: PersistedPairOrder = serde_json::from_str(contents).map_err(|error| {

@@ -10,8 +10,9 @@
 - Web app: build the frontend first, then run `cargo run`. `cargo run` serves `frontend/dist`; it does not build the frontend for you.
 - Desktop dev: `cargo tauri dev`. `src-tauri/tauri.conf.json` already runs `cd frontend && npm run dev` first.
 - Root Rust validation for code changes: `cargo fmt --check && cargo test && cargo clippy -- -D warnings`.
-- Tauri wrapper tests: `cd src-tauri && cargo test`.
-- Frontend validation: `cd frontend && npm run build`. Frontend tests exist (`npm test`), but CI currently gates on build, not Vitest.
+- Tauri wrapper tests from the repository root: `cargo test --manifest-path src-tauri/Cargo.toml`.
+- Frontend validation from the repository root: `npm --prefix frontend test && npm --prefix frontend run lint && npm --prefix frontend run build`. CI gates on Vitest, lint and build.
+- Minimum supported Rust version: 1.88. Verify both locked crates with `cargo +1.88.0 test --locked` and `cargo +1.88.0 test --locked --manifest-path src-tauri/Cargo.toml`.
 
 ## Testing Layout
 - Top-level `tests/*.rs` are the shared library's public integration/regression tests.
@@ -43,4 +44,3 @@
   1. Emit a structured validation report to `.factory/validation/<milestone>/<feature-id>/report.json` and commit that report (`chore(validation): …`). This satisfies the commit requirement and produces per-assertion evidence.
   2. Cancel the validation-only feature and rely on the auto-injected `user-testing-validator` for that milestone, which produces per-assertion evidence natively. The assertions remain covered via `fulfills` on the implementation features.
 - Do NOT mark a validation-only feature completed through an orchestrator override that leaves no audit trail and no per-assertion evidence. Prefer option 1 or 2.
-

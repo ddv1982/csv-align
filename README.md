@@ -70,7 +70,7 @@ The standalone `.AppImage`, `.deb`, and `.rpm` release assets remain available a
 
 ### Prerequisites
 
-- Rust 1.85+ (edition 2024 / MSRV for v2)
+- Rust 1.88+ (minimum supported version, tested with locked dependencies)
 - Node.js 22+
 - npm
 
@@ -146,27 +146,33 @@ If you want the frontend dev server for UI work, run `cd frontend && npm run dev
 ### Tests
 
 ```bash
+# Run these commands from the repository root.
 # Core Rust tests
 cargo test
 
 # Desktop wrapper tests
-cd src-tauri && cargo test
+cargo test --manifest-path src-tauri/Cargo.toml
 
 # Frontend tests
-cd frontend && npm test
+npm --prefix frontend test
+
+# Minimum supported Rust version (install with rustup if needed)
+cargo +1.88.0 test --locked
+cargo +1.88.0 test --locked --manifest-path src-tauri/Cargo.toml
 ```
 
 ### Production builds
 
 ```bash
+# Run these commands from the repository root.
 # Frontend build
-cd frontend && npm run build
+npm --prefix frontend run build
 
 # Rust backend build
 cargo build --release
 
 # Desktop build
-cd src-tauri && cargo tauri build
+cargo tauri build
 ```
 
 Desktop bundles are written to `src-tauri/target/release/bundle/`.

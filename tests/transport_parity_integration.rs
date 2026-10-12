@@ -150,6 +150,11 @@ fn checked_contract_matches_authoritative_backend_limits() {
             limits::MAX_RETAINED_SESSION_BYTES,
         ),
         ("snapshotBytes".to_string(), limits::MAX_SNAPSHOT_BYTES),
+        ("pairOrderBytes".to_string(), limits::MAX_PAIR_ORDER_BYTES),
+        (
+            "pairOrderRequestBytes".to_string(),
+            limits::MAX_PAIR_ORDER_REQUEST_BYTES,
+        ),
         ("htmlExportRows".to_string(), limits::MAX_HTML_EXPORT_ROWS),
         (
             "htmlExportDataBytes".to_string(),

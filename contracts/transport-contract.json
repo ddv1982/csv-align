@@ -24,6 +24,8 @@
     "jsonPathDepth": 64,
     "retainedSessionBytes": 402653184,
     "snapshotBytes": 134217728,
+    "pairOrderBytes": 2097152,
+    "pairOrderRequestBytes": 12583936,
     "htmlExportRows": 50000,
     "htmlExportDataBytes": 33554432,
     "htmlExportDocumentBytes": 41943040

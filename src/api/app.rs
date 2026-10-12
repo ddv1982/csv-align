@@ -9,7 +9,10 @@ use std::path::{Path, PathBuf};
 use tower_http::services::ServeDir;
 
 use super::{handlers, loopback_security::enforce_loopback_request, state::AppState};
-use crate::backend::{MAX_CSV_FILE_BYTES, limits::MAX_SNAPSHOT_BYTES};
+use crate::backend::{
+    MAX_CSV_FILE_BYTES,
+    limits::{MAX_PAIR_ORDER_REQUEST_BYTES, MAX_SNAPSHOT_BYTES},
+};
 
 pub const CREATE_SESSION_ROUTE: &str = "/api/sessions";
 pub const DELETE_SESSION_ROUTE: &str = "/api/sessions/{session_id}";
@@ -149,8 +152,16 @@ pub fn build_api_router(state: AppState) -> Router {
         )
         .route(SUGGEST_MAPPINGS_ROUTE, post(handlers::suggest_mappings))
         .route(COMPARE_ROUTE, post(handlers::compare))
-        .route(SAVE_PAIR_ORDER_ROUTE, post(handlers::save_pair_order))
-        .route(LOAD_PAIR_ORDER_ROUTE, post(handlers::load_pair_order))
+        .route(
+            SAVE_PAIR_ORDER_ROUTE,
+            post(handlers::save_pair_order)
+                .layer(DefaultBodyLimit::max(MAX_PAIR_ORDER_REQUEST_BYTES)),
+        )
+        .route(
+            LOAD_PAIR_ORDER_ROUTE,
+            post(handlers::load_pair_order)
+                .layer(DefaultBodyLimit::max(MAX_PAIR_ORDER_REQUEST_BYTES)),
+        )
         .route(
             SAVE_COMPARISON_SNAPSHOT_ROUTE,
             post(handlers::save_comparison_snapshot),

@@ -1,7 +1,8 @@
 [package]
 name = "csv-align"
-version = "2.2.1"
+version = "2.2.2"
 edition = "2024"
+rust-version = "1.88"
 description = "CSV file comparison tool with modern web UI"
 license = "MIT"
 

@@ -8,16 +8,18 @@ use std::{
 use tauri_plugin_dialog::{DialogExt, FilePath};
 use tracing::instrument;
 
-use csv_align::backend::limits::{MAX_HTML_EXPORT_DOCUMENT_BYTES, MAX_SNAPSHOT_BYTES};
+use csv_align::backend::limits::{
+    MAX_HTML_EXPORT_DOCUMENT_BYTES, MAX_PAIR_ORDER_BYTES, MAX_SNAPSHOT_BYTES,
+};
 use csv_align::backend::{
     CompareRequest, CsvAlignError, CsvLoadSource, LoadComparisonSnapshotResponse,
     LoadPairOrderResponse, OperationToken, PairOrderSelection, SessionResponse, SessionStore,
     SuggestMappingsRequest, begin_comparison_for_session,
     begin_comparison_snapshot_load_for_session, begin_file_load_for_session,
     commit_comparison_for_session, commit_comparison_snapshot_load_for_session,
-    commit_file_load_for_session, ensure_snapshot_size, execute_comparison_for_session,
-    load_csv_workflow, load_pair_order_for_session, parse_file_side,
-    prepare_comparison_snapshot_load_bytes, save_comparison_snapshot_for_session,
+    commit_file_load_for_session, ensure_pair_order_size, ensure_snapshot_size,
+    execute_comparison_for_session, load_csv_workflow, load_pair_order_for_session,
+    parse_file_side, prepare_comparison_snapshot_load_bytes, save_comparison_snapshot_for_session,
     save_pair_order_for_session, suggest_mappings_for_session, validate_file_letter,
     write_export_results_for_session,
 };
@@ -52,12 +54,233 @@ fn write_output_file(
     contents: impl AsRef<[u8]>,
     file_kind: &str,
 ) -> Result<(), CsvAlignError> {
-    fs::write(output_path, contents).map_err(|error| {
-        CsvAlignError::Io(std::io::Error::new(
-            error.kind(),
-            format!("Failed to save {file_kind} file: {error}"),
-        ))
-    })
+    csv_align::data::atomic_write::write_bytes_atomically(output_path, contents, file_kind).map_err(
+        |error| match error {
+            CsvAlignError::Io(error) => CsvAlignError::Io(std::io::Error::new(
+                error.kind(),
+                format!("Failed to save {file_kind} file: {error}"),
+            )),
+            other => other,
+        },
+    )
+}
+
+#[cfg(test)]
+mod atomic_save_tests {
+    use super::*;
+
+    struct TestDirectory(PathBuf);
+
+    impl TestDirectory {
+        fn new() -> Self {
+            let path =
+                std::env::temp_dir().join(format!("csv-align-atomic-{}", uuid::Uuid::new_v4()));
+            fs::create_dir(&path).unwrap();
+            Self(path)
+        }
+    }
+
+    impl Drop for TestDirectory {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+
+    // Exercise the real path wrappers with valid backend state, not just the
+    // common byte writer. Serialization round trips are covered separately.
+    fn for_each_native_save(
+        mut check: impl FnMut(&str, &[u8], &dyn Fn(&Path) -> Result<(), CsvAlignError>),
+    ) {
+        use csv_align::data::types::{ComparisonNormalizationConfig, FileSide};
+
+        let store = SessionStore::default();
+        let session_id = store.create();
+        for (side, letter) in [(FileSide::A, "a"), (FileSide::B, "b")] {
+            let token = begin_file_load_for_session(&store, &session_id, side).unwrap();
+            let loaded = load_csv_workflow(
+                letter,
+                Some(format!("{letter}.csv")),
+                CsvLoadSource::Bytes(b"id,name\n1,Alice\n".to_vec()),
+            )
+            .unwrap();
+            commit_file_load_for_session(&store, &session_id, token, side, loaded).unwrap();
+        }
+        let selection = PairOrderSelection {
+            key_columns_a: vec!["id".to_string()],
+            key_columns_b: vec!["id".to_string()],
+            comparison_columns_a: vec!["name".to_string()],
+            comparison_columns_b: vec!["name".to_string()],
+        };
+        let pending = begin_comparison_for_session(
+            &store,
+            &session_id,
+            CompareRequest {
+                key_columns_a: selection.key_columns_a.clone(),
+                key_columns_b: selection.key_columns_b.clone(),
+                comparison_columns_a: selection.comparison_columns_a.clone(),
+                comparison_columns_b: selection.comparison_columns_b.clone(),
+                column_mappings: vec![],
+                normalization: ComparisonNormalizationConfig::default(),
+            },
+        )
+        .unwrap();
+        let execution = execute_comparison_for_session(&pending).unwrap();
+        commit_comparison_for_session(&store, &session_id, pending, execution).unwrap();
+
+        let html = "<!doctype html><html><body>Saved café</body></html>";
+        check("HTML export", html.as_bytes(), &|path| {
+            export_results_html_to_path(path, html)
+        });
+        let pair_order =
+            save_pair_order_for_session(&store, &session_id, selection.clone()).unwrap();
+        check("pair-order", pair_order.as_bytes(), &|path| {
+            save_pair_order_to_path(&store, &session_id, selection.clone(), path)
+        });
+        let snapshot = save_comparison_snapshot_for_session(&store, &session_id).unwrap();
+        check("comparison snapshot", snapshot.as_bytes(), &|path| {
+            save_comparison_snapshot_to_path(&store, &session_id, path)
+        });
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn native_text_saves_publish_a_new_file_instead_of_truncating_the_old_inode() {
+        for kind in ["HTML export", "pair-order", "comparison snapshot"] {
+            let directory = TestDirectory::new();
+            let output = directory.0.join("output");
+            let old_inode = directory.0.join("old-inode");
+            fs::write(&output, b"original saved work").unwrap();
+            fs::hard_link(&output, &old_inode).unwrap();
+            write_output_file(&output, b"replacement", kind).unwrap();
+            assert_eq!(fs::read(&output).unwrap(), b"replacement");
+            let old_bytes = fs::read(&old_inode).unwrap();
+            assert_eq!(old_bytes, b"original saved work", "{kind}");
+        }
+    }
+
+    #[test]
+    fn native_save_path_wrappers_create_and_replace_complete_documents() {
+        for_each_native_save(|kind, expected, save| {
+            let directory = TestDirectory::new();
+            let output = directory.0.join("output");
+            save(&output).unwrap();
+            assert_eq!(fs::read(&output).unwrap(), expected, "{kind}: create");
+            fs::write(&output, b"original saved work").unwrap();
+            #[cfg(unix)]
+            let old_inode = {
+                let path = directory.0.join("old-inode");
+                fs::hard_link(&output, &path).unwrap();
+                path
+            };
+            save(&output).unwrap();
+            assert_eq!(fs::read(&output).unwrap(), expected, "{kind}: overwrite");
+            #[cfg(unix)]
+            assert_eq!(
+                fs::read(&old_inode).unwrap(),
+                b"original saved work",
+                "{kind}: old inode"
+            );
+            let mut names: Vec<_> = fs::read_dir(&directory.0)
+                .unwrap()
+                .map(|entry| entry.unwrap().file_name())
+                .collect();
+            names.sort();
+            #[cfg(unix)]
+            assert_eq!(names, ["old-inode", "output"].map(std::ffi::OsString::from));
+            #[cfg(not(unix))]
+            assert_eq!(names, [std::ffi::OsString::from("output")]);
+        });
+    }
+
+    #[test]
+    fn native_save_path_wrappers_report_missing_parents_without_side_effects() {
+        for_each_native_save(|kind, _, save| {
+            let directory = TestDirectory::new();
+            let existing = directory.0.join("saved-work");
+            fs::write(&existing, b"original saved work").unwrap();
+            let output = directory.0.join("missing").join("output");
+            let error = save(&output).unwrap_err();
+            match error {
+                CsvAlignError::Io(error) => {
+                    assert_eq!(error.kind(), std::io::ErrorKind::NotFound, "{kind}");
+                    assert!(error.to_string().contains(kind), "{error}");
+                }
+                other => panic!("{kind}: expected contextual I/O error, got {other:?}"),
+            }
+            assert!(!output.exists(), "{kind}");
+            assert!(!directory.0.join("missing").exists(), "{kind}");
+            assert_eq!(
+                fs::read(&existing).unwrap(),
+                b"original saved work",
+                "{kind}"
+            );
+            assert_eq!(fs::read_dir(&directory.0).unwrap().count(), 1, "{kind}");
+
+            #[cfg(unix)]
+            {
+                // A dangling destination link must survive a resolution failure.
+                let link = directory.0.join("output-link");
+                std::os::unix::fs::symlink("missing/output", &link).unwrap();
+                match save(&link).unwrap_err() {
+                    CsvAlignError::Io(error) => {
+                        assert_eq!(error.kind(), std::io::ErrorKind::NotFound, "{kind}");
+                        assert!(error.to_string().contains(kind), "{error}");
+                    }
+                    other => panic!("{kind}: expected contextual I/O error, got {other:?}"),
+                }
+                assert_eq!(fs::read_link(&link).unwrap(), Path::new("missing/output"));
+                assert_eq!(
+                    fs::read(&existing).unwrap(),
+                    b"original saved work",
+                    "{kind}"
+                );
+                assert_eq!(fs::read_dir(&directory.0).unwrap().count(), 2, "{kind}");
+            }
+        });
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn native_save_path_wrappers_preserve_symlinks_and_target_permissions() {
+        use std::os::unix::fs::{PermissionsExt, symlink};
+
+        for_each_native_save(|kind, expected, save| {
+            let directory = TestDirectory::new();
+            let target = directory.0.join("target");
+            let output = directory.0.join("output");
+            fs::write(&target, b"original saved work").unwrap();
+            fs::set_permissions(&target, fs::Permissions::from_mode(0o444)).unwrap();
+            let old_inode = directory.0.join("old-inode");
+            fs::hard_link(&target, &old_inode).unwrap();
+            symlink("target", &output).unwrap();
+            save(&output).unwrap();
+            assert!(
+                fs::symlink_metadata(&output)
+                    .unwrap()
+                    .file_type()
+                    .is_symlink(),
+                "{kind}"
+            );
+            assert_eq!(
+                fs::read_link(&output).unwrap(),
+                Path::new("target"),
+                "{kind}"
+            );
+            assert_eq!(fs::read(&target).unwrap(), expected, "{kind}");
+            assert_eq!(fs::read(&output).unwrap(), expected, "{kind}");
+            assert_eq!(
+                fs::read(&old_inode).unwrap(),
+                b"original saved work",
+                "{kind}"
+            );
+            assert_eq!(
+                fs::metadata(&target).unwrap().permissions().mode() & 0o777,
+                0o444,
+                "{kind}"
+            );
+            assert_eq!(fs::read_dir(&directory.0).unwrap().count(), 3, "{kind}");
+        });
+    }
 }
 
 fn selected_dialog_path(path: FilePath, file_kind: &str) -> Result<PathBuf, CsvAlignError> {
@@ -140,14 +363,178 @@ pub(crate) fn load_pair_order_from_path(
     session_id: &str,
     file_path: &Path,
 ) -> Result<LoadPairOrderResponse, CsvAlignError> {
-    let contents = fs::read_to_string(file_path).map_err(|error| {
-        CsvAlignError::Io(std::io::Error::new(
-            error.kind(),
-            format!("Failed to read pair-order file: {error}"),
-        ))
-    })?;
+    let file = fs::File::open(file_path).map_err(pair_order_read_error)?;
+    validate_pair_order_file_metadata(&file)?;
+    let contents = read_pair_order_contents(file)?;
 
     load_pair_order_for_session(state, session_id, &contents)
+}
+
+fn pair_order_read_error(error: std::io::Error) -> CsvAlignError {
+    CsvAlignError::Io(std::io::Error::new(
+        error.kind(),
+        format!("Failed to read pair-order file: {error}"),
+    ))
+}
+
+fn validate_pair_order_file_metadata(file: &fs::File) -> Result<(), CsvAlignError> {
+    let metadata = file.metadata().map_err(pair_order_read_error)?;
+    if metadata.len() > MAX_PAIR_ORDER_BYTES as u64 {
+        ensure_pair_order_size(MAX_PAIR_ORDER_BYTES + 1)?;
+    }
+    Ok(())
+}
+
+fn read_pair_order_contents(reader: impl Read) -> Result<String, CsvAlignError> {
+    let contents = read_limited(reader, MAX_PAIR_ORDER_BYTES).map_err(pair_order_read_error)?;
+    ensure_pair_order_size(contents.len())?;
+    String::from_utf8(contents).map_err(|error| {
+        pair_order_read_error(std::io::Error::new(std::io::ErrorKind::InvalidData, error))
+    })
+}
+
+#[cfg(test)]
+mod pair_order_read_tests {
+    use super::*;
+    use std::io::{Cursor, Write};
+
+    struct TestDirectory(PathBuf);
+
+    impl TestDirectory {
+        fn new() -> Self {
+            let path =
+                std::env::temp_dir().join(format!("csv-align-pair-order-{}", uuid::Uuid::new_v4()));
+            fs::create_dir(&path).unwrap();
+            Self(path)
+        }
+    }
+
+    impl Drop for TestDirectory {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+
+    #[test]
+    fn pair_order_reader_accepts_exact_byte_limit_and_rejects_plus_one() {
+        let exact = vec![b'a'; MAX_PAIR_ORDER_BYTES];
+        assert_eq!(
+            read_pair_order_contents(exact.as_slice()).unwrap().len(),
+            exact.len()
+        );
+        let oversized = vec![b'a'; MAX_PAIR_ORDER_BYTES + 1];
+        assert!(matches!(
+            read_pair_order_contents(oversized.as_slice()),
+            Err(CsvAlignError::BadInput(_))
+        ));
+    }
+
+    #[test]
+    fn pair_order_reader_counts_non_ascii_utf8_bytes_not_characters() {
+        let exact = "é".repeat(MAX_PAIR_ORDER_BYTES / 2);
+        assert_eq!(exact.len(), MAX_PAIR_ORDER_BYTES);
+        assert_eq!(read_pair_order_contents(exact.as_bytes()).unwrap(), exact);
+        let oversized = format!("{exact}a");
+        assert!(oversized.chars().count() < MAX_PAIR_ORDER_BYTES);
+        assert!(matches!(
+            read_pair_order_contents(oversized.as_bytes()),
+            Err(CsvAlignError::BadInput(_))
+        ));
+    }
+
+    #[test]
+    fn pair_order_reader_consumes_only_limit_plus_one_even_without_reliable_metadata() {
+        let mut reader = Cursor::new(vec![b'a'; MAX_PAIR_ORDER_BYTES + 100]);
+        assert!(matches!(
+            read_pair_order_contents(&mut reader),
+            Err(CsvAlignError::BadInput(_))
+        ));
+        assert_eq!(reader.position(), (MAX_PAIR_ORDER_BYTES + 1) as u64);
+    }
+
+    #[test]
+    fn pair_order_reader_rejects_file_growth_after_metadata_precheck() {
+        let directory = TestDirectory::new();
+        let path = directory.0.join("pair-order.txt");
+        fs::write(&path, b"small").unwrap();
+        let mut file = fs::File::open(&path).unwrap();
+        validate_pair_order_file_metadata(&file).unwrap();
+        fs::OpenOptions::new()
+            .append(true)
+            .open(&path)
+            .unwrap()
+            .write_all(&vec![b'a'; MAX_PAIR_ORDER_BYTES])
+            .unwrap();
+        assert!(matches!(
+            read_pair_order_contents(&mut file),
+            Err(CsvAlignError::BadInput(_))
+        ));
+        assert_eq!(
+            std::io::Seek::stream_position(&mut file).unwrap(),
+            (MAX_PAIR_ORDER_BYTES + 1) as u64
+        );
+    }
+
+    #[test]
+    fn pair_order_path_loader_reports_invalid_utf8_as_contextual_io_error() {
+        let directory = TestDirectory::new();
+        let path = directory.0.join("pair-order.txt");
+        fs::write(&path, [0xff]).unwrap();
+        let store = SessionStore::default();
+        let session_id = store.create();
+        match load_pair_order_from_path(&store, &session_id, &path).unwrap_err() {
+            CsvAlignError::Io(error) => {
+                assert_eq!(error.kind(), std::io::ErrorKind::InvalidData);
+                assert!(error.to_string().contains("Failed to read pair-order file"));
+            }
+            other => panic!("expected invalid UTF-8 I/O error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn pair_order_path_loader_accepts_saved_file_and_rejects_oversize_without_session_changes() {
+        use csv_align::data::types::FileSide;
+
+        let directory = TestDirectory::new();
+        let path = directory.0.join("pair-order.txt");
+        let store = SessionStore::default();
+        let session_id = store.create();
+        for (side, letter) in [(FileSide::A, "a"), (FileSide::B, "b")] {
+            let token = begin_file_load_for_session(&store, &session_id, side).unwrap();
+            let loaded = load_csv_workflow(
+                letter,
+                Some(format!("{letter}.csv")),
+                CsvLoadSource::Bytes("id,名\n1,café\n".as_bytes().to_vec()),
+            )
+            .unwrap();
+            commit_file_load_for_session(&store, &session_id, token, side, loaded).unwrap();
+        }
+        let selection = PairOrderSelection {
+            key_columns_a: vec!["id".to_string()],
+            key_columns_b: vec!["id".to_string()],
+            comparison_columns_a: vec!["名".to_string()],
+            comparison_columns_b: vec!["名".to_string()],
+        };
+        save_pair_order_to_path(&store, &session_id, selection.clone(), &path).unwrap();
+        let before = store
+            .with_session(&session_id, |data| format!("{data:?}"))
+            .unwrap();
+        assert_eq!(
+            load_pair_order_from_path(&store, &session_id, &path)
+                .unwrap()
+                .selection,
+            selection
+        );
+        fs::write(&path, vec![b'a'; MAX_PAIR_ORDER_BYTES + 1]).unwrap();
+        assert!(matches!(
+            load_pair_order_from_path(&store, &session_id, &path),
+            Err(CsvAlignError::BadInput(_))
+        ));
+        assert_eq!(
+            store.with_session(&session_id, |data| format!("{data:?}")),
+            Some(before)
+        );
+    }
 }
 
 pub(crate) fn save_comparison_snapshot_to_path(
