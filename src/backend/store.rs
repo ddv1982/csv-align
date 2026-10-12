@@ -495,12 +495,14 @@ fn operation_state_error(error: OperationStateError) -> CsvAlignError {
 }
 
 fn next_saturating(counter: &AtomicU64) -> u64 {
-    counter
-        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
-            Some(current.saturating_add(1))
-        })
-        .unwrap_or_else(|current| current)
-        .saturating_add(1)
+    let mut current = counter.load(Ordering::Relaxed);
+    loop {
+        let next = current.saturating_add(1);
+        match counter.compare_exchange_weak(current, next, Ordering::Relaxed, Ordering::Relaxed) {
+            Ok(_) => return next,
+            Err(actual) => current = actual,
+        }
+    }
 }
 
 fn is_current(index: &SessionIndex, id: &str, entry: &Arc<SessionEntry>) -> bool {
@@ -568,6 +570,37 @@ fn total_session_bytes(index: &SessionIndex) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn saturating_sequence_never_wraps() {
+        let counter = AtomicU64::new(u64::MAX - 1);
+        assert_eq!(next_saturating(&counter), u64::MAX);
+        assert_eq!(next_saturating(&counter), u64::MAX);
+        assert_eq!(counter.load(Ordering::Relaxed), u64::MAX);
+    }
+
+    #[test]
+    fn saturating_sequence_assigns_unique_values_under_contention() {
+        let counter = AtomicU64::new(0);
+        let mut values = std::thread::scope(|scope| {
+            let workers: Vec<_> = (0..8)
+                .map(|_| {
+                    scope.spawn(|| {
+                        (0..1000)
+                            .map(|_| next_saturating(&counter))
+                            .collect::<Vec<_>>()
+                    })
+                })
+                .collect();
+            workers
+                .into_iter()
+                .flat_map(|worker| worker.join().unwrap())
+                .collect::<Vec<_>>()
+        });
+        values.sort_unstable();
+        assert_eq!(values, (1..=8000).collect::<Vec<_>>());
+        assert_eq!(counter.load(Ordering::Relaxed), 8000);
+    }
 
     #[test]
     fn lru_ties_use_creation_sequence_then_session_id() {

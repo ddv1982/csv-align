@@ -4,7 +4,8 @@ Publish the reviewed October improvements through the existing CI and release wo
 
 - [x] Inspect documented release requirements, current workflow, remote main, authentication and unused tag; verified with Git and GitHub CLI.
 - [x] Synchronize all eight version-bearing files to 2.2.2 and add the dated nonempty changelog section; verify the expected-tag metadata checker.
-- [ ] Review/stage intended changes, run repository release preflight and commit with Conventional Commit message.
+- [x] Review/stage intended changes, run repository release preflight and commit with Conventional Commit message (f86a062).
+- [ ] Repair CI run 38222583350's stable-Rust atomic fetch_update deprecation in src/backend/store.rs with a Rust-1.88-compatible saturating compare/exchange loop; verify saturation, concurrency, both compiler checks and commit the bounded compatibility fix.
 - [ ] Push main, verify successful CI and required artifacts for the exact commit, then create and push v2.2.2.
 - [ ] Wait for release workflow success and verify published tag, complete release assets and hosted APT version.
 
