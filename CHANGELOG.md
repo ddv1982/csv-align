@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.2.4 - 2026-10-13
+
+- Remove the visible warning beneath Run Comparison while preserving the disabled-button explanation for screen readers and all comparison validation rules.
+
 ## v2.2.3 - 2026-10-13
 
 - Refine the dark interface with quieter surfaces, clearer headings, consistent controls, visible keyboard focus, and reduced-motion support.

@@ -59,6 +59,17 @@ test('disables decimal-digit input until trimming is enabled', () => {
   expect(screen.getByLabelText('Decimal digits to drop')).toBeDisabled();
 });
 
+test('keeps the empty comparison reason screen-reader-only', () => {
+  renderMappingConfig();
+
+  const compareButton = screen.getByRole('button', { name: 'Run Comparison' });
+  const reason = document.getElementById(compareButton.getAttribute('aria-describedby')!);
+
+  expect(compareButton).toBeDisabled();
+  expect(compareButton).toHaveAccessibleDescription('Select the same number of comparison columns in both files to run the comparison.');
+  expect(reason).toHaveClass('sr-only');
+});
+
 test('shows save, load, and copy actions inside the pair-order box', () => {
   renderMappingConfig();
 
@@ -134,7 +145,7 @@ test('enables save pair order when explicit row keys and pair order exist', () =
   expect(within(screen.getByLabelText('Pair order')).getByRole('button', { name: 'Save pair order' })).toBeEnabled();
 });
 
-test('disables pair-order save and copy when comparison column counts differ', () => {
+test('keeps the mismatched comparison reason screen-reader-only and disables pair-order actions', () => {
   render(
     <MappingConfig
       fileA={file}
@@ -158,10 +169,14 @@ test('disables pair-order save and copy when comparison column counts differ', (
   const pairOrderBox = screen.getByLabelText('Pair order');
   expect(within(pairOrderBox).getByRole('button', { name: 'Save pair order' })).toBeDisabled();
   expect(within(pairOrderBox).getByRole('button', { name: 'Copy current pair order' })).toBeDisabled();
-  expect(screen.getAllByText('Select the same number of comparison columns in both files to run the comparison.')).toHaveLength(2);
+  const compareButton = screen.getByRole('button', { name: 'Run Comparison' });
+  expect(compareButton).toBeDisabled();
+  expect(compareButton).toHaveAccessibleDescription('Select the same number of comparison columns in both files to run the comparison.');
+  expect(document.getElementById(compareButton.getAttribute('aria-describedby')!)).toHaveClass('sr-only');
+  expect(within(pairOrderBox).getByText('Select the same number of comparison columns in both files to run the comparison.')).toBeInTheDocument();
 });
 
-test('disables comparison when effective row-key counts differ', () => {
+test('keeps the mismatched row-key reason screen-reader-only and disables comparison', () => {
   const onCompare = vi.fn();
 
   render(
@@ -186,7 +201,8 @@ test('disables comparison when effective row-key counts differ', () => {
 
   const compareButton = screen.getByRole('button', { name: 'Run Comparison' });
   expect(compareButton).toBeDisabled();
-  expect(screen.getByText('Select the same number of row keys in both files, or enable flexible row-key matching.')).toBeInTheDocument();
+  expect(compareButton).toHaveAccessibleDescription('Select the same number of row keys in both files, or enable flexible row-key matching.');
+  expect(document.getElementById(compareButton.getAttribute('aria-describedby')!)).toHaveClass('sr-only');
 
   fireEvent.click(compareButton);
   expect(onCompare).not.toHaveBeenCalled();
@@ -215,7 +231,10 @@ test('allows mismatched row-key counts when flexible row-key matching is enabled
     />
   );
 
-  fireEvent.click(screen.getByRole('button', { name: 'Run Comparison' }));
+  const compareButton = screen.getByRole('button', { name: 'Run Comparison' });
+  expect(compareButton).toBeEnabled();
+  expect(compareButton).not.toHaveAttribute('aria-describedby');
+  fireEvent.click(compareButton);
 
   expect(onCompare).toHaveBeenCalledWith(
     ['id', 'name'],

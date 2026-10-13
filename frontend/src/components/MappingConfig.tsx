@@ -225,7 +225,7 @@ export function MappingConfig({
         </button>
       </div>
       {!canCompare && (
-        <p id={compareDisabledReasonId} className="text-right text-sm text-app-warning">{compareDisabledMessage}</p>
+        <p id={compareDisabledReasonId} className="sr-only">{compareDisabledMessage}</p>
       )}
     </div>
   );
