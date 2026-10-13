@@ -10,8 +10,8 @@ const EXPORT_THEME_TOKENS = String.raw`:root,
   --color-app-bg: #030712;
   --color-app-panel: #111827;
   --color-app-panel-muted: #0f172a;
-  --color-app-border: rgba(55, 65, 81, 0.9);
-  --color-app-border-strong: rgba(107, 114, 128, 0.95);
+  --color-app-border: #303b4d;
+  --color-app-border-strong: #526078;
   --color-app-text: #f3f4f6;
   --color-app-muted: #9ca3af;
   --color-app-accent: #3b82f6;
@@ -19,9 +19,9 @@ const EXPORT_THEME_TOKENS = String.raw`:root,
   --color-app-danger: #f87171;
   --color-app-success: #34d399;
   --color-app-warning: #fbbf24;
-  --color-app-header: rgba(3, 7, 18, 0.82);
-  --color-app-overlay: rgba(17, 24, 39, 0.72);
-  --color-app-overlay-strong: rgba(31, 41, 55, 0.78);
+  --color-app-header: #111827;
+  --color-app-overlay: #1f2937;
+  --color-app-overlay-strong: #273244;
   --color-app-grid: transparent;
 
   --color-primary-50: #eff6ff;
@@ -59,7 +59,7 @@ const EXPORT_ONLY_STYLES = String.raw`* {
 }
 
 *:focus-visible {
-  outline: 2px solid var(--color-app-accent);
+  outline: 2px solid var(--color-app-highlight);
   outline-offset: 2px;
 }
 
@@ -150,7 +150,6 @@ svg {
   height: 20px;
 }
 
-.summary-main,
 .summary-banners {
   display: grid;
   gap: 24px;
@@ -163,29 +162,6 @@ svg {
 .summary-file-grid {
   display: grid;
   gap: 12px;
-}
-
-.summary-stat-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.summary-match-rate-head {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.summary-match-rate-value {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.summary-match-rate-value .display-title {
-  font-size: 36px;
-  font-variant-numeric: tabular-nums;
 }
 
 .search-wrap {
@@ -206,17 +182,10 @@ svg {
 
 .input {
   width: 100%;
-  min-width: 240px;
-  border: 1px solid var(--color-app-border);
-  border-radius: 8px;
-  background: var(--color-app-panel);
-  color: var(--color-app-text);
-  padding: 9px 12px 9px 36px;
-  font-size: 14px;
 }
 
-.input::placeholder {
-  color: var(--color-app-muted);
+.result-search-input {
+  padding-left: 36px;
 }
 
 .result-search-field-select {
@@ -291,11 +260,6 @@ tbody tr + tr td {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .summary-match-rate-head {
-    flex-direction: row;
-    align-items: baseline;
-    justify-content: space-between;
-  }
 }
 
 @media (min-width: 1024px) {
@@ -304,9 +268,6 @@ tbody tr + tr td {
     padding-right: 32px;
   }
 
-  .summary-stat-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 720px) {

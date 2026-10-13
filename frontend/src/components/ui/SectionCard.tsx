@@ -26,7 +26,7 @@ const TONE_CLASSES: Record<SectionCardTone, ToneClasses> = {
 };
 
 export interface SectionCardProps {
-  /** Short uppercase context label shown above the title. */
+  /** Short context label shown above the title. */
   eyebrow: string;
   /** Main heading content for the card. */
   title: ReactNode;
@@ -66,15 +66,15 @@ export function SectionCard({
       className={`card section-card p-5 ${className ?? ''}`.trim()}
     >
       <div className="section-card-header flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="section-card-heading flex items-start gap-3">
+        <div className="section-card-heading flex min-w-0 items-start gap-3">
           <div
             className={`section-card-icon mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center border font-mono text-sm uppercase tracking-[0.18em] ${toneClasses.iconWrap}`}
           >
             {icon}
           </div>
-          <div className="section-card-copy">
-            <p className={`hud-label ${toneClasses.eyebrow}`}>{eyebrow}</p>
-            <HeadingTag className={`mt-1 text-sm font-semibold uppercase tracking-[0.14em] ${toneClasses.title}`}>{title}</HeadingTag>
+          <div className="section-card-copy min-w-0">
+            <p className={`text-xs font-medium ${toneClasses.eyebrow}`}>{eyebrow}</p>
+            <HeadingTag className={`mt-1 text-base font-semibold tracking-tight ${toneClasses.title}`}>{title}</HeadingTag>
             {description && <p className={`mt-1 text-sm leading-6 ${toneClasses.description}`}>{description}</p>}
           </div>
         </div>

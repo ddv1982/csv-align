@@ -136,7 +136,7 @@ function DetailCell({ row, detail, isExpanded, onToggle }: {
     <div className="detail-cell-stack grid gap-2">
       <button
         onClick={onToggle}
-        className={`diff-toggle inline-flex w-fit items-center gap-1.5 border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] transition-colors ${
+        className={`diff-toggle inline-flex w-fit items-center gap-1.5 border px-2.5 py-1 text-xs font-medium transition-colors ${
           isExpanded
             ? 'border-app-accent app-surface-accent-strong text-app-text'
             : 'app-surface-subtle border-app-border text-app-muted hover:border-app-border-strong hover:text-app-text'
@@ -361,8 +361,8 @@ export function ResultsTable({
                     <Fragment key={row.id}>
                       <tr className={`transition-colors ${isExpanded ? 'app-surface-accent-strong' : 'bg-transparent app-surface-hover'}`} data-result-tone={row.badgeTone}>
                         <td className="px-4 py-3.5 align-top" data-label="Type">
-                          <span className={`badge tone-${row.badgeTone} inline-flex w-fit items-center gap-1.5 whitespace-nowrap border px-2.5 py-1 text-xs font-medium uppercase tracking-[0.12em] ${row.badge.bg} ${row.badge.text}`}>
-                            <span className={`badge-dot h-1.5 w-1.5 shrink-0 ${row.badge.dot}`} aria-hidden="true" />
+                          <span className={`badge tone-${row.badgeTone} w-fit whitespace-nowrap`}>
+                            <span className="badge-dot" aria-hidden="true" />
                             {row.badge.label}
                           </span>
                         </td>

@@ -19,7 +19,7 @@ function ColumnChipGroup({ label, columns, selectedColumns, onToggle }: {
 
   return (
     <div className="space-y-2">
-      {label && <p className="text-xs font-semibold uppercase tracking-[0.14em] text-app-muted">{label}</p>}
+      {label && <p className="text-xs font-medium text-app-muted">{label}</p>}
       <div className="flex flex-wrap gap-2">
         {columns.map((column) => {
           const isSelected = selectedColumns.includes(column);
@@ -32,18 +32,18 @@ function ColumnChipGroup({ label, columns, selectedColumns, onToggle }: {
               aria-pressed={isSelected}
               aria-label={isSelected ? `${column}, selected ${selectedPosition} of ${selectedColumns.length}` : column}
               onClick={() => onToggle(column)}
-              className={`inline-flex items-center gap-2 border px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`inline-flex min-h-9 min-w-0 max-w-full items-center gap-2 whitespace-normal border px-3 py-1.5 text-left text-sm font-medium transition-colors ${
                  isSelected
                    ? 'filter-chip-active'
                    : 'filter-chip'
                 }`}
             >
               {isSelected && (
-                <span aria-hidden="true" className="selected-order-badge">
+                <span aria-hidden="true" className="selected-order-badge shrink-0">
                   {selectedPosition}
                 </span>
               )}
-              {column}
+              <span className="min-w-0 break-words">{column}</span>
             </button>
           );
         })}
@@ -57,8 +57,8 @@ export function ColumnChipSelector({ title, columns, virtualColumns = [], select
   const hasVirtualColumns = visibleVirtualColumns.length > 0;
 
   return (
-    <div>
-      <h4 className="hud-label mb-1">{title}</h4>
+    <div className="min-w-0">
+      <h4 className="mb-1 text-sm font-semibold text-app-text">{title}</h4>
       <p className="mb-3 text-xs font-semibold text-app-muted">{selectedColumns.length} selected</p>
       <div className="space-y-3">
         <ColumnChipGroup

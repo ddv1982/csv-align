@@ -145,7 +145,7 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
 
   return (
     <div className="card file-selector-card p-5 sm:p-6">
-      <h3 className="mb-5 flex items-center gap-2 text-lg font-semibold tracking-tight text-app-text">
+      <h3 className="mb-4 flex items-center gap-2 text-base font-semibold tracking-tight text-app-text">
         <span className={`flex h-7 w-7 items-center justify-center rounded-full border font-mono text-sm font-bold ${fileToneClass}`}>
           {fileLetter}
         </span>
@@ -194,7 +194,7 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
                 <p className="hud-label mb-2">Columns</p>
                 <div className="flex flex-wrap gap-2">
                   {file.columns.map((col) => (
-                    <span key={col.name} className="table-chip">
+                    <span key={col.name} className="table-chip min-w-0 max-w-full whitespace-normal break-words">
                       {col.name}
                       <span className="ml-2 text-app-muted">[{col.data_type}]</span>
                     </span>
@@ -229,20 +229,20 @@ export function FileSelector({ label, file, onSelect }: FileSelectorProps) {
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           aria-label={`${label} CSV dropzone`}
-          className={`border border-dashed p-8 text-center transition-all duration-200 ${
+          className={`border border-dashed px-4 py-6 text-center transition-colors duration-200 ${
              isDragging
               ? 'file-dropzone-active'
               : 'file-dropzone'
             }`}
         >
           <div className="flex flex-col items-center">
-            <div className={`empty-state-icon ${
+            <div className={`mb-3 flex h-10 w-10 items-center justify-center ${
               isDragging ? 'border-app-accent text-app-accent' : 'border-app-border text-app-muted'
             }`}>
-              <DocumentArrowUpIcon className="h-8 w-8" />
+              <DocumentArrowUpIcon className="h-6 w-6" />
             </div>
 
-            <p className="mb-1 text-lg font-semibold tracking-tight text-app-text">
+            <p className="mb-1 max-w-xs text-sm font-medium leading-6 text-app-text">
               {isDragging ? 'Drop the CSV file here' : 'Drag & drop a local CSV file to choose it'}
             </p>
             <p className="mb-4 text-sm text-app-muted">or choose one from this device</p>

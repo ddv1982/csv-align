@@ -77,8 +77,8 @@ test('gives the export button an accessible label', () => {
 
   expect(htmlButton).toBeInTheDocument();
   expect(csvButton).toBeInTheDocument();
-  expect(htmlButton).toHaveClass('btn-primary');
-  expect(csvButton).toHaveClass('btn-primary');
+  expect(htmlButton).toHaveClass('btn-secondary');
+  expect(csvButton).toHaveClass('btn-secondary');
 
   fireEvent.click(htmlButton);
   fireEvent.click(csvButton);

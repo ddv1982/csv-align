@@ -24,12 +24,12 @@ export function StepIntroCard({
   actionClassName,
 }: StepIntroCardProps) {
   return (
-    <div className={`card step-intro-card overflow-hidden p-0 ${className ?? ''}`.trim()}>
+    <div className={`step-intro-card min-w-0 ${className ?? ''}`.trim()}>
       <div
-        className={`flex flex-col gap-5 p-5 sm:p-6 lg:flex-row lg:items-start lg:justify-between ${headerClassName ?? ''}`.trim()}
+        className={`step-intro-header flex flex-col gap-5 py-2 lg:flex-row lg:items-start lg:justify-between ${headerClassName ?? ''}`.trim()}
       >
-        <div className={`max-w-3xl ${copyClassName ?? ''}`.trim()}>
-          <p className="hud-label text-app-accent">{eyebrow}</p>
+        <div className={`min-w-0 max-w-3xl ${copyClassName ?? ''}`.trim()}>
+          <p className="text-sm font-medium text-app-accent">{eyebrow}</p>
           <h2 className="mt-2 text-xl font-semibold tracking-tight text-app-text sm:text-2xl">
             {title}
           </h2>
@@ -37,7 +37,7 @@ export function StepIntroCard({
             {description}
           </p>
         </div>
-        {action && <div className={actionClassName}>{action}</div>}
+        {action && <div className={`step-intro-action min-w-0 ${actionClassName ?? ''}`.trim()}>{action}</div>}
       </div>
       {children}
     </div>
@@ -62,17 +62,17 @@ export function StepActionPanel({
   className,
 }: StepActionPanelProps) {
   return (
-    <div className={`saved-result-panel min-w-0 ${className ?? ''}`.trim()}>
+    <div className={`step-action-panel min-w-0 ${className ?? ''}`.trim()}>
       <div className="min-w-0">
         <div className="flex items-start gap-3">
           {icon && (
             <span
-              className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${iconClassName ?? ''}`.trim()}
+              className={`step-action-icon mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${iconClassName ?? ''}`.trim()}
             >
               {icon}
             </span>
           )}
-          <div>
+          <div className="min-w-0">
             <h3 className="text-sm font-semibold text-app-text">{title}</h3>
             <p className="mt-1 text-sm leading-6 text-app-muted">{description}</p>
           </div>

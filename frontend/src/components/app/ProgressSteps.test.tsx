@@ -36,7 +36,7 @@ test('navigates only for unlocked non-active steps', () => {
   expect(screen.queryByRole('button', { name: 'Go to step 3: Results' })).not.toBeInTheDocument();
 });
 
-test('keeps step labels left-aligned for active and navigable steps', () => {
+test('centers steps on narrow screens and left-aligns them on desktop', () => {
   render(
     <ProgressSteps
       step="configure"
@@ -45,9 +45,9 @@ test('keeps step labels left-aligned for active and navigable steps', () => {
     />,
   );
 
-  expect(screen.getByText('Step 1').parentElement).toHaveClass('text-left');
-  expect(screen.getByText('Step 2').parentElement).toHaveClass('text-left');
-  expect(screen.getByText('Step 3').parentElement).toHaveClass('text-left');
+  for (const label of ['Step 1', 'Step 2', 'Step 3']) {
+    expect(screen.getByText(label).closest('.workflow-step')).toHaveClass('text-center', 'sm:text-left');
+  }
 });
 
 test('keeps a consistent step container width for active and navigable steps', () => {
@@ -59,9 +59,10 @@ test('keeps a consistent step container width for active and navigable steps', (
     />,
   );
 
-  expect(screen.getByRole('button', { name: 'Go to step 1: Choose Files' })).toHaveClass('min-w-[11rem]');
-  expect(screen.getByText('Step 2').closest('div')).toHaveClass('min-w-[11rem]');
-  expect(screen.getByRole('button', { name: 'Go to step 3: Results' })).toHaveClass('min-w-[11rem]');
+  expect(screen.getByRole('list')).toHaveClass('grid', 'grid-cols-3');
+  expect(screen.getByRole('button', { name: 'Go to step 1: Choose Files' })).toHaveClass('w-full', 'min-w-0');
+  expect(screen.getByText('Step 2').closest('div')).toHaveClass('w-full', 'min-w-0');
+  expect(screen.getByRole('button', { name: 'Go to step 3: Results' })).toHaveClass('w-full', 'min-w-0');
 });
 
 test('uses normal app typography instead of HUD styling for step copy', () => {
@@ -78,7 +79,7 @@ test('uses normal app typography instead of HUD styling for step copy', () => {
   const firstLabel = screen.getByText('Choose Files');
   const firstBadge = screen.getByText('1');
 
-  expect(firstLabel).toHaveClass('text-sm', 'font-semibold', 'tracking-tight');
+  expect(firstLabel).toHaveClass('text-xs', 'sm:text-sm', 'font-semibold', 'tracking-tight');
   expect(firstLabel).not.toHaveClass('uppercase');
   expect(firstLabel).not.toHaveClass('tracking-[0.14em]');
   expect(firstBadge).toHaveClass('text-sm', 'font-semibold');

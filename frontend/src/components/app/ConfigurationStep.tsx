@@ -6,14 +6,14 @@ import { StepIntroCard } from '../ui/StepIntroCard';
 
 function FileOverview({ label, name, rowCount, columnCount, headers }: { label: string; name: string; rowCount: number; columnCount: number; headers: string[] }) {
   return (
-    <section className="surface-panel p-4">
+    <section className="surface-panel min-w-0 p-4">
       <div className="flex items-start gap-3">
         <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border font-mono text-sm font-bold ${label === 'File A' ? 'tone-accent-strong' : 'tone-success-strong'}`}>
           {label === 'File A' ? 'A' : 'B'}
         </span>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="hud-label">{label}</p>
-          <h3 className="mt-1 truncate text-sm font-semibold tracking-tight text-app-text">{name}</h3>
+          <h3 className="mt-1 truncate text-sm font-semibold tracking-tight text-app-text" title={name}>{name}</h3>
         </div>
       </div>
       <div className="mt-3 flex flex-wrap gap-2 text-xs text-app-muted">
@@ -82,7 +82,7 @@ export function ConfigurationStep({
         }
         actionClassName="shrink-0"
       >
-        <div className="grid gap-4 border-t border-app-border p-5 sm:p-6 lg:grid-cols-2">
+        <div className="grid min-w-0 grid-cols-1 gap-4 border-t border-app-border p-5 sm:p-6 lg:grid-cols-2">
           <FileOverview label="File A" name={fileA.name} rowCount={fileA.rowCount} columnCount={fileA.headers.length} headers={fileA.headers} />
           <FileOverview label="File B" name={fileB.name} rowCount={fileB.rowCount} columnCount={fileB.headers.length} headers={fileB.headers} />
         </div>

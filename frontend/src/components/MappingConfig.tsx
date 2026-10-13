@@ -7,7 +7,7 @@ import { SectionCard } from './ui/SectionCard';
 import { ColumnChipSelector } from './mapping-config/ColumnChipSelector';
 import { NormalizationPanel } from './mapping-config/NormalizationPanel';
 import { PairPreview } from './mapping-config/PairPreview';
-import { KeyIcon, TableCellsIcon } from './icons';
+import { ArrowRightIcon, KeyIcon, TableCellsIcon } from './icons';
 
 interface MappingConfigProps {
   fileA: AppFile;
@@ -213,19 +213,19 @@ export function MappingConfig({
         />
       </SectionCard>
 
-      <div className="flex justify-center">
+      <div className="flex justify-end">
         <button
           onClick={handleCompare}
           disabled={!canCompare}
           aria-describedby={!canCompare ? compareDisabledReasonId : undefined}
-          className={`btn btn-success flex items-center gap-2 px-8 py-3 text-sm ${!canCompare ? 'cursor-not-allowed opacity-50' : ''}`}
+          className={`btn btn-primary flex min-h-9 items-center gap-2 px-5 py-3 text-sm ${!canCompare ? 'cursor-not-allowed opacity-50' : ''}`}
         >
-          <span aria-hidden="true">GO</span>
+          <ArrowRightIcon className="h-4 w-4" />
           Run Comparison
         </button>
       </div>
       {!canCompare && (
-        <p id={compareDisabledReasonId} className="text-center text-sm text-app-warning">{compareDisabledMessage}</p>
+        <p id={compareDisabledReasonId} className="text-right text-sm text-app-warning">{compareDisabledMessage}</p>
       )}
     </div>
   );

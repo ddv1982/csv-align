@@ -20,7 +20,7 @@ export function AppHeader({ onReset }: AppHeaderProps) {
   }
 
   return (
-    <header className="app-header-glass sticky top-0 z-30">
+    <header className="app-header sticky top-0 z-30">
       <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex flex-wrap items-center gap-3 sm:gap-4">
           <div className="flex min-w-0 items-center gap-3">
@@ -28,7 +28,7 @@ export function AppHeader({ onReset }: AppHeaderProps) {
               <img src={appLogo} alt="" className="h-full w-full object-cover" />
             </div>
             <div className="min-w-0">
-              <h1 className="truncate text-base font-semibold tracking-tight text-gray-50">
+              <h1 className="truncate text-lg font-semibold tracking-tight text-gray-50">
                 CSV Align
               </h1>
               <p className="truncate text-xs text-gray-400">

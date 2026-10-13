@@ -25,7 +25,7 @@ export function FilterBar({ filter, results, onFilterChange, onExportCsv, onExpo
         <div className="flex shrink-0 flex-wrap gap-3">
           <button
             onClick={onExportHtml}
-            className="btn btn-primary shrink-0"
+            className="btn btn-secondary shrink-0"
             aria-label="Export comparison results as HTML"
           >
             <ArrowDownTrayIcon className="h-4 w-4" />
@@ -33,7 +33,7 @@ export function FilterBar({ filter, results, onFilterChange, onExportCsv, onExpo
           </button>
           <button
             onClick={onExportCsv}
-            className="btn btn-primary shrink-0"
+            className="btn btn-secondary shrink-0"
             aria-label="Export comparison results as CSV"
           >
             <ArrowDownTrayIcon className="h-4 w-4" />

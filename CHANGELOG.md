@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.2.3 - 2026-10-13
+
+- Refine the dark interface with quieter surfaces, clearer headings, consistent controls, visible keyboard focus, and reduced-motion support.
+- Keep the three-step workflow compact on narrow screens and contain long filenames within configuration overview cards.
+- Reduce results-summary height and improve table and status-label readability while preserving comparison counts, caveats, filters, and detailed inspection.
+- Align standalone HTML reports with the application styling and label stacked mobile result cells so File A and File B values remain identifiable.
+
 ## v2.2.2 - 2026-10-12
 
 - Publish desktop HTML, pair-order and comparison snapshot saves atomically, preserving existing files on write or synchronization failure.

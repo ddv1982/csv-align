@@ -665,6 +665,10 @@ test('standalone export supports compact field-scoped search with fallback to al
   const resultsCount = document.getElementById('results-count');
 
   expect(searchInput).toHaveClass('result-search-input');
+  expect(Array.from(document.querySelectorAll('#results-body tr:first-child td[data-label]'))
+    .map((cell) => cell.getAttribute('data-label'))).toEqual([
+      'Type', 'Key', 'File A Values', 'File B Values', 'Details',
+    ]);
   expect(Array.from(fieldSelect.options).map((option) => option.textContent)).toEqual([
     'All fields',
     'Type',

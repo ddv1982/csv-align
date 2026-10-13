@@ -14,18 +14,18 @@ interface ProgressStepsProps {
 
 export function ProgressSteps({ step, unlockedSteps, onStepChange }: ProgressStepsProps) {
   const activeIndex = STEPS.findIndex((s) => s.id === step);
-  const stepClasses = 'flex min-w-[11rem] items-center px-2 py-1 text-left transition-colors';
+  const stepClasses = 'workflow-step flex min-h-16 w-full min-w-0 flex-col items-center justify-center gap-2 rounded-lg px-1 py-2 text-center transition-colors sm:flex-row sm:justify-start sm:gap-3 sm:px-3 sm:text-left';
 
   return (
-    <nav className="mb-8" aria-label="Progress">
-      <ol className="card mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-3 px-4 py-4 sm:px-5">
+    <nav className="mb-6" aria-label="Progress">
+      <ol className="workflow-progress mx-auto grid max-w-4xl grid-cols-3 gap-1 sm:gap-3">
         {STEPS.map((currentStep, index) => {
           const isActive = step === currentStep.id;
           const isComplete = index < activeIndex;
           const isUnlocked = unlockedSteps.includes(currentStep.id);
           const canNavigate = isUnlocked && !isActive;
 
-          const badgeClasses = `flex h-8 w-8 shrink-0 items-center justify-center border text-sm font-semibold transition-colors ${
+          const badgeClasses = `workflow-step-number flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm font-semibold transition-colors ${
             isActive
               ? 'app-surface-accent'
               : isComplete
@@ -35,24 +35,20 @@ export function ProgressSteps({ step, unlockedSteps, onStepChange }: ProgressSte
                   : 'border-app-border bg-transparent text-app-muted'
           }`;
 
-          const textClasses = isActive
-            ? 'text-app-text'
-            : isUnlocked
-              ? 'text-app-muted'
-              : 'text-[rgba(149,162,179,0.55)]';
+          const textClasses = isActive ? 'text-app-text' : 'text-app-muted';
 
           const commonContent = (
             <>
               <span className={badgeClasses}>{currentStep.number}</span>
-              <span className="ml-3 text-left">
-                <span className="block text-xs font-medium text-app-muted">Step {currentStep.number}</span>
-                <span className="block text-sm font-semibold tracking-tight">{currentStep.label}</span>
+              <span className="workflow-step-copy min-w-0">
+                <span className="hidden text-xs font-medium text-app-muted sm:block">Step {currentStep.number}</span>
+                <span className="workflow-step-label block whitespace-nowrap text-xs font-semibold tracking-tight sm:text-sm">{currentStep.label}</span>
               </span>
             </>
           );
 
           return (
-            <li key={currentStep.id} className="flex shrink-0 items-center">
+            <li key={currentStep.id} className="min-w-0">
               {canNavigate ? (
                 <button
                   type="button"
@@ -71,12 +67,6 @@ export function ProgressSteps({ step, unlockedSteps, onStepChange }: ProgressSte
                 >
                   {commonContent}
                 </div>
-              )}
-              {index < STEPS.length - 1 && (
-                <span
-                  className="mx-3 h-px w-8 bg-app-border sm:mx-4 sm:w-12"
-                  aria-hidden="true"
-                />
               )}
             </li>
           );

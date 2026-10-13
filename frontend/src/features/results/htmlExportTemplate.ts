@@ -134,9 +134,9 @@ ${RESULTS_EXPORT_STYLES}
               </div>
             </div>
             <div class="section-card-body mt-5">
-              <div class="summary-main space-y-6">
+              <div class="summary-main">
                 <div class="surface-panel summary-match-rate p-5">
-                  <div class="summary-match-rate-head flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+                  <div class="summary-match-rate-head">
                     <div>
                       <p class="hud-label">Match rate</p>
                       <p class="app-text mt-0.5 text-sm font-medium">Match rate of comparable rows</p>
@@ -146,7 +146,7 @@ ${RESULTS_EXPORT_STYLES}
                       <span class="app-muted text-xs">${data.summary.matches} of ${comparableTotal} rows</span>
                     </div>
                   </div>
-                  <div class="app-frame summary-progress mt-4 h-3 w-full overflow-hidden">
+                  <div class="app-frame summary-progress w-full overflow-hidden">
                     <div class="app-progress-fill h-full transition-all duration-500" style="width: ${matchPercent}%;"></div>
                   </div>
                 </div>
@@ -479,11 +479,11 @@ ${RESULTS_EXPORT_STYLES}
             : '<span class="detail-description text-sm ' + (row.description ? 'app-text' : 'app-muted') + '">' + escapeHtml(row.description || '—') + '</span>';
 
           return '<tr class="transition-colors ' + (isExpanded ? 'app-surface-accent-strong' : 'bg-transparent app-surface-hover') + '" data-result-tone="' + escapeHtml(row.badgeTone) + '">'
-            + '<td class="px-4 py-3.5 align-top"><span class="badge tone-' + row.badgeTone + ' inline-flex w-fit items-center gap-1.5 whitespace-nowrap border px-2.5 py-1 text-xs font-medium uppercase tracking-[0.12em]"><span class="badge-dot h-1.5 w-1.5 shrink-0" aria-hidden="true"></span>' + escapeHtml(row.badge.label) + '</span></td>'
-            + '<td class="results-key-cell px-4 py-3.5 align-top">' + renderKeyChip(row) + '</td>'
-            + '<td class="px-4 py-3.5 align-top">' + formatValueStack(row.fileAValues) + '</td>'
-            + '<td class="px-4 py-3.5 align-top">' + formatValueStack(row.fileBValues) + '</td>'
-            + '<td class="px-4 py-3.5 align-top">' + detailCell + '</td>'
+            + '<td data-label="Type" class="px-4 py-3.5 align-top"><span class="badge tone-' + row.badgeTone + '"><span class="badge-dot" aria-hidden="true"></span>' + escapeHtml(row.badge.label) + '</span></td>'
+            + '<td data-label="Key" class="results-key-cell px-4 py-3.5 align-top">' + renderKeyChip(row) + '</td>'
+            + '<td data-label="File A Values" class="px-4 py-3.5 align-top">' + formatValueStack(row.fileAValues) + '</td>'
+            + '<td data-label="File B Values" class="px-4 py-3.5 align-top">' + formatValueStack(row.fileBValues) + '</td>'
+            + '<td data-label="Details" class="px-4 py-3.5 align-top">' + detailCell + '</td>'
             + '</tr>'
             + renderExpandedDetail(row);
         }).join('');

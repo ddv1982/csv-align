@@ -43,9 +43,9 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
         </div>
       }
     >
-      <div className="summary-main space-y-6">
-        <div className="surface-panel summary-match-rate p-5">
-          <div className="summary-match-rate-head flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+      <div className="summary-main">
+        <div className="surface-panel summary-match-rate p-4">
+          <div className="summary-match-rate-head">
             <div>
               <p className="hud-label">Match rate</p>
               <p className="app-text mt-0.5 text-sm font-medium">Match rate of comparable rows</p>
@@ -55,7 +55,7 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
               <span className="app-muted text-xs">{summary.matches} of {comparableTotal} rows</span>
             </div>
           </div>
-          <div className="app-frame summary-progress mt-4 h-3 w-full overflow-hidden">
+          <div className="app-frame summary-progress w-full overflow-hidden">
             <div
               className="app-progress-fill h-full transition-all duration-500"
               style={{ width: `${matchPercent}%` }}
@@ -70,11 +70,11 @@ export function SummaryStats({ summary, fileAName, fileBName }: SummaryStatsProp
               <p className="app-muted mt-0.5 text-sm">How each comparable row was classified.</p>
             </div>
           </div>
-            <div className="summary-stat-grid grid grid-cols-2 gap-4 md:grid-cols-4">
+              <div className="summary-stat-grid">
               {comparableStats.map((stat) => (
                 <div
                   key={stat.label}
-                  className={`surface-panel summary-stat p-4 tone-${stat.tone}`}
+                  className="surface-panel summary-stat"
                 >
                   <div className="summary-stat-head mb-3 flex items-center justify-between gap-3">
                     <div className={`summary-stat-icon tone-${stat.tone}-strong flex h-10 w-10 items-center justify-center border font-mono text-xs uppercase tracking-[0.18em]`}>

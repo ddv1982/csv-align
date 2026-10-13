@@ -12,8 +12,8 @@
   --color-app-bg: #030712;
   --color-app-panel: #111827;
   --color-app-panel-muted: #0f172a;
-  --color-app-border: rgba(55, 65, 81, 0.9);
-  --color-app-border-strong: rgba(107, 114, 128, 0.95);
+  --color-app-border: #303b4d;
+  --color-app-border-strong: #526078;
   --color-app-text: #f3f4f6;
   --color-app-muted: #9ca3af;
   --color-app-accent: #3b82f6;
@@ -21,9 +21,9 @@
   --color-app-danger: #f87171;
   --color-app-success: #34d399;
   --color-app-warning: #fbbf24;
-  --color-app-header: rgba(3, 7, 18, 0.82);
-  --color-app-overlay: rgba(17, 24, 39, 0.72);
-  --color-app-overlay-strong: rgba(31, 41, 55, 0.78);
+  --color-app-header: #111827;
+  --color-app-overlay: #1f2937;
+  --color-app-overlay-strong: #273244;
   --color-app-grid: transparent;
 
   --color-primary-50: #eff6ff;
@@ -74,7 +74,7 @@
   }
 
   *:focus-visible {
-    outline: 2px solid var(--color-app-accent);
+    outline: 2px solid var(--color-app-highlight);
     outline-offset: 2px;
   }
 
@@ -112,6 +112,25 @@
     to {
       opacity: 1;
       transform: translateY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .app-shell,
+    .app-shell *,
+    .app-shell *::before,
+    .app-shell *::after {
+      animation: none !important;
+      transition: none !important;
+      scroll-behavior: auto !important;
+    }
+
+    .animate-fade-in,
+    .animate-slide-up,
+    .animate-spin,
+    .animate-pulse,
+    .animate-bounce {
+      animation: none !important;
     }
   }
 }
